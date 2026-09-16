@@ -162,7 +162,8 @@
         try
         {
             _executions = await Http.GetFromJsonAsync<IReadOnlyList<StageExecution>>(
-                $"api/v1/projects/{Uri.EscapeDataString(Card.Reference.ProjectId)}/cards/{Uri.EscapeDataString(Card.Reference.CardId)}/executions") ?? [];
+                $"api/v1/projects/{Uri.EscapeDataString(Card.Reference.ProjectId)}/cards/{Uri.EscapeDataString(Card.Reference.CardId)}/executions",
+                PwaJson.Options) ?? [];
         }
         catch (Exception exception)
         {
@@ -207,7 +208,8 @@
         {
             using var response = await Http.PutAsJsonAsync(
                 $"api/v1/projects/{Uri.EscapeDataString(Card.Reference.ProjectId)}/cards/{Uri.EscapeDataString(Card.Reference.CardId)}",
-                new UpdateCardRequest(_title, priority, scopeFiles, Card.Revision));
+                new UpdateCardRequest(_title, priority, scopeFiles, Card.Revision),
+                PwaJson.Options);
             if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
             {
                 _message = Loc.Get("CardConflict");
@@ -236,10 +238,4 @@
         relation.Source.CardId == Card.Reference.CardId
             ? relation.Target.CardId
             : relation.Source.CardId;
-
-    private sealed record UpdateCardRequest(
-        string Title,
-        decimal OwnPriority,
-        IReadOnlyList<string> DeclaredScopeFiles,
-        long ExpectedRevision);
 }

@@ -17,9 +17,10 @@ dotnet test  Aiko.slnx -c Release --no-build
 dotnet run --project src/Aiko.Server            # the daemon, serving the PWA and the MCP endpoints
 ```
 
-Three xUnit suites run together: `Aiko.Domain.Specs` (pure rules), `Aiko.Infrastructure.Specs`
-(files, SQLite, agent adapters) and `Aiko.Mcp.Specs`, which boots its own daemon on a random
-loopback port with a throwaway database. No manual setup is needed before `dotnet test`.
+Four xUnit suites run together: `Aiko.Domain.Specs` (pure rules), `Aiko.Infrastructure.Specs`
+(files, SQLite, agent adapters), `Aiko.Mcp.Specs` - which boots its own daemon on a random loopback
+port with a throwaway database - and `Aiko.Pwa.Specs`, which pins the client's JSON contract. No
+manual setup is needed before `dotnet test`.
 
 To exercise the installed experience without touching your machine-wide setup:
 
@@ -39,6 +40,11 @@ delete, because everything is rebuildable from the `.aiko` files (`aiko reindex 
   cases and ports, `Aiko.Infrastructure` implements them, `Aiko.Server` hosts them.
 - Comments explain *why* a decision was made, not what a line does. File-level and type-level
   summaries are expected; `CS1591` is suppressed for positional record members.
+- The PWA talks JSON through the source-generated `PwaJsonContext` only: the published client is
+  trimmed, where reflection-based serialization fails at runtime. Register every new type the UI
+  exchanges, pass `PwaJson.Options` to every `HttpClient` JSON call, and keep client DTOs top-level
+  and `internal` (a type nested in a component cannot be reached by the generator).
+  `Aiko.Pwa.Specs` fails when a type is missing from the context.
 - Documentation is maintained in both languages (`README.md` + `README.ru.md`,
   `docs/en/*` + `docs/ru/*`). A behavior change updates both.
 

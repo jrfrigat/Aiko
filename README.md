@@ -64,6 +64,10 @@ unpacks it into `%LOCALAPPDATA%\Aiko\bin` (CLI `aiko`, stdio proxy `aiko-stdio`,
 `server\`) and adds that directory to the user `PATH`. Nothing is installed machine-wide and no
 administrator rights are needed.
 
+At the end it asks which agents to connect (Claude Code, Codex, Cursor, ZCode) and writes their
+global MCP entry, `/aiko-*` skills and shared memory; answering with Enter skips the question. Answer
+it non-interactively with `-Agents claude-code,codex`, or skip it with `-NoAgentSetup`.
+
 ```powershell
 aiko serve     # start the daemon (loopback only; prefers port 24560)
 aiko ui        # pair the browser with the daemon and open the board
@@ -94,9 +98,9 @@ directories and the database are never deleted automatically.
 dotnet test Aiko.slnx
 ```
 
-54 xUnit facts across three suites: domain rules, infrastructure/file/SQLite behavior, and MCP
-integration. The MCP suite boots its own daemon on a random port with an isolated database -
-no manual orchestration needed.
+58 xUnit facts across four suites: domain rules, infrastructure/file/SQLite behavior, MCP
+integration and the client JSON contract. The MCP suite boots its own daemon on a random port with an
+isolated database - no manual orchestration needed.
 
 ---
 
@@ -164,7 +168,7 @@ descriptions instruct agents to fetch the project context first; installed skill
 | `src/Aiko.Server` | ASP.NET Core daemon: REST API, MCP endpoints, PWA hosting |
 | `src/Aiko.Pwa` | Blazor WebAssembly PWA on Flare.Blazor |
 | `src/Aiko.StdioProxy` | Short-lived stdio <-> Streamable HTTP MCP proxy |
-| `tests/*` | xUnit suites: Domain.Specs, Infrastructure.Specs, Mcp.Specs (self-hosted) |
+| `tests/*` | xUnit suites: Domain.Specs, Infrastructure.Specs, Mcp.Specs (self-hosted), Pwa.Specs (JSON contract) |
 | `scripts/install.ps1` | Release installer behind the one-line install command |
 | `.github/workflows/` | `ci.yml` (build, test, lint the installers) and `release.yml` (win-x64 assets) |
 

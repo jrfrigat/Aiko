@@ -39,12 +39,18 @@ irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1 | i
 %LOCALAPPDATA%\Aiko\bin\server\Aiko.Server.exe   демон, PWA в server\wwwroot
 ```
 
+В конце установщик спрашивает, с какими агентами работать, и записывает им глобальную MCP-запись,
+скиллы `/aiko-*` и общую память (по сути `aiko agent install --scope user`). Enter - пропустить;
+в агентов, которых вы не назвали, ничего не пишется.
+
 ### Параметры установщика
 
 | Параметр | Действие |
 | :-- | :-- |
 | `-Version <tag>` | Установить конкретный релиз, например `v0.1.0`. По умолчанию - последний релиз. |
 | `-InstallDir <path>` | Распаковать в другой каталог. По умолчанию `%LOCALAPPDATA%\Aiko\bin`. |
+| `-Agents <ids>` | Подключить агентов без диалога, например `claude-code,codex`. |
+| `-NoAgentSetup` | Не спрашивать про агентов (то же самое позже: `aiko agent install --scope user`). |
 | `-NoPathUpdate` | Не менять пользовательский `PATH`. |
 
 Параметры требуют формы со scriptblock, потому что `irm ... | iex` их не принимает:

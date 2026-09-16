@@ -39,12 +39,18 @@ The installed layout:
 %LOCALAPPDATA%\Aiko\bin\server\Aiko.Server.exe   daemon, with the PWA in server\wwwroot
 ```
 
+When the install finishes, the installer asks which agents to connect and then writes the global MCP
+entry, the `/aiko-*` skills and the shared memory into them (`aiko agent install --scope user` under
+the hood). Press Enter to skip; nothing is written into an agent that you did not name.
+
 ### Installer options
 
 | Option | Effect |
 | :-- | :-- |
 | `-Version <tag>` | Install a specific release, for example `v0.1.0`. Defaults to the latest release. |
 | `-InstallDir <path>` | Unpack somewhere else. Defaults to `%LOCALAPPDATA%\Aiko\bin`. |
+| `-Agents <ids>` | Connect these agents globally without asking, for example `claude-code,codex`. |
+| `-NoAgentSetup` | Never ask about agents (same as `aiko agent install --scope user` later). |
 | `-NoPathUpdate` | Leave the user `PATH` untouched. |
 
 Options need the scriptblock form, because `irm ... | iex` cannot take parameters:

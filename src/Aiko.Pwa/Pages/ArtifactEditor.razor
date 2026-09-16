@@ -119,7 +119,8 @@
         try
         {
             _savedArtifacts = await Http.GetFromJsonAsync<IReadOnlyList<CardArtifactSummary>>(
-                $"api/v1/projects/{Uri.EscapeDataString(Card.Reference.ProjectId)}/cards/{Uri.EscapeDataString(Card.Reference.CardId)}/artifacts") ?? [];
+                $"api/v1/projects/{Uri.EscapeDataString(Card.Reference.ProjectId)}/cards/{Uri.EscapeDataString(Card.Reference.CardId)}/artifacts",
+                PwaJson.Options) ?? [];
         }
         catch (Exception exception)
         {
@@ -163,7 +164,7 @@
             }
 
             response.EnsureSuccessStatusCode();
-            var document = await response.Content.ReadFromJsonAsync<CardArtifactDocument>()
+            var document = await response.Content.ReadFromJsonAsync<CardArtifactDocument>(PwaJson.Options)
                 ?? throw new InvalidDataException("Сервер вернул пустой документ.");
             _content = document.Content;
             _version = document.Version;
@@ -210,7 +211,8 @@
         {
             using var response = await Http.PutAsJsonAsync(
                 $"api/v1/projects/{Uri.EscapeDataString(Card.Reference.ProjectId)}/cards/{Uri.EscapeDataString(Card.Reference.CardId)}/artifact",
-                new UpdateArtifactRequest(_selectedPath, _content, _version));
+                new UpdateArtifactRequest(_selectedPath, _content, _version),
+                PwaJson.Options);
             if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
             {
                 ShowError(Loc.Get("FileChanged"));
@@ -219,12 +221,12 @@
 
             if (!response.IsSuccessStatusCode)
             {
-                var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+                var error = await response.Content.ReadFromJsonAsync<ErrorResponse>(PwaJson.Options);
                 ShowError(error?.Message ?? Loc.Format("ServerRejected", (int)response.StatusCode));
                 return;
             }
 
-            var saved = await response.Content.ReadFromJsonAsync<CardArtifactDocument>()
+            var saved = await response.Content.ReadFromJsonAsync<CardArtifactDocument>(PwaJson.Options)
                 ?? throw new InvalidDataException(Loc.Get("ServerNoDoc"));
             _version = saved.Version;
             _content = saved.Content;
@@ -262,7 +264,4 @@
         _message = message;
         _hasError = true;
     }
-
-    private sealed record UpdateArtifactRequest(string Path, string Content, string? ExpectedVersion);
-    private sealed record ErrorResponse(string Message);
 }

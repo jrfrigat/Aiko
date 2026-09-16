@@ -11,9 +11,6 @@ namespace Aiko.Pwa.Services;
 /// </summary>
 public sealed class ProjectEventClient(IJSRuntime js) : IAsyncDisposable
 {
-    private static readonly JsonSerializerOptions JsonOptions =
-        new(JsonSerializerDefaults.Web);
-
     private DotNetObjectReference<ProjectEventClient>? _reference;
     private IJSObjectReference? _source;
     private string? _subscribedProjectId;
@@ -82,7 +79,7 @@ public sealed class ProjectEventClient(IJSRuntime js) : IAsyncDisposable
         AikoEvent? parsed;
         try
         {
-            parsed = JsonSerializer.Deserialize<AikoEvent>(json, JsonOptions);
+            parsed = JsonSerializer.Deserialize<AikoEvent>(json, PwaJson.Options);
         }
         catch (JsonException)
         {

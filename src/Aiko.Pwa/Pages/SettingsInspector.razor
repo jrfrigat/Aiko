@@ -59,38 +59,46 @@
         </section>
 
         <section class="inspector-section editor-fields">
-            <h3>@Loc.Get("ProjectSettings") <span class="settings-scope">.aiko/settings.json</span></h3>
-            <label class="settings-field">
-                <span>@Loc.Get("Workspace")</span>
-                <select value="@_projectWorkspace" @onchange="SetProjectWorkspace">
-                    <option value="Shared">@Loc.Get("WorkspaceOption")</option>
-                    <option value="Worktree" disabled>@Loc.Get("WorktreeOption")</option>
-                </select>
-            </label>
-            <FlareTextField Label="@Loc.Get("MaxRunsLabel")"
-                            Type="text"
-                            InputMode="numeric"
-                            ErrorText="@_projectMaxError"
-                            @bind-Value="_projectMaxRuns" />
-            <label class="settings-field">
-                <span>@Loc.Get("ScopePolicy")</span>
-                <select value="@_projectScopePolicy" @onchange="SetProjectScopePolicy">
-                    <option value="Ask">@Loc.Get("PolicyAsk")</option>
-                    <option value="Allow">@Loc.Get("PolicyAllow")</option>
-                    <option value="Deny">@Loc.Get("PolicyDeny")</option>
-                </select>
-            </label>
-            <label class="settings-field">
-                <span>@Loc.Get("CommitPolicy")</span>
-                <select value="@_projectCommitPolicy" @onchange="SetProjectCommitPolicy">
-                    <option value="Deny">@Loc.Get("PolicyDeny")</option>
-                    <option value="Ask">@Loc.Get("PolicyAsk")</option>
-                    <option value="Allow">@Loc.Get("PolicyAllow")</option>
-                </select>
-            </label>
-            <FlareButton FullWidth="true"
-                         Loading="@_savingProject"
-                         OnClick="SaveProjectAsync">@Loc.Get("SaveProjectSettings")</FlareButton>
+            @if (Project is not null)
+            {
+                <h3>@Loc.Get("ProjectSettings") <span class="settings-scope">.aiko/settings.json</span></h3>
+                <label class="settings-field">
+                    <span>@Loc.Get("Workspace")</span>
+                    <select value="@_projectWorkspace" @onchange="SetProjectWorkspace">
+                        <option value="Shared">@Loc.Get("WorkspaceOption")</option>
+                        <option value="Worktree" disabled>@Loc.Get("WorktreeOption")</option>
+                    </select>
+                </label>
+                <FlareTextField Label="@Loc.Get("MaxRunsLabel")"
+                                Type="text"
+                                InputMode="numeric"
+                                ErrorText="@_projectMaxError"
+                                @bind-Value="_projectMaxRuns" />
+                <label class="settings-field">
+                    <span>@Loc.Get("ScopePolicy")</span>
+                    <select value="@_projectScopePolicy" @onchange="SetProjectScopePolicy">
+                        <option value="Ask">@Loc.Get("PolicyAsk")</option>
+                        <option value="Allow">@Loc.Get("PolicyAllow")</option>
+                        <option value="Deny">@Loc.Get("PolicyDeny")</option>
+                    </select>
+                </label>
+                <label class="settings-field">
+                    <span>@Loc.Get("CommitPolicy")</span>
+                    <select value="@_projectCommitPolicy" @onchange="SetProjectCommitPolicy">
+                        <option value="Deny">@Loc.Get("PolicyDeny")</option>
+                        <option value="Ask">@Loc.Get("PolicyAsk")</option>
+                        <option value="Allow">@Loc.Get("PolicyAllow")</option>
+                    </select>
+                </label>
+                <FlareButton FullWidth="true"
+                             Loading="@_savingProject"
+                             OnClick="SaveProjectAsync">@Loc.Get("SaveProjectSettings")</FlareButton>
+            }
+            else
+            {
+                <h3>@Loc.Get("ProjectSettings")</h3>
+                <p class="inspector-empty">@Loc.Get("SelectProjectForLocalSettings")</p>
+            }
         </section>
 
         <section class="inspector-section editor-fields">
@@ -126,7 +134,7 @@
 </aside>
 
 @code {
-    [Parameter, EditorRequired] public RegisteredProject? Project { get; set; }
+    [Parameter] public RegisteredProject? Project { get; set; }
     [Parameter] public EventCallback OnSaved { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
 
@@ -151,15 +159,18 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (_view is not null || Project is null)
+        if (_view is not null)
         {
             return;
         }
 
         try
         {
-            var projectView = await Http.GetFromJsonAsync<AppSettingsView>(
-                $"api/v1/projects/{Uri.EscapeDataString(Project.Id)}/settings", PwaJson.Options);
+            // The inspector also opens without a project, where only global settings apply.
+            var projectView = Project is null
+                ? null
+                : await Http.GetFromJsonAsync<AppSettingsView>(
+                    $"api/v1/projects/{Uri.EscapeDataString(Project.Id)}/settings", PwaJson.Options);
             var globalView = await Http.GetFromJsonAsync<AppSettingsView>(
                 "api/v1/settings", PwaJson.Options);
             _system = await Http.GetFromJsonAsync<SystemInfo>("api/v1/system", PwaJson.Options);
@@ -340,11 +351,4 @@
         AppSettingsSources.Global => Loc.Get("SourceGlobal"),
         _ => Loc.Get("SourceDefault")
     };
-
-    private sealed record SystemInfo(
-        string Name,
-        string Version,
-        int ProcessId,
-        string BaseUrl,
-        DateTimeOffset Time);
 }

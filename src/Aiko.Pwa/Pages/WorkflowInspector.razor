@@ -248,7 +248,8 @@
         {
             using var response = await Http.PutAsJsonAsync(
                 $"api/v1/projects/{Uri.EscapeDataString(Board.Project.Id)}/workflows/{Uri.EscapeDataString(workflow.Id)}",
-                new UpdateWorkflowRequest(_workflowTitle, stages, workflow.Revision));
+                new UpdateWorkflowRequest(_workflowTitle, stages, workflow.Revision),
+                PwaJson.Options);
             if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
             {
                 ShowError("Workflow уже изменён другим агентом. Данные доски обновлены.");
@@ -258,7 +259,7 @@
 
             if (!response.IsSuccessStatusCode)
             {
-                var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+                var error = await response.Content.ReadFromJsonAsync<ErrorResponse>(PwaJson.Options);
                 ShowError(error?.Message ?? $"Сервер отклонил изменения: {(int)response.StatusCode}.");
                 return;
             }
@@ -355,11 +356,4 @@
             artifacts,
             ActionPolicies);
     }
-
-    private sealed record UpdateWorkflowRequest(
-        string Title,
-        IReadOnlyList<StageDefinition> Stages,
-        long ExpectedRevision);
-
-    private sealed record ErrorResponse(string Message);
 }

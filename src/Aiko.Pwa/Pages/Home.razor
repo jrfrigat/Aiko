@@ -43,7 +43,7 @@
         </div>
     </aside>
 
-    <main class="board-workspace @((_selectedCardId is not null || _editingWorkflow) ? "has-inspector" : null)">
+    <main class="board-workspace @((_selectedCardId is not null || _editingWorkflow || _editingSettings) ? "has-inspector" : null)">
         <header class="command-bar">
             <div class="page-heading">
                 <span class="eyebrow">@Loc.Get("BoardCaption")</span>
@@ -86,10 +86,10 @@
                     <FlareButton Variant="ButtonVariant.Outlined"
                                  Size="ButtonSize.Sm"
                                  OnClick="OpenWorkflow">Workflow</FlareButton>
-                    <FlareButton Variant="ButtonVariant.Outlined"
-                                 Size="ButtonSize.Sm"
-                                 OnClick="OpenSettings">Настройки</FlareButton>
                 }
+                <FlareButton Variant="ButtonVariant.Outlined"
+                             Size="ButtonSize.Sm"
+                             OnClick="OpenSettings">Настройки</FlareButton>
                 <FlareButton Variant="ButtonVariant.Text"
                              Size="ButtonSize.Sm"
                              Loading="@_loading"
@@ -182,9 +182,9 @@
                                OnSaved="LoadBoardAsync"
                                OnClose="CloseCard" />
             }
-            else if (_editingSettings && _board is not null)
+            else if (_editingSettings)
             {
-                <SettingsInspector Project="_board.Project"
+                <SettingsInspector Project="_board?.Project"
                                    OnSaved="LoadBoardAsync"
                                    OnClose="CloseSettings" />
             }
@@ -352,7 +352,8 @@
     {
         try
         {
-            _projects = await Http.GetFromJsonAsync<IReadOnlyList<RegisteredProject>>("api/v1/projects") ?? [];
+            _projects = await Http.GetFromJsonAsync<IReadOnlyList<RegisteredProject>>(
+                "api/v1/projects", PwaJson.Options) ?? [];
             _selectedProjectId = ReadProjectFromQuery() is { } requested &&
                                  _projects.Any(project => project.Id == requested)
                 ? requested
@@ -487,7 +488,8 @@
         try
         {
             _board = await Http.GetFromJsonAsync<ProjectBoardSnapshot>(
-                $"api/v1/projects/{Uri.EscapeDataString(_selectedProjectId)}/board");
+                $"api/v1/projects/{Uri.EscapeDataString(_selectedProjectId)}/board",
+                PwaJson.Options);
             _settingsView = await Http.GetFromJsonAsync<AppSettingsView>(
                 $"api/v1/projects/{Uri.EscapeDataString(_selectedProjectId)}/settings",
                 PwaJson.Options);
@@ -553,6 +555,13 @@
         _selectedCardId = null;
         _editingWorkflow = false;
         _editingSettings = true;
+        if (_selectedProjectId is null)
+        {
+            // Global settings are reachable without a project: the inspector serves both scopes.
+            Navigation.NavigateTo("?settings=1", replace: true);
+            return;
+        }
+
         NavigateToSelection();
     }
 
@@ -608,7 +617,8 @@
         {
             using var response = await Http.PutAsJsonAsync(
                 $"api/v1/projects/{Uri.EscapeDataString(_board.Project.Id)}/cards/{Uri.EscapeDataString(changed.Original.Reference.CardId)}/stage",
-                new MoveCardRequest(changed.Moved.ColumnId, changed.Original.Revision));
+                new MoveCardRequest(changed.Moved.ColumnId, changed.Original.Revision),
+                PwaJson.Options);
             response.EnsureSuccessStatusCode();
             await LoadBoardAsync();
         }
@@ -664,7 +674,8 @@
                 request,
                 PwaJson.Options);
             response.EnsureSuccessStatusCode();
-            _projects = await Http.GetFromJsonAsync<IReadOnlyList<RegisteredProject>>("api/v1/projects") ?? [];
+            _projects = await Http.GetFromJsonAsync<IReadOnlyList<RegisteredProject>>(
+                "api/v1/projects", PwaJson.Options) ?? [];
             var project = await response.Content.ReadFromJsonAsync<RegisteredProject>(PwaJson.Options);
             _selectedProjectId = project?.Id ?? _projects.FirstOrDefault()?.Id;
             _showAddProject = false;
@@ -777,16 +788,4 @@
 
     private static string ProjectPath(string path) =>
         path.Length <= 34 ? path : $"...{path[^33..]}";
-
-    private sealed record MoveCardRequest(string StageId, long ExpectedRevision);
-
-    private sealed record CreateCardRequest(
-        string CardId,
-        CardKind Kind,
-        string Title,
-        string WorkflowId,
-        string StageId,
-        decimal OwnPriority,
-        IReadOnlyList<string>? DeclaredScopeFiles,
-        IReadOnlyDictionary<string, decimal>? CriterionValues);
 }

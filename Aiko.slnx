@@ -9,4 +9,5 @@
   <Project Path="tests/Aiko.Domain.Specs/Aiko.Domain.Specs.csproj" />
   <Project Path="tests/Aiko.Infrastructure.Specs/Aiko.Infrastructure.Specs.csproj" />
   <Project Path="tests/Aiko.Mcp.Specs/Aiko.Mcp.Specs.csproj" />
+  <Project Path="tests/Aiko.Pwa.Specs/Aiko.Pwa.Specs.csproj" />
 </Solution>

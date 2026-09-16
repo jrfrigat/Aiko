@@ -140,6 +140,7 @@
   <data name="GlobalSettings" xml:space="preserve"><value>Приложение</value></data>
   <data name="GlobalHint" xml:space="preserve"><value>Применяются ко всем проектам без собственных настроек.</value></data>
   <data name="SaveGlobalSettings" xml:space="preserve"><value>Сохранить глобальные настройки</value></data>
+  <data name="SelectProjectForLocalSettings" xml:space="preserve"><value>Настройки проекта станут доступны после выбора проекта. Глобальные настройки ниже применяются ко всем проектам.</value></data>
   <data name="SourceProject" xml:space="preserve"><value>проект</value></data>
   <data name="SourceGlobal" xml:space="preserve"><value>глобально</value></data>
   <data name="SourceDefault" xml:space="preserve"><value>по умолчанию</value></data>

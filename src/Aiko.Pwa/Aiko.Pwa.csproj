@@ -5,6 +5,11 @@
     <SatelliteResourceLanguages>ru</SatelliteResourceLanguages>
   </PropertyGroup>
   <ItemGroup>
+    <!-- The JSON contract specs assert that every type the client sends or reads is covered by the
+         source-generated PwaJsonContext. -->
+    <InternalsVisibleTo Include="Aiko.Pwa.Specs" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.12" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.12" PrivateAssets="all" />
     <PackageReference Include="Flare.Blazor" Version="0.37.0" />

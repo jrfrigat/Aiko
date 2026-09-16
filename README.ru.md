@@ -64,6 +64,10 @@ irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1 | i
 `server\`) и добавляет каталог в пользовательский `PATH`. Ничего не ставится на всю машину,
 права администратора не нужны.
 
+В конце он спрашивает, с какими агентами работать (Claude Code, Codex, Cursor, ZCode), и записывает
+им глобальные MCP-запись, скиллы `/aiko-*` и общую память; Enter - пропустить вопрос. Ответить без
+диалога: `-Agents claude-code,codex`, пропустить: `-NoAgentSetup`.
+
 ```powershell
 aiko serve     # запустить демон (только loopback; предпочитает порт 24560)
 aiko ui        # сопрячь браузер с демоном и открыть доску
@@ -95,9 +99,9 @@ scriptblock:
 dotnet test Aiko.slnx
 ```
 
-54 xUnit-проверки в трех наборах: доменные правила, инфраструктура (файлы/SQLite) и интеграция
-MCP. MCP-набор сам поднимает демон на случайном порту с изолированной базой - ручной
-оркестратор не нужен.
+58 xUnit-проверок в четырёх наборах: доменные правила, инфраструктура (файлы/SQLite), интеграция
+MCP и JSON-контракт клиента. MCP-набор сам поднимает демон на случайном порту с изолированной
+базой - ручной оркестратор не нужен.
 
 ---
 
@@ -165,7 +169,7 @@ complete / pause / handoff / resume / report agent state), поиск и зап�
 | `src/Aiko.Server` | Демон ASP.NET Core: REST API, MCP-endpoint'ы, хостинг PWA |
 | `src/Aiko.Pwa` | Blazor WebAssembly PWA на Flare.Blazor |
 | `src/Aiko.StdioProxy` | Короткоживущий stdio <-> Streamable HTTP MCP-прокси |
-| `tests/*` | Наборы xUnit: Domain.Specs, Infrastructure.Specs, Mcp.Specs (самодостаточные) |
+| `tests/*` | Наборы xUnit: Domain.Specs, Infrastructure.Specs, Mcp.Specs (самодостаточные), Pwa.Specs (JSON-контракт) |
 | `scripts/install.ps1` | Установщик релиза, на который указывает однострочная установка |
 | `.github/workflows/` | `ci.yml` (сборка, тесты, линт установщиков) и `release.yml` (win-x64 ассеты) |
 
