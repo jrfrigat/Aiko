@@ -1,0 +1,7 @@
+# Default owner for everything in the repo. Add more specific lines below to route reviews of
+# particular areas to other maintainers as the project grows.
+#
+# Areas worth calling out explicitly when the project gains contributors: the release layout contract
+# (scripts/install.ps1, installer, .github/workflows/release.yml) and the MCP tool surface
+# (src/Aiko.Server/Mcp), because both are published contracts.
+* @jrfrigat
