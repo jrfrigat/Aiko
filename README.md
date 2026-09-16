@@ -1,12 +1,14 @@
 # Aiko - Local AI Development Orchestrator
 
-<p align="center"><img src="assets/logo.svg" alt="Aiko" width="96" /></p>
+<p align="center"><img src="assets/banner.svg" alt="Aiko - AI kanban orchestrator" width="640" /></p>
 
 <p align="center">🌐 <b>English</b> - <a href="README.ru.md">Русский</a></p>
 
 [![.NET](https://img.shields.io/badge/.NET-10-512BD4)](https://dotnet.microsoft.com/)
+[![Release](https://img.shields.io/github/v/release/jrfrigat/Aiko?sort=semver)](https://github.com/jrfrigat/Aiko/releases/latest)
+[![CI](https://github.com/jrfrigat/Aiko/actions/workflows/ci.yml/badge.svg)](https://github.com/jrfrigat/Aiko/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Status](https://img.shields.io/badge/status-MVP%20foundation-orange)](docs/en/technical-specification.md)
-[![Tests](https://img.shields.io/badge/tests-54%20xUnit-green)](#tests)
 
 Aiko (AI kanban orchestrator) is a **local-first orchestrator for AI-assisted development**: one
 loopback daemon that gives Claude Code, Codex, Cursor and ZCode a shared project context, a
@@ -47,33 +49,35 @@ rate limit) hands off to another agent without losing history.
 
 ---
 
-## Quick Start
+## Install
 
-Prerequisites: [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).
+Windows 10/11, x64. The release is self-contained, so neither the .NET SDK nor the .NET runtime is
+required:
 
-```sh
-git clone <repository-url>
-cd Aiko
-
-# build everything (server, PWA, stdio proxy, tests)
-dotnet build Aiko.slnx
-
-# run the daemon (serves the PWA and the MCP endpoints)
-dotnet run --project src/Aiko.Server
+```powershell
+irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1 | iex
 ```
 
-The daemon prefers port **24560**; if it is busy it picks a free port from `18000-18999` and
-remembers the choice in `settings.json` next to the database. Open the UI at
-`http://127.0.0.1:24560` and register a project through the UI (or the API below).
+The installer downloads the newest [`aiko-<version>-win-x64.zip`](https://github.com/jrfrigat/Aiko/releases/latest),
+unpacks it into `%LOCALAPPDATA%\Aiko\bin` (CLI `aiko`, stdio proxy `aiko-stdio`, the daemon in
+`server\`) and adds that directory to the user `PATH`. Nothing is installed machine-wide and no
+administrator rights are needed.
 
-Register a project and get its MCP endpoint:
-
-```sh
-curl -X POST http://127.0.0.1:24560/api/v1/projects/initialize \
-     -H "Content-Type: application/json" \
-     -d "{ \"rootPath\": \"C:/path/to/your/project\" }"
-# => { "id": "<projectId>", ... }   MCP: http://127.0.0.1:24560/mcp/projects/<projectId>
+```powershell
+aiko serve     # start the daemon (loopback only; prefers port 24560)
+aiko ui        # pair the browser with the daemon and open the board
 ```
+
+Pin a specific release or choose another directory by fetching the script into a scriptblock first:
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1))) `
+    -Version v0.1.0 -InstallDir D:\Tools\Aiko
+```
+
+Re-running the installer is the update path: binaries are replaced, project data and settings are
+kept. To remove Aiko, delete `%LOCALAPPDATA%\Aiko\bin` and drop it from the user `PATH`; `.aiko`
+directories and the database are never deleted automatically.
 
 ### Configuration
 
@@ -92,6 +96,37 @@ dotnet test Aiko.slnx
 54 xUnit facts across three suites: domain rules, infrastructure/file/SQLite behavior, and MCP
 integration. The MCP suite boots its own daemon on a random port with an isolated database -
 no manual orchestration needed.
+
+---
+
+## Run from source
+
+Prerequisites: [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).
+
+```sh
+git clone https://github.com/jrfrigat/Aiko
+cd Aiko
+
+# build everything (server, PWA, CLI, stdio proxy, tests)
+dotnet build Aiko.slnx
+
+# run the daemon (serves the PWA and the MCP endpoints)
+dotnet run --project src/Aiko.Server
+```
+
+The daemon prefers port **24560**; if it is busy it picks a free port from `18000-18999` and
+remembers the choice in `settings.json` next to the database. Open the UI at
+`http://127.0.0.1:24560` and register a project through the interface, or from the terminal:
+
+```sh
+curl -X POST http://127.0.0.1:24560/api/v1/projects/initialize \
+     -H "Content-Type: application/json" \
+     -d "{ \"rootPath\": \"C:/path/to/your/project\" }"
+# => { "id": "<projectId>", ... }   MCP: http://127.0.0.1:24560/mcp/projects/<projectId>
+```
+
+`.\install.ps1` in the repository root publishes this checkout into `%LOCALAPPDATA%\Aiko\bin`, so
+`aiko serve` and `aiko status` behave exactly as in an installed release.
 
 ---
 
@@ -129,6 +164,8 @@ descriptions instruct agents to fetch the project context first; installed skill
 | `src/Aiko.Pwa` | Blazor WebAssembly PWA on Flare.Blazor |
 | `src/Aiko.StdioProxy` | Short-lived stdio <-> Streamable HTTP MCP proxy |
 | `tests/*` | xUnit suites: Domain.Specs, Infrastructure.Specs, Mcp.Specs (self-hosted) |
+| `scripts/install.ps1` | Release installer behind the one-line install command |
+| `.github/workflows/` | `ci.yml` (build, test, lint the installers) and `release.yml` (win-x64 assets) |
 
 ---
 
@@ -142,6 +179,8 @@ descriptions instruct agents to fetch the project context first; installed skill
 - [Technical Specification](docs/en/technical-specification.md) - the normative MVP specification
 - [Requirements Discussion](docs/en/requirements-discussion.md) - the journal of decisions
 - [Original Terms of Reference](docs/en/mcp-flow.md) - the historical source document
+- [Contributing](CONTRIBUTING.md) - build, test and pull request expectations
+- [License](LICENSE) - MIT
 
 ---
 

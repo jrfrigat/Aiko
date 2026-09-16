@@ -7,21 +7,61 @@ Aiko - локальный оркестратор ИИ-разработки: од
 
 ## Требования
 
-- Windows 10/11.
-- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) для сборки из исходников
-  (опубликованная сборка framework-dependent - на этапе запуска нужен .NET 10 runtime).
+- Windows 10/11 x64 (релиз - самодостаточная сборка win-x64).
+- Для установки релиза больше ничего не нужно: ни .NET SDK, ни .NET runtime.
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) - только если вы собираете и
+  запускаете из исходников. Сборка из исходников публикуется framework-dependent, поэтому на этапе
+  запуска нужен .NET 10 runtime.
 
 ## Установка
 
-Из корня репозитория запустите установщик в PowerShell:
+Одна строка в PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1 | iex
+```
+
+Установщик:
+
+1. находит свежий релиз на GitHub (или указанный вами тег),
+2. скачивает из него `aiko-<версия>-win-x64.zip`,
+3. распаковывает в `%LOCALAPPDATA%\Aiko\bin`,
+4. добавляет этот каталог в пользовательский `PATH`.
+
+Ничего не ставится на всю машину, права администратора не нужны. Откройте новый терминал, чтобы
+команда `aiko` подхватилась.
+
+Установленная раскладка:
+
+```text
+%LOCALAPPDATA%\Aiko\bin\aiko.exe                 CLI
+%LOCALAPPDATA%\Aiko\bin\aiko-stdio.exe           stdio <-> Streamable HTTP MCP-прокси
+%LOCALAPPDATA%\Aiko\bin\server\Aiko.Server.exe   демон, PWA в server\wwwroot
+```
+
+### Параметры установщика
+
+| Параметр | Действие |
+| :-- | :-- |
+| `-Version <tag>` | Установить конкретный релиз, например `v0.1.0`. По умолчанию - последний релиз. |
+| `-InstallDir <path>` | Распаковать в другой каталог. По умолчанию `%LOCALAPPDATA%\Aiko\bin`. |
+| `-NoPathUpdate` | Не менять пользовательский `PATH`. |
+
+Параметры требуют формы со scriptblock, потому что `irm ... | iex` их не принимает:
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1))) `
+    -Version v0.1.0 -InstallDir D:\Tools\Aiko
+```
+
+### Установка из исходников
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
-Установщик публикует Aiko (CLI `aiko`, демон, stdio-прокси) в `%LOCALAPPDATA%\Aiko\bin` и
-добавляет этот каталог в пользовательский `PATH`. Откройте новый терминал, чтобы команда `aiko`
-подхватилась.
+Скрипт публикует текущее рабочее дерево framework-dependent (`aiko` CLI, демон, stdio-прокси) в тот
+же каталог `%LOCALAPPDATA%\Aiko\bin`; на этапе запуска потребуется .NET 10 runtime.
 
 Установите глобальные скиллы агентов (опционально, но рекомендуется - чтобы `/aiko-init`
 работал везде):
@@ -84,8 +124,9 @@ aiko agent install --project <projectId>
 
 ## Обновление и удаление
 
-- Обновление: повторно запустите `install.ps1` (бинари перезаписываются, данные и настройки
-  проекта сохраняются).
+- Обновление: повторно запустите установщик (релизный или из исходников) - бинари заменяются, данные
+  и настройки проектов сохраняются. Параметр `-Version` фиксирует конкретный релиз, если свежий не
+  нужен.
 - Удаление: удалите `%LOCALAPPDATA%\Aiko\bin` и уберите его из пользовательского `PATH`.
   Каталоги `.aiko` проектов и база никогда не удаляются автоматически.
 
@@ -94,3 +135,9 @@ aiko agent install --project <projectId>
 - `aiko status` - состояние демона, порт, каталог данных.
 - `GET http://127.0.0.1:<port>/health` - `healthy`.
 - `aiko ui` - открывает доску.
+
+Если `irm` блокируется политикой выполнения, запустите установщик явно:
+
+```powershell
+powershell -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1 | iex"
+```

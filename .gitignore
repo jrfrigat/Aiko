@@ -19,3 +19,6 @@ SkillsExample/
 # Runtime and local logs.
 *.log
 TestResults/
+
+# Local release staging (the release workflow publishes here).
+/publish/

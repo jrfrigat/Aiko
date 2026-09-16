@@ -1,0 +1,18 @@
+# Keeps the pinned packages and the workflow actions current without a manual sweep.
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      nuget-minor-and-patch:
+        applies-to: version-updates
+        update-types: [ minor, patch ]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5

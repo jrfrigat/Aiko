@@ -22,8 +22,8 @@ aiko init C:\path\to\your\project --name "My Project"
 
 ## 3. Connect an agent
 
-If the agent was selected at install time, its global skills are already present. To connect the
-agent to this project:
+Install the global agent integration once (it adds the Aiko MCP entry, skills and memory to every
+detected agent), then connect the agent to this project:
 
 ```powershell
 aiko agent install --project <projectId>

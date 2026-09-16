@@ -1,5 +1,23 @@
 # Aiko - Troubleshooting
 
+## The installer fails
+
+`irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1 | iex` needs:
+
+- 64-bit Windows - the release ships win-x64 only;
+- outbound HTTPS to `github.com` and `objects.githubusercontent.com`;
+- a published release to download. If no release exists yet, the script says so; a specific tag can be
+  pinned with `-Version v0.1.0`, and a wrong tag or asset is reported with the exact failing URL.
+
+If the execution policy blocks `irm | iex`, run it explicitly:
+
+```powershell
+powershell -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1 | iex"
+```
+
+`aiko` is not found after installing: open a new terminal (or check that
+`%LOCALAPPDATA%\Aiko\bin` is on the user `PATH`).
+
 ## The port is busy
 
 Aiko prefers port `24560`. If it is busy, `aiko serve` asks for another port (or picks a free one

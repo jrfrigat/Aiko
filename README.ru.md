@@ -1,12 +1,14 @@
 # Aiko - локальный оркестратор ИИ-разработки
 
-<p align="center"><img src="assets/logo.svg" alt="Aiko" width="96" /></p>
+<p align="center"><img src="assets/banner.svg" alt="Aiko - AI kanban orchestrator" width="640" /></p>
 
 <p align="center">🌐 <a href="README.md">English</a> - <b>Русский</b></p>
 
 [![.NET](https://img.shields.io/badge/.NET-10-512BD4)](https://dotnet.microsoft.com/)
+[![Release](https://img.shields.io/github/v/release/jrfrigat/Aiko?sort=semver)](https://github.com/jrfrigat/Aiko/releases/latest)
+[![CI](https://github.com/jrfrigat/Aiko/actions/workflows/ci.yml/badge.svg)](https://github.com/jrfrigat/Aiko/actions/workflows/ci.yml)
+[![Лицензия: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Статус](https://img.shields.io/badge/status-MVP%20foundation-orange)](docs/ru/technical-specification.md)
-[![Тесты](https://img.shields.io/badge/tests-54%20xUnit-green)](#тесты)
 
 Aiko (AI kanban orchestrator) - **локальный оркестратор разработки с участием ИИ**: один loopback-демон
 дает Claude Code, Codex, Cursor и ZCode общий контекст проекта, настраиваемый Kanban-конвейер,
@@ -47,33 +49,36 @@ Aiko не заменяет агентов. Он связывает их: кар�
 
 ---
 
-## Быстрый старт
+## Установка
 
-Требуется [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).
+Windows 10/11, x64. Релиз самодостаточен (self-contained), поэтому ни .NET SDK, ни .NET runtime
+не требуются:
 
-```sh
-git clone <url-репозитория>
-cd Aiko
-
-# собрать всё (сервер, PWA, stdio-прокси, тесты)
-dotnet build Aiko.slnx
-
-# запустить демон (раздает PWA и MCP endpoint'ы)
-dotnet run --project src/Aiko.Server
+```powershell
+irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1 | iex
 ```
 
-Демон предпочитает порт **24560**; если он занят, выбирает свободный из `18000-18999` и запоминает
-выбор в `settings.json` рядом с базой. Откройте UI на `http://127.0.0.1:24560` и зарегистрируйте
-проект через интерфейс (или API ниже).
+Установщик скачивает свежий [`aiko-<версия>-win-x64.zip`](https://github.com/jrfrigat/Aiko/releases/latest),
+распаковывает его в `%LOCALAPPDATA%\Aiko\bin` (CLI `aiko`, stdio-прокси `aiko-stdio`, демон в
+`server\`) и добавляет каталог в пользовательский `PATH`. Ничего не ставится на всю машину,
+права администратора не нужны.
 
-Зарегистрировать проект и получить MCP-endpoint:
-
-```sh
-curl -X POST http://127.0.0.1:24560/api/v1/projects/initialize \
-     -H "Content-Type: application/json" \
-     -d "{ \"rootPath\": \"C:/путь/к/проекту\" }"
-# => { "id": "<projectId>", ... }   MCP: http://127.0.0.1:24560/mcp/projects/<projectId>
+```powershell
+aiko serve     # запустить демон (только loopback; предпочитает порт 24560)
+aiko ui        # сопрячь браузер с демоном и открыть доску
 ```
+
+Чтобы зафиксировать конкретный релиз или выбрать другой каталог, сначала получите скрипт в
+scriptblock:
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1))) `
+    -Version v0.1.0 -InstallDir D:\Tools\Aiko
+```
+
+Повторный запуск установщика - это и есть обновление: бинари перезаписываются, данные проектов и
+настройки сохраняются. Для удаления удалите `%LOCALAPPDATA%\Aiko\bin` и уберите его из
+пользовательского `PATH`; каталоги `.aiko` и база никогда не удаляются автоматически.
 
 ### Конфигурация
 
@@ -92,6 +97,37 @@ dotnet test Aiko.slnx
 54 xUnit-проверки в трех наборах: доменные правила, инфраструктура (файлы/SQLite) и интеграция
 MCP. MCP-набор сам поднимает демон на случайном порту с изолированной базой - ручной
 оркестратор не нужен.
+
+---
+
+## Запуск из исходников
+
+Требуется [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).
+
+```sh
+git clone https://github.com/jrfrigat/Aiko
+cd Aiko
+
+# собрать всё (сервер, PWA, CLI, stdio-прокси, тесты)
+dotnet build Aiko.slnx
+
+# запустить демон (раздает PWA и MCP endpoint'ы)
+dotnet run --project src/Aiko.Server
+```
+
+Демон предпочитает порт **24560**; если он занят, выбирает свободный из `18000-18999` и запоминает
+выбор в `settings.json` рядом с базой. Откройте UI на `http://127.0.0.1:24560` и зарегистрируйте
+проект через интерфейс или из терминала:
+
+```sh
+curl -X POST http://127.0.0.1:24560/api/v1/projects/initialize \
+     -H "Content-Type: application/json" \
+     -d "{ \"rootPath\": \"C:/путь/к/проекту\" }"
+# => { "id": "<projectId>", ... }   MCP: http://127.0.0.1:24560/mcp/projects/<projectId>
+```
+
+`.\install.ps1` в корне репозитория публикует текущий checkout в `%LOCALAPPDATA%\Aiko\bin` - после
+этого `aiko serve` и `aiko status` работают так же, как в установленном релизе.
 
 ---
 
@@ -129,6 +165,8 @@ complete / pause / handoff / resume / report agent state), поиск и зап�
 | `src/Aiko.Pwa` | Blazor WebAssembly PWA на Flare.Blazor |
 | `src/Aiko.StdioProxy` | Короткоживущий stdio <-> Streamable HTTP MCP-прокси |
 | `tests/*` | Наборы xUnit: Domain.Specs, Infrastructure.Specs, Mcp.Specs (самодостаточные) |
+| `scripts/install.ps1` | Установщик релиза, на который указывает однострочная установка |
+| `.github/workflows/` | `ci.yml` (сборка, тесты, линт установщиков) и `release.yml` (win-x64 ассеты) |
 
 ---
 
@@ -142,6 +180,8 @@ complete / pause / handoff / resume / report agent state), поиск и зап�
 - [Техническая спецификация](docs/ru/technical-specification.md) - нормативная спецификация MVP
 - [Журнал уточнения требований](docs/ru/requirements-discussion.md) - история решений
 - [Исходное ТЗ](docs/ru/mcp-flow.md) - исторический исходный документ
+- [Контрибьютинг](CONTRIBUTING.md) - сборка, тесты и требования к pull request
+- [Лицензия](LICENSE) - MIT
 
 ---
 

@@ -1,0 +1,187 @@
+name: Release
+
+# Builds the Windows x64 release assets that scripts/install.ps1 downloads and attaches them to a
+# GitHub Release.
+#
+#   git tag v0.1.0 && git push origin v0.1.0
+#
+# or run this workflow manually ("Run workflow" on main) with the release tag to create; the tag is
+# then created at the dispatched commit. The release is drafted first and published last, so
+# "latest release" never resolves to a release without its archives — the installer depends on that.
+on:
+  push:
+    tags: [ 'v*' ]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release tag to create or refresh, for example v0.1.0'
+        required: true
+        type: string
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write   # create the GitHub Release and upload assets
+
+jobs:
+  publish:
+    name: Build win-x64 assets
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      # A tag push needs no input; a manual run takes the tag from the workflow form.
+      - name: Resolve version
+        id: version
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.version }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          case "$TAG" in
+            v*) ;;
+            *) echo "::error::release tags must start with 'v' (got '$TAG')"; exit 1 ;;
+          esac
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "value=${TAG#v}" >> "$GITHUB_OUTPUT"
+          echo "Releasing $TAG"
+
+      - name: Restore
+        run: dotnet restore Aiko.slnx
+
+      - name: Build (Release)
+        run: dotnet build Aiko.slnx -c Release --no-restore -p:Version=${{ steps.version.outputs.value }}
+
+      - name: Test
+        run: dotnet test Aiko.slnx -c Release --no-build
+
+      # Self-contained, so the release needs no .NET runtime on the machine that installs it.
+      # PublishAot stays off: the AOT toolchain pulls a C++ workload into the runner, and the
+      # self-contained single-file CLI covers the same "no prerequisites" goal.
+      #
+      # Layout produced below:
+      #   aiko.exe                CLI (single file)
+      #   aiko-stdio.exe          stdio <-> Streamable HTTP MCP proxy (single file)
+      #   server/Aiko.Server.exe  daemon with the PWA in wwwroot, beside its support files
+      # The CLI resolves the daemon from either location, and the installer checks both entry points.
+      - name: Publish
+        shell: pwsh
+        run: |
+          $common = @(
+            '-c', 'Release', '-r', 'win-x64', '--self-contained', 'true',
+            '-p:Version=${{ steps.version.outputs.value }}',
+            '-p:PublishAot=false',
+            '-p:DebugType=none', '-p:GenerateDocumentationFile=false',
+            '--nologo'
+          )
+          dotnet publish src/Aiko.Cli @common -p:PublishSingleFile=true -o publish/stage
+          if ($LASTEXITCODE -ne 0) { throw 'Publishing Aiko.Cli failed.' }
+
+          dotnet publish src/Aiko.StdioProxy @common -p:PublishSingleFile=true -o publish/stage
+          if ($LASTEXITCODE -ne 0) { throw 'Publishing Aiko.StdioProxy failed.' }
+
+          # The daemon hosts the Blazor PWA, so publishing it as a single file is not supported
+          # (NETSDK1098: the WASM host project sets UseAppHost=false). It ships as a folder.
+          dotnet publish src/Aiko.Server @common -o publish/stage/server
+          if ($LASTEXITCODE -ne 0) { throw 'Publishing Aiko.Server failed.' }
+
+      # Fail here rather than after the upload: a release without the daemon or without the PWA
+      # inside it is a broken install command for everyone.
+      - name: Verify the staged layout
+        shell: pwsh
+        run: |
+          $required = @(
+            'publish/stage/aiko.exe',
+            'publish/stage/aiko-stdio.exe',
+            'publish/stage/server/Aiko.Server.exe',
+            'publish/stage/server/wwwroot/index.html'
+          )
+          foreach ($path in $required) {
+            if (-not (Test-Path $path)) { throw "The staged release is missing $path." }
+          }
+          $size = (Get-ChildItem publish/stage -Recurse -File | Measure-Object Length -Sum).Sum / 1MB
+          Write-Host ('Staged {0:N1} MB' -f $size)
+
+      - name: Package
+        id: package
+        shell: pwsh
+        run: |
+          $archive = "aiko-${{ steps.version.outputs.value }}-win-x64.zip"
+          Compress-Archive -Path publish/stage/* -DestinationPath $archive -CompressionLevel Optimal
+          Write-Host "$archive: $([math]::Round((Get-Item $archive).Length / 1MB, 1)) MB"
+          "archive=$archive" >> $env:GITHUB_OUTPUT
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: aiko-${{ steps.version.outputs.value }}-win-x64
+          path: ${{ steps.package.outputs.archive }}
+          if-no-files-found: error
+
+      # Created as a DRAFT on purpose. The installer resolves "latest release" and picks the
+      # aiko-*-win-x64.zip out of it, so a visible release without that archive is a broken install
+      # command. finalize undrafts it once the archive is actually attached.
+      #
+      # Re-running a failed release must work, so an existing draft is topped up instead of failing.
+      - name: Create the GitHub Release (draft)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+          REPO: ${{ github.repository }}
+          ARCHIVE: ${{ steps.package.outputs.archive }}
+        run: |
+          if gh release view "$TAG" -R "$REPO" >/dev/null 2>&1; then
+            echo "Release $TAG already exists (re-run) — refreshing its asset."
+            gh release upload "$TAG" "$ARCHIVE" -R "$REPO" --clobber
+            exit 0
+          fi
+
+          # `gh release create` puts a missing tag on the default branch, which is not necessarily
+          # the commit a manual run was dispatched for; create the tag explicitly in that case.
+          if ! gh api "repos/$REPO/git/refs/tags/$TAG" >/dev/null 2>&1; then
+            gh api --method POST "repos/$REPO/git/refs" -f "ref=refs/tags/$TAG" -f "sha=$GITHUB_SHA"
+          fi
+
+          gh release create "$TAG" "$ARCHIVE" -R "$REPO" \
+            --title "Aiko $TAG" --generate-notes --draft
+
+  # The release becomes visible only once the archive is on it, so `scripts/install.ps1` never runs
+  # against a release that has nothing to download.
+  finalize:
+    name: Publish the release
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Undraft the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.version }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          assets=$(gh release view "$TAG" -R "$REPO" --json assets --jq '[.assets[].name] | join(" ")')
+          echo "Assets on $TAG: $assets"
+          case "$assets" in
+            *"aiko-"*"-win-x64.zip"*) ;;
+            *) echo "::error::the release is missing aiko-*-win-x64.zip; leaving it as a draft" && exit 1 ;;
+          esac
+          gh release edit "$TAG" -R "$REPO" --draft=false --latest

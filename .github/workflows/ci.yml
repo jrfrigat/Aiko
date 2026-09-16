@@ -1,0 +1,79 @@
+name: CI
+
+# Build, test and lint on every push/PR against main. Publishing the installable release assets is
+# release.yml; scripts/install.ps1 downloads those assets, so a green CI here means "the code and the
+# installer scripts are sound", not "a release exists".
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # The installer is fetched over the network and piped straight into a shell, so it gets no second
+  # chance: whatever ships is what runs on someone's machine. Static analysis is the only gate it has
+  # — a real end-to-end install needs a published release to download from.
+  scripts:
+    name: Lint install scripts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          Install-Module PSScriptAnalyzer -Force -Scope CurrentUser -ErrorAction Stop
+          # Analyzed one file at a time: -Path takes a single path on Windows PowerShell hosts.
+          $issues = @()
+          foreach ($script in 'scripts/install.ps1', 'install.ps1') {
+            $issues += Invoke-ScriptAnalyzer -Path $script -Severity Error, Warning
+          }
+          if ($issues) {
+            $issues | Format-Table -AutoSize | Out-String | Write-Host
+            Write-Host "::error::PSScriptAnalyzer reported $($issues.Count) issue(s)"
+            exit 1
+          }
+          Write-Host 'Install scripts are clean.'
+
+  build-test:
+    name: Build & test (windows)
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # global.json pins the 10.0.4xx feature band, so the SDK must come from setup-dotnet rather
+      # than from whatever the image happens to ship.
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore Aiko.slnx
+
+      - name: Build (Release)
+        run: dotnet build Aiko.slnx -c Release --no-restore
+
+      # The MCP suite boots its own daemon on a random port with an isolated database, so no manual
+      # orchestration is needed here.
+      - name: Test
+        run: dotnet test Aiko.slnx -c Release --no-build --logger "trx;LogFileName=test-results.trx"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results
+          path: '**/*.trx'
+          if-no-files-found: ignore

@@ -78,15 +78,15 @@ static async Task<int> InitAsync(string[] args)
 
 static async Task<int> ServeAsync()
 {
-    var serverDll = Path.Combine(AppContext.BaseDirectory, "Aiko.Server.dll");
-    if (!File.Exists(serverDll))
+    var server = ResolveServerCommand();
+    if (server is null)
     {
         Console.Error.WriteLine(
-            $"Aiko.Server.dll was not found next to the aiko CLI ({AppContext.BaseDirectory}). Run the installer first.");
+            $"The Aiko daemon was not found next to the aiko CLI ({AppContext.BaseDirectory}). Run the installer first.");
         return 1;
     }
 
-    var startInfo = new ProcessStartInfo("dotnet", $"\"{serverDll}\"")
+    var startInfo = new ProcessStartInfo(server.Value.FileName, server.Value.Arguments)
     {
         UseShellExecute = false
     };
@@ -95,6 +95,35 @@ static async Task<int> ServeAsync()
     Console.WriteLine($"Started Aiko daemon (pid {process.Id}). Press Ctrl+C to stop.");
     await process.WaitForExitAsync();
     return process.ExitCode;
+}
+
+// The release layout ships the daemon as a self-contained executable (Aiko.Server.exe) either next
+// to the CLI or in a `server` subdirectory. A source build publishes it framework-dependent, and
+// then the daemon is a managed assembly started through `dotnet`.
+static (string FileName, string Arguments)? ResolveServerCommand()
+{
+    var directories = new[]
+    {
+        AppContext.BaseDirectory,
+        Path.Combine(AppContext.BaseDirectory, "server")
+    };
+
+    foreach (var directory in directories)
+    {
+        var executable = Path.Combine(directory, "Aiko.Server.exe");
+        if (File.Exists(executable))
+        {
+            return (executable, string.Empty);
+        }
+
+        var assembly = Path.Combine(directory, "Aiko.Server.dll");
+        if (File.Exists(assembly))
+        {
+            return ("dotnet", $"\"{assembly}\"");
+        }
+    }
+
+    return null;
 }
 
 static async Task<int> UiAsync()

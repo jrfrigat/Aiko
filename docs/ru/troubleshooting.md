@@ -1,5 +1,23 @@
 # Aiko - Решение проблем
 
+## Установщик не сработал
+
+`irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1 | iex` требует:
+
+- 64-битной Windows - релиз собран только для win-x64;
+- исходящего HTTPS к `github.com` и `objects.githubusercontent.com`;
+- опубликованного релиза. Если релиза ещё нет, скрипт скажет об этом; конкретный тег можно закрепить
+  через `-Version v0.1.0` - при неверном теге или отсутствующем ассете в ошибке будет точный URL.
+
+Если политика выполнения блокирует `irm | iex`, запустите явно:
+
+```powershell
+powershell -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1 | iex"
+```
+
+Команда `aiko` не находится после установки: откройте новый терминал (или проверьте, что
+`%LOCALAPPDATA%\Aiko\bin` есть в пользовательском `PATH`).
+
 ## Порт занят
 
 Aiko предпочитает порт `24560`. Если он занят, `aiko serve` спрашивает другой порт (или выбирает

@@ -1,0 +1,11 @@
+# Binary assets and archives are never line-ending converted or diffed as text.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.zip binary
+*.db binary
+
+# Lock files change as a whole and are noise in diffs and reviews.
+packages.lock.json -diff
