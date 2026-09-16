@@ -1,0 +1,43 @@
+name: ✨ Request a feature
+description: Suggest a new capability or an improvement to an existing one
+labels: [ enhancement ]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem should this solve?
+      description: Describe the workflow that is currently awkward, missing or manual.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: >
+        How should it behave? If it touches the board, the MCP tools or the REST API, name the
+        surface it belongs to, and keep in mind the "skill ↔ MCP tool ↔ UI" parity the spec asks for.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Workarounds you tried, or other designs you rejected.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Board / PWA
+        - Daemon / REST API
+        - MCP tools and agent integration
+        - Cards, workflow and priorities
+        - Memory
+        - Installer and packaging
+        - Documentation
+        - Other
+    validations:
+      required: true

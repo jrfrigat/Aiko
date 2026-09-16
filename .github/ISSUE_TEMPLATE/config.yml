@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 Installation and troubleshooting
+    url: https://github.com/jrfrigat/Aiko/blob/main/docs/en/troubleshooting.md
+    about: Installer problems, busy ports, 401 responses, agents that cannot see Aiko.
+  - name: 🧭 Technical specification
+    url: https://github.com/jrfrigat/Aiko/blob/main/docs/en/technical-specification.md
+    about: What is implemented in the MVP, what is in progress and what is post-MVP.

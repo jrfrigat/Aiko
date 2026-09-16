@@ -1,0 +1,64 @@
+name: 🐛 Report a bug
+description: Something in the daemon, the board, the MCP layer or the installer does not work
+labels: [ bug ]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: What did you do, what did you see, and what did you expect instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: The smallest sequence that shows the problem - commands, tool calls, or clicks.
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The release tag installed, or the commit you built from source.
+      placeholder: "for example v0.1.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install
+    attributes:
+      label: How did you install Aiko?
+      options:
+        - Release installer (irm ... | iex)
+        - Source checkout (install.ps1 / dotnet run)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: agent
+    attributes:
+      label: Which agent is involved?
+      options:
+        - Not agent related (daemon, PWA, installer)
+        - Claude Code
+        - Codex
+        - Cursor
+        - ZCode
+        - More than one agent
+
+  - type: textarea
+    id: status
+    attributes:
+      label: Output of `aiko status`
+      description: It reports the data directory, the database path, the port and the daemon health.
+      render: shell
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs and errors
+      description: Paste the failing console output, HTTP response or stack trace.
+      render: shell
