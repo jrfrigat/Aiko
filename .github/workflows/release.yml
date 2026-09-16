@@ -139,6 +139,7 @@ jobs:
       #
       # Re-running a failed release must work, so an existing draft is topped up instead of failing.
       - name: Create the GitHub Release (draft)
+        shell: bash   # bash syntax below; the default shell on windows-latest is PowerShell
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
@@ -171,6 +172,7 @@ jobs:
       contents: write
     steps:
       - name: Undraft the release
+        shell: bash   # bash syntax below; be explicit about the shell everywhere it matters
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
