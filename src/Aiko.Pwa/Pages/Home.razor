@@ -197,6 +197,12 @@
             }
         }
 
+        @if (_editingSettings && _board is null)
+        {
+            @* Global settings must be reachable before any project exists. *@
+            <SettingsInspector OnSaved="LoadBoardAsync" OnClose="CloseSettings" />
+        }
+
         @if (_showAddProject)
         {
             <section class="empty-state">
