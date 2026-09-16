@@ -7,6 +7,7 @@
 [![.NET](https://img.shields.io/badge/.NET-10-512BD4)](https://dotnet.microsoft.com/)
 [![Release](https://img.shields.io/github/v/release/jrfrigat/Aiko?sort=semver)](https://github.com/jrfrigat/Aiko/releases/latest)
 [![CI](https://github.com/jrfrigat/Aiko/actions/workflows/ci.yml/badge.svg)](https://github.com/jrfrigat/Aiko/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/jrfrigat/Aiko/actions/workflows/codeql.yml/badge.svg)](https://github.com/jrfrigat/Aiko/actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Status](https://img.shields.io/badge/status-MVP%20foundation-orange)](docs/en/technical-specification.md)
 
