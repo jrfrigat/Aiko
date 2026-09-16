@@ -121,7 +121,9 @@ jobs:
         run: |
           $archive = "aiko-${{ steps.version.outputs.value }}-win-x64.zip"
           Compress-Archive -Path publish/stage/* -DestinationPath $archive -CompressionLevel Optimal
-          Write-Host "$archive: $([math]::Round((Get-Item $archive).Length / 1MB, 1)) MB"
+          # ${archive} with braces: "$archive:" would be parsed as a drive-qualified variable.
+          $size = [math]::Round((Get-Item -LiteralPath $archive).Length / 1MB, 1)
+          Write-Host "${archive}: $size MB"
           "archive=$archive" >> $env:GITHUB_OUTPUT
 
       - name: Upload workflow artifact
