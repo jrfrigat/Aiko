@@ -1,0 +1,21 @@
+# Aiko project data is local by default.
+/.aiko/
+
+# .NET build output.
+**/bin/
+**/obj/
+artifacts/
+
+# IDE and user-specific files.
+.vs/
+.idea/
+*.user
+*.suo
+
+# Local AI assistant and internal planning files (not part of the product).
+.claude/
+SkillsExample/
+
+# Runtime and local logs.
+*.log
+TestResults/

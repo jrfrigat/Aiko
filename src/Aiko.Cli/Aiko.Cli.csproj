@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>aiko</AssemblyName>
+    <PublishAot>true</PublishAot>
+    <InvariantGlobalization>false</InvariantGlobalization>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Aiko.Application/Aiko.Application.csproj" />
+    <ProjectReference Include="../Aiko.Infrastructure/Aiko.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

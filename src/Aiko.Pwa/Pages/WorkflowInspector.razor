@@ -1,0 +1,365 @@
+@inject HttpClient Http
+
+<aside class="card-inspector workflow-inspector" aria-label="Редактор workflow">
+    <header class="inspector-header">
+        <div>
+            <span>Workflow - rev @SelectedWorkflow.Revision</span>
+            <strong>@SelectedWorkflow.Title</strong>
+        </div>
+        <FlareButton Variant="ButtonVariant.Text"
+                     Size="ButtonSize.Sm"
+                     AriaLabel="Закрыть редактор workflow"
+                     OnClick="() => OnClose.InvokeAsync()">Закрыть</FlareButton>
+    </header>
+
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <div class="inspector-message @(_hasError ? "is-error" : null)" role="status">@_message</div>
+    }
+
+    <section class="inspector-section workflow-picker">
+        <label>
+            <span>Workflow</span>
+            <select value="@_workflowId" @onchange="SelectWorkflow">
+                @foreach (var workflow in Board.Workflows)
+                {
+                    <option value="@workflow.Id">@workflow.Title</option>
+                }
+            </select>
+        </label>
+        <FlareTextField Label="@Loc.Get("WorkflowTitle")" @bind-Value="_workflowTitle" />
+    </section>
+
+    <section class="inspector-section stage-sequence">
+        <h3>@Loc.Get("StagesTitle") <span>@_stages.Count</span></h3>
+        <div class="stage-track">
+            @foreach (var stageItem in _stages)
+            {
+                <button type="button"
+                        class="stage-track-item @(stageItem == SelectedStage ? "is-active" : null)"
+                        @onclick="() => _selectedStage = stageItem">
+                    <span>@stageItem.Order</span>
+                    <strong>@stageItem.Title</strong>
+                    <small>@stageItem.Id</small>
+                </button>
+            }
+        </div>
+        <div class="stage-actions">
+            <FlareButton Variant="ButtonVariant.Outlined" Size="ButtonSize.Sm" OnClick="AddStage">@Loc.Get("AddStage")</FlareButton>
+            <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm" OnClick="RemoveStage">@Loc.Get("Remove")</FlareButton>
+        </div>
+    </section>
+
+    @if (SelectedStage is { } stage)
+    {
+        <section class="inspector-section editor-fields">
+            <h3>@Loc.Get("SelectedStage")</h3>
+            <FlareTextField Label="@Loc.Get("StableId")"
+                            HelperText="@Loc.Get("StableIdHelper")"
+                            ReadOnly="@(!stage.IsNew)"
+                            @bind-Value="stage.Id" />
+            <FlareTextField Label="@Loc.Get("Title")" @bind-Value="stage.Title" />
+            <FlareTextArea Label="@Loc.Get("Instruction")"
+                           Rows="5"
+                           @bind-Value="stage.Instruction" />
+            <FlareTextField Label="@Loc.Get("DefaultAgent")"
+                            HelperText="@Loc.Get("DefaultAgentHelper")"
+                            @bind-Value="stage.DefaultAgentAdapterId" />
+            <FlareTextArea Label="@Loc.Get("RequiredArtifacts")"
+                           HelperText="@Loc.Get("ArtifactsHelper")"
+                           Rows="5"
+                           @bind-Value="stage.ArtifactLines" />
+            <div class="stage-order-actions">
+                <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm" OnClick="() => MoveStage(-1)">@Loc.Get("MoveUp")</FlareButton>
+                <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm" OnClick="() => MoveStage(1)">@Loc.Get("MoveDown")</FlareButton>
+            </div>
+        </section>
+    }
+
+    <section class="inspector-section">
+        <FlareButton FullWidth="true" Loading="@_saving" OnClick="SaveAsync">@Loc.Get("SaveWorkflow")</FlareButton>
+        <p class="workflow-hint">@Loc.Get("WorkflowHint")</p>
+    </section>
+</aside>
+
+@code {
+    [Parameter, EditorRequired] public ProjectBoardSnapshot Board { get; set; } = null!;
+    [Parameter] public string? InitialWorkflowId { get; set; }
+    [Parameter] public EventCallback OnSaved { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private string? _loadedBoardKey;
+    private string _workflowId = string.Empty;
+    private string? _workflowTitle;
+    private StageDraft? _selectedStage;
+    private List<StageDraft> _stages = [];
+    private string? _message;
+    private bool _hasError;
+    private bool _saving;
+
+    private WorkflowDefinition SelectedWorkflow =>
+        Board.Workflows.First(workflow => workflow.Id == _workflowId);
+
+    private StageDraft? SelectedStage => _selectedStage ?? _stages.FirstOrDefault();
+
+    protected override void OnParametersSet()
+    {
+        var boardKey = $"{InitialWorkflowId}|{string.Join('|', Board.Workflows.Select(workflow =>
+            $"{workflow.Id}:{workflow.Revision}"))}";
+        if (_loadedBoardKey == boardKey)
+        {
+            return;
+        }
+
+        _loadedBoardKey = boardKey;
+        var requested = InitialWorkflowId is not null
+            ? Board.Workflows.FirstOrDefault(workflow => workflow.Id == InitialWorkflowId)
+            : null;
+        LoadWorkflow(requested ?? Board.Workflows.First());
+    }
+
+    private void SelectWorkflow(ChangeEventArgs args)
+    {
+        var id = args.Value?.ToString();
+        var workflow = Board.Workflows.FirstOrDefault(item => item.Id == id);
+        if (workflow is not null)
+        {
+            LoadWorkflow(workflow);
+        }
+    }
+
+    private void LoadWorkflow(WorkflowDefinition workflow)
+    {
+        _workflowId = workflow.Id;
+        _workflowTitle = workflow.Title;
+        _stages = workflow.Stages
+            .OrderBy(stage => stage.Order)
+            .Select(StageDraft.FromDefinition)
+            .ToList();
+        _selectedStage = _stages.FirstOrDefault();
+        _message = null;
+        _hasError = false;
+    }
+
+    private void AddStage()
+    {
+        var stem = "new-stage";
+        var id = stem;
+        var suffix = 2;
+        while (_stages.Any(stage => stage.Id == id))
+        {
+            id = $"{stem}-{suffix++}";
+        }
+
+        var kinds = SelectedWorkflow.Stages.FirstOrDefault()?.AllowedCardKinds ?? [];
+        _stages.Add(new StageDraft
+        {
+            Id = id,
+            Title = Loc.Get("NewStage"),
+            Order = (_stages.Count + 1) * 10,
+            Instruction = Loc.Get("NewStageInstruction"),
+            AllowedCardKinds = kinds,
+            ActionPolicies = new Dictionary<string, ActionPolicy>(StringComparer.Ordinal),
+            IsNew = true
+        });
+        _selectedStage = _stages[^1];
+    }
+
+    private void RemoveStage()
+    {
+        var stage = SelectedStage;
+        if (stage is null || _stages.Count == 1)
+        {
+            ShowError(Loc.Get("OneStageRequired"));
+            return;
+        }
+
+        var occupied = Board.Cards.FirstOrDefault(card =>
+            card.WorkflowId == _workflowId && card.StageId == stage.Id);
+        if (occupied is not null)
+        {
+            ShowError(Loc.Format("MoveCardFirst", occupied.Reference.CardId));
+            return;
+        }
+
+        var index = _stages.IndexOf(stage);
+        _stages.RemoveAt(index);
+        NormalizeOrder();
+        _selectedStage = _stages[Math.Min(index, _stages.Count - 1)];
+    }
+
+    private void MoveStage(int offset)
+    {
+        var stage = SelectedStage;
+        if (stage is null)
+        {
+            return;
+        }
+
+        var current = _stages.IndexOf(stage);
+        var target = current + offset;
+        if (target < 0 || target >= _stages.Count)
+        {
+            return;
+        }
+
+        _stages.RemoveAt(current);
+        _stages.Insert(target, stage);
+        NormalizeOrder();
+    }
+
+    private async Task SaveAsync()
+    {
+        _message = null;
+        _hasError = false;
+        if (string.IsNullOrWhiteSpace(_workflowTitle))
+        {
+            ShowError("Введите название workflow.");
+            return;
+        }
+
+        var duplicateId = _stages.GroupBy(stage => stage.Id, StringComparer.Ordinal)
+            .FirstOrDefault(group => group.Count() > 1)?.Key;
+        if (duplicateId is not null || _stages.Any(stage =>
+                string.IsNullOrWhiteSpace(stage.Id) || string.IsNullOrWhiteSpace(stage.Title)))
+        {
+            ShowError(duplicateId is null
+                ? "У каждого статуса должны быть id и название."
+                : $"Id статуса должен быть уникальным: {duplicateId}.");
+            return;
+        }
+
+        var stages = new List<StageDefinition>();
+        foreach (var draft in _stages)
+        {
+            if (!TryParseArtifacts(draft.ArtifactLines, out var artifacts, out var error))
+            {
+                _selectedStage = draft;
+                ShowError($"{draft.Title}: {error}");
+                return;
+            }
+
+            stages.Add(draft.ToDefinition(artifacts));
+        }
+
+        var workflow = SelectedWorkflow;
+        _saving = true;
+        try
+        {
+            using var response = await Http.PutAsJsonAsync(
+                $"api/v1/projects/{Uri.EscapeDataString(Board.Project.Id)}/workflows/{Uri.EscapeDataString(workflow.Id)}",
+                new UpdateWorkflowRequest(_workflowTitle, stages, workflow.Revision));
+            if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+            {
+                ShowError("Workflow уже изменён другим агентом. Данные доски обновлены.");
+                await OnSaved.InvokeAsync();
+                return;
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+                ShowError(error?.Message ?? $"Сервер отклонил изменения: {(int)response.StatusCode}.");
+                return;
+            }
+
+            _message = "Workflow сохранён.";
+            await OnSaved.InvokeAsync();
+        }
+        catch (Exception exception)
+        {
+            ShowError(Loc.Format("SaveWorkflowFailed", exception.Message));
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private static bool TryParseArtifacts(
+        string? lines,
+        out IReadOnlyList<ArtifactRequirement> artifacts,
+        out string? error)
+    {
+        var result = new List<ArtifactRequirement>();
+        foreach (var line in (lines ?? string.Empty).Split(
+                     ['\r', '\n'],
+                     StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var parts = line.Split('|', 3, StringSplitOptions.TrimEntries);
+            if (parts.Length < 2 || string.IsNullOrWhiteSpace(parts[0]) ||
+                !Enum.TryParse<MissingArtifactPolicy>(parts[1], true, out var policy))
+            {
+                artifacts = [];
+                error = Loc.Format("ArtifactLineInvalid", line);
+                return false;
+            }
+
+            result.Add(new ArtifactRequirement(
+                parts[0],
+                parts.Length == 3 ? parts[2] : string.Empty,
+                policy));
+        }
+
+        artifacts = result;
+        error = null;
+        return true;
+    }
+
+    private void NormalizeOrder()
+    {
+        for (var index = 0; index < _stages.Count; index++)
+        {
+            _stages[index].Order = (index + 1) * 10;
+        }
+    }
+
+    private void ShowError(string message)
+    {
+        _message = message;
+        _hasError = true;
+    }
+
+    private sealed class StageDraft
+    {
+        public required string Id { get; set; }
+        public required string Title { get; set; }
+        public int Order { get; set; }
+        public required string Instruction { get; set; }
+        public string? DefaultAgentAdapterId { get; set; }
+        public string? ArtifactLines { get; set; }
+        public required IReadOnlyList<CardKind> AllowedCardKinds { get; init; }
+        public required IReadOnlyDictionary<string, ActionPolicy> ActionPolicies { get; init; }
+        public bool IsNew { get; init; }
+
+        public static StageDraft FromDefinition(StageDefinition stage) => new()
+        {
+            Id = stage.Id,
+            Title = stage.Title,
+            Order = stage.Order,
+            Instruction = stage.Instruction,
+            DefaultAgentAdapterId = stage.DefaultAgentAdapterId,
+            ArtifactLines = string.Join(Environment.NewLine, stage.RequiredArtifacts.Select(artifact =>
+                $"{artifact.Path} | {artifact.MissingPolicy} | {artifact.Description}")),
+            AllowedCardKinds = stage.AllowedCardKinds,
+            ActionPolicies = stage.ActionPolicies
+        };
+
+        public StageDefinition ToDefinition(IReadOnlyList<ArtifactRequirement> artifacts) => new(
+            Id.Trim(),
+            Title.Trim(),
+            Order,
+            Instruction?.Trim() ?? string.Empty,
+            AllowedCardKinds,
+            string.IsNullOrWhiteSpace(DefaultAgentAdapterId) ? null : DefaultAgentAdapterId.Trim(),
+            artifacts,
+            ActionPolicies);
+    }
+
+    private sealed record UpdateWorkflowRequest(
+        string Title,
+        IReadOnlyList<StageDefinition> Stages,
+        long ExpectedRevision);
+
+    private sealed record ErrorResponse(string Message);
+}

@@ -1,0 +1,350 @@
+@inject HttpClient Http
+
+<aside class="card-inspector settings-inspector" aria-label="Настройки">
+    <header class="inspector-header">
+        <div>
+            <span>@(Project?.Name ?? Loc.Get("ProjectSettings")) - @Loc.Get("SettingsTitle").ToLowerInvariant()</span>
+            <strong>@Loc.Get("SettingsTitle")</strong>
+        </div>
+        <FlareButton Variant="ButtonVariant.Text"
+                     Size="ButtonSize.Sm"
+                     AriaLabel="Закрыть настройки"
+                     OnClick="() => OnClose.InvokeAsync()">Закрыть</FlareButton>
+    </header>
+
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <div class="inspector-message @(_hasError ? "is-error" : null)" role="status">@_message</div>
+    }
+
+    @if (_loading)
+    {
+        <p class="inspector-empty">@Loc.Get("LoadingSettings")</p>
+    }
+    else
+    {
+        <section class="inspector-section">
+            <h3>@Loc.Get("Daemon")</h3>
+            @if (_system is not null)
+            {
+                <ul class="settings-facts">
+                    <li><span>@Loc.Get("Version")</span><strong>@_system.Version</strong></li>
+                    <li><span>@Loc.Get("Address")</span><strong>@_system.BaseUrl</strong></li>
+                    <li><span>PID</span><strong>@_system.ProcessId</strong></li>
+                </ul>
+            }
+        </section>
+
+        <section class="inspector-section">
+            <h3>@Loc.Get("EffectiveConfig")</h3>
+            <ul class="settings-facts">
+                <li>
+                    <span>@Loc.Get("Source")</span>
+                    <strong class="settings-source">@SourceCaption(_view?.ExecutionSource)</strong>
+                </li>
+                <li><span>@Loc.Get("Workspace")</span><strong>@(_view?.EffectiveExecution.WorkspaceMode.ToString() ?? "-")</strong></li>
+                <li><span>@Loc.Get("MaxRuns")</span><strong>@(_view?.EffectiveExecution.MaxConcurrentRuns.ToString() ?? "-")</strong></li>
+                <li><span>@Loc.Get("ScopeOverlap")</span><strong>@(_view?.EffectiveExecution.ScopeOverlapPolicy.ToString() ?? "-")</strong></li>
+                <li><span>@Loc.Get("CommitPolicy")</span><strong>@(_view?.EffectiveExecution.SharedCheckoutCommitPolicy.ToString() ?? "-")</strong></li>
+            </ul>
+            @if (IsParallelShared(_view?.EffectiveExecution))
+            {
+                <div class="notice notice-warning" role="alert">
+                    <strong>@Loc.Get("ParallelSharedOn")</strong>
+                    <span>Агенты используют общую рабочую копию и Git index. Изменения разных карточек
+                    и ваши локальные изменения могут попасть в один commit, конфликтовать или быть
+                    ошибочно отнесены к другому запуску.</span>
+                </div>
+            }
+        </section>
+
+        <section class="inspector-section editor-fields">
+            <h3>@Loc.Get("ProjectSettings") <span class="settings-scope">.aiko/settings.json</span></h3>
+            <label class="settings-field">
+                <span>@Loc.Get("Workspace")</span>
+                <select value="@_projectWorkspace" @onchange="SetProjectWorkspace">
+                    <option value="Shared">@Loc.Get("WorkspaceOption")</option>
+                    <option value="Worktree" disabled>@Loc.Get("WorktreeOption")</option>
+                </select>
+            </label>
+            <FlareTextField Label="@Loc.Get("MaxRunsLabel")"
+                            Type="text"
+                            InputMode="numeric"
+                            ErrorText="@_projectMaxError"
+                            @bind-Value="_projectMaxRuns" />
+            <label class="settings-field">
+                <span>@Loc.Get("ScopePolicy")</span>
+                <select value="@_projectScopePolicy" @onchange="SetProjectScopePolicy">
+                    <option value="Ask">@Loc.Get("PolicyAsk")</option>
+                    <option value="Allow">@Loc.Get("PolicyAllow")</option>
+                    <option value="Deny">@Loc.Get("PolicyDeny")</option>
+                </select>
+            </label>
+            <label class="settings-field">
+                <span>@Loc.Get("CommitPolicy")</span>
+                <select value="@_projectCommitPolicy" @onchange="SetProjectCommitPolicy">
+                    <option value="Deny">@Loc.Get("PolicyDeny")</option>
+                    <option value="Ask">@Loc.Get("PolicyAsk")</option>
+                    <option value="Allow">@Loc.Get("PolicyAllow")</option>
+                </select>
+            </label>
+            <FlareButton FullWidth="true"
+                         Loading="@_savingProject"
+                         OnClick="SaveProjectAsync">@Loc.Get("SaveProjectSettings")</FlareButton>
+        </section>
+
+        <section class="inspector-section editor-fields">
+            <h3>@Loc.Get("GlobalSettings") <span class="settings-scope">@Loc.Get("SourceGlobal")</span></h3>
+            <p class="inspector-empty">@Loc.Get("GlobalHint")</p>
+            <FlareTextField Label="@Loc.Get("MaxRunsLabel")"
+                            Type="text"
+                            InputMode="numeric"
+                            ErrorText="@_globalMaxError"
+                            @bind-Value="_globalMaxRuns" />
+            <label class="settings-field">
+                <span>@Loc.Get("ScopePolicy")</span>
+                <select value="@_globalScopePolicy" @onchange="SetGlobalScopePolicy">
+                    <option value="Ask">@Loc.Get("PolicyAsk")</option>
+                    <option value="Allow">@Loc.Get("PolicyAllow")</option>
+                    <option value="Deny">@Loc.Get("PolicyDeny")</option>
+                </select>
+            </label>
+            <label class="settings-field">
+                <span>@Loc.Get("CommitPolicy")</span>
+                <select value="@_globalCommitPolicy" @onchange="SetGlobalCommitPolicy">
+                    <option value="Deny">@Loc.Get("PolicyDeny")</option>
+                    <option value="Ask">@Loc.Get("PolicyAsk")</option>
+                    <option value="Allow">@Loc.Get("PolicyAllow")</option>
+                </select>
+            </label>
+            <FlareButton FullWidth="true"
+                         Variant="ButtonVariant.Outlined"
+                         Loading="@_savingGlobal"
+                         OnClick="SaveGlobalAsync">@Loc.Get("SaveGlobalSettings")</FlareButton>
+        </section>
+    }
+</aside>
+
+@code {
+    [Parameter, EditorRequired] public RegisteredProject? Project { get; set; }
+    [Parameter] public EventCallback OnSaved { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private AppSettingsView? _view;
+    private SystemInfo? _system;
+    private string? _message;
+    private bool _hasError;
+    private bool _loading = true;
+    private bool _savingProject;
+    private bool _savingGlobal;
+
+    private string _projectWorkspace = "Shared";
+    private string _projectMaxRuns = "1";
+    private string? _projectMaxError;
+    private string _projectScopePolicy = "Ask";
+    private string _projectCommitPolicy = "Deny";
+
+    private string _globalMaxRuns = "1";
+    private string? _globalMaxError;
+    private string _globalScopePolicy = "Ask";
+    private string _globalCommitPolicy = "Deny";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_view is not null || Project is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var projectView = await Http.GetFromJsonAsync<AppSettingsView>(
+                $"api/v1/projects/{Uri.EscapeDataString(Project.Id)}/settings", PwaJson.Options);
+            var globalView = await Http.GetFromJsonAsync<AppSettingsView>(
+                "api/v1/settings", PwaJson.Options);
+            _system = await Http.GetFromJsonAsync<SystemInfo>("api/v1/system", PwaJson.Options);
+            ApplyView(projectView, globalView);
+        }
+        catch (Exception exception)
+        {
+            _message = Loc.Format("LoadSettingsFailed", exception.Message);
+            _hasError = true;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void ApplyView(AppSettingsView? projectView, AppSettingsView? globalView)
+    {
+        _view = projectView;
+        var projectExecution = projectView?.Project?.Execution ?? projectView?.EffectiveExecution;
+        _projectWorkspace = projectExecution?.WorkspaceMode.ToString() ?? "Shared";
+        _projectMaxRuns = (projectExecution?.MaxConcurrentRuns ?? 1)
+            .ToString(System.Globalization.CultureInfo.InvariantCulture);
+        _projectScopePolicy = projectExecution?.ScopeOverlapPolicy.ToString() ?? "Ask";
+        _projectCommitPolicy = projectExecution?.SharedCheckoutCommitPolicy.ToString() ?? "Deny";
+
+        var globalExecution = globalView?.Global?.Execution ?? globalView?.EffectiveExecution;
+        _globalMaxRuns = (globalExecution?.MaxConcurrentRuns ?? 1)
+            .ToString(System.Globalization.CultureInfo.InvariantCulture);
+        _globalScopePolicy = globalExecution?.ScopeOverlapPolicy.ToString() ?? "Ask";
+        _globalCommitPolicy = globalExecution?.SharedCheckoutCommitPolicy.ToString() ?? "Deny";
+    }
+
+    private async Task SaveProjectAsync()
+    {
+        if (!TryBuildExecution(
+                _projectMaxRuns,
+                _projectWorkspace,
+                _projectScopePolicy,
+                _projectCommitPolicy,
+                out var execution,
+                out _projectMaxError))
+        {
+            return;
+        }
+
+        await SaveAsync(
+            $"api/v1/projects/{Uri.EscapeDataString(Project!.Id)}/settings",
+            execution,
+            isProject: true);
+    }
+
+    private async Task SaveGlobalAsync()
+    {
+        if (!TryBuildExecution(
+                _globalMaxRuns,
+                "Shared",
+                _globalScopePolicy,
+                _globalCommitPolicy,
+                out var execution,
+                out _globalMaxError))
+        {
+            return;
+        }
+
+        await SaveAsync("api/v1/settings", execution, isProject: false);
+    }
+
+    private async Task SaveAsync(string url, ExecutionSettings execution, bool isProject)
+    {
+        _message = null;
+        _hasError = false;
+        if (isProject)
+        {
+            _savingProject = true;
+        }
+        else
+        {
+            _savingGlobal = true;
+        }
+
+        try
+        {
+            using var response = await Http.PutAsJsonAsync(
+                url,
+                new AppSettings(AppSettings.CurrentSchemaVersion, execution),
+                PwaJson.Options);
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _message = Loc.Format("SaveSettingsFailed", error);
+                _hasError = true;
+                return;
+            }
+
+            var projectView = await Http.GetFromJsonAsync<AppSettingsView>(
+                $"api/v1/projects/{Uri.EscapeDataString(Project!.Id)}/settings", PwaJson.Options);
+            var globalView = await Http.GetFromJsonAsync<AppSettingsView>(
+                "api/v1/settings", PwaJson.Options);
+            ApplyView(projectView, globalView);
+            _message = Loc.Get("SettingsSaved");
+            await OnSaved.InvokeAsync();
+        }
+        catch (Exception exception)
+        {
+            _message = Loc.Format("SaveSettingsFailed", exception.Message);
+            _hasError = true;
+        }
+        finally
+        {
+            _savingProject = false;
+            _savingGlobal = false;
+        }
+    }
+
+    private void SetProjectWorkspace(ChangeEventArgs args) =>
+        _projectWorkspace = args.Value?.ToString() ?? "Shared";
+
+    private void SetProjectScopePolicy(ChangeEventArgs args) =>
+        _projectScopePolicy = args.Value?.ToString() ?? "Ask";
+
+    private void SetProjectCommitPolicy(ChangeEventArgs args) =>
+        _projectCommitPolicy = args.Value?.ToString() ?? "Deny";
+
+    private void SetGlobalScopePolicy(ChangeEventArgs args) =>
+        _globalScopePolicy = args.Value?.ToString() ?? "Ask";
+
+    private void SetGlobalCommitPolicy(ChangeEventArgs args) =>
+        _globalCommitPolicy = args.Value?.ToString() ?? "Deny";
+
+    private static bool TryBuildExecution(
+        string maxRunsText,
+        string workspace,
+        string scopePolicy,
+        string commitPolicy,
+        out ExecutionSettings execution,
+        out string? error)
+    {
+        error = null;
+        var normalized = (maxRunsText ?? string.Empty).Trim();
+        if (!int.TryParse(
+                normalized,
+                System.Globalization.NumberStyles.Integer,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out var maxRuns) ||
+            maxRuns < 1)
+        {
+            execution = ExecutionSettings.SafeDefault;
+            error = Loc.Get("InvalidMaxRuns");
+            return false;
+        }
+
+        try
+        {
+            execution = new ExecutionSettings(
+                Enum.Parse<WorkspaceMode>(workspace),
+                maxRuns,
+                Enum.Parse<ActionPolicy>(scopePolicy),
+                Enum.Parse<ActionPolicy>(commitPolicy));
+            return true;
+        }
+        catch (ArgumentException)
+        {
+            execution = ExecutionSettings.SafeDefault;
+            error = Loc.Get("InvalidSettingValue");
+            return false;
+        }
+    }
+
+    internal static bool IsParallelShared(ExecutionSettings? settings) =>
+        settings is not null &&
+        settings.WorkspaceMode == WorkspaceMode.Shared &&
+        settings.MaxConcurrentRuns > 1;
+
+    private static string SourceCaption(string? source) => source switch
+    {
+        AppSettingsSources.Project => Loc.Get("SourceProject"),
+        AppSettingsSources.Global => Loc.Get("SourceGlobal"),
+        _ => Loc.Get("SourceDefault")
+    };
+
+    private sealed record SystemInfo(
+        string Name,
+        string Version,
+        int ProcessId,
+        string BaseUrl,
+        DateTimeOffset Time);
+}

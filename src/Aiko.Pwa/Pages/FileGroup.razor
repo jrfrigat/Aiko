@@ -1,0 +1,18 @@
+<div class="file-group @((Warning && Files.Count > 0) ? "has-warning" : null)">
+    <span>@Title - @Files.Count</span>
+    @if (Files.Count > 0)
+    {
+        <ul>
+            @foreach (var file in Files)
+            {
+                <li>@file</li>
+            }
+        </ul>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public IReadOnlyList<string> Files { get; set; } = [];
+    [Parameter] public bool Warning { get; set; }
+}

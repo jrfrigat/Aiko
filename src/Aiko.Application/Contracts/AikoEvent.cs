@@ -1,0 +1,34 @@
+namespace Aiko.Application.Contracts;
+
+/// <summary>
+/// A single change notification of a project: an append-only record persisted in SQLite
+/// and broadcast live to subscribers (SSE). The payload is a JSON document whose shape
+/// depends on the event type.
+/// </summary>
+public sealed record AikoEvent(
+    long Id,
+    string ProjectId,
+    string Type,
+    DateTimeOffset OccurredAtUtc,
+    string PayloadJson);
+
+/// <summary>
+/// Well-known Aiko event types.
+/// </summary>
+public static class AikoEventTypes
+{
+    /// <summary>
+    /// A card was created or changed; the payload is the card JSON.
+    /// </summary>
+    public const string CardUpdated = "card.updated";
+
+    /// <summary>
+    /// The relation set of the project changed; there is no payload.
+    /// </summary>
+    public const string RelationsUpdated = "relations.updated";
+
+    /// <summary>
+    /// A stage execution changed; the payload is the StageExecution JSON.
+    /// </summary>
+    public const string ExecutionUpdated = "execution.updated";
+}

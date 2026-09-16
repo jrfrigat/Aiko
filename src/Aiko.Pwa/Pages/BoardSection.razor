@@ -1,0 +1,85 @@
+<section class="flow-section">
+    <header class="flow-heading">
+        <div>
+            <span>@(Kind == CardKind.Story ? "S" : "T")</span>
+            <h2>@Title</h2>
+        </div>
+        <p>@Loc.Format("CardsStagesCount", _cards.Count, _columns.Count)</p>
+    </header>
+
+    @if (_workflow is null)
+    {
+        <div class="notice notice-error">@Loc.Format("WorkflowNotFound", Kind)</div>
+    }
+    else
+    {
+        <FlareKanban Columns="_columns" Cards="_cards" CardsChanged="OnCardsChanged" />
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter] public CardKind Kind { get; set; }
+    [Parameter, EditorRequired] public ProjectBoardSnapshot Board { get; set; } = null!;
+    [Parameter] public EventCallback<IReadOnlyList<KanbanCard>> OnCardsChanged { get; set; }
+
+    private WorkflowDefinition? _workflow;
+    private IReadOnlyList<KanbanColumn> _columns = [];
+    private IReadOnlyList<KanbanCard> _cards = [];
+
+    protected override void OnParametersSet()
+    {
+        var workflowId = Kind == CardKind.Story ? "story" : "task";
+        _workflow = Board.Workflows.FirstOrDefault(workflow =>
+            StringComparer.Ordinal.Equals(workflow.Id, workflowId));
+        _columns = _workflow?.Stages
+            .OrderBy(stage => stage.Order)
+            .Select((stage, index) => new KanbanColumn(stage.Id, stage.Title, StageColor(index)))
+            .ToArray() ?? [];
+        _cards = Board.Cards
+            .Where(card => card.Kind == Kind)
+            .OrderByDescending(card => card.OwnPriority)
+            .Select(ToKanbanCard)
+            .ToArray();
+    }
+
+    public static IReadOnlyList<string> FindOutOfScopeFiles(Card card)
+    {
+        if (card.ActualChangedFiles.Count == 0)
+        {
+            return [];
+        }
+
+        return card.ActualChangedFiles
+            .Where(actual => !card.DeclaredScopeFiles.Any(pattern => ScopeMatcher.Matches(pattern, actual)))
+            .ToArray();
+    }
+
+    private static KanbanCard ToKanbanCard(Card card)
+    {
+        var deviations = FindOutOfScopeFiles(card).Count;
+        var scope = card.DeclaredScopeFiles.Count == 0
+            ? Loc.Get("ScopeNotSet")
+            : Loc.Format("FilesCount", card.ActualChangedFiles.Count, card.DeclaredScopeFiles.Count);
+        var description = $"P{card.OwnPriority:0.##} - {scope}" +
+                          (deviations > 0 ? $" - {Loc.Format("OutOfScopeCount", deviations)}" : string.Empty);
+        return new KanbanCard(
+            card.Reference.CardId,
+            card.StageId,
+            card.Title,
+            description,
+            card.Reference.CardId,
+            deviations > 0 ? "#C95C33" : KindColor(card.Kind));
+    }
+
+    private static string KindColor(CardKind kind) => kind == CardKind.Story ? "#3156D3" : "#287A64";
+
+    private static string StageColor(int index) => index switch
+    {
+        0 => "#73808A",
+        1 => "#3156D3",
+        2 => "#7551A6",
+        3 => "#C07A2C",
+        _ => "#287A64"
+    };
+}

@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="EmptyStateTitle" xml:space="preserve"><value>Нет зарегистрированных проектов</value></data>
+  <data name="EmptyStateHint" xml:space="preserve"><value>Инициализируйте проект через Aiko, и он появится в этой панели.</value></data>
+  <data name="AddProject" xml:space="preserve"><value>Добавить проект</value></data>
+  <data name="AddProjectHint" xml:space="preserve"><value>Укажите путь к папке проекта. Будет создан каталог .aiko и стандартные workflow.</value></data>
+  <data name="CreateCard" xml:space="preserve"><value>Карточка</value></data>
+  <data name="CreateCardTitle" xml:space="preserve"><value>Создать карточку</value></data>
+  <data name="Add" xml:space="preserve"><value>Добавить</value></data>
+  <data name="Create" xml:space="preserve"><value>Создать</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Отмена</value></data>
+  <data name="Close" xml:space="preserve"><value>Закрыть</value></data>
+  <data name="Refresh" xml:space="preserve"><value>Обновить</value></data>
+  <data name="Workflow" xml:space="preserve"><value>Workflow</value></data>
+  <data name="Settings" xml:space="preserve"><value>Настройки</value></data>
+  <data name="Title" xml:space="preserve"><value>Название</value></data>
+  <data name="ProjectPath" xml:space="preserve"><value>Путь к проекту</value></data>
+  <data name="ProjectName" xml:space="preserve"><value>Имя (необязательно)</value></data>
+  <data name="CardId" xml:space="preserve"><value>ID (например TASK-001)</value></data>
+  <data name="Stage" xml:space="preserve"><value>Этап (например backlog)</value></data>
+  <data name="Priority" xml:space="preserve"><value>Приоритет (число)</value></data>
+  <data name="Scope" xml:space="preserve"><value>Scope (через запятую)</value></data>
+  <data name="Choose" xml:space="preserve"><value>Выберите...</value></data>
+  <data name="GitPolicyLocalOnly" xml:space="preserve"><value>local-only (по умолчанию)</value></data>
+  <data name="GitPolicyTrackKnowledge" xml:space="preserve"><value>track-project-knowledge</value></data>
+  <data name="GitPolicyCustom" xml:space="preserve"><value>custom</value></data>
+  <data name="TaskKind" xml:space="preserve"><value>Task</value></data>
+  <data name="StoryKind" xml:space="preserve"><value>Story</value></data>
+  <data name="PathRequired" xml:space="preserve"><value>Укажите путь к проекту.</value></data>
+  <data name="IdTitleRequired" xml:space="preserve"><value>Укажите ID и название карточки.</value></data>
+  <data name="AddProjectFailed" xml:space="preserve"><value>Не удалось добавить проект: {0}</value></data>
+  <data name="CreateCardFailed" xml:space="preserve"><value>Не удалось создать карточку: {0}</value></data>
+  <data name="MoveFailed" xml:space="preserve"><value>Переход {0} не сохранён: {1}</value></data>
+  <data name="BoardCaption" xml:space="preserve"><value>Доска проекта</value></data>
+  <data name="LoadingContext" xml:space="preserve"><value>Собираем проектный контекст...</value></data>
+  <data name="BoardUpdateFailed" xml:space="preserve"><value>Не удалось обновить доску</value></data>
+  <data name="Cards" xml:space="preserve"><value>Карточки</value></data>
+  <data name="InProgress" xml:space="preserve"><value>В работе</value></data>
+  <data name="Relations" xml:space="preserve"><value>Связи</value></data>
+  <data name="OutOfScope" xml:space="preserve"><value>Вне scope</value></data>
+  <data name="StoriesCaption" xml:space="preserve"><value>Ценность и готовность историй</value></data>
+  <data name="TasksCaption" xml:space="preserve"><value>Исполнение и фактический scope задач</value></data>
+  <data name="CombinedCaption" xml:space="preserve"><value>Story и Task без копирования карточек</value></data>
+  <data name="Implementation" xml:space="preserve"><value>реализация</value></data>
+  <data name="ParallelSharedTitle" xml:space="preserve"><value>Параллельный shared-режим</value></data>
+  <data name="ParallelSharedText" xml:space="preserve"><value>Агенты используют общую рабочую копию и Git index. Изменения разных карточек и ваши локальные изменения могут попасть в один commit, конфликтовать или быть ошибочно отнесены к другому запуску.</value></data>
+  <data name="CardsStagesCount" xml:space="preserve"><value>{0} карточек - {1} этапов</value></data>
+  <data name="WorkflowNotFound" xml:space="preserve"><value>Workflow для {0} не найден.</value></data>
+  <data name="ScopeNotSet" xml:space="preserve"><value>scope не задан</value></data>
+  <data name="FilesCount" xml:space="preserve"><value>{0}/{1} файлов</value></data>
+  <data name="OutOfScopeCount" xml:space="preserve"><value>вне scope: {0}</value></data>
+  <data name="Parameters" xml:space="preserve"><value>Параметры</value></data>
+  <data name="PriorityLabel" xml:space="preserve"><value>Оценка / приоритет</value></data>
+  <data name="ScopeHelper" xml:space="preserve"><value>Один путь или glob на строку</value></data>
+  <data name="SaveCard" xml:space="preserve"><value>Сохранить карточку</value></data>
+  <data name="FilesTitle" xml:space="preserve"><value>Файлы</value></data>
+  <data name="NoRelations" xml:space="preserve"><value>Связей пока нет.</value></data>
+  <data name="LoadingHistory" xml:space="preserve"><value>Загрузка истории...</value></data>
+  <data name="NoExecutions" xml:space="preserve"><value>Запусков пока нет.</value></data>
+  <data name="ArtifactsLabel" xml:space="preserve"><value>Артефакты: {0}</value></data>
+  <data name="HistoryUnavailable" xml:space="preserve"><value>История executions недоступна: {0}</value></data>
+  <data name="InvalidPriority" xml:space="preserve"><value>Введите неотрицательное число.</value></data>
+  <data name="TitleRequired" xml:space="preserve"><value>Название карточки обязательно.</value></data>
+  <data name="CardConflict" xml:space="preserve"><value>Карточка уже изменена другим агентом. Данные доски обновлены.</value></data>
+  <data name="ChangesSaved" xml:space="preserve"><value>Изменения сохранены.</value></data>
+  <data name="SaveCardFailed" xml:space="preserve"><value>Не удалось сохранить карточку: {0}</value></data>
+  <data name="DocumentsTitle" xml:space="preserve"><value>Документы</value></data>
+  <data name="NewMarkdown" xml:space="preserve"><value>Новый Markdown-файл</value></data>
+  <data name="AddDocHint" xml:space="preserve"><value>Добавьте Markdown-файл для запроса, анализа или результата работы.</value></data>
+  <data name="NewFile" xml:space="preserve"><value>Новый файл</value></data>
+  <data name="SavedFile" xml:space="preserve"><value>Сохранённый файл</value></data>
+  <data name="SaveDocument" xml:space="preserve"><value>Сохранить документ</value></data>
+  <data name="ListFailed" xml:space="preserve"><value>Не удалось загрузить список документов: {0}</value></data>
+  <data name="ServerEmptyDoc" xml:space="preserve"><value>Сервер вернул пустой документ.</value></data>
+  <data name="OpenFailed" xml:space="preserve"><value>Не удалось открыть документ: {0}</value></data>
+  <data name="InvalidPath" xml:space="preserve"><value>Введите относительный путь к файлу с расширением .md.</value></data>
+  <data name="NewDocPrepared" xml:space="preserve"><value>Новый документ подготовлен. Заполните его и сохраните.</value></data>
+  <data name="FileChanged" xml:space="preserve"><value>Файл изменён другим агентом или редактором. Обновите документ перед сохранением.</value></data>
+  <data name="ServerRejected" xml:space="preserve"><value>Сервер отклонил документ: {0}.</value></data>
+  <data name="ServerNoDoc" xml:space="preserve"><value>Сервер не вернул сохранённый документ.</value></data>
+  <data name="DocSaved" xml:space="preserve"><value>Документ сохранён.</value></data>
+  <data name="SaveDocFailed" xml:space="preserve"><value>Не удалось сохранить документ: {0}</value></data>
+  <data name="ArtifactSaved" xml:space="preserve"><value>сохранён</value></data>
+  <data name="ArtifactRequired" xml:space="preserve"><value>требуется</value></data>
+  <data name="ArtifactNew" xml:space="preserve"><value>новый</value></data>
+  <data name="WorkflowTitle" xml:space="preserve"><value>Название workflow</value></data>
+  <data name="StagesTitle" xml:space="preserve"><value>Статусы</value></data>
+  <data name="AddStage" xml:space="preserve"><value>Добавить статус</value></data>
+  <data name="Remove" xml:space="preserve"><value>Удалить</value></data>
+  <data name="SelectedStage" xml:space="preserve"><value>Выбранный статус</value></data>
+  <data name="StableId" xml:space="preserve"><value>Стабильный id</value></data>
+  <data name="StableIdHelper" xml:space="preserve"><value>Используется агентами и карточками</value></data>
+  <data name="Instruction" xml:space="preserve"><value>Инструкция агенту</value></data>
+  <data name="DefaultAgent" xml:space="preserve"><value>Агент по умолчанию</value></data>
+  <data name="DefaultAgentHelper" xml:space="preserve"><value>Например: codex; можно оставить пустым</value></data>
+  <data name="RequiredArtifacts" xml:space="preserve"><value>Необходимые артефакты</value></data>
+  <data name="ArtifactsHelper" xml:space="preserve"><value>path | policy | описание - по одному на строку</value></data>
+  <data name="MoveUp" xml:space="preserve"><value>Выше</value></data>
+  <data name="MoveDown" xml:space="preserve"><value>Ниже</value></data>
+  <data name="SaveWorkflow" xml:space="preserve"><value>Сохранить workflow</value></data>
+  <data name="WorkflowHint" xml:space="preserve"><value>Изменения применятся к доске и к следующим запускам агентов.</value></data>
+  <data name="NewStage" xml:space="preserve"><value>Новый статус</value></data>
+  <data name="NewStageInstruction" xml:space="preserve"><value>Опиши, что агент должен сделать на этом этапе.</value></data>
+  <data name="OneStageRequired" xml:space="preserve"><value>Workflow должен содержать хотя бы один статус.</value></data>
+  <data name="MoveCardFirst" xml:space="preserve"><value>Сначала переместите карточку {0} из этого статуса.</value></data>
+  <data name="ArtifactLineInvalid" xml:space="preserve"><value>неверная строка артефакта "{0}".</value></data>
+  <data name="SaveWorkflowFailed" xml:space="preserve"><value>Не удалось сохранить workflow: {0}</value></data>
+  <data name="SettingsTitle" xml:space="preserve"><value>Настройки</value></data>
+  <data name="LoadingSettings" xml:space="preserve"><value>Загрузка настроек...</value></data>
+  <data name="Daemon" xml:space="preserve"><value>Демон</value></data>
+  <data name="Version" xml:space="preserve"><value>Версия</value></data>
+  <data name="Address" xml:space="preserve"><value>Адрес</value></data>
+  <data name="EffectiveConfig" xml:space="preserve"><value>Эффективная конфигурация исполнения</value></data>
+  <data name="Source" xml:space="preserve"><value>Источник</value></data>
+  <data name="Workspace" xml:space="preserve"><value>Рабочая область</value></data>
+  <data name="MaxRuns" xml:space="preserve"><value>Одновременных запусков</value></data>
+  <data name="ScopeOverlap" xml:space="preserve"><value>Пересечение scope</value></data>
+  <data name="CommitPolicy" xml:space="preserve"><value>Коммиты в общий checkout</value></data>
+  <data name="ParallelSharedOn" xml:space="preserve"><value>Параллельный shared-режим включён</value></data>
+  <data name="ProjectSettings" xml:space="preserve"><value>Проект</value></data>
+  <data name="WorkspaceOption" xml:space="preserve"><value>Общий checkout (shared)</value></data>
+  <data name="WorktreeOption" xml:space="preserve"><value>Отдельный worktree (скоро)</value></data>
+  <data name="MaxRunsLabel" xml:space="preserve"><value>Одновременных запусков (1 и больше)</value></data>
+  <data name="PolicyAsk" xml:space="preserve"><value>Спрашивать</value></data>
+  <data name="PolicyAllow" xml:space="preserve"><value>Разрешать</value></data>
+  <data name="PolicyDeny" xml:space="preserve"><value>Запрещать</value></data>
+  <data name="SaveProjectSettings" xml:space="preserve"><value>Сохранить настройки проекта</value></data>
+  <data name="GlobalSettings" xml:space="preserve"><value>Приложение</value></data>
+  <data name="GlobalHint" xml:space="preserve"><value>Применяются ко всем проектам без собственных настроек.</value></data>
+  <data name="SaveGlobalSettings" xml:space="preserve"><value>Сохранить глобальные настройки</value></data>
+  <data name="SourceProject" xml:space="preserve"><value>проект</value></data>
+  <data name="SourceGlobal" xml:space="preserve"><value>глобально</value></data>
+  <data name="SourceDefault" xml:space="preserve"><value>по умолчанию</value></data>
+  <data name="LoadSettingsFailed" xml:space="preserve"><value>Не удалось загрузить настройки: {0}</value></data>
+  <data name="SaveSettingsFailed" xml:space="preserve"><value>Сохранение не удалось: {0}</value></data>
+  <data name="SettingsSaved" xml:space="preserve"><value>Настройки сохранены.</value></data>
+  <data name="InvalidMaxRuns" xml:space="preserve"><value>Введите целое число от 1 и больше.</value></data>
+  <data name="InvalidSettingValue" xml:space="preserve"><value>Недопустимое значение настройки.</value></data>
+  <data name="ScopePolicy" xml:space="preserve"><value>Политика пересечения scope</value></data>
+</root>

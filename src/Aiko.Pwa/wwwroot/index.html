@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aiko</title>
+    <base href="/" />
+    <meta name="theme-color" content="#0b1326" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" type="image/svg+xml" href="aiko.svg" />
+    <link rel="stylesheet" href="_content/Flare.Components/css/flare-components.css" />
+    <link rel="stylesheet" href="_content/Flare.Components.Kanban/css/kanban.css" />
+    <link rel="stylesheet" href="css/app.css" />
+    <script src="_content/Flare.Components/js/flare-bootstrap.js"
+            data-default-theme="md3-expressive"
+            data-default-mode="dark"></script>
+</head>
+<body>
+    <div id="flare-splash" class="app-splash">
+        <span class="splash-mark"><i></i><i></i><i></i></span>
+        <strong>Aiko <small>AI kanban orchestrator</small></strong>
+    </div>
+    <div id="app"></div>
+    <div id="blazor-error-ui">
+        Интерфейс остановлен. <a class="reload" href=".">Перезагрузить</a>
+    </div>
+    <script src="js/aiko-events.js"></script>
+    <script src="_framework/blazor.webassembly.js"></script>
+</body>
+</html>

@@ -1,0 +1,639 @@
+# Aiko: техническое задание и архитектура
+
+> [English version ->](../en/technical-specification.md) - [Журнал требований](requirements-discussion.md) - [README](../../README.ru.md)
+
+Версия: 0.1  
+Статус: утвержденная основа MVP  
+Дата: 2026-09-14
+
+## 1. Назначение
+
+Aiko (AI kanban orchestrator) - локальный оркестратор разработки и управляемый Kanban-конвейер для совместной работы
+пользователя и нескольких ИИ-агентов. Система связывает требования, задачи, документы, исполнителей,
+историю и фактические изменения файлов в один трассируемый процесс.
+
+Aiko не заменяет Claude Code, Codex, Cursor или ZCode. Он предоставляет им общий контекст,
+workflow, память и стабильный MCP-контракт.
+
+Проекты используют каталог `.aiko`, а сборки и MCP-инструменты несут имя Aiko. Сохраненный ранее
+порт остается действующим до явного изменения в установщике; для новой установки предпочтительный
+порт - `24560`.
+
+## 2. Цели
+
+- Единый глобальный демон обслуживает несколько локальных проектов.
+- StoryCard и TaskCard образуют типизированный граф.
+- Каждая карточка имеет папку с Markdown-артефактами и структурированными метаданными.
+- Пользователь создает и изменяет workflow без перекомпиляции приложения.
+- Этап workflow может запускаться в выбранном ИИ-агенте.
+- Разные этапы одной карточки могут выполнять разные агенты.
+- Незавершенный этап можно передать другому агенту без потери контекста.
+- Несколько агентов могут работать параллельно с явно показанными рисками общего checkout.
+- PWA предоставляет Kanban, историю, настройки и просмотр артефактов.
+- Система остается локальной, переносимой и не требует внешней БД.
+- Интеграция нового агента добавляется адаптером, а не изменением доменного ядра.
+
+## 3. Не входит в MVP
+
+- Облачный сервер Aiko.
+- Совместная работа нескольких пользователей по сети.
+- Автоматическое слияние Git-веток и разрешение конфликтов.
+- Обязательная векторная БД и embeddings.
+- Межпроектные связи карточек.
+- Единая межпроектная Kanban-доска.
+- Жесткий sandbox по `ScopeFiles`.
+- Гарантированное принуждение любой модели к вызову MCP tool.
+- Полноценная реализация worktree-изоляции, если она задерживает первый рабочий выпуск.
+
+## 4. Термины
+
+- **Project** - зарегистрированный локальный корень проекта.
+- **Card** - общая сущность StoryCard или TaskCard.
+- **StoryCard** - крупная потребность или пользовательская история.
+- **TaskCard** - атомарная или составная техническая работа.
+- **Workflow** - настраиваемый набор статусов и переходов для типа карточек.
+- **Stage** - статус/этап workflow и связанная с ним инструкция.
+- **StageExecution** - одно продолжаемое выполнение этапа карточки.
+- **AgentAttempt** - попытка конкретного агента выполнить StageExecution.
+- **Artifact** - документ или другой файл, ожидаемый либо созданный на этапе.
+- **DeclaredScope** - первоначально заявленный список файлов/масок.
+- **ActualFiles** - фактически измененные файлы.
+- **Projection** - сохраненное представление единого набора карточек.
+- **Durable memory** - проверенные знания проекта, полезные между сессиями.
+
+## 5. Системный контекст
+
+```text
++----------------------------------------------------------+
+|                    Aiko daemon                     |
+|  REST + SSE  |  MCP Streamable HTTP  |  stdio proxy API |
+|  scheduler   |  workflow engine      |  memory service  |
+|  SQLite      |  project filesystem   |  agent adapters  |
++------+--------------+---------------+--------------+------+
+       |              |               |              |
+ Local PWA       Claude Code        Codex       Cursor/ZCode
+```
+
+Демон запускается один раз для пользователя и по умолчанию слушает только loopback.
+
+## 6. Компоненты решения
+
+### 6.1 Domain
+
+Содержит карточки, связи, workflow, вычисление приоритета, executions, attempts, scope и политики.
+Не зависит от транспорта, файловой системы, SQLite или конкретного агента.
+
+### 6.2 Application
+
+Содержит сценарии использования и порты:
+
+- регистрация и открытие проекта;
+- CRUD карточек и связей;
+- переход между этапами;
+- запуск, приостановка, handoff и завершение;
+- вычисление проекций;
+- управление памятью;
+- планирование установки адаптера.
+
+### 6.3 Infrastructure
+
+Реализует:
+
+- глобальную SQLite;
+- чтение и атомарную запись `.aiko`;
+- FileSystemWatcher и reconciliation;
+- запуск процессов агентов;
+- Git inspection;
+- официальный набор адаптеров;
+- хранение и ротацию логов.
+
+### 6.4 Server
+
+Один ASP.NET Core .NET 10 процесс:
+
+- REST API `/api/v1`;
+- SSE событий `/api/v1/events`;
+- MCP endpoint `/mcp/projects/{projectId}`;
+- health/readiness endpoints;
+- раздача локального PWA;
+- планировщик фоновых запусков.
+
+### 6.5 Web
+
+Blazor WebAssembly PWA на Flare.Blazor:
+
+- выбор проекта;
+- Kanban-проекции;
+- карточки, граф и артефакты;
+- executions и live logs;
+- настройки workflow, агентов, безопасности и Git;
+- мастер инициализации.
+
+## 7. Хранение
+
+### 7.1 Разделение ответственности
+
+`.aiko` - локальный читаемый источник проектных данных. Глобальная SQLite - быстрый индекс и
+источник runtime-состояния.
+
+По умолчанию установщик добавляет `/.aiko/` в `.gitignore`. Пользователь может выбрать другую
+политику.
+
+### 7.2 Структура проекта
+
+```text
+.aiko/
+  project.json
+  workflows/
+    story.json
+    task.json
+  projections/
+    tasks.json
+    stories.json
+    combined.json
+  stories/<STORY-ID>/
+    card.json
+    request.md
+    analysis.md
+    architecture.md
+    artifacts/
+  tasks/<TASK-ID>/
+    card.json
+    request.md
+    analysis.md
+    architecture.md
+    implementation.md
+    artifacts/
+    handoffs/
+  memory/
+    index.md
+    architecture.md
+    conventions.md
+    lessons.md
+  runtime/                 # всегда локально, никогда не коммитится
+```
+
+Наличие конкретного Markdown-файла определяется требованиями этапа, а не жестким набором.
+
+### 7.3 Глобальная SQLite
+
+Рекомендуемый путь Windows: `%LOCALAPPDATA%/Aiko/aiko.db`. Для Linux/macOS используется
+стандартный user-data каталог платформы.
+
+Основные таблицы:
+
+- `Projects`;
+- `Cards`;
+- `Relations`;
+- `CardSearch`;
+- `Workflows` и `Stages`;
+- `StageExecutions`;
+- `AgentAttempts`;
+- `AgentInstallations`;
+- `CardLeases`;
+- `Workspaces`;
+- `Events` и `Logs`;
+- `BrowserSessions` и `Permissions`;
+- `MemoryEntries` и `MemoryEdges`;
+- `SchemaMigrations`.
+
+SQLite использует WAL, транзакции, foreign keys и индексы по Project, Card, Relation type/source/target,
+execution state и timestamps. FTS применяется для полнотекстового поиска. Граф обходится recursive CTE.
+
+### 7.4 Синхронизация
+
+- Демон - единственный штатный writer структурированных данных.
+- `card.json` содержит `revision`.
+- Запись выполняется через временный файл и atomic replace.
+- FileSystemWatcher служит сигналом; окончательное состояние всегда перечитывается.
+- Ручное редактирование JSON проходит schema validation и optimistic reconciliation.
+- SQLite-проекция перестраивается из `.aiko` командой repair/reindex.
+
+## 8. Модель карточек
+
+Общие поля Card:
+
+- `id`, уникальный внутри проекта;
+- `projectId`;
+- `kind`: `story` или `task`;
+- `title`, `summary`;
+- `workflowId`, `stageId`;
+- `revision`;
+- `tags`;
+- `scores` и вычисленный priority snapshot;
+- `declaredScopeFiles`;
+- `actualChangedFiles`;
+- `artifacts`;
+- timestamps;
+- текущий исполнитель и настройки исполнителей по этапам;
+- пользовательские расширения metadata.
+
+StoryCard и TaskCard имеют собственные настраиваемые workflow. Это заменяет исходное ограничение,
+где Story была статичной.
+
+## 9. Граф связей
+
+Связь хранится один раз как направленное ребро. Обратное представление вычисляется.
+
+Встроенные типы:
+
+- `implements`: Task реализует Story;
+- `parent-child`: декомпозиция карточки;
+- `blocks`: одна карточка блокирует другую;
+- `relates-to`: симметричная смысловая связь.
+
+Встроенные типы могут влиять на планировщик и приоритет. Пользовательские типы разрешены как
+расширяемый справочник, но по умолчанию имеют только визуальную/поисковую семантику.
+
+В MVP оба конца связи принадлежат одному проекту. Циклы `blocks` запрещены. Циклы `relates-to`
+допустимы. Обратные связи не дублируются в хранилище.
+
+## 10. Приоритет
+
+Каждая карточка имеет собственные критерии оценки. Критерий задает id, заголовок, диапазон, вес и
+`aiInstruction`. Размер имеет настраиваемый коэффициент.
+
+Базовый score карточки:
+
+```text
+OwnScore = Sum(Wcriterion x NormalizedCriterionValue) x SizeFactor
+```
+
+Для Task с родителями:
+
+```text
+EffectivePriority =
+  (Wtask x OwnScore + Wparent x Max(ParentEffectivePriority))
+  / (Wtask + Wparent)
+```
+
+Дефолты: `Wtask=0.7`, `Wparent=0.3`. Без родителей используется `OwnScore`. `relates-to` не влияет на
+приоритет. Формула и коэффициенты версионируются; сохраненный snapshot содержит версию формулы.
+
+## 11. Workflow и внутренние скиллы
+
+Stage содержит:
+
+- стабильный ASCII id и отображаемое название;
+- порядок;
+- допустимые типы карточек;
+- инструкцию выполнения;
+- агента по умолчанию;
+- разрешенных агентов;
+- ожидаемые выходные артефакты;
+- реакцию на отсутствие каждого артефакта;
+- action policies;
+- команды проверки;
+- правила автоматического перехода.
+
+Пользователь может создать Stage и написать инструкцию. Aiko превращает ее во внутренний skill.
+Список MCP tools остается стабильным; динамическая инструкция возвращается через контекст этапа.
+
+Базовые skills строятся из `SkillsExample`, но удаляют привязку к конкретной БД, проекту и старой
+структуре `.claude/workflow`.
+
+Отсутствие артефакта обрабатывается политикой `allow`, `warn`, `retry`, `needs-attention` или
+`block-auto-advance`. Пользователь всегда может вручную переместить или отменить карточку; override
+фиксируется в истории.
+
+## 12. Исполнение и handoff
+
+`StageExecution` принадлежит карточке и этапу. Workspace принадлежит StageExecution, а не агенту.
+`AgentAttempt` описывает отдельного исполнителя.
+
+Статусы попытки:
+
+- `queued`, `running`, `waiting-for-user`, `rate-limited`, `paused`, `failed`, `cancelled`,
+  `superseded`, `completed`.
+
+При передаче другому агенту создается новая Attempt внутри той же StageExecution. Handoff содержит:
+
+- карточку и skill этапа;
+- decisions и progress summary;
+- завершенные и оставшиеся шаги;
+- declared/actual/out-of-scope files;
+- артефакты;
+- workspace и diff;
+- последнюю полезную ошибку/вывод;
+- ссылку на предыдущую Attempt.
+
+В MVP fallback ручной. Позднее: `manual`, `ask`, `automatic` и упорядоченный список агентов. Только
+уверенно распознанный `rate-limited` допускает automatic fallback.
+
+## 13. Параллельность и workspace
+
+Стратегии:
+
+- `shared`: checkout пользователя;
+- `worktree`: отдельный Git worktree выполнения;
+- будущая стратегия для проектов без Git.
+
+Безопасные дефолты MVP:
+
+```json
+{
+  "workspaceMode": "shared",
+  "maxConcurrentRuns": 1,
+  "scopeOverlapPolicy": "ask",
+  "sharedCheckoutCommitPolicy": "deny"
+}
+```
+
+Пользователь может включить параллельный shared-режим. UI постоянно предупреждает, что working tree и
+Git index общие, изменения могут конфликтовать, смешиваться в commit и ошибочно атрибутироваться.
+
+Планировщик проверяет leases, `blocks`, лимит запусков и пересечение scope. Внешние изменения IDE не
+блокируются. При их обнаружении результат помечается как требующий проверки атрибуции.
+
+Worktree-режим добавляется через `IWorkspaceStrategy` без изменения домена. В нем новый агент после
+handoff подключается к существующему worktree StageExecution.
+
+## 14. ScopeFiles
+
+`ScopeFiles` является инструкцией. Жесткий запрет отсутствует.
+
+Карточка хранит:
+
+- `declaredScopeFiles`;
+- `actualChangedFiles`;
+- вычисляемый `outOfScopeFiles`.
+
+До осознанного изменения вне scope агент должен вызвать запрос расширения и предупредить пользователя.
+Политики: `ask`, `warn`, `allow`. В неинтерактивном `ask` выполнение переходит в `needs-attention`.
+
+## 15. Агенты и адаптеры
+
+Встроенные адаптеры MVP:
+
+- Claude Code;
+- Codex;
+- Cursor;
+- ZCode от Z.ai.
+
+Следующие кандидаты: OpenCode, Windsurf, Gemini CLI, Zed и VS Code Agent.
+
+`IAgentAdapter` отвечает за обнаружение, capabilities, план установки, применение/удаление интеграции,
+health check, запуск, pause/cancel/resume, классификацию выхода и handoff.
+
+Capabilities включают MCP transports, config scopes, skills, commands, rules, hooks, headless mode,
+resume, structured output, rate-limit detection и remote workspace.
+
+Официальные адаптеры компилируются в Native AOT приложение. Внешние расширения используют
+декларативный manifest и шаблоны либо отдельный executable с версионированным JSON-RPC/stdio.
+Сторонние .NET DLL динамически не загружаются.
+
+### 15.1 ZCode
+
+Основной способ - локальный ZCode plugin с `.zcode-plugin/plugin.json`, `.mcp.json`, `skills/`,
+`commands/` и при необходимости hooks. Fallback - безопасное объединение `.zcode/config.json` и
+установка `.zcode/skills`. Адаптер учитывает приоритет native config над `.agents/mcp.json`.
+
+## 16. MCP
+
+Основной транспорт - Streamable HTTP глобального демона. Endpoint проектный:
+
+```text
+POST http://127.0.0.1:<configuredPort>/mcp/projects/{projectId}
+```
+
+`stdio` остается совместимым тонким proxy и не создает второе хранилище. Proxy запускается
+как отдельный короткоживущий процесс:
+
+```text
+aiko-stdio --url http://127.0.0.1:<configuredPort>/mcp/projects/{projectId}
+```
+
+Допускается передача URL через `AIKO_MCP_URL`. Proxy работает на raw transport уровне,
+завершается при закрытии stdin, резервирует stdout только под MCP и принимает исключительно
+loopback HTTP(S) project endpoint. Системный HTTP proxy и redirect для соединения с daemon
+принудительно отключены.
+
+Начальный стабильный набор tools:
+
+- `aiko_get_project_context`;
+- `aiko_list_cards`;
+- `aiko_get_card`;
+- `aiko_create_card`;
+- `aiko_update_card`;
+- `aiko_link_cards`;
+- `aiko_take_card`;
+- `aiko_start_stage`;
+- `aiko_report_progress`;
+- `aiko_request_scope_expansion`;
+- `aiko_complete_stage`;
+- `aiko_pause_execution`;
+- `aiko_handoff_execution`;
+- `aiko_resume_execution`;
+- `aiko_report_agent_state`;
+- `aiko_search_memory`;
+- `aiko_store_memory`;
+- `aiko_open_ui`.
+
+Tool descriptions и project rules требуют сначала получать контекст. MCP не гарантирует, что любая
+модель автоматически вызовет tool; адаптер усиливает поведение skills, rules и hooks.
+
+## 17. REST, SSE и локальный UI
+
+MVP UI локален и доступен по постоянному loopback URL. Главная страница содержит переключатель всех
+зарегистрированных проектов. UI можно открыть вручную, CLI, deep link, MCP tool или skill.
+
+```text
+aiko ui [--project <id>] [--card <id>]
+```
+
+`aiko-ui` - канонический skill, `stitch-ui` - возможный alias.
+
+SSE транслирует события execution и лог. Клиент после reconnect передает последний event id. Полный
+лог читается постранично через REST, чтобы не держать его в памяти браузера.
+
+## 18. Проекции Kanban
+
+Проекция - сохраненная конфигурация отображения.
+
+Встроенные виды:
+
+- `Tasks`: TaskCard по workflow;
+- `Stories`: StoryCard по собственному workflow с агрегатами дочерних задач;
+- `Combined`: Story как swimlane/группа и Task внутри нее; отдельная группа для Task без Story.
+
+Карточки не копируются. Позднее пользователь создает собственные фильтры по агенту, status, tag,
+priority, blockers, scope deviations и project. В MVP переключение проектов есть всегда;
+межпроектная доска откладывается.
+
+## 19. Память
+
+Единый `MemoryService`:
+
+- durable Markdown в `.aiko/memory`;
+- SQLite FTS и графовый индекс;
+- provenance: источник, карточка, execution, агент и timestamp;
+- векторный backend - опциональный модуль будущей версии.
+
+`CLAUDE.md`, `AGENTS.md`, ZCode/Cursor rules направляют агента к MCP и памяти Aiko, но не
+дублируют память. При закрытии карточки агент предлагает durable conclusions; сохранение регулируется
+политикой и фиксируется в истории.
+
+## 20. Git
+
+По умолчанию `.aiko` полностью игнорируется. Мастер предлагает:
+
+- `local-only`;
+- `track-project-knowledge`;
+- `custom`.
+
+Полные логи, secrets, sessions, locks и SQLite никогда не предлагаются к коммиту.
+
+Операции имеют `allow`, `ask`, `deny` с иерархией global -> project -> stage -> execution. В
+параллельном shared-режиме Git mutation получает отдельное предупреждение; safe default - `deny`.
+
+## 21. Безопасность
+
+- Bind по умолчанию только `127.0.0.1`/`::1`.
+- Проверка `Origin` и `Host`, защита от DNS rebinding.
+- Аутентификация MCP HTTP и браузерных сессий.
+- Секреты хранятся вне проекта в защищенном user-data storage.
+- Права разделены на read, project-write, process-execute и external-publish.
+- Произвольные команды не получают implicit allow.
+- Логи редактируют известные секреты и имеют ограниченный срок хранения.
+- Адаптеры и plugins показывают install plan и границы доверия.
+- Remote access выключен в MVP.
+
+## 22. Установка
+
+Глобальный installer:
+
+- устанавливает executable;
+- настраивает автозапуск демона;
+- предлагает пользовательский порт либо сначала использует предпочтительный `24560`; если он
+  занят, автоматически выбирает свободный случайный порт из диапазона `18000-18999` и сохраняет
+  выбор в глобальном `settings.json`;
+- создает SQLite и локальную конфигурацию;
+- диагностирует доступных агентов.
+
+`aiko init` в проекте:
+
+- регистрирует абсолютный root и выдает `projectId`;
+- создает `.aiko`;
+- предлагает Git-политику;
+- показывает единый список обнаруженных и поддерживаемых агентов с независимыми флажками;
+- устанавливает все выбранные agent adapters за один проход;
+- создает project-scoped MCP endpoint/token;
+- устанавливает skills/rules/commands/hooks согласно capabilities;
+- предлагает workflow, default agents и action policies;
+- показывает `InstallationPlan`, поддерживает dry-run;
+- выполняет read-only health/context smoke test.
+
+Изменение конфигурации idempotent. Удаление затрагивает только помеченные Aiko записи.
+Выбор не является одноразовым: мастер можно запустить повторно, чтобы добавить или убрать отдельную
+интеграцию без переустановки остальных. Итоговый общий `InstallationPlan` группирует изменения и
+предупреждения по адаптерам; сбой одного адаптера не скрывает результат остальных.
+
+## 23. Надежность и аудит
+
+- Каждая mutation имеет operation id и идемпотентность.
+- Значимые действия записываются в append-only event log SQLite.
+- Переход карточки и запуск process - разные транзакционные шаги с recovery.
+- После падения running attempts становятся `needs-attention`, если adapter не доказал, что процесс жив.
+- Ротация логов настраивается.
+- Repair проверяет JSON schemas, ссылки, циклы blocks, потерянные artifacts и SQLite projection.
+- Форматы файлов и API имеют версии и миграции.
+
+## 24. Конфигурация
+
+Уровни: global -> project -> workflow/stage -> card/execution. Более конкретное значение побеждает.
+Каждый effective config endpoint показывает значение и источник.
+
+Основные группы:
+
+- server и storage;
+- UI;
+- criteria, formula и size factors;
+- workflows и artifacts;
+- agents, assignments и fallback;
+- concurrency и workspace;
+- scope policies;
+- action/Git policies;
+- memory и retention;
+- adapters.
+
+## 25. MVP
+
+### Этап 1. Foundation
+
+- solution и domain model;
+- versioned configuration contracts;
+- priority calculator;
+- relation invariants;
+- application ports;
+- global server health endpoint.
+
+### Этап 2. Storage и проекты
+
+- global SQLite;
+- `.aiko` layout и schemas;
+- register/init/reindex;
+- cards, relations и memory CRUD.
+
+### Этап 3. MCP и агенты
+
+- Streamable HTTP;
+- stdio proxy;
+- Claude Code, Codex, Cursor, ZCode installers;
+- take/start/report/complete/handoff.
+
+### Этап 4. Локальный PWA
+
+- Flare.Blazor shell;
+- project switcher;
+- Tasks/Stories/Combined;
+- card editor, graph, artifacts, executions и SSE logs;
+- settings и warnings.
+
+### Этап 5. Execution loop
+
+- process adapters;
+- manual/active mode;
+- policies, missing artifacts, scope warnings;
+- limit detection и handoff.
+
+### Этап 6. Hardening
+
+- recovery/migrations;
+- security review;
+- AOT publish;
+- performance and concurrency tests;
+- optional worktree strategy.
+
+## 26. Критерии приемки MVP
+
+1. Демон регистрирует минимум два проекта и UI переключается между ними.
+2. Story и Task создаются как папки с `card.json` и Markdown.
+3. Связи, блокировки и effective priority вычисляются корректно.
+4. Пользователь изменяет workflow и создает новый внутренний skill/status.
+5. Claude Code, Codex, Cursor и ZCode проходят MCP health/context smoke test.
+6. Карточку можно назначить агенту, запустить, остановить и передать другому.
+7. История различает StageExecution и AgentAttempts.
+8. Declared, actual и out-of-scope files видны отдельно.
+9. Параллельный shared-режим показывает постоянное предупреждение.
+10. Tasks, Stories и Combined используют одни данные.
+11. Полный runtime log остается локальным; durable memory доступна следующему агенту.
+12. После удаления SQLite индекс восстанавливается из `.aiko`.
+13. Сервер слушает loopback и отклоняет недопустимый Origin.
+14. Release publish проходит Native AOT без необработанных AOT/trimming warnings либо документирует
+    временно принятые исключения.
+
+## 27. Принятые допущения
+
+- Каноническое имя проектного каталога - `.aiko`.
+- Story и Task имеют собственные workflow.
+- Streamable HTTP - основной MCP transport, stdio - compatibility proxy.
+- Локальный PWA - UI MVP.
+- Межпроектные связи и общая доска откладываются.
+- Shared checkout - первая реализация workspace; параллельность включается осознанно.
+- Пользовательские типы связей допустимы, но без автоматической семантики.
+- Точные показатели Native AOT являются ориентирами.
+
+## 28. История требований
+
+Обсуждение, альтернативы и ответы сохранены в `requirements-discussion.md`. При расхождении этот
+документ является текущей нормативной спецификацией, а журнал объясняет происхождение решения.

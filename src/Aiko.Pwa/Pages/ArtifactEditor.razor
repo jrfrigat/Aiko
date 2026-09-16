@@ -1,0 +1,268 @@
+@inject HttpClient Http
+
+<section class="inspector-section artifact-editor">
+    <h3>@Loc.Get("DocumentsTitle") <span>@AvailablePaths.Count</span></h3>
+
+    <div class="artifact-create">
+        <FlareTextField Label="@Loc.Get("NewMarkdown")"
+                        Placeholder="architecture.md"
+                        Size="FieldSize.Sm"
+                        @bind-Value="_newPath" />
+        <FlareButton Variant="ButtonVariant.Outlined"
+                     Size="ButtonSize.Sm"
+                     OnClick="AddDocument">@Loc.Get("Add")</FlareButton>
+    </div>
+
+    @if (AvailablePaths.Count == 0)
+    {
+        <p class="inspector-empty">@Loc.Get("AddDocHint")</p>
+    }
+    else
+    {
+        <div class="artifact-tabs" role="list" aria-label="Документы карточки">
+            @foreach (var path in AvailablePaths)
+            {
+                <button type="button"
+                        class="artifact-tab @(path == _selectedPath ? "is-active" : null)"
+                        @onclick="() => SelectDocumentAsync(path)">
+                    <strong>@path</strong>
+                    <span>@ArtifactState(path)</span>
+                </button>
+            }
+        </div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <div class="artifact-message @(_hasError ? "is-error" : null)" role="status">@_message</div>
+    }
+
+    @if (_selectedPath is not null)
+    {
+        <div class="artifact-workbench">
+            <header>
+                <div>
+                    <strong>@_selectedPath</strong>
+                    <span>@(_version is null ? Loc.Get("NewFile") : Loc.Get("SavedFile"))</span>
+                </div>
+                <FlareButton Variant="ButtonVariant.Text"
+                             Size="ButtonSize.Sm"
+                             Loading="@_loading"
+                             OnClick="ReloadDocumentAsync">@Loc.Get("Refresh")</FlareButton>
+            </header>
+            <FlareCodeBlock Language="markdown"
+                            ReadOnly="false"
+                            Wrap="true"
+                            Rows="16"
+                            MaxLength="2000000"
+                            @bind-Value="_content" />
+            <FlareButton FullWidth="true"
+                         Loading="@_saving"
+                         OnClick="SaveDocumentAsync">@Loc.Get("SaveDocument")</FlareButton>
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public Card Card { get; set; } = null!;
+    [Parameter, EditorRequired] public ProjectBoardSnapshot Board { get; set; } = null!;
+    [Parameter, EditorRequired] public IReadOnlyList<StageExecution> Executions { get; set; } = [];
+
+    private string? _loadedCardKey;
+    private IReadOnlyList<CardArtifactSummary> _savedArtifacts = [];
+    private readonly HashSet<string> _addedPaths = new(StringComparer.OrdinalIgnoreCase);
+    private string? _selectedPath;
+    private string? _newPath;
+    private string _content = string.Empty;
+    private string? _version;
+    private string? _message;
+    private bool _hasError;
+    private bool _loading;
+    private bool _saving;
+
+    private IReadOnlyList<string> AvailablePaths => _savedArtifacts.Select(item => item.Path)
+        .Concat(RequiredArtifactPaths)
+        .Concat(Executions.SelectMany(execution => execution.Artifacts))
+        .Concat(_addedPaths)
+        .Where(IsMarkdownPath)
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+        .ToArray();
+
+    private IReadOnlyList<string> RequiredArtifactPaths => Board.Workflows
+        .FirstOrDefault(workflow => workflow.Id == Card.WorkflowId)?.Stages
+        .FirstOrDefault(stage => stage.Id == Card.StageId)?.RequiredArtifacts
+        .Select(artifact => artifact.Path)
+        .ToArray() ?? [];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var key = $"{Card.Reference.ProjectId}/{Card.Reference.CardId}/{Card.Revision}";
+        if (_loadedCardKey == key)
+        {
+            return;
+        }
+
+        _loadedCardKey = key;
+        _addedPaths.Clear();
+        await LoadListAsync();
+        _selectedPath = AvailablePaths.FirstOrDefault();
+        if (_selectedPath is not null)
+        {
+            await LoadDocumentAsync(_selectedPath);
+        }
+    }
+
+    private async Task LoadListAsync()
+    {
+        _loading = true;
+        try
+        {
+            _savedArtifacts = await Http.GetFromJsonAsync<IReadOnlyList<CardArtifactSummary>>(
+                $"api/v1/projects/{Uri.EscapeDataString(Card.Reference.ProjectId)}/cards/{Uri.EscapeDataString(Card.Reference.CardId)}/artifacts") ?? [];
+        }
+        catch (Exception exception)
+        {
+            ShowError(Loc.Format("ListFailed", exception.Message));
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task SelectDocumentAsync(string path)
+    {
+        if (_selectedPath == path)
+        {
+            return;
+        }
+
+        _selectedPath = path;
+        await LoadDocumentAsync(path);
+    }
+
+    private Task ReloadDocumentAsync() =>
+        _selectedPath is null ? Task.CompletedTask : LoadDocumentAsync(_selectedPath);
+
+    private async Task LoadDocumentAsync(string path)
+    {
+        _loading = true;
+        _message = null;
+        _hasError = false;
+        try
+        {
+            using var response = await Http.GetAsync(
+                $"api/v1/projects/{Uri.EscapeDataString(Card.Reference.ProjectId)}/cards/{Uri.EscapeDataString(Card.Reference.CardId)}/artifact?path={Uri.EscapeDataString(path)}");
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                _content = $"# {Path.GetFileNameWithoutExtension(path)}{Environment.NewLine}{Environment.NewLine}";
+                _version = null;
+                _message = "Файл ещё не создан. Сохранение добавит его в папку карточки.";
+                return;
+            }
+
+            response.EnsureSuccessStatusCode();
+            var document = await response.Content.ReadFromJsonAsync<CardArtifactDocument>()
+                ?? throw new InvalidDataException("Сервер вернул пустой документ.");
+            _content = document.Content;
+            _version = document.Version;
+        }
+        catch (Exception exception)
+        {
+            ShowError(Loc.Format("OpenFailed", exception.Message));
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void AddDocument()
+    {
+        var path = (_newPath ?? string.Empty).Replace('\\', '/').Trim('/').Trim();
+        if (!IsMarkdownPath(path) || path.Split('/').Any(segment => segment is "." or ".."))
+        {
+            ShowError(Loc.Get("InvalidPath"));
+            return;
+        }
+
+        _addedPaths.Add(path);
+        _newPath = null;
+        _selectedPath = path;
+        _content = $"# {Path.GetFileNameWithoutExtension(path)}{Environment.NewLine}{Environment.NewLine}";
+        _version = null;
+        _message = Loc.Get("NewDocPrepared");
+        _hasError = false;
+    }
+
+    private async Task SaveDocumentAsync()
+    {
+        if (_selectedPath is null)
+        {
+            return;
+        }
+
+        _saving = true;
+        _message = null;
+        _hasError = false;
+        try
+        {
+            using var response = await Http.PutAsJsonAsync(
+                $"api/v1/projects/{Uri.EscapeDataString(Card.Reference.ProjectId)}/cards/{Uri.EscapeDataString(Card.Reference.CardId)}/artifact",
+                new UpdateArtifactRequest(_selectedPath, _content, _version));
+            if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+            {
+                ShowError(Loc.Get("FileChanged"));
+                return;
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+                ShowError(error?.Message ?? Loc.Format("ServerRejected", (int)response.StatusCode));
+                return;
+            }
+
+            var saved = await response.Content.ReadFromJsonAsync<CardArtifactDocument>()
+                ?? throw new InvalidDataException(Loc.Get("ServerNoDoc"));
+            _version = saved.Version;
+            _content = saved.Content;
+            _message = Loc.Get("DocSaved");
+            await LoadListAsync();
+        }
+        catch (Exception exception)
+        {
+            ShowError(Loc.Format("SaveDocFailed", exception.Message));
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private string ArtifactState(string path)
+    {
+        if (_savedArtifacts.Any(item =>
+                StringComparer.OrdinalIgnoreCase.Equals(item.Path, path)))
+        {
+            return Loc.Get("ArtifactSaved");
+        }
+
+        return RequiredArtifactPaths.Contains(path, StringComparer.OrdinalIgnoreCase)
+            ? Loc.Get("ArtifactRequired")
+            : Loc.Get("ArtifactNew");
+    }
+
+    private static bool IsMarkdownPath(string? path) =>
+        !string.IsNullOrWhiteSpace(path) && path.EndsWith(".md", StringComparison.OrdinalIgnoreCase);
+
+    private void ShowError(string message)
+    {
+        _message = message;
+        _hasError = true;
+    }
+
+    private sealed record UpdateArtifactRequest(string Path, string Content, string? ExpectedVersion);
+    private sealed record ErrorResponse(string Message);
+}

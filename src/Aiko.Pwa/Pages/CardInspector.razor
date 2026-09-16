@@ -1,0 +1,245 @@
+@inject HttpClient Http
+
+<aside class="card-inspector" aria-label="Карточка @Card.Reference.CardId">
+    <header class="inspector-header">
+        <div>
+            <span>@Card.Kind - rev @Card.Revision</span>
+            <strong>@Card.Reference.CardId</strong>
+        </div>
+        <FlareButton Variant="ButtonVariant.Text"
+                     Size="ButtonSize.Sm"
+                     AriaLabel="Закрыть карточку"
+                     OnClick="() => OnClose.InvokeAsync()">Закрыть</FlareButton>
+    </header>
+
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <div class="inspector-message @(_hasError ? "is-error" : null)" role="status">@_message</div>
+    }
+
+    <section class="inspector-section editor-fields">
+        <h3>@Loc.Get("Parameters")</h3>
+        <FlareTextField Label="@Loc.Get("Title")"
+                        Required="true"
+                        Immediate="true"
+                        @bind-Value="_title" />
+        <FlareTextField Label="@Loc.Get("PriorityLabel")"
+                        Type="text"
+                        InputMode="decimal"
+                        ErrorText="@_priorityError"
+                        @bind-Value="_priority" />
+        <FlareTextArea Label="Declared scope"
+                       HelperText="@Loc.Get("ScopeHelper")"
+                       Rows="4"
+                       @bind-Value="_scope" />
+        <FlareButton FullWidth="true"
+                     Loading="@_saving"
+                     OnClick="SaveAsync">@Loc.Get("SaveCard")</FlareButton>
+    </section>
+
+    <section class="inspector-section">
+        <h3>@Loc.Get("FilesTitle")</h3>
+        <FileGroup Title="Declared" Files="Card.DeclaredScopeFiles" />
+        <FileGroup Title="Actual" Files="Card.ActualChangedFiles" />
+        <FileGroup Title="@Loc.Get("OutOfScope")"
+                   Files="@BoardSection.FindOutOfScopeFiles(Card)"
+                   Warning="true" />
+    </section>
+
+    <section class="inspector-section">
+        <h3>@Loc.Get("Relations") <span>@Relations.Count</span></h3>
+        @if (Relations.Count == 0)
+        {
+            <p class="inspector-empty">@Loc.Get("NoRelations")</p>
+        }
+        else
+        {
+            <ul class="relation-list">
+                @foreach (var relation in Relations)
+                {
+                    <li>
+                        <span>@relation.Type</span>
+                        <strong>@OtherCardId(relation)</strong>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+
+    <ArtifactEditor Card="Card" Board="Board" Executions="_executions" />
+
+    <section class="inspector-section">
+        <h3>Executions <span>@_executions.Count</span></h3>
+        @if (_loadingExecutions)
+        {
+            <p class="inspector-empty">@Loc.Get("LoadingHistory")</p>
+        }
+        else if (_executions.Count == 0)
+        {
+            <p class="inspector-empty">@Loc.Get("NoExecutions")</p>
+        }
+        else
+        {
+            <div class="execution-list">
+                @foreach (var execution in _executions.OrderByDescending(item => item.UpdatedAt))
+                {
+                    <article>
+                        <header>
+                            <strong>@execution.StageId</strong>
+                            <span class="execution-state">@execution.State</span>
+                        </header>
+                        @if (!string.IsNullOrWhiteSpace(execution.ProgressSummary))
+                        {
+                            <p>@execution.ProgressSummary</p>
+                        }
+                        <ul>
+                            @foreach (var attempt in execution.Attempts)
+                            {
+                                <li><strong>@attempt.AgentAdapterId</strong> - @attempt.State</li>
+                            }
+                        </ul>
+                        @if (execution.Artifacts.Count > 0)
+                        {
+                            <small>@Loc.Format("ArtifactsLabel", string.Join(", ", execution.Artifacts))</small>
+                        }
+                    </article>
+                }
+            </div>
+        }
+    </section>
+</aside>
+
+@code {
+    [Parameter, EditorRequired] public Card Card { get; set; } = null!;
+    [Parameter, EditorRequired] public ProjectBoardSnapshot Board { get; set; } = null!;
+    [Parameter] public int ExecutionRefreshTick { get; set; }
+    [Parameter] public EventCallback OnSaved { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private string? _loadedCardKey;
+    private int _lastRefreshTick;
+    private string? _title;
+    private string? _priority;
+    private string? _scope;
+    private string? _priorityError;
+    private string? _message;
+    private bool _hasError;
+    private bool _saving;
+    private bool _loadingExecutions;
+    private IReadOnlyList<StageExecution> _executions = [];
+
+    private IReadOnlyList<CardRelation> Relations => Board.Relations
+        .Where(relation => relation.Source.CardId == Card.Reference.CardId ||
+                           relation.Target.CardId == Card.Reference.CardId)
+        .ToArray();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var key = $"{Card.Reference.ProjectId}/{Card.Reference.CardId}/{Card.Revision}";
+        var cardChanged = _loadedCardKey != key;
+        if (cardChanged)
+        {
+            _loadedCardKey = key;
+            _title = Card.Title;
+            _priority = Card.OwnPriority.ToString(
+                System.Globalization.CultureInfo.InvariantCulture);
+            _scope = string.Join(Environment.NewLine, Card.DeclaredScopeFiles);
+            _message = null;
+            _hasError = false;
+            _priorityError = null;
+        }
+
+        if (cardChanged || _lastRefreshTick != ExecutionRefreshTick)
+        {
+            _lastRefreshTick = ExecutionRefreshTick;
+            await LoadExecutionsAsync();
+        }
+    }
+
+    private async Task LoadExecutionsAsync()
+    {
+        _loadingExecutions = true;
+        try
+        {
+            _executions = await Http.GetFromJsonAsync<IReadOnlyList<StageExecution>>(
+                $"api/v1/projects/{Uri.EscapeDataString(Card.Reference.ProjectId)}/cards/{Uri.EscapeDataString(Card.Reference.CardId)}/executions") ?? [];
+        }
+        catch (Exception exception)
+        {
+            _message = Loc.Format("HistoryUnavailable", exception.Message);
+            _hasError = true;
+        }
+        finally
+        {
+            _loadingExecutions = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _priorityError = null;
+        _message = null;
+        var normalizedPriority = (_priority ?? string.Empty).Replace(',', '.');
+        if (!decimal.TryParse(
+                normalizedPriority,
+                System.Globalization.NumberStyles.Number,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out var priority) ||
+            priority < 0)
+        {
+            _priorityError = Loc.Get("InvalidPriority");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_title))
+        {
+            _message = Loc.Get("TitleRequired");
+            _hasError = true;
+            return;
+        }
+
+        var scopeFiles = (_scope ?? string.Empty)
+            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        _saving = true;
+        try
+        {
+            using var response = await Http.PutAsJsonAsync(
+                $"api/v1/projects/{Uri.EscapeDataString(Card.Reference.ProjectId)}/cards/{Uri.EscapeDataString(Card.Reference.CardId)}",
+                new UpdateCardRequest(_title, priority, scopeFiles, Card.Revision));
+            if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+            {
+                _message = Loc.Get("CardConflict");
+                _hasError = true;
+                await OnSaved.InvokeAsync();
+                return;
+            }
+
+            response.EnsureSuccessStatusCode();
+            _message = Loc.Get("ChangesSaved");
+            _hasError = false;
+            await OnSaved.InvokeAsync();
+        }
+        catch (Exception exception)
+        {
+            _message = Loc.Format("SaveCardFailed", exception.Message);
+            _hasError = true;
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private string OtherCardId(CardRelation relation) =>
+        relation.Source.CardId == Card.Reference.CardId
+            ? relation.Target.CardId
+            : relation.Source.CardId;
+
+    private sealed record UpdateCardRequest(
+        string Title,
+        decimal OwnPriority,
+        IReadOnlyList<string> DeclaredScopeFiles,
+        long ExpectedRevision);
+}

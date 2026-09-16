@@ -1,0 +1,17 @@
+{
+  "name": "Aiko - AI kanban orchestrator",
+  "short_name": "Aiko",
+  "description": "AI kanban orchestrator for local development",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b1326",
+  "theme_color": "#0b1326",
+  "icons": [
+    {
+      "src": "aiko.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

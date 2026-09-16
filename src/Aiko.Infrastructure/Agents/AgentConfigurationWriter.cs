@@ -1,0 +1,344 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using Aiko.Application.Agents;
+
+namespace Aiko.Infrastructure.Agents;
+
+/// <summary>
+/// Atomic application and removal of the Aiko configuration in agent files
+/// according to <see cref="AgentFileDefinition"/> descriptions: merging MCP entries
+/// into JSON, managed blocks in TOML/Markdown and files owned by Aiko.
+/// </summary>
+internal static class AgentConfigurationWriter
+{
+    /// <summary>
+    /// Brings a file to the desired state according to the definition kind,
+    /// preserving existing user content; idempotent.
+    /// </summary>
+    public static async ValueTask<InstallationFileResult> ApplyAsync(
+        AgentFileDefinition definition,
+        CancellationToken cancellationToken)
+    {
+        var existed = File.Exists(definition.Path);
+        var current = existed
+            ? await File.ReadAllTextAsync(definition.Path, cancellationToken)
+            : string.Empty;
+        var desired = definition.Kind switch
+        {
+            AgentFileKind.JsonMcp => MergeMcpJson(current, definition.Content, nested: false, definition.ServerKey),
+            AgentFileKind.NestedJsonMcp => MergeMcpJson(current, definition.Content, nested: true, definition.ServerKey),
+            AgentFileKind.ManagedBlock => UpsertManagedBlock(
+                current,
+                definition.Content,
+                Path.GetExtension(definition.Path),
+                definition.ServerKey,
+                definition.BlockMarkerName),
+            AgentFileKind.OwnedText => CreateOwnedText(current, definition.Content, definition.OwnedMarker),
+            _ => throw new InvalidOperationException($"Unsupported agent file kind: {definition.Kind}")
+        };
+
+        if (string.Equals(current, desired, StringComparison.Ordinal))
+        {
+            return new InstallationFileResult(
+                definition.Path,
+                InstallationFileStatus.Unchanged,
+                null);
+        }
+
+        await WriteAtomicallyAsync(definition.Path, desired, cancellationToken);
+        return new InstallationFileResult(
+            definition.Path,
+            existed ? InstallationFileStatus.Updated : InstallationFileStatus.Created,
+            null);
+    }
+
+    /// <summary>
+    /// Removes the Aiko-managed content from a file: the whole file for OwnedText
+    /// (only when the ownership marker is present) or just the Aiko part otherwise.
+    /// </summary>
+    public static async ValueTask<InstallationFileResult> RemoveAsync(
+        AgentFileDefinition definition,
+        CancellationToken cancellationToken)
+    {
+        if (!File.Exists(definition.Path))
+        {
+            return new InstallationFileResult(
+                definition.Path,
+                InstallationFileStatus.Unchanged,
+                null);
+        }
+
+        var current = await File.ReadAllTextAsync(definition.Path, cancellationToken);
+        if (definition.Kind == AgentFileKind.OwnedText)
+        {
+            if (!current.Contains(definition.OwnedMarker, StringComparison.Ordinal))
+            {
+                throw new IOException(
+                    "The target file is not marked as managed by Aiko and was not removed.");
+            }
+
+            File.Delete(definition.Path);
+            return new InstallationFileResult(
+                definition.Path,
+                InstallationFileStatus.Removed,
+                null);
+        }
+
+        var desired = definition.Kind switch
+        {
+            AgentFileKind.JsonMcp => RemoveMcpJson(current, nested: false, definition.ServerKey),
+            AgentFileKind.NestedJsonMcp => RemoveMcpJson(current, nested: true, definition.ServerKey),
+            AgentFileKind.ManagedBlock => RemoveManagedBlock(
+                current,
+                Path.GetExtension(definition.Path),
+                definition.BlockMarkerName),
+            _ => throw new InvalidOperationException($"Unsupported agent file kind: {definition.Kind}")
+        };
+
+        if (string.Equals(current, desired, StringComparison.Ordinal))
+        {
+            return new InstallationFileResult(
+                definition.Path,
+                InstallationFileStatus.Unchanged,
+                null);
+        }
+
+        await WriteAtomicallyAsync(definition.Path, desired, cancellationToken);
+        return new InstallationFileResult(
+            definition.Path,
+            InstallationFileStatus.Updated,
+            null);
+    }
+
+    private static string MergeMcpJson(string current, string endpoint, bool nested, string serverKey)
+    {
+        JsonObject root;
+        if (string.IsNullOrWhiteSpace(current))
+        {
+            root = new JsonObject();
+        }
+        else
+        {
+            root = JsonNode.Parse(
+                current,
+                documentOptions: new JsonDocumentOptions
+                {
+                    AllowTrailingCommas = true,
+                    CommentHandling = JsonCommentHandling.Skip
+                }) as JsonObject
+                ?? throw new InvalidDataException("Agent configuration root must be a JSON object.");
+        }
+
+        var parent = root;
+        var serversProperty = "mcpServers";
+        if (nested)
+        {
+            if (root["mcp"] is not null and not JsonObject)
+            {
+                throw new InvalidDataException("Agent configuration mcp must be a JSON object.");
+            }
+
+            parent = root["mcp"] as JsonObject ?? new JsonObject();
+            root["mcp"] = parent;
+            serversProperty = "servers";
+        }
+
+        if (parent[serversProperty] is not null and not JsonObject)
+        {
+            throw new InvalidDataException(
+                $"Agent configuration {serversProperty} must be a JSON object.");
+        }
+
+        var servers = parent[serversProperty] as JsonObject ?? new JsonObject();
+        parent[serversProperty] = servers;
+        servers[serverKey] = new JsonObject
+        {
+            ["url"] = endpoint
+        };
+
+        return root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) +
+            Environment.NewLine;
+    }
+
+    private static string RemoveMcpJson(string current, bool nested, string serverKey)
+    {
+        if (string.IsNullOrWhiteSpace(current))
+        {
+            return current;
+        }
+
+        var root = JsonNode.Parse(
+            current,
+            documentOptions: new JsonDocumentOptions
+            {
+                AllowTrailingCommas = true,
+                CommentHandling = JsonCommentHandling.Skip
+            }) as JsonObject
+            ?? throw new InvalidDataException("Agent configuration root must be a JSON object.");
+        JsonObject parent;
+        var serversProperty = "mcpServers";
+        if (nested)
+        {
+            if (root["mcp"] is null)
+            {
+                return current;
+            }
+
+            if (root["mcp"] is not JsonObject mcp)
+            {
+                throw new InvalidDataException("Agent configuration mcp must be a JSON object.");
+            }
+
+            parent = mcp;
+            serversProperty = "servers";
+        }
+        else
+        {
+            parent = root;
+        }
+
+        if (parent[serversProperty] is null)
+        {
+            return current;
+        }
+
+        if (parent[serversProperty] is not JsonObject servers)
+        {
+            throw new InvalidDataException(
+                $"Agent configuration {serversProperty} must be a JSON object.");
+        }
+
+        if (!servers.Remove(serverKey))
+        {
+            return current;
+        }
+
+        return root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) +
+            Environment.NewLine;
+    }
+
+    private static string CreateOwnedText(string current, string content, string ownedMarker)
+    {
+        if (!string.IsNullOrEmpty(current) &&
+            !current.Contains(ownedMarker, StringComparison.Ordinal))
+        {
+            throw new IOException(
+                "The target file already exists and is not marked as managed by Aiko.");
+        }
+
+        return content.Trim() + Environment.NewLine + Environment.NewLine +
+            ownedMarker + Environment.NewLine;
+    }
+
+    private static string UpsertManagedBlock(
+        string current,
+        string content,
+        string extension,
+        string serverKey,
+        string blockMarkerName)
+    {
+        var commentPrefix = extension.Equals(".toml", StringComparison.OrdinalIgnoreCase)
+            ? "#"
+            : "<!--";
+        var commentSuffix = commentPrefix == "#" ? string.Empty : " -->";
+        var startMarker = $"{commentPrefix} {blockMarkerName}:begin{commentSuffix}";
+        var endMarker = $"{commentPrefix} {blockMarkerName}:end{commentSuffix}";
+        var block =
+            startMarker + Environment.NewLine +
+            content.Trim() + Environment.NewLine +
+            endMarker;
+        var start = current.IndexOf(startMarker, StringComparison.Ordinal);
+        var end = current.IndexOf(endMarker, StringComparison.Ordinal);
+
+        if ((start >= 0) != (end >= 0) || (start >= 0 && end < start))
+        {
+            throw new InvalidDataException("The existing Aiko managed block is malformed.");
+        }
+
+        if (start >= 0)
+        {
+            var suffixStart = end + endMarker.Length;
+            return current[..start] + block + current[suffixStart..];
+        }
+
+        if (extension.Equals(".toml", StringComparison.OrdinalIgnoreCase) &&
+            current.Contains($"[mcp_servers.{serverKey}]", StringComparison.Ordinal))
+        {
+            throw new IOException(
+                "The Aiko MCP section already exists outside a managed block.");
+        }
+
+        if (string.IsNullOrWhiteSpace(current))
+        {
+            return block + Environment.NewLine;
+        }
+
+        return current.TrimEnd() + Environment.NewLine + Environment.NewLine +
+            block + Environment.NewLine;
+    }
+
+    private static string RemoveManagedBlock(string current, string extension, string blockMarkerName)
+    {
+        var commentPrefix = extension.Equals(".toml", StringComparison.OrdinalIgnoreCase)
+            ? "#"
+            : "<!--";
+        var commentSuffix = commentPrefix == "#" ? string.Empty : " -->";
+        var startMarker = $"{commentPrefix} {blockMarkerName}:begin{commentSuffix}";
+        var endMarker = $"{commentPrefix} {blockMarkerName}:end{commentSuffix}";
+        var start = current.IndexOf(startMarker, StringComparison.Ordinal);
+        var end = current.IndexOf(endMarker, StringComparison.Ordinal);
+
+        if ((start >= 0) != (end >= 0) || (start >= 0 && end < start))
+        {
+            throw new InvalidDataException("The existing Aiko managed block is malformed.");
+        }
+
+        if (start < 0)
+        {
+            return current;
+        }
+
+        var suffixStart = end + endMarker.Length;
+        while (start > 0 && (current[start - 1] == '\r' || current[start - 1] == '\n'))
+        {
+            start--;
+        }
+
+        while (suffixStart < current.Length &&
+               (current[suffixStart] == '\r' || current[suffixStart] == '\n'))
+        {
+            suffixStart++;
+        }
+
+        var remaining = current[..start] + current[suffixStart..];
+        return string.IsNullOrWhiteSpace(remaining)
+            ? string.Empty
+            : remaining.TrimEnd() + Environment.NewLine;
+    }
+
+    private static async Task WriteAtomicallyAsync(
+        string path,
+        string content,
+        CancellationToken cancellationToken)
+    {
+        var directory = Path.GetDirectoryName(path)
+            ?? throw new InvalidOperationException($"Cannot resolve parent directory for {path}.");
+        Directory.CreateDirectory(directory);
+        var temporaryPath = Path.Combine(
+            directory,
+            $".{Path.GetFileName(path)}.{Guid.NewGuid():N}.tmp");
+
+        try
+        {
+            await File.WriteAllTextAsync(temporaryPath, content, cancellationToken);
+            File.Move(temporaryPath, path, overwrite: true);
+        }
+        finally
+        {
+            if (File.Exists(temporaryPath))
+            {
+                File.Delete(temporaryPath);
+            }
+        }
+    }
+}

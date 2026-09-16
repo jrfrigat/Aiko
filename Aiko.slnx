@@ -1,0 +1,12 @@
+<Solution>
+  <Project Path="src/Aiko.Domain/Aiko.Domain.csproj" />
+  <Project Path="src/Aiko.Application/Aiko.Application.csproj" />
+  <Project Path="src/Aiko.Infrastructure/Aiko.Infrastructure.csproj" />
+  <Project Path="src/Aiko.Server/Aiko.Server.csproj" />
+  <Project Path="src/Aiko.Pwa/Aiko.Pwa.csproj" />
+  <Project Path="src/Aiko.StdioProxy/Aiko.StdioProxy.csproj" />
+  <Project Path="src/Aiko.Cli/Aiko.Cli.csproj" />
+  <Project Path="tests/Aiko.Domain.Specs/Aiko.Domain.Specs.csproj" />
+  <Project Path="tests/Aiko.Infrastructure.Specs/Aiko.Infrastructure.Specs.csproj" />
+  <Project Path="tests/Aiko.Mcp.Specs/Aiko.Mcp.Specs.csproj" />
+</Solution>

@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <PublishAot>true</PublishAot>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Aiko.Application/Aiko.Application.csproj" />
+    <ProjectReference Include="../Aiko.Infrastructure/Aiko.Infrastructure.csproj" />
+    <ProjectReference Include="../Aiko.Pwa/Aiko.Pwa.csproj" ReferenceOutputAssembly="false" />
+    <PackageReference Include="ModelContextProtocol.AspNetCore" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.12" />
+    <!-- Hosted WASM does not propagate transitive Razor-class-library assets into the host's
+         endpoint manifest. Keep only their build/static assets here; executable references live
+         exclusively in Aiko.Pwa. -->
+    <PackageReference Include="Flare.Blazor" Version="0.37.0" ExcludeAssets="compile;runtime" />
+    <PackageReference Include="Flare.Components.Kanban" Version="0.37.0" ExcludeAssets="compile;runtime" />
+    <PackageReference Include="Flare.Theme.MaterialDesign3Expressive" Version="0.37.0" ExcludeAssets="compile;runtime" />
+  </ItemGroup>
+</Project>

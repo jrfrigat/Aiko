@@ -1,0 +1,127 @@
+using System.ComponentModel;
+using System.Runtime.InteropServices;
+using System.Text.Json;
+using ModelContextProtocol.Server;
+using Aiko.Application.Contracts;
+using Aiko.Domain.Cards;
+using Aiko.Server.Contracts;
+using Aiko.Server.Workflow;
+
+namespace Aiko.Server.Mcp;
+
+/// <summary>
+/// Daemon-level MCP tools that do not require a project: listing and initializing projects
+/// and creating cards in a project (including cross-project cards).
+/// These back the global <c>/aiko-init</c> and <c>/aiko-list-projects</c> skills.
+/// </summary>
+[McpServerToolType]
+internal sealed class DaemonTools(
+    IProjectCatalog catalog,
+    IProjectInitializer initializer,
+    ICardStore cards,
+    IProjectDefinitionStore definitions)
+{
+    [McpServerTool(Name = "aiko_list_projects", Title = "List Aiko projects")]
+    [Description("Lists all projects registered with the Aiko daemon.")]
+    public async Task<string> ListProjectsAsync(CancellationToken cancellationToken)
+    {
+        var projects = await catalog.ListAsync(cancellationToken);
+        return JsonSerializer.Serialize(projects, ServerJsonContext.Default.IReadOnlyListRegisteredProject);
+    }
+
+    [McpServerTool(Name = "aiko_init_project", Title = "Initialize Aiko project")]
+    [Description(
+        "Registers a local directory as an Aiko project, creating the .aiko structure, default workflow and projections.")]
+    public async Task<string> InitProjectAsync(
+        [Description("Absolute path to the project root directory.")]
+        string rootPath,
+        [Description("Optional project name. Defaults to the directory name.")]
+        [Optional] string? name,
+        [Description("Git policy: local-only, track-project-knowledge or custom. Defaults to local-only.")]
+        [Optional] string? gitPolicy,
+        CancellationToken cancellationToken)
+    {
+        var project = await initializer.InitializeAsync(
+            new InitializeProjectRequest(rootPath, name, ParseGitPolicy(gitPolicy)),
+            cancellationToken);
+        return JsonSerializer.Serialize(project, ServerJsonContext.Default.RegisteredProject);
+    }
+
+    [McpServerTool(Name = "aiko_create_card_in_project", Title = "Create Aiko card in a project")]
+    [Description(
+        "Creates a story or task in the given project, validating the stage against that project's workflow. Pass originProjectId when reporting from another project.")]
+    public async Task<string> CreateCardAsync(
+        [Description("Target project id.")]
+        string projectId,
+        [Description("File-safe card id, for example TASK-001.")]
+        string cardId,
+        [Description("Card kind: story or task.")]
+        string kind,
+        [Description("Human-readable title.")]
+        string title,
+        [Description("Workflow id, normally story or task.")]
+        string workflowId,
+        [Description("Initial stage id.")]
+        string stageId,
+        [Description("Own priority score, zero or greater.")]
+        decimal ownPriority,
+        [Description("Initial declared scope file patterns.")]
+        string[] declaredScopeFiles,
+        [Description("Source project id when reporting from another project.")]
+        [Optional] string? originProjectId,
+        [Description("Source card id when reporting from another project.")]
+        [Optional] string? originCardId,
+        CancellationToken cancellationToken)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(ownPriority);
+        var reference = new CardReference(projectId, cardId);
+        if (await cards.FindAsync(reference, cancellationToken) is not null)
+        {
+            throw new InvalidOperationException($"Card '{cardId}' already exists in project {projectId}.");
+        }
+
+        var card = new Card(
+            reference,
+            ParseKind(kind),
+            title,
+            workflowId,
+            stageId,
+            1,
+            ownPriority,
+            declaredScopeFiles,
+            [],
+            new Dictionary<string, string>(StringComparer.Ordinal),
+            originProjectId is null
+                ? null
+                : new CardOrigin(originProjectId, originCardId, null, DateTimeOffset.UtcNow));
+
+        var stage = await CardStageValidation.FindValidStageAsync(card, stageId, definitions, cancellationToken)
+            ?? throw new ArgumentException(
+                $"Stage '{stageId}' is not valid for the card workflow in project {projectId}.",
+                nameof(stageId));
+
+        await cards.SaveAsync(card, 0, cancellationToken);
+        return JsonSerializer.Serialize(card, ServerJsonContext.Default.Card);
+    }
+
+    private static CardKind ParseKind(string value) =>
+        value.Trim().ToLowerInvariant() switch
+        {
+            "story" => CardKind.Story,
+            "task" => CardKind.Task,
+            _ => throw new ArgumentException("Card kind must be 'story' or 'task'.", nameof(value))
+        };
+
+    private static ProjectGitPolicy ParseGitPolicy(string? value) =>
+        string.IsNullOrWhiteSpace(value)
+            ? ProjectGitPolicy.LocalOnly
+            : value.Trim().ToLowerInvariant() switch
+            {
+                "local-only" => ProjectGitPolicy.LocalOnly,
+                "track-project-knowledge" => ProjectGitPolicy.TrackProjectKnowledge,
+                "custom" => ProjectGitPolicy.Custom,
+                _ => throw new ArgumentException(
+                    "Git policy must be local-only, track-project-knowledge or custom.",
+                    nameof(value))
+            };
+}

@@ -1,0 +1,197 @@
+using ModelContextProtocol.AspNetCore;
+using Aiko.Application.Agents;
+using Aiko.Application.Contracts;
+using Aiko.Infrastructure.Agents;
+using Aiko.Infrastructure.Cards;
+using Aiko.Infrastructure.Execution;
+using Aiko.Infrastructure.Events;
+using Aiko.Infrastructure.Memory;
+using Aiko.Infrastructure.Projects;
+using Aiko.Infrastructure.Relations;
+using Aiko.Infrastructure.Settings;
+using Aiko.Infrastructure.Storage;
+using Aiko.Server.Contracts;
+using Aiko.Server.Endpoints;
+using Aiko.Server.ErrorHandling;
+using Aiko.Server.Mcp;
+using Aiko.Server.Security;
+
+var builder = WebApplication.CreateSlimBuilder(new WebApplicationOptions
+{
+    Args = args,
+    ContentRootPath = AppContext.BaseDirectory
+});
+#if DEBUG
+builder.WebHost.UseStaticWebAssets();
+#endif
+
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.TypeInfoResolverChain.Insert(0, ServerJsonContext.Default));
+builder.Services.AddHttpContextAccessor();
+var dataPaths = AikoDataPaths.FromEnvironment();
+builder.Services.AddSingleton(dataPaths);
+builder.Services.AddSingleton<AccessTokenStore>();
+builder.Services.AddSingleton<PairingService>();
+builder.Services.AddSingleton<DaemonEndpointConfiguration>();
+builder.Services.AddSingleton<AikoDatabase>();
+builder.Services.AddSingleton<IProjectCatalog, SqliteProjectCatalog>();
+builder.Services.AddSingleton<IProjectInitializer, ProjectInitializer>();
+builder.Services.AddSingleton<IProjectDefinitionStore, FileProjectDefinitionStore>();
+builder.Services.AddSingleton<ICardStore, FileCardStore>();
+builder.Services.AddSingleton<ICardArtifactStore, FileCardArtifactStore>();
+builder.Services.AddSingleton<IRelationStore, FileRelationStore>();
+builder.Services.AddSingleton<IMemoryStore, FileMemoryStore>();
+builder.Services.AddSingleton<IProjectReindexer, ProjectReindexer>();
+builder.Services.AddSingleton<IAppSettingsStore, FileAppSettingsStore>();
+builder.Services.AddSingleton<IAppSettingsService, AppSettingsService>();
+builder.Services.AddSingleton<AikoEventBroadcaster>();
+builder.Services.AddSingleton<IAikoEventPublisher, SqliteAikoEventPublisher>();
+builder.Services.AddSingleton<IAikoEventStore, SqliteAikoEventStore>();
+builder.Services.AddSingleton<IExecutionCoordinator, SqliteExecutionCoordinator>();
+builder.Services.AddSingleton<IAgentAdapter, ClaudeCodeAgentAdapter>();
+builder.Services.AddSingleton<IAgentAdapter, CodexAgentAdapter>();
+builder.Services.AddSingleton<IAgentAdapter, CursorAgentAdapter>();
+builder.Services.AddSingleton<IAgentAdapter, ZCodeAgentAdapter>();
+builder.Services.AddSingleton<IUnifiedAgentInstaller, UnifiedAgentInstaller>();
+builder.Services
+    .AddMcpServer()
+    .WithHttpTransport(options => options.Stateless = true)
+    .WithTools<ProjectContextTools>()
+    .WithTools<CardTools>()
+    .WithTools<ExecutionTools>()
+    .WithTools<MemoryTools>()
+    .WithTools<DaemonTools>()
+    .WithTools<MaintenanceTools>();
+
+var app = builder.Build();
+
+await app.Services.GetRequiredService<AikoDatabase>().InitializeAsync();
+var configuredUrl = builder.Configuration["AIKO_URL"];
+var serverBaseUri = !string.IsNullOrWhiteSpace(configuredUrl)
+    ? ValidateExplicitServerUrl(configuredUrl)
+    : (await app.Services
+        .GetRequiredService<DaemonEndpointConfiguration>()
+        .LoadOrCreateAsync(
+            ParseRequestedPort(builder.Configuration["AIKO_PORT"]),
+            CancellationToken.None))
+        .BaseUri;
+
+var insecure = string.Equals(
+    builder.Configuration["AIKO_INSECURE"],
+    "1",
+    StringComparison.OrdinalIgnoreCase);
+var accessToken = builder.Configuration["AIKO_TOKEN"]
+    ?? await app.Services.GetRequiredService<AccessTokenStore>().GetOrCreateAsync();
+var pairingService = app.Services.GetRequiredService<PairingService>();
+if (builder.Configuration["AIKO_PAIR_CODE"] is { } seededPairingCode)
+{
+    pairingService.Seed(seededPairingCode);
+}
+
+if (!insecure)
+{
+    Console.WriteLine($"Aiko pairing URL: {serverBaseUri}#pair={pairingService.GenerateCode()}");
+}
+
+app.UseApiExceptionMapping();
+
+app.Use(async (context, next) =>
+{
+    if (!IsLoopbackHost(context.Request.Host.Host))
+    {
+        context.Response.StatusCode = StatusCodes.Status400BadRequest;
+        await context.Response.WriteAsync("Aiko accepts loopback hosts only.");
+        return;
+    }
+
+    var origin = context.Request.Headers.Origin.ToString();
+    if (!string.IsNullOrWhiteSpace(origin) &&
+        (!Uri.TryCreate(origin, UriKind.Absolute, out var originUri) ||
+         !originUri.IsLoopback))
+    {
+        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        await context.Response.WriteAsync("Remote browser origins are not allowed.");
+        return;
+    }
+
+    await next(context);
+});
+
+app.UseAikoAuthentication(accessToken, enabled: !insecure);
+
+app.MapStaticAssets();
+
+app.MapSystemEndpoints(serverBaseUri);
+app.MapProjectEndpoints();
+app.MapBoardEndpoints();
+app.MapWorkflowEndpoints();
+app.MapCardEndpoints();
+app.MapArtifactEndpoints();
+app.MapAgentEndpoints();
+app.MapSettingsEndpoints();
+app.MapEventEndpoints();
+
+app.MapPost(
+    "/api/v1/auth/pair",
+    (PairRequest request, HttpContext context) =>
+    {
+        if (!pairingService.TryConsume(request.Code))
+        {
+            return Results.Unauthorized();
+        }
+
+        context.Response.Cookies.Append("aiko_session", accessToken, new CookieOptions
+        {
+            HttpOnly = true,
+            SameSite = SameSiteMode.Strict,
+            IsEssential = true
+        });
+        return Results.Ok();
+    });
+
+app.MapPost(
+    "/api/v1/auth/pair-request",
+    () => TypedResults.Ok(new PairResponse(pairingService.GenerateCode())));
+
+app.MapMcp("/mcp/projects/{projectId}");
+app.MapMcp("/mcp");
+app.Map("/api/{**rest}", () => Results.NotFound());
+app.MapFallbackToFile("index.html");
+
+app.Urls.Add(serverBaseUri.ToString());
+
+await app.RunAsync();
+
+static bool IsLoopbackHost(string host) =>
+    StringComparer.OrdinalIgnoreCase.Equals(host, "localhost") ||
+    StringComparer.Ordinal.Equals(host, "127.0.0.1") ||
+    StringComparer.Ordinal.Equals(host, "::1");
+
+static int? ParseRequestedPort(string? configuredPort)
+{
+    if (string.IsNullOrWhiteSpace(configuredPort))
+    {
+        return null;
+    }
+
+    return int.TryParse(configuredPort, out var port)
+        ? port
+        : throw new InvalidDataException("AIKO_PORT must be an integer.");
+}
+
+static Uri ValidateExplicitServerUrl(string configuredUrl)
+{
+    if (!Uri.TryCreate(configuredUrl, UriKind.Absolute, out var uri) ||
+        !uri.IsLoopback ||
+        uri.Scheme != Uri.UriSchemeHttp ||
+        !string.IsNullOrEmpty(uri.UserInfo) ||
+        !string.IsNullOrEmpty(uri.Query) ||
+        !string.IsNullOrEmpty(uri.Fragment) ||
+        uri.AbsolutePath != "/")
+    {
+        throw new InvalidDataException(
+            "AIKO_URL must be an absolute loopback HTTP origin without a path.");
+    }
+
+    return uri;
+}

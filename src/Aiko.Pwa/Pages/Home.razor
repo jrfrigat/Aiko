@@ -1,0 +1,792 @@
+@page "/"
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject IJSRuntime Js
+@implements IAsyncDisposable
+
+<PageTitle>Aiko</PageTitle>
+
+<div class="workspace-shell">
+    <aside class="project-rail" aria-label="Проекты Aiko">
+        <div class="brand">
+            <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+            <div>
+                <strong>Aiko</strong>
+                <span>AI kanban orchestrator</span>
+            </div>
+        </div>
+
+        <div class="rail-heading">
+            <span>Проекты</span>
+            <span class="rail-count">@_projects.Count</span>
+        </div>
+
+        <nav class="project-list">
+            @foreach (var project in _projects)
+            {
+                <button class="project-item @(project.Id == _selectedProjectId ? "is-active" : null)"
+                        type="button"
+                        @onclick="() => SelectProjectAsync(project.Id)">
+                    <span class="project-glyph">@Initials(project.Name)</span>
+                    <span class="project-copy">
+                        <strong>@project.Name</strong>
+                        <small>@ProjectPath(project.RootPath)</small>
+                    </span>
+                </button>
+            }
+        </nav>
+
+        <div class="rail-footer">
+            <span class="health-dot @(_eventsConnected ? "is-live" : null)"></span>
+            <span>Локальный демон</span>
+            <strong>@(_eventsConnected ? "live" : "online")</strong>
+        </div>
+    </aside>
+
+    <main class="board-workspace @((_selectedCardId is not null || _editingWorkflow) ? "has-inspector" : null)">
+        <header class="command-bar">
+            <div class="page-heading">
+                <span class="eyebrow">@Loc.Get("BoardCaption")</span>
+                <h1>@(_board?.Project.Name ?? "Aiko")</h1>
+            </div>
+
+            @if (_board is not null)
+            {
+                <label class="card-chooser">
+                    <span>@Loc.Get("CreateCard")</span>
+                    <select value="@_selectedCardId" @onchange="SelectCard">
+                        <option value="">@Loc.Get("Choose")</option>
+                        @foreach (var card in VisibleCards)
+                        {
+                            <option value="@card.Reference.CardId">@card.Reference.CardId - @card.Title</option>
+                        }
+                    </select>
+                </label>
+                <div class="projection-switcher" aria-label="Проекция доски">
+                    <FlareButtonGroup Connected="true" Variant="ButtonVariant.Outlined" Size="ButtonSize.Sm">
+                        <FlareButton Selected="@(_projection == Projection.Stories)"
+                                     AriaPressed="@(_projection == Projection.Stories)"
+                                     OnClick="() => ChangeProjection(Projection.Stories)">Stories</FlareButton>
+                        <FlareButton Selected="@(_projection == Projection.Tasks)"
+                                     AriaPressed="@(_projection == Projection.Tasks)"
+                                     OnClick="() => ChangeProjection(Projection.Tasks)">Tasks</FlareButton>
+                        <FlareButton Selected="@(_projection == Projection.Combined)"
+                                     AriaPressed="@(_projection == Projection.Combined)"
+                                     OnClick="() => ChangeProjection(Projection.Combined)">Общая</FlareButton>
+                    </FlareButtonGroup>
+                </div>
+            }
+
+            <div class="command-actions">
+                @if (_board is not null)
+                {
+                    <FlareButton Variant="ButtonVariant.Outlined"
+                                 Size="ButtonSize.Sm"
+                                 OnClick="OpenCreateCard">@Loc.Get("CreateCard")</FlareButton>
+                    <FlareButton Variant="ButtonVariant.Outlined"
+                                 Size="ButtonSize.Sm"
+                                 OnClick="OpenWorkflow">Workflow</FlareButton>
+                    <FlareButton Variant="ButtonVariant.Outlined"
+                                 Size="ButtonSize.Sm"
+                                 OnClick="OpenSettings">Настройки</FlareButton>
+                }
+                <FlareButton Variant="ButtonVariant.Text"
+                             Size="ButtonSize.Sm"
+                             Loading="@_loading"
+                             OnClick="ReloadAsync">Обновить</FlareButton>
+            </div>
+        </header>
+
+        @if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <div class="notice notice-error" role="alert">
+                <strong>@Loc.Get("BoardUpdateFailed")</strong>
+                <span>@_error</span>
+            </div>
+        }
+
+        @if (_loading && _board is null)
+        {
+            <div class="loading-state" aria-live="polite">
+                <span class="loading-stitch"></span>
+                <strong>@Loc.Get("LoadingContext")</strong>
+            </div>
+        }
+        else if (_projects.Count == 0)
+        {
+            <section class="empty-state">
+                <span class="empty-index">00</span>
+                <h2>@Loc.Get("EmptyStateTitle")</h2>
+                <p>Инициализируйте проект через Aiko, и он появится в этой панели.</p>
+                <FlareButton OnClick="OpenAddProject">@Loc.Get("AddProject")</FlareButton>
+            </section>
+        }
+        else if (_board is not null)
+        {
+            <section class="board-summary" aria-label="Сводка доски">
+                <div>
+                    <span>@Loc.Get("Cards")</span>
+                    <strong>@VisibleCardCount</strong>
+                </div>
+                <div>
+                    <span>@Loc.Get("InProgress")</span>
+                    <strong>@InProgressCount</strong>
+                </div>
+                <div>
+                    <span>@Loc.Get("Relations")</span>
+                    <strong>@_board.Relations.Count</strong>
+                </div>
+                <div class="summary-scope @(_scopeDeviationCount > 0 ? "has-warning" : null)">
+                    <span>@Loc.Get("OutOfScope")</span>
+                    <strong>@_scopeDeviationCount</strong>
+                </div>
+                <p>@ProjectionCaption</p>
+            </section>
+
+            @if (SettingsInspector.IsParallelShared(_settingsView?.EffectiveExecution))
+            {
+                <div class="notice notice-warning" role="alert">
+                    <strong>@Loc.Get("ParallelSharedTitle")</strong>
+                    <span>@Loc.Get("ParallelSharedText")</span>
+                </div>
+            }
+
+            <div class="stage-thread" aria-hidden="true"><span></span></div>
+
+            @if (_projection is Projection.Stories or Projection.Combined)
+            {
+                <BoardSection Title="Story flow"
+                              Kind="CardKind.Story"
+                              Board="_board"
+                              OnCardsChanged="cards => MoveCardAsync(CardKind.Story, cards)" />
+            }
+
+            @if (_projection == Projection.Combined)
+            {
+                <div class="flow-divider"><span>@Loc.Get("Implementation")</span></div>
+            }
+
+            @if (_projection is Projection.Tasks or Projection.Combined)
+            {
+                <BoardSection Title="Task flow"
+                              Kind="CardKind.Task"
+                              Board="_board"
+                              OnCardsChanged="cards => MoveCardAsync(CardKind.Task, cards)" />
+            }
+
+            @if (SelectedCard is not null)
+            {
+                <CardInspector Card="SelectedCard"
+                               Board="_board"
+                               ExecutionRefreshTick="_executionPulse"
+                               OnSaved="LoadBoardAsync"
+                               OnClose="CloseCard" />
+            }
+            else if (_editingSettings && _board is not null)
+            {
+                <SettingsInspector Project="_board.Project"
+                                   OnSaved="LoadBoardAsync"
+                                   OnClose="CloseSettings" />
+            }
+            else if (_editingWorkflow && _board is not null && _board.Workflows.Count > 0)
+            {
+                <WorkflowInspector Board="_board"
+                                   InitialWorkflowId="@CurrentWorkflowId"
+                                   OnSaved="LoadBoardAsync"
+                                   OnClose="CloseWorkflow" />
+            }
+        }
+
+        @if (_showAddProject)
+        {
+            <section class="empty-state">
+                <h2>@Loc.Get("AddProject")</h2>
+                <p>@Loc.Get("AddProjectHint")</p>
+                <input class="field-input" placeholder="@Loc.Get("ProjectPath")" @bind="_newProjectPath" @bind:event="oninput" />
+                <input class="field-input" placeholder="@Loc.Get("ProjectName")" @bind="_newProjectName" />
+                <select class="field-input" @bind="_newGitPolicy">
+                    <option value="LocalOnly">@Loc.Get("GitPolicyLocalOnly")</option>
+                    <option value="TrackProjectKnowledge">@Loc.Get("GitPolicyTrackKnowledge")</option>
+                    <option value="Custom">@Loc.Get("GitPolicyCustom")</option>
+                </select>
+                <div class="form-actions">
+                    <FlareButton OnClick="AddProjectAsync">@Loc.Get("Add")</FlareButton>
+                    <FlareButton Variant="ButtonVariant.Text" OnClick="CloseAddProject">@Loc.Get("Cancel")</FlareButton>
+                </div>
+            </section>
+        }
+
+        @if (_showCreateCard)
+        {
+            <section class="empty-state">
+                <h2>@Loc.Get("CreateCardTitle")</h2>
+                <input class="field-input" placeholder="@Loc.Get("CardId")" @bind="_newCardId" />
+                <select class="field-input" @bind="_newCardKind">
+                    <option value="Task">@Loc.Get("TaskKind")</option>
+                    <option value="Story">@Loc.Get("StoryKind")</option>
+                </select>
+                <input class="field-input" placeholder="@Loc.Get("Title")" @bind="_newCardTitle" />
+                <input class="field-input" placeholder="@Loc.Get("Stage")" @bind="_newCardStage" />
+                @if (_priorityCriteria.Count > 0)
+                {
+                    @foreach (var criterion in _priorityCriteria)
+                    {
+                        <label class="field-label">
+                            <span>@criterion.Title</span>
+                            <input class="field-input" type="number" inputmode="decimal"
+                                   value="@GetCriterionValue(criterion.Id)"
+                                   @oninput="e => SetCriterionValue(criterion.Id, e.Value?.ToString())" />
+                        </label>
+                    }
+                }
+                else
+                {
+                    <input class="field-input" placeholder="@Loc.Get("Priority")" @bind="_newCardPriority" />
+                }
+                <input class="field-input" placeholder="@Loc.Get("Scope")" @bind="_newCardScope" />
+                <div class="form-actions">
+                    <FlareButton OnClick="CreateCardAsync">@Loc.Get("Create")</FlareButton>
+                    <FlareButton Variant="ButtonVariant.Text" OnClick="CloseCreateCard">@Loc.Get("Cancel")</FlareButton>
+                </div>
+            </section>
+        }
+    </main>
+</div>
+
+@code {
+    private enum Projection { Stories, Tasks, Combined }
+
+    private IReadOnlyList<RegisteredProject> _projects = [];
+    private ProjectBoardSnapshot? _board;
+    private string? _selectedProjectId;
+    private string? _selectedCardId;
+    private bool _editingWorkflow;
+    private bool _editingSettings;
+    private string? _error;
+    private bool _loading = true;
+    private Projection _projection = Projection.Tasks;
+    private AppSettingsView? _settingsView;
+    private ProjectEventClient? _events;
+    private CancellationTokenSource? _boardReloadDelay;
+    private bool _eventsConnected;
+    private int _executionPulse;
+
+    private bool _showAddProject;
+    private string _newProjectPath = string.Empty;
+    private string _newProjectName = string.Empty;
+    private string _newGitPolicy = "LocalOnly";
+    private bool _showCreateCard;
+    private string _newCardId = string.Empty;
+    private string _newCardKind = "Task";
+    private string _newCardTitle = string.Empty;
+    private string _newCardStage = string.Empty;
+    private string _newCardPriority = "1";
+    private string _newCardScope = string.Empty;
+    private IReadOnlyList<PriorityCriterion> _priorityCriteria = [];
+    private readonly Dictionary<string, string> _criterionValues = new(StringComparer.Ordinal);
+
+    private IReadOnlyList<Card> VisibleCards => _board?.Cards
+        .Where(card => _projection switch
+        {
+            Projection.Stories => card.Kind == CardKind.Story,
+            Projection.Tasks => card.Kind == CardKind.Task,
+            _ => true
+        })
+        .OrderBy(card => card.Reference.CardId, StringComparer.Ordinal)
+        .ToArray() ?? [];
+
+    private Card? SelectedCard => _board?.Cards.FirstOrDefault(card =>
+        card.Reference.CardId == _selectedCardId);
+
+    private int VisibleCardCount => _projection switch
+    {
+        Projection.Stories => _board?.Cards.Count(card => card.Kind == CardKind.Story) ?? 0,
+        Projection.Tasks => _board?.Cards.Count(card => card.Kind == CardKind.Task) ?? 0,
+        _ => _board?.Cards.Count ?? 0
+    };
+
+    private int InProgressCount => _board?.Cards.Count(IsInProgress) ?? 0;
+
+    private bool IsInProgress(Card card)
+    {
+        if (_board is null)
+        {
+            return false;
+        }
+
+        var workflow = _board.Workflows.FirstOrDefault(workflow =>
+            StringComparer.Ordinal.Equals(workflow.Id, card.WorkflowId));
+        if (workflow is null || workflow.Stages.Count < 3)
+        {
+            return false;
+        }
+
+        var stageIds = workflow.Stages.OrderBy(stage => stage.Order).Select(stage => stage.Id).ToArray();
+        var index = Array.IndexOf(stageIds, card.StageId);
+        return index > 0 && index < stageIds.Length - 1;
+    }
+
+    private string DefaultStage(string kind)
+    {
+        var workflowId = kind == "Story" ? "story" : "task";
+        return _board?.Workflows
+            .FirstOrDefault(workflow => StringComparer.Ordinal.Equals(workflow.Id, workflowId))
+            ?.Stages.OrderBy(stage => stage.Order).Select(stage => stage.Id).FirstOrDefault()
+            ?? "backlog";
+    }
+
+    private int _scopeDeviationCount => _board?.Cards.Sum(card =>
+        BoardSection.FindOutOfScopeFiles(card).Count) ?? 0;
+
+    private string ProjectionCaption => _projection switch
+    {
+        Projection.Stories => Loc.Get("StoriesCaption"),
+        Projection.Tasks => Loc.Get("TasksCaption"),
+        _ => Loc.Get("CombinedCaption")
+    };
+
+    private string CurrentWorkflowId =>
+        _projection == Projection.Stories ? "story" : "task";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _projects = await Http.GetFromJsonAsync<IReadOnlyList<RegisteredProject>>("api/v1/projects") ?? [];
+            _selectedProjectId = ReadProjectFromQuery() is { } requested &&
+                                 _projects.Any(project => project.Id == requested)
+                ? requested
+                : _projects.FirstOrDefault()?.Id;
+            _selectedCardId = ReadQueryValue("card");
+            var requestedWorkflow = ReadQueryValue("workflow");
+            _editingWorkflow = requestedWorkflow is not null;
+            _editingSettings = ReadQueryValue("settings") is not null;
+            if (requestedWorkflow == "story")
+            {
+                _projection = Projection.Stories;
+            }
+            await LoadBoardAsync();
+        }
+        catch (Exception exception)
+        {
+            _error = exception.Message;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await ConnectEventsAsync();
+        }
+    }
+
+    private async Task ConnectEventsAsync()
+    {
+        if (_selectedProjectId is null)
+        {
+            return;
+        }
+
+        try
+        {
+            _events ??= new ProjectEventClient(Js);
+            _events.Received -= OnProjectEventAsync;
+            _events.Received += OnProjectEventAsync;
+            await _events.ConnectAsync(Http.BaseAddress!.ToString(), _selectedProjectId);
+            _eventsConnected = true;
+        }
+        catch (JSDisconnectedException)
+        {
+            _eventsConnected = false;
+        }
+        catch (JSException)
+        {
+            _eventsConnected = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnProjectEventAsync(string projectId, AikoEvent @event)
+    {
+        if (projectId != _selectedProjectId)
+        {
+            return;
+        }
+
+        switch (@event.Type)
+        {
+            case AikoEventTypes.CardUpdated:
+            case AikoEventTypes.RelationsUpdated:
+                ScheduleBoardReload();
+                break;
+            case AikoEventTypes.ExecutionUpdated:
+                _executionPulse++;
+                await InvokeAsync(StateHasChanged);
+                break;
+        }
+    }
+
+    private void ScheduleBoardReload()
+    {
+        _boardReloadDelay?.Cancel();
+        _boardReloadDelay?.Dispose();
+        _boardReloadDelay = new CancellationTokenSource();
+        var token = _boardReloadDelay.Token;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(400, token);
+                await InvokeAsync(LoadBoardAsync);
+            }
+            catch (OperationCanceledException)
+            {
+                // A newer event rescheduled the reload.
+            }
+        });
+    }
+
+    private async Task SelectProjectAsync(string projectId)
+    {
+        if (_selectedProjectId == projectId)
+        {
+            return;
+        }
+
+        _selectedProjectId = projectId;
+        _selectedCardId = null;
+        _editingWorkflow = false;
+        _editingSettings = false;
+        Navigation.NavigateTo($"?project={Uri.EscapeDataString(projectId)}", replace: true);
+        await LoadBoardAsync();
+        await ConnectEventsAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        _loading = true;
+        await LoadBoardAsync();
+        _loading = false;
+    }
+
+    private async Task LoadBoardAsync()
+    {
+        _error = null;
+        if (_selectedProjectId is null)
+        {
+            _board = null;
+            return;
+        }
+
+        try
+        {
+            _board = await Http.GetFromJsonAsync<ProjectBoardSnapshot>(
+                $"api/v1/projects/{Uri.EscapeDataString(_selectedProjectId)}/board");
+            _settingsView = await Http.GetFromJsonAsync<AppSettingsView>(
+                $"api/v1/projects/{Uri.EscapeDataString(_selectedProjectId)}/settings",
+                PwaJson.Options);
+            if (_selectedCardId is not null &&
+                !_board!.Cards.Any(card => card.Reference.CardId == _selectedCardId))
+            {
+                _selectedCardId = null;
+            }
+        }
+        catch (Exception exception)
+        {
+            _error = exception.Message;
+        }
+    }
+
+    private void ChangeProjection(Projection projection)
+    {
+        _projection = projection;
+        if (SelectedCard is not null && !VisibleCards.Contains(SelectedCard))
+        {
+            _selectedCardId = null;
+        }
+        if (_editingWorkflow)
+        {
+            NavigateToSelection();
+        }
+    }
+
+    private void SelectCard(ChangeEventArgs args)
+    {
+        _selectedCardId = args.Value?.ToString();
+        if (string.IsNullOrWhiteSpace(_selectedCardId))
+        {
+            _selectedCardId = null;
+        }
+
+        _editingWorkflow = false;
+        _editingSettings = false;
+        NavigateToSelection();
+    }
+
+    private void CloseCard()
+    {
+        _selectedCardId = null;
+        NavigateToSelection();
+    }
+
+    private void OpenWorkflow()
+    {
+        _selectedCardId = null;
+        _editingWorkflow = true;
+        NavigateToSelection();
+    }
+
+    private void CloseWorkflow()
+    {
+        _editingWorkflow = false;
+        NavigateToSelection();
+    }
+
+    private void OpenSettings()
+    {
+        _selectedCardId = null;
+        _editingWorkflow = false;
+        _editingSettings = true;
+        NavigateToSelection();
+    }
+
+    private void CloseSettings()
+    {
+        _editingSettings = false;
+        NavigateToSelection();
+    }
+
+    private void NavigateToSelection()
+    {
+        if (_selectedProjectId is null)
+        {
+            return;
+        }
+
+        var location = $"?project={Uri.EscapeDataString(_selectedProjectId)}";
+        if (_selectedCardId is not null)
+        {
+            location += $"&card={Uri.EscapeDataString(_selectedCardId)}";
+        }
+        else if (_editingWorkflow)
+        {
+            location += $"&workflow={Uri.EscapeDataString(CurrentWorkflowId)}";
+        }
+        else if (_editingSettings)
+        {
+            location += "&settings=1";
+        }
+
+        Navigation.NavigateTo(location, replace: true);
+    }
+
+    private async Task MoveCardAsync(CardKind kind, IReadOnlyList<KanbanCard> movedCards)
+    {
+        if (_board is null)
+        {
+            return;
+        }
+
+        var originalCards = _board.Cards.Where(card => card.Kind == kind).ToArray();
+        var changed = movedCards
+            .Select(moved => (Moved: moved, Original: originalCards.FirstOrDefault(card =>
+                card.Reference.CardId == moved.Id)))
+            .FirstOrDefault(pair => pair.Original is not null &&
+                                    pair.Original.StageId != pair.Moved.ColumnId);
+        if (changed.Original is null)
+        {
+            return;
+        }
+
+        try
+        {
+            using var response = await Http.PutAsJsonAsync(
+                $"api/v1/projects/{Uri.EscapeDataString(_board.Project.Id)}/cards/{Uri.EscapeDataString(changed.Original.Reference.CardId)}/stage",
+                new MoveCardRequest(changed.Moved.ColumnId, changed.Original.Revision));
+            response.EnsureSuccessStatusCode();
+            await LoadBoardAsync();
+        }
+        catch (Exception exception)
+        {
+            _error = Loc.Format("MoveFailed", changed.Original.Reference.CardId, exception.Message);
+            await LoadBoardAsync();
+        }
+    }
+
+    private string? ReadProjectFromQuery() => ReadQueryValue("project");
+
+    private string? ReadQueryValue(string name)
+    {
+        var query = new Uri(Navigation.Uri).Query.TrimStart('?');
+        return query.Split('&', StringSplitOptions.RemoveEmptyEntries)
+            .Select(item => item.Split('=', 2))
+            .Where(parts => parts.Length == 2 && parts[0] == name)
+            .Select(parts => Uri.UnescapeDataString(parts[1]))
+            .FirstOrDefault();
+    }
+
+    private static string Initials(string name)
+    {
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return string.Concat(parts.Take(2).Select(part => char.ToUpperInvariant(part[0])));
+    }
+
+    private void OpenAddProject()
+    {
+        _showAddProject = true;
+        _showCreateCard = false;
+    }
+
+    private void CloseAddProject() => _showAddProject = false;
+
+    private async Task AddProjectAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newProjectPath))
+        {
+            _error = Loc.Get("PathRequired");
+            return;
+        }
+
+        try
+        {
+            var request = new InitializeProjectRequest(
+                _newProjectPath.Trim(),
+                string.IsNullOrWhiteSpace(_newProjectName) ? null : _newProjectName.Trim(),
+                Enum.Parse<ProjectGitPolicy>(_newGitPolicy));
+            using var response = await Http.PostAsJsonAsync(
+                "api/v1/projects/initialize",
+                request,
+                PwaJson.Options);
+            response.EnsureSuccessStatusCode();
+            _projects = await Http.GetFromJsonAsync<IReadOnlyList<RegisteredProject>>("api/v1/projects") ?? [];
+            var project = await response.Content.ReadFromJsonAsync<RegisteredProject>(PwaJson.Options);
+            _selectedProjectId = project?.Id ?? _projects.FirstOrDefault()?.Id;
+            _showAddProject = false;
+            _newProjectPath = string.Empty;
+            _newProjectName = string.Empty;
+            await LoadBoardAsync();
+            await ConnectEventsAsync();
+        }
+        catch (Exception exception)
+        {
+            _error = Loc.Format("AddProjectFailed", exception.Message);
+        }
+    }
+
+    private async Task OpenCreateCard()
+    {
+        _showCreateCard = true;
+        _showAddProject = false;
+        _priorityCriteria = [];
+        _criterionValues.Clear();
+        if (_board is not null)
+        {
+            try
+            {
+                var view = await Http.GetFromJsonAsync<AppSettingsView>(
+                    $"api/v1/projects/{Uri.EscapeDataString(_board.Project.Id)}/settings", PwaJson.Options);
+                _priorityCriteria = view?.EffectivePriority.Criteria ?? [];
+            }
+            catch
+            {
+                _priorityCriteria = [];
+            }
+        }
+    }
+
+    private void CloseCreateCard() => _showCreateCard = false;
+
+    private string GetCriterionValue(string id) =>
+        _criterionValues.TryGetValue(id, out var value) ? value : string.Empty;
+
+    private void SetCriterionValue(string id, string? value) =>
+        _criterionValues[id] = value ?? string.Empty;
+
+    private Dictionary<string, decimal> BuildCriterionValues()
+    {
+        var result = new Dictionary<string, decimal>(StringComparer.Ordinal);
+        foreach (var criterion in _priorityCriteria)
+        {
+            if (_criterionValues.TryGetValue(criterion.Id, out var text) &&
+                decimal.TryParse(text, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var value))
+            {
+                result[criterion.Id] = value;
+            }
+        }
+
+        return result;
+    }
+
+    private async Task CreateCardAsync()
+    {
+        if (_board is null || string.IsNullOrWhiteSpace(_newCardId) || string.IsNullOrWhiteSpace(_newCardTitle))
+        {
+            _error = Loc.Get("IdTitleRequired");
+            return;
+        }
+
+        try
+        {
+            var criterionValues = BuildCriterionValues();
+            var ownPriority = criterionValues.Count > 0
+                ? PriorityCalculator.CalculateOwnPriority(criterionValues, _priorityCriteria)
+                : (decimal.TryParse(_newCardPriority, out var priority) ? priority : 0m);
+            var request = new CreateCardRequest(
+                _newCardId.Trim(),
+                Enum.Parse<CardKind>(_newCardKind),
+                _newCardTitle.Trim(),
+                _newCardKind == "Story" ? "story" : "task",
+                string.IsNullOrWhiteSpace(_newCardStage) ? DefaultStage(_newCardKind) : _newCardStage.Trim(),
+                ownPriority,
+                _newCardScope.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToArray(),
+                criterionValues.Count > 0 ? criterionValues : null);
+            using var response = await Http.PostAsJsonAsync(
+                $"api/v1/projects/{Uri.EscapeDataString(_board.Project.Id)}/cards",
+                request,
+                PwaJson.Options);
+            response.EnsureSuccessStatusCode();
+            _showCreateCard = false;
+            _newCardId = string.Empty;
+            _newCardTitle = string.Empty;
+            _newCardScope = string.Empty;
+            _criterionValues.Clear();
+            await LoadBoardAsync();
+        }
+        catch (Exception exception)
+        {
+            _error = Loc.Format("CreateCardFailed", exception.Message);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _boardReloadDelay?.Cancel();
+        _boardReloadDelay?.Dispose();
+        if (_events is not null)
+        {
+            _events.Received -= OnProjectEventAsync;
+            await _events.DisposeAsync();
+        }
+    }
+
+    private static string ProjectPath(string path) =>
+        path.Length <= 34 ? path : $"...{path[^33..]}";
+
+    private sealed record MoveCardRequest(string StageId, long ExpectedRevision);
+
+    private sealed record CreateCardRequest(
+        string CardId,
+        CardKind Kind,
+        string Title,
+        string WorkflowId,
+        string StageId,
+        decimal OwnPriority,
+        IReadOnlyList<string>? DeclaredScopeFiles,
+        IReadOnlyDictionary<string, decimal>? CriterionValues);
+}

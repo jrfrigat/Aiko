@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640">
+  <rect width="1280" height="640" fill="#0b1326"/>
+  <rect x="540" y="180" width="200" height="280" rx="16" fill="#16253a"/>
+  <rect x="548" y="196" width="56" height="56" rx="8" fill="#3156d3"/>
+  <rect x="548" y="268" width="56" height="56" rx="8" fill="#e9eef2"/>
+  <rect x="612" y="196" width="56" height="56" rx="8" fill="#e9eef2"/>
+  <rect x="612" y="268" width="56" height="56" rx="8" fill="#3156d3"/>
+  <rect x="676" y="196" width="56" height="56" rx="8" fill="#e9eef2"/>
+  <rect x="676" y="268" width="56" height="56" rx="8" fill="#e9eef2"/>
+  <text x="430" y="520" font-family="Segoe UI, Arial, sans-serif" font-size="88" font-weight="700" fill="#e9eef2" text-anchor="middle">Aiko</text>
+  <text x="640" y="560" font-family="Segoe UI, Arial, sans-serif" font-size="32" fill="#8a9aa8" text-anchor="middle">AI kanban orchestrator</text>
+</svg>
