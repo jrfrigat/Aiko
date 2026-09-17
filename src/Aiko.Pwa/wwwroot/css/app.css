@@ -1034,8 +1034,7 @@
     align-items: stretch;
 }
 
-.aiko-field__input,
-.aiko-field__select {
+.aiko-field__input {
     flex: 1 1 auto;
     min-width: 0;
     border: none;
@@ -1056,21 +1055,55 @@
     color: var(--flare-color-outline);
 }
 
-.aiko-field__input:disabled,
-.aiko-field__select:disabled {
+.aiko-field__input:disabled {
     color: var(--flare-color-on-surface-variant2);
     cursor: not-allowed;
 }
 
-/* The choice keeps the field's own look: no native arrow, no operating-system chrome. */
-.aiko-field__select {
-    appearance: none;
-    cursor: pointer;
+/* The choice is FlareSelect, so an option can carry an icon or a swatch; FlareSelect brings its own control,
+   and the field's box is drawn onto it here. Only the fill, the rules and the typography are replaced, which
+   keeps Flare's arrow - a background image on the control - and its open/closed behaviour intact. */
+.aiko-field .flare-select {
+    min-width: 0;
 }
 
-.aiko-field__select option {
-    background: var(--flare-color-surface-container);
-    color: var(--flare-color-on-surface);
+.aiko-field .flare-select__control {
+    padding: 0.5rem 0.75rem;
+    min-height: 0;
+    border: var(--flare-border-width, 1px) solid
+        color-mix(in srgb, var(--flare-color-outline-variant) 40%, transparent);
+    border-radius: var(--flare-shape-large);
+    background-color: var(--flare-color-surface-container-lowest);
+    color: var(--flare-color-secondary);
+    font-family: var(--aiko-font-mono, monospace);
+    font-size: 0.8125rem;
+    line-height: 1.125rem;
+}
+
+.aiko-field .flare-select__control:hover,
+.aiko-field .flare-select__control:focus-visible {
+    border-color: var(--flare-color-primary);
+}
+
+.aiko-field__select--error .flare-select__control {
+    border-color: var(--flare-color-error);
+}
+
+/* The list is Flare's own floating panel, outside the field's box, so it is dressed on its own terms. */
+.aiko-field .flare-select__option,
+.aiko-field .flare-select__value {
+    font-family: var(--aiko-font-mono, monospace);
+    font-size: 0.8125rem;
+}
+
+/* A colour drawn as the colour itself: the swatch a picker shows in its rows and in the chosen value. */
+.aiko-swatch {
+    display: inline-block;
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: var(--flare-shape-full, 999px);
+    border: var(--flare-border-width, 1px) solid
+        color-mix(in srgb, var(--flare-color-outline-variant) 50%, transparent);
 }
 
 /* A quiet note at the end of the box: a unit, a format, the range a value is read against. */

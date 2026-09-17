@@ -1,25 +1,25 @@
-@* A choice in the design's field: the same recessed box as the text fields, with the native arrow replaced
-   by a chevron of our own so a select sits beside an input without looking like another product. *@
+@* A choice in the design's field: the same label, hint and box rhythm as the text fields, drawn by
+   FlareSelect so an option can carry more than text - an icon, a colour swatch, anything a template draws.
+   FlareSelect brings its own control, which the stylesheet dresses as the cockpit's box; the caller writes
+   native <option> elements as before, or Items with templates when the value itself needs a picture. *@
 <div class="aiko-field">
     @if (Label is { Length: > 0 } label)
     {
-        <label class="aiko-field__label" for="@_id">@label</label>
+        <label class="aiko-field__label">@label</label>
     }
-    <div class="aiko-field__box @(ErrorText is { Length: > 0 } ? "aiko-field__box--error" : null)">
-        @if (Icon is not null)
-        {
-            <FlareIconView Value="Icon" Color="FlareColor.OnSurfaceVariant2" />
-        }
-        <select id="@_id"
-                class="aiko-field__select"
-                aria-label="@AriaLabel"
-                disabled="@Disabled"
-                value="@Value"
-                @onchange="OnChange">
-            @ChildContent
-        </select>
-        <FlareIconView Value="@MaterialDesign3Icons.Regular.KeyboardArrowDown" Color="FlareColor.OnSurfaceVariant2" />
-    </div>
+    <FlareSelect TValue="string"
+                 Value="@Value"
+                 ValueChanged="OnValueChanged"
+                 ComponentCssClass="@($"aiko-field__select{(ErrorText is { Length: > 0 } ? " aiko-field__select--error" : string.Empty)}")"
+                 AriaLabel="@AriaLabel"
+                 Disabled="@Disabled"
+                 Items="@Items"
+                 ItemLabel="@ItemLabel"
+                 ItemTemplate="@ItemTemplate"
+                 SelectedTemplate="@SelectedTemplate"
+                 NullOption="@NullOption">
+        @ChildContent
+    </FlareSelect>
     @if (ErrorText is { Length: > 0 } error)
     {
         <span class="aiko-field__error">@error</span>
@@ -31,8 +31,6 @@
 </div>
 
 @code {
-    private readonly string _id = $"aiko-select-{Guid.NewGuid():N}";
-
     /// <summary>The field's name, above it.</summary>
     [Parameter] public string? Label { get; set; }
 
@@ -42,18 +40,40 @@
     /// <summary>Why the choice is not acceptable; empty means it is.</summary>
     [Parameter] public string? ErrorText { get; set; }
 
-    /// <summary>The selected value.</summary>
+    /// <summary>The selected value, or null for "nothing chosen".</summary>
     [Parameter] public string? Value { get; set; }
 
     /// <summary>Raised when the reader picks another option.</summary>
     [Parameter] public EventCallback<string?> ValueChanged { get; set; }
 
-    /// <summary>The <c>&lt;option&gt;</c> elements, written by the caller.</summary>
+    /// <summary>
+    /// The <c>&lt;option&gt;</c> elements, written by the caller - the declarative form FlareSelect offers
+    /// instead of <see cref="Items"/>. A list whose values need a picture uses the templates below instead.
+    /// </summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
-    [Parameter] public FlareIcon? Icon { get; set; }
+    /// <summary>The choices, when they are data the caller already holds.</summary>
+    [Parameter] public IEnumerable<string>? Items { get; set; }
+
+    /// <summary>How an item reads in the list and in the field; defaults to the item itself.</summary>
+    [Parameter] public Func<string, string>? ItemLabel { get; set; }
+
+    /// <summary>What one row of the list draws, for a value that needs an icon or a swatch.</summary>
+    [Parameter] public RenderFragment<string>? ItemTemplate { get; set; }
+
+    /// <summary>What the closed field draws, so the chosen value carries the same picture as the list.</summary>
+    [Parameter] public RenderFragment<string>? SelectedTemplate { get; set; }
+
+    /// <summary>
+    /// A row meaning "no choice", prepended to the list and pinned there; picking it sets the value to null,
+    /// which is how a project says "no icon" rather than an empty string that merely looks like it.
+    /// </summary>
+    [Parameter] public string? NullOption { get; set; }
+
+    /// <summary>The field's name for a screen reader, when the label is not enough.</summary>
     [Parameter] public string? AriaLabel { get; set; }
+
     [Parameter] public bool Disabled { get; set; }
 
-    private Task OnChange(ChangeEventArgs args) => ValueChanged.InvokeAsync(args.Value?.ToString());
+    private Task OnValueChanged(string? value) => ValueChanged.InvokeAsync(value);
 }

@@ -73,24 +73,18 @@
                 <FlareIconView Value="@IconOf(_workflowIcon)" Color="@ColorOf(_workflowColor)" />
                 <AikoSelectField Label="@Loc.Get("CardTypeIcon")"
                                  Value="@_workflowIcon"
-                                 ValueChanged="value => _workflowIcon = TrimOrNull(value)">
-                    <option value="">@Loc.Get("AppearanceDefault")</option>
-                    @foreach (var choice in IconChoices)
-                    {
-                        var icon = choice;
-                        <option value="@icon">@icon</option>
-                    }
-                </AikoSelectField>
+                                 ValueChanged="value => _workflowIcon = value"
+                                 Items="@IconChoices"
+                                 NullOption="@Loc.Get("AppearanceDefault")"
+                                 ItemTemplate="@IconOption"
+                                 SelectedTemplate="@IconValue(ColorOf(_workflowColor))" />
                 <AikoSelectField Label="@Loc.Get("CardTypeColor")"
                                  Value="@_workflowColor"
-                                 ValueChanged="value => _workflowColor = TrimOrNull(value)">
-                    <option value="">@Loc.Get("AppearanceDefault")</option>
-                    @foreach (var choice in ColorChoices)
-                    {
-                        var color = choice;
-                        <option value="@color">@color</option>
-                    }
-                </AikoSelectField>
+                                 ValueChanged="value => _workflowColor = value"
+                                 Items="@ColorChoices"
+                                 NullOption="@Loc.Get("AppearanceDefault")"
+                                 ItemTemplate="@ColorOption"
+                                 SelectedTemplate="@ColorOption" />
             </FlareStack>
             @if (Delete is not null && _deleteTypeConfirm)
             {
@@ -154,24 +148,18 @@
                         <FlareIconView Value="@IconOf(_newTypeIcon)" Color="@ColorOf(_newTypeColor)" />
                         <AikoSelectField Label="@Loc.Get("CardTypeIcon")"
                                          Value="@_newTypeIcon"
-                                         ValueChanged="value => _newTypeIcon = TrimOrNull(value)">
-                            <option value="">@Loc.Get("AppearanceDefault")</option>
-                            @foreach (var choice in IconChoices)
-                            {
-                                var icon = choice;
-                                <option value="@icon">@icon</option>
-                            }
-                        </AikoSelectField>
+                                         ValueChanged="value => _newTypeIcon = value"
+                                         Items="@IconChoices"
+                                         NullOption="@Loc.Get("AppearanceDefault")"
+                                         ItemTemplate="@IconOption"
+                                         SelectedTemplate="@IconValue(ColorOf(_newTypeColor))" />
                         <AikoSelectField Label="@Loc.Get("CardTypeColor")"
                                          Value="@_newTypeColor"
-                                         ValueChanged="value => _newTypeColor = TrimOrNull(value)">
-                            <option value="">@Loc.Get("AppearanceDefault")</option>
-                            @foreach (var choice in ColorChoices)
-                            {
-                                var color = choice;
-                                <option value="@color">@color</option>
-                            }
-                        </AikoSelectField>
+                                         ValueChanged="value => _newTypeColor = value"
+                                         Items="@ColorChoices"
+                                         NullOption="@Loc.Get("AppearanceDefault")"
+                                         ItemTemplate="@ColorOption"
+                                         SelectedTemplate="@ColorOption" />
                         <FlareButton Variant="ButtonVariant.Tonal"
                                      Size="ButtonSize.Sm"
                                      Loading="@_creatingType"
@@ -411,24 +399,18 @@
                     <FlareIconView Value="@IconOf(stage.Icon)" Color="@ColorOf(stage.Color)" />
                     <AikoSelectField Label="@Loc.Get("StageIcon")"
                                      Value="@stage.Icon"
-                                     ValueChanged="value => OnStageIconPicked(stage, value)">
-                        <option value="">@Loc.Get("AppearanceDefault")</option>
-                        @foreach (var choice in IconChoices)
-                        {
-                            var icon = choice;
-                            <option value="@icon">@icon</option>
-                        }
-                    </AikoSelectField>
+                                     ValueChanged="value => OnStageIconPicked(stage, value)"
+                                     Items="@IconChoices"
+                                     NullOption="@Loc.Get("AppearanceDefault")"
+                                     ItemTemplate="@IconOption"
+                                     SelectedTemplate="@IconValue(ColorOf(stage.Color))" />
                     <AikoSelectField Label="@Loc.Get("StageColor")"
                                      Value="@stage.Color"
-                                     ValueChanged="value => OnStageColorPicked(stage, value)">
-                        <option value="">@Loc.Get("AppearanceDefault")</option>
-                        @foreach (var choice in ColorChoices)
-                        {
-                            var color = choice;
-                            <option value="@color">@color</option>
-                        }
-                    </AikoSelectField>
+                                     ValueChanged="value => OnStageColorPicked(stage, value)"
+                                     Items="@ColorChoices"
+                                     NullOption="@Loc.Get("AppearanceDefault")"
+                                     ItemTemplate="@ColorOption"
+                                     SelectedTemplate="@ColorOption" />
                 </FlareStack>
                 @* What the stage must produce and the commands that verify it, side by side: on the wide
                    drawer the two read as one contract. *@
@@ -512,6 +494,31 @@
 
     /// <summary>The colour ids a stage or a card type may choose from.</summary>
     private static IReadOnlyList<string> ColorChoices => AppearanceCatalog.Colors;
+
+    /// <summary>
+    /// One icon choice, drawn as the icon itself: the list shows what it is offering rather than a name the
+    /// reader has to translate in their head.
+    /// </summary>
+    private static RenderFragment<string> IconOption => icon => @<FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
+        <FlareIconView Value="@IconOf(icon)" Color="@FlareColor.OnSurfaceVariant" />
+        <FlareText Element="span" Typo="TypographyScale.BodySmall">@icon</FlareText>
+    </FlareStack>;
+
+    /// <summary>
+    /// The chosen icon in the closed field, tinted by the colour the same picker sits beside - so the value
+    /// reads as the pair an editor is choosing, not as two independent settings.
+    /// </summary>
+    /// <param name="tint">The accent of the surrounding picker.</param>
+    private static RenderFragment<string> IconValue(FlareColor tint) => icon => @<FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
+        <FlareIconView Value="@IconOf(icon)" Color="@tint" />
+        <FlareText Element="span" Typo="TypographyScale.BodySmall">@icon</FlareText>
+    </FlareStack>;
+
+    /// <summary>One colour choice, drawn as the colour itself, with its name beside it.</summary>
+    private static RenderFragment<string> ColorOption => color => @<FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
+        <span class="aiko-swatch" style="@($"background-color: {ColorOf(color).CssValue}")"></span>
+        <FlareText Element="span" Typo="TypographyScale.BodySmall">@color</FlareText>
+    </FlareStack>;
 
     /// <summary>
     /// The icon a choice draws, so a picker can show what it is choosing. The fallback makes the result
