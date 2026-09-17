@@ -258,6 +258,24 @@
   <data name="AiInstructionHint" xml:space="preserve"><value>На что агенту смотреть, чтобы оценить этот критерий</value></data>
   <data name="CharactersCount" xml:space="preserve"><value>Символов: {0}</value></data>
   <data name="TokensEstimate" xml:space="preserve"><value>Токенов ~{0}</value></data>
+  <data name="RevisionTag" xml:space="preserve"><value>rev {0}</value></data>
+  <data name="DaemonRuntime" xml:space="preserve"><value>Рантайм демона</value></data>
+  <data name="DaemonRuntimeHint" xml:space="preserve"><value>Что запущено и где слушает</value></data>
+  <data name="McpEndpoint" xml:space="preserve"><value>MCP endpoint</value></data>
+  <data name="McpEndpointHint" xml:space="preserve"><value>Адрес, к которому подключается агент для открытого проекта</value></data>
+  <data name="AgentBridges" xml:space="preserve"><value>Мосты к агентам</value></data>
+  <data name="AgentBridgesHint" xml:space="preserve"><value>Какие агенты есть на машине и подключён ли к ним Aiko</value></data>
+  <data name="BridgeConnected" xml:space="preserve"><value>подключён</value></data>
+  <data name="BridgePartial" xml:space="preserve"><value>частично</value></data>
+  <data name="BridgeInstalled" xml:space="preserve"><value>найден, не подключён</value></data>
+  <data name="BridgeNotInstalled" xml:space="preserve"><value>не найден</value></data>
+  <data name="BridgeNoUserScope" xml:space="preserve"><value>нет user-scope конфигурации</value></data>
+  <data name="BridgeFiles" xml:space="preserve"><value>{0}/{1} файлов</value></data>
+  <data name="ProjectStats" xml:space="preserve"><value>Статистика проекта</value></data>
+  <data name="ProjectStatsHint" xml:space="preserve"><value>Как карточки проекта распределены по его конвейерам, по данным доски от демона</value></data>
+  <data name="StageLoad" xml:space="preserve"><value>Карточки по этапам</value></data>
+  <data name="StageLoadHint" xml:space="preserve"><value>Каждая полоса - доля этапа от самого нагруженного этапа его конвейера</value></data>
+  <data name="GitHubRepository" xml:space="preserve"><value>Aiko на GitHub</value></data>
   <data name="TemplateScope" xml:space="preserve"><value>Шаблон по умолчанию</value></data>
   <data name="TemplateSettingsHeading" xml:space="preserve"><value>Настройки шаблона по умолчанию</value></data>
   <data name="TemplateSettingsHint" xml:space="preserve"><value>С чем создаётся новый проект: настройки выполнения, модель оценки и конвейеры. Существующие проекты хранят свою копию и не затрагиваются.</value></data>

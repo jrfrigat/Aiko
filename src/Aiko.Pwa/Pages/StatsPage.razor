@@ -1,0 +1,145 @@
+@page "/p/{ProjectId}/stats"
+@inject WorkspaceState State
+
+@* The project's numbers, read from its own board: how the cards are spread across the stages and how much
+   work is in flight. Everything is computed from the snapshot the daemon already serves, so this screen
+   cannot disagree with the board it summarises. *@
+<PageTitle>@Loc.Get("ProjectStats")</PageTitle>
+
+@if (State.Board is not { } board)
+{
+    <FlareAlert Severity="AlertSeverity.Info" Variant="AlertVariant.Text">@Loc.Get("BoardUnavailable")</FlareAlert>
+}
+else
+{
+    <FlareStack Gap="FlareSpacing.Medium">
+        <FlareStack Row="true" Align="FlareAlignItems.End" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Medium" Wrap="true">
+            <FlareStack Gap="FlareSpacing.XXSmall">
+                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
+                    <span class="aiko-tag aiko-tag--accent">@Loc.Get("ProjectStats")</span>
+                    <span class="aiko-tag aiko-tag--quiet">@board.Project.Name</span>
+                </FlareStack>
+                <FlareText Element="h1" Typo="TypographyScale.HeadlineMedium">@board.Project.Name</FlareText>
+                <FlareText Element="p" Typo="TypographyScale.BodyMedium" Color="FlareColor.OnSurfaceVariant">
+                    @Loc.Get("ProjectStatsHint")
+                </FlareText>
+            </FlareStack>
+            <FlareNavLink Href="@BoardHref">
+                <IconContent><FlareIconView Value="@MaterialDesign3Icons.Regular.ViewKanban" /></IconContent>
+                <ChildContent>@Loc.Get("KanbanBoard")</ChildContent>
+            </FlareNavLink>
+        </FlareStack>
+
+        <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
+            <FlareStack Gap="FlareSpacing.Medium">
+                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
+                    <span class="aiko-panel__icon aiko-panel__icon--primary">
+                        <FlareIconView Value="@MaterialDesign3Icons.Regular.BarChart" />
+                    </span>
+                    <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("ProjectStats")</FlareText>
+                </FlareStack>
+                <div class="aiko-tiles">
+                    @foreach (var tile in Tiles)
+                    {
+                        var item = tile;
+                        <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                                @item.Label
+                            </FlareText>
+                            <span class="aiko-value">@item.Value</span>
+                        </FlareStack>
+                    }
+                </div>
+            </FlareStack>
+        </FlarePaper>
+
+        <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
+            <FlareStack Gap="FlareSpacing.Medium">
+                <FlareStack Gap="FlareSpacing.None">
+                    <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("StageLoad")</FlareText>
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                        @Loc.Get("StageLoadHint")
+                    </FlareText>
+                </FlareStack>
+                @foreach (var workflow in StagesByWorkflow)
+                {
+                    <FlareStack Gap="FlareSpacing.XXSmall">
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">@workflow.Title</FlareText>
+                        @foreach (var row in workflow.Rows)
+                        {
+                            var stage = row;
+                            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                                <span class="aiko-value aiko-value--clip aiko-stage__label">@stage.StageId</span>
+                                <span class="aiko-bar"><span class="aiko-bar__fill" style="@($"width: {stage.Share}%")"></span></span>
+                                <span class="aiko-tag @(stage.Count == 0 ? "aiko-tag--quiet" : "aiko-tag--accent")">
+                                    @DisplayFormat.Number(stage.Count)
+                                </span>
+                            </FlareStack>
+                        }
+                    </FlareStack>
+                }
+            </FlareStack>
+        </FlarePaper>
+    </FlareStack>
+}
+
+@code {
+    [Parameter] public string ProjectId { get; set; } = string.Empty;
+
+    private string BoardHref => $"/p/{Uri.EscapeDataString(ProjectId)}/board";
+
+    /// <summary>The numbers a board is read by.</summary>
+    private IReadOnlyList<(string Label, string Value)> Tiles
+    {
+        get
+        {
+            var board = State.Board;
+            return
+            [
+                (Loc.Get("Cards"), DisplayFormat.Number(board?.Cards.Count ?? 0)),
+                (Loc.Get("StoriesNav"), DisplayFormat.Number(BoardMetrics.CountKind(board, CardKind.Story))),
+                (Loc.Get("TasksNav"), DisplayFormat.Number(BoardMetrics.CountKind(board, CardKind.Task))),
+                (Loc.Get("InProgress"), DisplayFormat.Number(BoardMetrics.InProgressCount(board))),
+                (Loc.Get("OutOfScope"), DisplayFormat.Number(BoardMetrics.OutOfScopeCount(board))),
+                (Loc.Get("Relations"), DisplayFormat.Number(board?.Relations.Count ?? 0))
+            ];
+        }
+    }
+
+    /// <summary>
+    /// Cards per stage, workflow by workflow, each stage's bar showing its share of the busiest stage - so
+    /// the picture says where work bunches up rather than how large the project is.
+    /// </summary>
+    private IReadOnlyList<(string Title, IReadOnlyList<(string StageId, int Count, int Share)> Rows)> StagesByWorkflow
+    {
+        get
+        {
+            if (State.Board is not { } board)
+            {
+                return [];
+            }
+
+            var result = new List<(string, IReadOnlyList<(string, int, int)>)>();
+            foreach (var workflow in board.Workflows)
+            {
+                var counts = workflow.Stages
+                    .OrderBy(stage => stage.Order)
+                    .Select(stage => (stage.Id, Count: board.Cards.Count(card =>
+                        StringComparer.Ordinal.Equals(card.WorkflowId, workflow.Id) &&
+                        StringComparer.Ordinal.Equals(card.StageId, stage.Id))))
+                    .ToArray();
+                var peak = counts.Length == 0 ? 0 : counts.Max(entry => entry.Count);
+                result.Add((
+                    workflow.Title,
+                    counts.Select(entry => (
+                        entry.Id,
+                        entry.Count,
+                        peak == 0 ? 0 : Math.Max(4, (int)Math.Round(entry.Count * 100d / peak)))).ToArray()));
+            }
+
+            return result;
+        }
+    }
+
+    protected override async Task OnParametersSetAsync() => await State.EnsureProjectAsync(ProjectId);
+}

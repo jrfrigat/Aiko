@@ -655,6 +655,26 @@
     flex-wrap: wrap;
 }
 
+/* The stats screen's distribution rows: the stage name, the share of the busiest stage, the count. */
+.aiko-stage__label {
+    flex: 0 0 9rem;
+}
+
+.aiko-bar {
+    flex: 1 1 auto;
+    height: 0.375rem;
+    min-width: 4rem;
+    overflow: hidden;
+    border-radius: var(--flare-shape-extra-small);
+    background: var(--flare-color-surface-container);
+}
+
+.aiko-bar__fill {
+    display: block;
+    height: 100%;
+    background: var(--flare-color-primary);
+}
+
 /* ---------------------------------------------------------------------------------------------
  * The design's identifier row and prompt editor
  * ------------------------------------------------------------------------------------------- */

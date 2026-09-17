@@ -2,26 +2,50 @@
 @inject WorkspaceState State
 
 @* A card as its own page: the board is where you work across cards, this is where you work inside one -
-   and unlike the drawer it replaces, it has a URL that can be linked, reloaded and shared. *@
+   and unlike a drawer it has a URL that can be linked, reloaded and shared. The header states what the card
+   is (kind, stage, size, revision) and where it sits, so the screen says as much as the board does. *@
 <PageTitle>@CardId</PageTitle>
 
-<FlareStack Gap="FlareSpacing.Small">
-    <FlareNavLink Href="@BoardHref">
-        <ChildContent>@Loc.Get("KanbanBoard")</ChildContent>
-    </FlareNavLink>
-
-    @if (Card is null || State.Board is not { } board)
-    {
+@if (Card is null || State.Board is not { } board)
+{
+    <FlareStack Gap="FlareSpacing.Small">
+        <FlareNavLink Href="@BoardHref">
+            <IconContent><FlareIconView Value="@MaterialDesign3Icons.Regular.ViewKanban" /></IconContent>
+            <ChildContent>@Loc.Get("KanbanBoard")</ChildContent>
+        </FlareNavLink>
         <FlareAlert Severity="AlertSeverity.Info" Variant="AlertVariant.Text">@Loc.Get("CardNotFound")</FlareAlert>
-    }
-    else
-    {
+    </FlareStack>
+}
+else
+{
+    <FlareStack Gap="FlareSpacing.Medium">
+        <FlareStack Row="true" Align="FlareAlignItems.End" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Medium" Wrap="true">
+            <FlareStack Gap="FlareSpacing.XXSmall">
+                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
+                    <span class="aiko-tag aiko-tag--quiet">@board.Project.Name</span>
+                    <span class="aiko-tag aiko-tag--accent">@Card.Reference.CardId</span>
+                    <span class="aiko-tag">@Card.Kind</span>
+                    <span class="aiko-tag">@Card.StageId</span>
+                    @if (Card.Size is { Length: > 0 } size)
+                    {
+                        <span class="aiko-tag"><span class="aiko-dot"></span>@size</span>
+                    }
+                    <span class="aiko-tag aiko-tag--quiet">@Loc.Format("RevisionTag", Card.Revision)</span>
+                </FlareStack>
+                <FlareText Element="h1" Typo="TypographyScale.HeadlineMedium">@Card.Title</FlareText>
+            </FlareStack>
+            <FlareNavLink Href="@BoardHref">
+                <IconContent><FlareIconView Value="@MaterialDesign3Icons.Regular.ViewKanban" /></IconContent>
+                <ChildContent>@Loc.Get("KanbanBoard")</ChildContent>
+            </FlareNavLink>
+        </FlareStack>
+
         <CardInspector Card="Card"
                        Board="board"
                        ExecutionRefreshTick="State.ExecutionPulse"
                        OnSaved="State.LoadBoardAsync" />
-    }
-</FlareStack>
+    </FlareStack>
+}
 
 @code {
     [Parameter] public string ProjectId { get; set; } = string.Empty;

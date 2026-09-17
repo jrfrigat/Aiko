@@ -1,0 +1,165 @@
+@page "/daemon"
+@inject WorkspaceState State
+
+@* The daemon and the bridges to the agents: what is running, where it listens, and how each agent reaches
+   it. These are the installation's own facts - one daemon serves every project - which is why they live in
+   the Global group rather than under a project. *@
+<PageTitle>@Loc.Get("DaemonMcpBridges")</PageTitle>
+
+<FlareStack Gap="FlareSpacing.Medium">
+    <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
+        <FlareStack Gap="FlareSpacing.Medium">
+            <FlareStack Row="true" Align="FlareAlignItems.Start" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small">
+                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
+                    <span class="aiko-panel__icon aiko-panel__icon--secondary">
+                        <FlareIconView Value="@MaterialDesign3Icons.Regular.Hub" />
+                    </span>
+                    <FlareStack Gap="FlareSpacing.None">
+                        <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("DaemonRuntime")</FlareText>
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Get("DaemonRuntimeHint")
+                        </FlareText>
+                    </FlareStack>
+                </FlareStack>
+                <span class="aiko-tag aiko-tag--live">
+                    <span class="aiko-dot aiko-dot--pulse"></span>
+                    @(State.EventsConnected ? Loc.Get("SseLive") : Loc.Get("Online"))
+                </span>
+            </FlareStack>
+
+            <div class="aiko-tiles">
+                @if (State.System is { } system)
+                {
+                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                            @Loc.Get("Version")
+                        </FlareText>
+                        <span class="aiko-value">@($"v{system.Version}")</span>
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @system.Runtime
+                        </FlareText>
+                    </FlareStack>
+
+                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                            @Loc.Get("Address")
+                        </FlareText>
+                        <span class="aiko-value aiko-value--clip" title="@system.BaseUrl">@system.BaseUrl</span>
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @($"PID {system.ProcessId} · {LatencyCaption}")
+                        </FlareText>
+                    </FlareStack>
+                }
+
+                <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                        @Loc.Get("McpEndpoint")
+                    </FlareText>
+                    <span class="aiko-value aiko-value--clip" title="@McpEndpoint">@McpEndpoint</span>
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                        @Loc.Get("McpEndpointHint")
+                    </FlareText>
+                </FlareStack>
+            </div>
+        </FlareStack>
+    </FlarePaper>
+
+    @* The bridges: one card per adapter, saying whether the agent exists on this machine and whether Aiko
+       has written its configuration. The two are independent, which is the point of the card. *@
+    <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
+        <FlareStack Gap="FlareSpacing.Medium">
+            <FlareStack Row="true" Align="FlareAlignItems.Start" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small">
+                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
+                    <span class="aiko-panel__icon aiko-panel__icon--tertiary">
+                        <FlareIconView Value="@MaterialDesign3Icons.Regular.SmartToy" />
+                    </span>
+                    <FlareStack Gap="FlareSpacing.None">
+                        <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("AgentBridges")</FlareText>
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Get("AgentBridgesHint")
+                        </FlareText>
+                    </FlareStack>
+                </FlareStack>
+                <span class="aiko-tag">@DisplayFormat.Number(State.Agents.Count)</span>
+            </FlareStack>
+
+            @if (State.Agents.Count == 0)
+            {
+                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                    @Loc.Get("NoAgentsDiscovered")
+                </FlareText>
+            }
+            else
+            {
+                <div class="aiko-stages">
+                    @foreach (var agent in State.Agents)
+                    {
+                        var bridge = agent;
+                        <div class="aiko-stage">
+                            <span class="aiko-stage__open">
+                                <span class="aiko-stage__head">
+                                    <span class="aiko-stage__dot"></span>
+                                    <FlareText Element="span" Typo="TypographyScale.BodySmall" Weight="FontWeight.SemiBold">
+                                        @bridge.DisplayName
+                                    </FlareText>
+                                    <span class="aiko-tag @BridgeTagClass(bridge)">@BridgeCaption(bridge)</span>
+                                </span>
+                                <span class="aiko-stage__facts">
+                                    @if (bridge.Installations.FirstOrDefault() is { } installation)
+                                    {
+                                        <span class="aiko-tag aiko-tag--clip" title="@installation.ExecutablePath">
+                                            @installation.ExecutablePath
+                                        </span>
+                                        @if (!string.IsNullOrWhiteSpace(installation.Version))
+                                        {
+                                            <span class="aiko-tag aiko-tag--quiet">@installation.Version</span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="aiko-tag aiko-tag--quiet">@Loc.Get("BridgeNotInstalled")</span>
+                                    }
+                                    @if (bridge.UserScope is { ExpectedFiles: > 0 } scope)
+                                    {
+                                        <span class="aiko-tag aiko-tag--quiet">
+                                            @Loc.Format("BridgeFiles", scope.ConfiguredFiles, scope.ExpectedFiles)
+                                        </span>
+                                    }
+                                </span>
+                            </span>
+                        </div>
+                    }
+                </div>
+            }
+        </FlareStack>
+    </FlarePaper>
+</FlareStack>
+
+@code {
+    /// <summary>The MCP endpoint an agent connects to: the daemon plus the open project, when one is open.</summary>
+    private string McpEndpoint => State.SelectedProjectId is { } projectId && State.HostCaption is { Length: > 0 } host
+        ? $"http://{host}/mcp/projects/{projectId}"
+        : Loc.Get("SelectProjectForLocalSettings");
+
+    /// <summary>The measured round-trip to the daemon, or a dash before it has answered once.</summary>
+    private string LatencyCaption => State.DaemonLatencyMs is { } milliseconds
+        ? $"{milliseconds}ms"
+        : "—";
+
+    /// <summary>Whether an agent is reachable and configured, in the one word the card has room for.</summary>
+    private static string BridgeCaption(AgentAdapterOption agent) => agent.UserScope switch
+    {
+        { ExpectedFiles: 0 } => Loc.Get("BridgeNoUserScope"),
+        { } scope when scope.IsConfigured() => Loc.Get("BridgeConnected"),
+        { } scope when scope.IsPartial() => Loc.Get("BridgePartial"),
+        _ => agent.Installations.Count > 0 ? Loc.Get("BridgeInstalled") : Loc.Get("BridgeNotInstalled")
+    };
+
+    private static string BridgeTagClass(AgentAdapterOption agent) => agent.UserScope switch
+    {
+        { ExpectedFiles: 0 } => "aiko-tag--quiet",
+        { } scope when scope.IsConfigured() => "aiko-tag--live",
+        { } scope when scope.IsPartial() => "aiko-tag--accent",
+        _ => "aiko-tag--quiet"
+    };
+}

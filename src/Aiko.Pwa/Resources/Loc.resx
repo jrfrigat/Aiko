@@ -258,6 +258,24 @@
   <data name="AiInstructionHint" xml:space="preserve"><value>What the agent should look at to score this criterion</value></data>
   <data name="CharactersCount" xml:space="preserve"><value>Characters: {0}</value></data>
   <data name="TokensEstimate" xml:space="preserve"><value>Tokens ~{0}</value></data>
+  <data name="RevisionTag" xml:space="preserve"><value>rev {0}</value></data>
+  <data name="DaemonRuntime" xml:space="preserve"><value>Daemon runtime</value></data>
+  <data name="DaemonRuntimeHint" xml:space="preserve"><value>What is running and where it listens</value></data>
+  <data name="McpEndpoint" xml:space="preserve"><value>MCP endpoint</value></data>
+  <data name="McpEndpointHint" xml:space="preserve"><value>The address an agent connects to for the open project</value></data>
+  <data name="AgentBridges" xml:space="preserve"><value>Agent bridges</value></data>
+  <data name="AgentBridgesHint" xml:space="preserve"><value>Which agents this machine has, and whether Aiko has connected to them</value></data>
+  <data name="BridgeConnected" xml:space="preserve"><value>connected</value></data>
+  <data name="BridgePartial" xml:space="preserve"><value>partial</value></data>
+  <data name="BridgeInstalled" xml:space="preserve"><value>found, not connected</value></data>
+  <data name="BridgeNotInstalled" xml:space="preserve"><value>not found</value></data>
+  <data name="BridgeNoUserScope" xml:space="preserve"><value>no user-scope config</value></data>
+  <data name="BridgeFiles" xml:space="preserve"><value>{0}/{1} files</value></data>
+  <data name="ProjectStats" xml:space="preserve"><value>Project stats</value></data>
+  <data name="ProjectStatsHint" xml:space="preserve"><value>How this project's cards are spread across its pipelines, read from the board the daemon serves</value></data>
+  <data name="StageLoad" xml:space="preserve"><value>Cards per stage</value></data>
+  <data name="StageLoadHint" xml:space="preserve"><value>Each bar is a stage's share of the busiest stage of its own pipeline</value></data>
+  <data name="GitHubRepository" xml:space="preserve"><value>Aiko on GitHub</value></data>
   <data name="TemplateScope" xml:space="preserve"><value>Default template</value></data>
   <data name="TemplateSettingsHeading" xml:space="preserve"><value>Default template settings</value></data>
   <data name="TemplateSettingsHint" xml:space="preserve"><value>What a new project is created from: the execution defaults, the scoring model and the pipelines. Existing projects keep their own copy and are not affected.</value></data>

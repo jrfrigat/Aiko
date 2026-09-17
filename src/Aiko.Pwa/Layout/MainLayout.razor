@@ -151,6 +151,16 @@
                     </FlareButton>
                 }
 
+                @* The project itself, for the person who wants the source or the issue tracker: a local cockpit
+                   still points at where the product lives. *@
+                <FlareButton Variant="ButtonVariant.Text"
+                             Href="@GitHubUrl"
+                             Target="_blank"
+                             AriaLabel="@Loc.Get("GitHubRepository")"
+                             AdditionalAttributes="@GitHubAttributes">
+                    <ChildContent><FlareIconView Value="@MaterialDesign3Icons.Regular.Code" /></ChildContent>
+                </FlareButton>
+
                 @* The design's end slot holds an identity avatar; this is a local, single-user daemon with
                    no accounts to name, so the slot carries the one action the bar still needs - a reload
                    for when the live stream is down. *@
@@ -188,6 +198,11 @@
                         <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow aiko-rail__group">
                             @Loc.Format("CurrentProjectGroup", open.Name)
                         </FlareText>
+                        @* Stats first, then the board: the overview answers "how are we doing" before the
+                           board answers "what is next". *@
+                        <FlareNavLink Href="@SectionHref(open.Id, "stats")">
+                            <ChildContent>@Loc.Get("ProjectStats")</ChildContent>
+                        </FlareNavLink>
                         <FlareNavLink Href="@BoardHref(open.Id)">
                             <ChildContent>@Loc.Get("KanbanBoard")</ChildContent>
                             <BadgeContent>
@@ -211,6 +226,17 @@
                     <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow aiko-rail__group">
                         @Loc.Get("GlobalSystemGroup")
                     </FlareText>
+                    <FlareNavLink Href="/daemon">
+                        <ChildContent>@Loc.Get("DaemonMcpBridges")</ChildContent>
+                        <BadgeContent>
+                            @if (State.EventsConnected)
+                            {
+                                <span class="aiko-tag aiko-tag--live">
+                                    <span class="aiko-dot aiko-dot--pulse"></span>@Loc.Get("LiveTag")
+                                </span>
+                            }
+                        </BadgeContent>
+                    </FlareNavLink>
                     <FlareNavLink Href="@SettingsHref">
                         <ChildContent>@Loc.Get("Settings")</ChildContent>
                     </FlareNavLink>
@@ -282,6 +308,13 @@
     private bool _projectMenuOpen;
     private bool _searchOpen;
     private string? _query;
+
+    /// <summary>Where the product lives. One constant, so the bar and a future About screen agree.</summary>
+    private const string GitHubUrl = "https://github.com/jrfrigat/Aiko";
+
+    /// <summary>A native tooltip for the repository button: FlareButton takes no Tooltip parameter.</summary>
+    private static IReadOnlyDictionary<string, object> GitHubAttributes =>
+        new Dictionary<string, object>(StringComparer.Ordinal) { ["title"] = GitHubUrl };
 
     protected override async Task OnInitializedAsync()
     {
