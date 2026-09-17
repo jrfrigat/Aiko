@@ -252,4 +252,51 @@
   <data name="OpenProjectLabel" xml:space="preserve"><value>Open project</value></data>
   <data name="DaemonRoundTrip" xml:space="preserve"><value>round-trip</value></data>
   <data name="ProjectLabel" xml:space="preserve"><value>Project</value></data>
+  <data name="CoreFallbackConfig" xml:space="preserve"><value>Core fallback config</value></data>
+  <data name="ImmutableSync" xml:space="preserve"><value>Immutable sync</value></data>
+  <data name="GlobalSettingsHeading" xml:space="preserve"><value>Global system settings</value></data>
+  <data name="ResetToDefaults" xml:space="preserve"><value>Reset to system defaults</value></data>
+  <data name="DaemonHostSecurity" xml:space="preserve"><value>Daemon transport &amp; credentials</value></data>
+  <data name="DaemonHostSecurityHint" xml:space="preserve"><value>The isolated loopback transport of the core and its handshake keys</value></data>
+  <data name="LoopbackSafe" xml:space="preserve"><value>Loopback safe</value></data>
+  <data name="LocalPortLabel" xml:space="preserve"><value>Local port</value></data>
+  <data name="LocalPortHint" xml:space="preserve"><value>Chosen by the installer and saved next to the database</value></data>
+  <data name="ListenAddressLabel" xml:space="preserve"><value>Listen address</value></data>
+  <data name="ListenAddressHint" xml:space="preserve"><value>Loopback only - Aiko never binds an external interface</value></data>
+  <data name="PairingTokenLabel" xml:space="preserve"><value>Pairing token (MCP / CLI auth)</value></data>
+  <data name="PairingTokenHint" xml:space="preserve"><value>The daemon checks this token on every REST and MCP call; this browser holds it in an HttpOnly cookie</value></data>
+  <data name="CreatePairingLink" xml:space="preserve"><value>Create pairing link</value></data>
+  <data name="PairingLinkHint" xml:space="preserve"><value>One-time code: opening the link pairs a browser with this daemon</value></data>
+  <data name="PairingLinkFailed" xml:space="preserve"><value>Could not create a pairing link: {0}</value></data>
+  <data name="DefaultsForNewProjects" xml:space="preserve"><value>Defaults for new projects</value></data>
+  <data name="DefaultsForNewProjectsHint" xml:space="preserve"><value>Applied to a new project; a project that already has its own values keeps them</value></data>
+  <data name="SafeDefaultsTag" xml:space="preserve"><value>Safe defaults</value></data>
+  <data name="ConcurrencyHint" xml:space="preserve"><value>Maximum simultaneous agent runs</value></data>
+  <data name="ConcurrencyRecommended" xml:space="preserve"><value>Recommended: one agent per code base, so two runs cannot collide in one checkout</value></data>
+  <data name="ScopeOverlapHint" xml:space="preserve"><value>What the scheduler does when two runs declare the same files</value></data>
+  <data name="ScopeStrictTitle" xml:space="preserve"><value>Block the run</value></data>
+  <data name="ScopeStrictHint" xml:space="preserve"><value>The overlapping card waits until the conflicting run finishes</value></data>
+  <data name="ScopeAskTitle" xml:space="preserve"><value>Warn and ask</value></data>
+  <data name="ScopeAskHint" xml:space="preserve"><value>The run starts only after you approve it</value></data>
+  <data name="ScopeFreeTitle" xml:space="preserve"><value>Allow</value></data>
+  <data name="ScopeFreeHint" xml:space="preserve"><value>Both runs proceed; overlapping edits land in the same checkout</value></data>
+  <data name="CommitPolicyHint" xml:space="preserve"><value>Who commits in the shared checkout</value></data>
+  <data name="CommitDenyTitle" xml:space="preserve"><value>You commit</value></data>
+  <data name="CommitDenyHint" xml:space="preserve"><value>The agent never commits; it reports what it changed</value></data>
+  <data name="CommitAskTitle" xml:space="preserve"><value>Approve each commit</value></data>
+  <data name="CommitAskHint" xml:space="preserve"><value>The agent asks and waits; the execution pauses until you approve</value></data>
+  <data name="CommitAllowTitle" xml:space="preserve"><value>The agent commits</value></data>
+  <data name="CommitAllowHint" xml:space="preserve"><value>The agent commits and reports the SHA</value></data>
+  <data name="PriorityFormulaTitle" xml:space="preserve"><value>Priority formula</value></data>
+  <data name="OwnWeightLabel" xml:space="preserve"><value>Own value weight</value></data>
+  <data name="ParentWeightLabel" xml:space="preserve"><value>Parent value weight</value></data>
+  <data name="FormulaVersion" xml:space="preserve"><value>Formula version</value></data>
+  <data name="SelfDiagnostic" xml:space="preserve"><value>Installation &amp; diagnostics</value></data>
+  <data name="SelfDiagnosticHint" xml:space="preserve"><value>What aiko doctor checks: the data directory, the token, the endpoint and the agent configurations</value></data>
+  <data name="DoctorAllNominal" xml:space="preserve"><value>All checks passed</value></data>
+  <data name="DoctorHasProblems" xml:space="preserve"><value>Needs attention</value></data>
+  <data name="RunDoctor" xml:space="preserve"><value>Run doctor</value></data>
+  <data name="DoctorChecklist" xml:space="preserve"><value>Doctor telemetry</value></data>
+  <data name="PriorityFormulaExpression" xml:space="preserve"><value>effective = (own weight x own value + parent weight x highest parent value) / (own weight + parent weight)</value></data>
+  <data name="DiagnosticsFailed" xml:space="preserve"><value>Could not read diagnostics: {0}</value></data>
 </root>

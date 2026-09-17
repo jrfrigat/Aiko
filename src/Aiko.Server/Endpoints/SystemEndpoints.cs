@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Aiko.Application.Contracts;
 using Aiko.Server.Contracts;
 
 namespace Aiko.Server.Endpoints;
@@ -59,5 +60,11 @@ internal static class SystemEndpoints
             Environment.ProcessId,
             baseUri.ToString().TrimEnd('/'),
             DateTimeOffset.UtcNow)));
+        // The same inspection `aiko doctor` prints, so the settings screen can report the installation's
+        // own health without a terminal. Read-only by contract: IWorkshopDiagnostics changes nothing.
+        app.MapGet(
+            "/api/v1/system/diagnostics",
+            async (IWorkshopDiagnostics diagnostics, CancellationToken cancellationToken) =>
+                TypedResults.Ok(await diagnostics.InspectAsync(null, cancellationToken)));
     }
 }

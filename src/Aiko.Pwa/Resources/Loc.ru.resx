@@ -252,4 +252,51 @@
   <data name="OpenProjectLabel" xml:space="preserve"><value>Открыть проект</value></data>
   <data name="DaemonRoundTrip" xml:space="preserve"><value>отклик</value></data>
   <data name="ProjectLabel" xml:space="preserve"><value>Проект</value></data>
+  <data name="CoreFallbackConfig" xml:space="preserve"><value>Базовая конфигурация ядра</value></data>
+  <data name="ImmutableSync" xml:space="preserve"><value>Неизменяемый источник</value></data>
+  <data name="GlobalSettingsHeading" xml:space="preserve"><value>Глобальные настройки системы</value></data>
+  <data name="ResetToDefaults" xml:space="preserve"><value>Сбросить к системным значениям</value></data>
+  <data name="DaemonHostSecurity" xml:space="preserve"><value>Транспорт и учётные данные демона</value></data>
+  <data name="DaemonHostSecurityHint" xml:space="preserve"><value>Изолированный loopback-транспорт ядра и ключи рукопожатия</value></data>
+  <data name="LoopbackSafe" xml:space="preserve"><value>Только loopback</value></data>
+  <data name="LocalPortLabel" xml:space="preserve"><value>Локальный порт</value></data>
+  <data name="LocalPortHint" xml:space="preserve"><value>Выбирается установщиком и сохраняется рядом с базой</value></data>
+  <data name="ListenAddressLabel" xml:space="preserve"><value>Адрес прослушивания</value></data>
+  <data name="ListenAddressHint" xml:space="preserve"><value>Только loopback - Aiko не открывает внешний интерфейс</value></data>
+  <data name="PairingTokenLabel" xml:space="preserve"><value>Токен спаривания (MCP / CLI)</value></data>
+  <data name="PairingTokenHint" xml:space="preserve"><value>Демон проверяет токен на каждом вызове REST и MCP; этот браузер хранит его в HttpOnly-cookie</value></data>
+  <data name="CreatePairingLink" xml:space="preserve"><value>Создать ссылку сопряжения</value></data>
+  <data name="PairingLinkHint" xml:space="preserve"><value>Одноразовый код: открытие ссылки спаривает браузер с этим демоном</value></data>
+  <data name="PairingLinkFailed" xml:space="preserve"><value>Не удалось создать ссылку сопряжения: {0}</value></data>
+  <data name="DefaultsForNewProjects" xml:space="preserve"><value>Значения по умолчанию для новых проектов</value></data>
+  <data name="DefaultsForNewProjectsHint" xml:space="preserve"><value>Применяются к новому проекту; проект со своими значениями сохраняет их</value></data>
+  <data name="SafeDefaultsTag" xml:space="preserve"><value>Безопасные значения</value></data>
+  <data name="ConcurrencyHint" xml:space="preserve"><value>Максимум одновременных запусков агентов</value></data>
+  <data name="ConcurrencyRecommended" xml:space="preserve"><value>Рекомендуется: один агент на кодовую базу, чтобы запуски не сталкивались в одном checkout</value></data>
+  <data name="ScopeOverlapHint" xml:space="preserve"><value>Что делает планировщик, когда два запуска объявляют одни файлы</value></data>
+  <data name="ScopeStrictTitle" xml:space="preserve"><value>Блокировать запуск</value></data>
+  <data name="ScopeStrictHint" xml:space="preserve"><value>Пересекающаяся карточка ждёт завершения конфликтующего запуска</value></data>
+  <data name="ScopeAskTitle" xml:space="preserve"><value>Предупредить и спросить</value></data>
+  <data name="ScopeAskHint" xml:space="preserve"><value>Запуск начинается только после вашего подтверждения</value></data>
+  <data name="ScopeFreeTitle" xml:space="preserve"><value>Разрешить</value></data>
+  <data name="ScopeFreeHint" xml:space="preserve"><value>Оба запуска идут; пересекающиеся правки попадают в один checkout</value></data>
+  <data name="CommitPolicyHint" xml:space="preserve"><value>Кто коммитит в общем checkout</value></data>
+  <data name="CommitDenyTitle" xml:space="preserve"><value>Коммитите вы</value></data>
+  <data name="CommitDenyHint" xml:space="preserve"><value>Агент не коммитит; он сообщает, что изменил</value></data>
+  <data name="CommitAskTitle" xml:space="preserve"><value>Подтверждать каждый коммит</value></data>
+  <data name="CommitAskHint" xml:space="preserve"><value>Агент спрашивает и ждёт; выполнение приостанавливается до подтверждения</value></data>
+  <data name="CommitAllowTitle" xml:space="preserve"><value>Коммитит агент</value></data>
+  <data name="CommitAllowHint" xml:space="preserve"><value>Агент коммитит и сообщает SHA</value></data>
+  <data name="PriorityFormulaTitle" xml:space="preserve"><value>Формула приоритета</value></data>
+  <data name="OwnWeightLabel" xml:space="preserve"><value>Вес собственной оценки</value></data>
+  <data name="ParentWeightLabel" xml:space="preserve"><value>Вес родительской оценки</value></data>
+  <data name="FormulaVersion" xml:space="preserve"><value>Версия формулы</value></data>
+  <data name="SelfDiagnostic" xml:space="preserve"><value>Установка и диагностика</value></data>
+  <data name="SelfDiagnosticHint" xml:space="preserve"><value>Что проверяет aiko doctor: каталог данных, токен, endpoint и конфигурации агентов</value></data>
+  <data name="DoctorAllNominal" xml:space="preserve"><value>Все проверки пройдены</value></data>
+  <data name="DoctorHasProblems" xml:space="preserve"><value>Требует внимания</value></data>
+  <data name="RunDoctor" xml:space="preserve"><value>Запустить Doctor</value></data>
+  <data name="DoctorChecklist" xml:space="preserve"><value>Телеметрия Doctor</value></data>
+  <data name="PriorityFormulaExpression" xml:space="preserve"><value>эффективный = (вес своей оценки x своя оценка + вес родительской x максимальная родительская) / (сумма весов)</value></data>
+  <data name="DiagnosticsFailed" xml:space="preserve"><value>Не удалось получить диагностику: {0}</value></data>
 </root>

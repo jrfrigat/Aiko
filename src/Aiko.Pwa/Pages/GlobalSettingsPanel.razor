@@ -1,0 +1,718 @@
+@inject HttpClient Http
+@inject WorkspaceState State
+
+@* Global settings, drawn as the v2 frame's four panels: the daemon's own transport and credentials,
+   the defaults a new project starts from, the priority formula, and the installation's own health.
+
+   Four of the mock's blocks are deliberately not drawn, because Aiko has no value behind them: the
+   branch-naming pattern, the T-shirt size coefficients, the PWA offline toggle and the "update
+   available" pill (that one needs an updater this product does not have yet). The mock's coefficient
+   table instead carries the real coefficients - the project's scoring criteria. Everything else
+   reports the daemon: the port it holds, the token it checks, the model it ranks the board with, and
+   the same findings `aiko doctor` prints. *@
+<FlareStack Gap="FlareSpacing.Medium">
+    <FlareStack Row="true" Align="FlareAlignItems.End" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Medium" Wrap="true">
+        <FlareStack Gap="FlareSpacing.XXSmall">
+            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
+                <span class="aiko-tag aiko-tag--accent">@Loc.Get("CoreFallbackConfig")</span>
+                <span class="aiko-tag aiko-tag--quiet">app-settings.json</span>
+                <span class="aiko-tag aiko-tag--live">
+                    <span class="aiko-dot"></span>@Loc.Get("ImmutableSync")
+                </span>
+            </FlareStack>
+            <FlareText Element="h1" Typo="TypographyScale.HeadlineMedium">@Loc.Get("GlobalSettingsHeading")</FlareText>
+            <FlareText Element="p" Typo="TypographyScale.BodyMedium" Color="FlareColor.OnSurfaceVariant">
+                @Loc.Get("GlobalHint")
+            </FlareText>
+        </FlareStack>
+        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+            <FlareButton Variant="ButtonVariant.Tonal"
+                         Size="ButtonSize.Sm"
+                         Disabled="@_saving"
+                         OnClick="ResetToDefaultsAsync">
+                <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.History" /></LeadingIcon>
+                <ChildContent>@Loc.Get("ResetToDefaults")</ChildContent>
+            </FlareButton>
+            <FlareButton Variant="ButtonVariant.Filled"
+                         Size="ButtonSize.Sm"
+                         Loading="@_saving"
+                         OnClick="SaveAsync">
+                <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.Check" /></LeadingIcon>
+                <ChildContent>@Loc.Get("SaveGlobalSettings")</ChildContent>
+            </FlareButton>
+        </FlareStack>
+    </FlareStack>
+
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <FlareAlert Severity="@(_hasError ? AlertSeverity.Error : AlertSeverity.Success)"
+                    Variant="AlertVariant.Outlined">@_message</FlareAlert>
+    }
+
+    <div class="aiko-settings">
+        <FlareStack Class="aiko-settings__main" Gap="FlareSpacing.Medium">
+            @* Panel 1: the loopback transport and the credential every REST and MCP call is checked against. *@
+            <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
+                <FlareStack Gap="FlareSpacing.Medium">
+                    <FlareStack Row="true" Align="FlareAlignItems.Start" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small">
+                        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
+                            <span class="aiko-panel__icon aiko-panel__icon--secondary">
+                                <FlareIconView Value="@MaterialDesign3Icons.Regular.Security" />
+                            </span>
+                            <FlareStack Gap="FlareSpacing.None">
+                                <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("DaemonHostSecurity")</FlareText>
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                    @Loc.Get("DaemonHostSecurityHint")
+                                </FlareText>
+                            </FlareStack>
+                        </FlareStack>
+                        <span class="aiko-tag aiko-tag--live">
+                            <span class="aiko-dot"></span>@Loc.Get("LoopbackSafe")
+                        </span>
+                    </FlareStack>
+
+                    <div class="aiko-tiles">
+                        <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                            <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween">
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                                    @Loc.Get("LocalPortLabel")
+                                </FlareText>
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                    @Loc.Get("LocalPortHint")
+                                </FlareText>
+                            </FlareStack>
+                            <span class="aiko-value">@LocalPort</span>
+                        </FlareStack>
+
+                        <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                            <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween">
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                                    @Loc.Get("ListenAddressLabel")
+                                </FlareText>
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                    @Loc.Get("ListenAddressHint")
+                                </FlareText>
+                            </FlareStack>
+                            <span class="aiko-value">127.0.0.1</span>
+                        </FlareStack>
+                    </div>
+
+                    @* The credential itself never reaches the browser: the screen issues a one-time pairing
+                       code instead, which is the same handshake `aiko pair` prints for another machine. *@
+                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.XSmall">
+                        <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small" Wrap="true">
+                            <FlareStack Gap="FlareSpacing.None">
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                                    @Loc.Get("PairingTokenLabel")
+                                </FlareText>
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                    @Loc.Get("PairingTokenHint")
+                                </FlareText>
+                            </FlareStack>
+                            <FlareButton Variant="ButtonVariant.Tonal"
+                                         Size="ButtonSize.Sm"
+                                         Loading="@_pairing"
+                                         OnClick="CreatePairingLinkAsync">
+                                <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.Key" /></LeadingIcon>
+                                <ChildContent>@Loc.Get("CreatePairingLink")</ChildContent>
+                            </FlareButton>
+                        </FlareStack>
+                        @if (_pairingUrl is { Length: > 0 })
+                        {
+                            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                                <span class="aiko-value aiko-value--clip" title="@_pairingUrl">@_pairingUrl</span>
+                                <FlareClipboard Text="@_pairingUrl" Variant="ButtonVariant.Text" />
+                            </FlareStack>
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                @Loc.Get("PairingLinkHint")
+                            </FlareText>
+                        }
+                    </FlareStack>
+                </FlareStack>
+            </FlarePaper>
+
+            @* Panel 2: what a new project starts from. The workspace mode is stated rather than offered:
+               Aiko implements the shared checkout only, and a control with one usable option is noise. *@
+            <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
+                <FlareStack Gap="FlareSpacing.Medium">
+                    <FlareStack Row="true" Align="FlareAlignItems.Start" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small">
+                        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
+                            <span class="aiko-panel__icon aiko-panel__icon--primary">
+                                <FlareIconView Value="@MaterialDesign3Icons.Regular.Tune" />
+                            </span>
+                            <FlareStack Gap="FlareSpacing.None">
+                                <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("DefaultsForNewProjects")</FlareText>
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                    @Loc.Get("DefaultsForNewProjectsHint")
+                                </FlareText>
+                            </FlareStack>
+                        </FlareStack>
+                        <span class="aiko-tag">@Loc.Get("SafeDefaultsTag")</span>
+                    </FlareStack>
+
+                    <div class="aiko-tiles">
+                        <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                                @Loc.Get("Workspace")
+                            </FlareText>
+                            <span class="aiko-value">@Loc.Get("WorkspaceOption")</span>
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                @Loc.Get("WorktreeOption")
+                            </FlareText>
+                        </FlareStack>
+
+                        <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                                @Loc.Get("MaxRunsLabel")
+                            </FlareText>
+                            <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Class="aiko-stepper">
+                                <FlareIconButton Variant="ButtonVariant.Text"
+                                                 Icon="@MaterialDesign3Icons.Regular.Remove"
+                                                 AriaLabel="@Loc.Get("MaxRunsLabel")"
+                                                 Disabled="@(_maxRuns <= 1)"
+                                                 OnClick="() => _maxRuns--" />
+                                <span class="aiko-value">@_maxRuns</span>
+                                <FlareIconButton Variant="ButtonVariant.Text"
+                                                 Icon="@MaterialDesign3Icons.Regular.Add"
+                                                 AriaLabel="@Loc.Get("MaxRunsLabel")"
+                                                 OnClick="() => _maxRuns++" />
+                            </FlareStack>
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                @Loc.Get("ConcurrencyRecommended")
+                            </FlareText>
+                        </FlareStack>
+                    </div>
+
+                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.XSmall">
+                        <FlareStack Gap="FlareSpacing.None">
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                                @Loc.Get("ScopeOverlap")
+                            </FlareText>
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                @Loc.Get("ScopeOverlapHint")
+                            </FlareText>
+                        </FlareStack>
+                        <div class="aiko-choices">
+                            @foreach (var option in ScopeOptions)
+                            {
+                                @Choice("scope", option, _scopePolicy, policy => _scopePolicy = policy)
+                            }
+                        </div>
+                    </FlareStack>
+
+                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.XSmall">
+                        <FlareStack Gap="FlareSpacing.None">
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                                @Loc.Get("CommitPolicy")
+                            </FlareText>
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                @Loc.Get("CommitPolicyHint")
+                            </FlareText>
+                        </FlareStack>
+                        <div class="aiko-choices">
+                            @foreach (var option in CommitOptions)
+                            {
+                                @Choice("commit", option, _commitPolicy, policy => _commitPolicy = policy)
+                            }
+                        </div>
+                    </FlareStack>
+                </FlareStack>
+            </FlarePaper>
+        </FlareStack>
+
+        <FlareStack Class="aiko-settings__side" Gap="FlareSpacing.Medium">
+            @* Panel 3: the model the board is actually ranked with, printed as the daemon computes it
+               (a weighted average of the card's own value and the highest parent value). *@
+            <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
+                <FlareStack Gap="FlareSpacing.Medium">
+                    <FlareStack Row="true" Align="FlareAlignItems.Start" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small">
+                        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
+                            <span class="aiko-panel__icon aiko-panel__icon--tertiary">
+                                <FlareIconView Value="@MaterialDesign3Icons.Regular.Calculate" />
+                            </span>
+                            <FlareStack Gap="FlareSpacing.None">
+                                <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("PriorityFormulaTitle")</FlareText>
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                    @Loc.Get("PriorityFormulaHint")
+                                </FlareText>
+                            </FlareStack>
+                        </FlareStack>
+                        <span class="aiko-tag aiko-tag--accent">@($"{Loc.Get("FormulaVersion")} {PriorityCalculator.CurrentFormulaVersion}")</span>
+                    </FlareStack>
+
+                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Get("PriorityFormula")
+                        </FlareText>
+                        <span class="aiko-value aiko-value--formula">@Loc.Get("PriorityFormulaExpression")</span>
+                    </FlareStack>
+
+                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.Small">
+                        <FlareSlider Label="@Loc.Get("OwnWeightLabel")"
+                                     Min="0"
+                                     Max="1"
+                                     Step="0.05"
+                                     Format="0.00"
+                                     Value="@_ownWeight"
+                                     ValueChanged="OnOwnWeightChanged" />
+                        <FlareSlider Label="@Loc.Get("ParentWeightLabel")"
+                                     Min="0"
+                                     Max="1"
+                                     Step="0.05"
+                                     Format="0.00"
+                                     Value="@_parentWeight"
+                                     ValueChanged="OnParentWeightChanged" />
+                    </FlareStack>
+
+                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.XSmall">
+                        <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small" Wrap="true">
+                            <FlareStack Gap="FlareSpacing.None">
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                                    @Loc.Get("Criteria")
+                                </FlareText>
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                    @Loc.Get("CriterionIdHelper")
+                                </FlareText>
+                            </FlareStack>
+                            <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm" OnClick="AddCriterion">
+                                <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.Add" /></LeadingIcon>
+                                <ChildContent>@Loc.Get("AddCriterion")</ChildContent>
+                            </FlareButton>
+                        </FlareStack>
+
+                        @if (_criteria.Count == 0)
+                        {
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                @Loc.Get("NoCriteria")
+                            </FlareText>
+                        }
+                        else
+                        {
+                            <table class="aiko-table">
+                                <thead>
+                                    <tr>
+                                        <th>@Loc.Get("Title")</th>
+                                        <th>@Loc.Get("CriterionDescription")</th>
+                                        <th class="aiko-table__num">@Loc.Get("CriterionWeight")</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var criterion in _criteria)
+                                    {
+                                        var draft = criterion;
+                                        <tr>
+                                            <td><span class="aiko-tag aiko-tag--quiet">@draft.Id</span></td>
+                                            <td>
+                                                <FlareTextField Size="FieldSize.Xs"
+                                                                AriaLabel="@Loc.Get("CriterionDescription")"
+                                                                Value="@draft.Title"
+                                                                ValueChanged="value => draft.Title = value" />
+                                            </td>
+                                            <td class="aiko-table__num">
+                                                <FlareNumericField TValue="decimal?"
+                                                                   Size="FieldSize.Xs"
+                                                                   AriaLabel="@Loc.Get("CriterionWeight")"
+                                                                   @bind-Value="draft.Weight" />
+                                            </td>
+                                            <td class="aiko-table__num">
+                                                <FlareIconButton Variant="ButtonVariant.Text"
+                                                                 Icon="@MaterialDesign3Icons.Regular.Delete"
+                                                                 AriaLabel="@Loc.Get("Remove")"
+                                                                 OnClick="() => _criteria.Remove(draft)" />
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                    </FlareStack>
+                </FlareStack>
+            </FlarePaper>
+
+            @* Panel 4: the installation's own health - the same findings `aiko doctor` prints, read
+               through /api/v1/system/diagnostics. There is no updater in Aiko yet, so the mock's
+               "update available" pill and its button are not drawn. *@
+            <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
+                <FlareStack Gap="FlareSpacing.Medium">
+                    <FlareStack Row="true" Align="FlareAlignItems.Start" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small">
+                        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
+                            <span class="aiko-panel__icon aiko-panel__icon--primary">
+                                <FlareIconView Value="@MaterialDesign3Icons.Regular.HealthAndSafety" />
+                            </span>
+                            <FlareStack Gap="FlareSpacing.None">
+                                <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("SelfDiagnostic")</FlareText>
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                    @Loc.Get("SelfDiagnosticHint")
+                                </FlareText>
+                            </FlareStack>
+                        </FlareStack>
+                        <FlareButton Variant="ButtonVariant.Text"
+                                     Size="ButtonSize.Sm"
+                                     Loading="@_diagnosing"
+                                     OnClick="RunDiagnosticsAsync">
+                            <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.Refresh" /></LeadingIcon>
+                            <ChildContent>@Loc.Get("RunDoctor")</ChildContent>
+                        </FlareButton>
+                    </FlareStack>
+
+                    <div class="aiko-tiles">
+                        @if (State.System is { } system)
+                        {
+                            <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                                    @Loc.Get("Version")
+                                </FlareText>
+                                <span class="aiko-value">@($"v{system.Version}")</span>
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                    @system.Runtime
+                                </FlareText>
+                            </FlareStack>
+
+                            <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                                    @Loc.Get("Address")
+                                </FlareText>
+                                <span class="aiko-value aiko-value--clip" title="@system.BaseUrl">@system.BaseUrl</span>
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                    @($"PID {system.ProcessId}")
+                                </FlareText>
+                            </FlareStack>
+                        }
+                    </div>
+
+                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                        <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small">
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                                @Loc.Get("DoctorChecklist")
+                            </FlareText>
+                            @if (_diagnostics is { } report)
+                            {
+                                <span class="aiko-tag @(report.HasProblems ? null : "aiko-tag--live")">
+                                    @(report.HasProblems ? Loc.Get("DoctorHasProblems") : Loc.Get("DoctorAllNominal"))
+                                </span>
+                            }
+                        </FlareStack>
+
+                        @if (_diagnostics is null)
+                        {
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                @Loc.Get("LoadingContext")
+                            </FlareText>
+                        }
+                        else if (_findings.Count == 0)
+                        {
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                @Loc.Get("DoctorAllNominal")
+                            </FlareText>
+                        }
+                        else
+                        {
+                            <FlareStack Gap="FlareSpacing.XXSmall">
+                                @foreach (var line in _findings)
+                                {
+                                    var finding = line;
+                                    <FlareStack Row="true" Align="FlareAlignItems.Start" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small" Class="aiko-check">
+                                        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                                            <FlareIconView Value="@SeverityIcon(finding.Severity)" Color="@SeverityColor(finding.Severity)" />
+                                            <FlareText Element="span" Typo="TypographyScale.LabelSmall">@finding.Summary</FlareText>
+                                        </FlareStack>
+                                        <span class="aiko-tag aiko-tag--quiet">@finding.Area</span>
+                                    </FlareStack>
+                                }
+                            </FlareStack>
+                        }
+                    </FlareStack>
+                </FlareStack>
+            </FlarePaper>
+        </FlareStack>
+    </div>
+</FlareStack>
+
+@code {
+    /// <summary>A policy option as the screen offers it: the enum name plus the two strings it shows.</summary>
+    private sealed record PolicyOption(string Value, string TitleKey, string HintKey);
+
+    private static readonly PolicyOption[] ScopeOptions =
+    [
+        new(nameof(ActionPolicy.Deny), "ScopeStrictTitle", "ScopeStrictHint"),
+        new(nameof(ActionPolicy.Ask), "ScopeAskTitle", "ScopeAskHint"),
+        new(nameof(ActionPolicy.Allow), "ScopeFreeTitle", "ScopeFreeHint"),
+    ];
+
+    private static readonly PolicyOption[] CommitOptions =
+    [
+        new(nameof(ActionPolicy.Deny), "CommitDenyTitle", "CommitDenyHint"),
+        new(nameof(ActionPolicy.Ask), "CommitAskTitle", "CommitAskHint"),
+        new(nameof(ActionPolicy.Allow), "CommitAllowTitle", "CommitAllowHint"),
+    ];
+
+    private AppSettingsView? _view;
+    private WorkspaceMode _workspaceMode = WorkspaceMode.Shared;
+    private int _maxRuns = 1;
+    private ActionPolicy _scopePolicy = ActionPolicy.Ask;
+    private ActionPolicy _commitPolicy = ActionPolicy.Deny;
+    private List<CriterionDraft> _criteria = [];
+    private double _ownWeight = 0.7d;
+    private double _parentWeight = 0.3d;
+    private WorkshopDiagnostics? _diagnostics;
+    private IReadOnlyList<DiagnosticFinding> _findings = [];
+    private string? _pairingUrl;
+    private string? _message;
+    private bool _hasError;
+    private bool _saving;
+    private bool _pairing;
+    private bool _diagnosing;
+
+    /// <summary>The port the daemon reports, taken from the endpoint it is actually listening on.</summary>
+    private string LocalPort => State.System is { BaseUrl: { Length: > 0 } baseUrl } &&
+        Uri.TryCreate(baseUrl, UriKind.Absolute, out var uri)
+            ? uri.Port.ToString()
+            : "-";
+
+    /// <summary>
+    /// The slider works in doubles and the model in decimals; the weight is rounded to two places,
+    /// which is the step the control offers.
+    /// </summary>
+    private decimal OwnWeight => (decimal)Math.Round(_ownWeight, 2);
+
+    private decimal ParentWeight => (decimal)Math.Round(_parentWeight, 2);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadAsync();
+        await RunDiagnosticsAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _view = await Http.GetFromJsonAsync<AppSettingsView>("api/v1/settings", PwaJson.Options);
+            ApplyView(_view);
+        }
+        catch (Exception exception)
+        {
+            _message = Loc.Format("LoadSettingsFailed", FailureText.Describe(exception));
+            _hasError = true;
+        }
+    }
+
+    private void ApplyView(AppSettingsView? view)
+    {
+        if (view is null)
+        {
+            return;
+        }
+
+        // A missing global section means the level inherits the safe defaults, and the effective view
+        // already carries them - so the form shows what the daemon would actually use.
+        var execution = view.Global?.Execution ?? view.EffectiveExecution;
+        _workspaceMode = execution.WorkspaceMode;
+        _maxRuns = execution.MaxConcurrentRuns;
+        _scopePolicy = execution.ScopeOverlapPolicy;
+        _commitPolicy = execution.SharedCheckoutCommitPolicy;
+
+        var priority = view.Global?.Priority ?? view.EffectivePriority;
+        _ownWeight = (double)priority.Weights.TaskWeight;
+        _parentWeight = (double)priority.Weights.ParentWeight;
+        _criteria = priority.Criteria.Select(CriterionDraft.From).ToList();
+    }
+
+    private void OnOwnWeightChanged(double value) => _ownWeight = value;
+
+    private void OnParentWeightChanged(double value) => _parentWeight = value;
+
+    private void AddCriterion() =>
+        _criteria.Add(new CriterionDraft { Id = NewCriterionId(_criteria) });
+
+    /// <summary>
+    /// Builds and saves the global document. Both sections travel together: the settings file is
+    /// replaced as a whole, so sending one section alone would drop the other.
+    /// </summary>
+    private async Task SaveAsync()
+    {
+        if (OwnWeight + ParentWeight == 0)
+        {
+            _message = Loc.Get("InvalidSettingValue");
+            _hasError = true;
+            return;
+        }
+
+        if (_criteria.Any(criterion => string.IsNullOrWhiteSpace(criterion.Title)))
+        {
+            _message = Loc.Get("CriterionTitleRequired");
+            _hasError = true;
+            return;
+        }
+
+        _saving = true;
+        _message = null;
+        _hasError = false;
+        try
+        {
+            var execution = new ExecutionSettings(_workspaceMode, _maxRuns, _scopePolicy, _commitPolicy);
+            var priority = new PrioritySettings(
+                new PriorityWeights(OwnWeight, ParentWeight),
+                _criteria.Select(criterion => new PriorityCriterion(
+                    criterion.Id,
+                    criterion.Title!.Trim(),
+                    criterion.Description ?? string.Empty,
+                    criterion.Weight ?? 0m)).ToArray());
+
+            using var response = await Http.PutAsJsonAsync(
+                "api/v1/settings",
+                new AppSettings(AppSettings.CurrentSchemaVersion, execution, priority),
+                PwaJson.Options);
+            if (!response.IsSuccessStatusCode)
+            {
+                _message = Loc.Format("SaveSettingsFailed", await response.Content.ReadAsStringAsync());
+                _hasError = true;
+                return;
+            }
+
+            _message = Loc.Get("SettingsSaved");
+            await State.ReloadAsync();
+            await LoadAsync();
+        }
+        catch (Exception exception)
+        {
+            _message = Loc.Format("SaveSettingsFailed", FailureText.Describe(exception));
+            _hasError = true;
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    /// <summary>Writes the safe defaults back: the same document, with the built-in values.</summary>
+    private async Task ResetToDefaultsAsync()
+    {
+        ApplyView(new AppSettingsView(
+            null,
+            null,
+            ExecutionSettings.SafeDefault,
+            AppSettingsSources.Default,
+            PrioritySettings.SafeDefault,
+            AppSettingsSources.Default));
+        await SaveAsync();
+    }
+
+    /// <summary>
+    /// Issues a one-time pairing code and shows the self-pairing URL for it. The token itself stays in
+    /// the daemon's data directory; this is the handshake that admits a browser, not the secret.
+    /// </summary>
+    private async Task CreatePairingLinkAsync()
+    {
+        _pairing = true;
+        try
+        {
+            using var response = await Http.PostAsync("api/v1/auth/pair-request", content: null);
+            response.EnsureSuccessStatusCode();
+            var issued = await response.Content.ReadFromJsonAsync<PairCodeResponse>(PwaJson.Options);
+            _pairingUrl = issued is null
+                ? null
+                : $"{Http.BaseAddress}#pair={Uri.EscapeDataString(issued.Code)}";
+        }
+        catch (Exception exception)
+        {
+            _message = Loc.Format("PairingLinkFailed", FailureText.Describe(exception));
+            _hasError = true;
+        }
+        finally
+        {
+            _pairing = false;
+        }
+    }
+
+    private async Task RunDiagnosticsAsync()
+    {
+        _diagnosing = true;
+        try
+        {
+            _diagnostics = await Http.GetFromJsonAsync<WorkshopDiagnostics>(
+                "api/v1/system/diagnostics", PwaJson.Options);
+            _findings = _diagnostics?.Findings ?? [];
+        }
+        catch (Exception exception)
+        {
+            _diagnostics = new WorkshopDiagnostics([]);
+            _findings = [];
+            _message = Loc.Format("DiagnosticsFailed", FailureText.Describe(exception));
+            _hasError = true;
+        }
+        finally
+        {
+            _diagnosing = false;
+        }
+    }
+
+    private static FlareSvgIcon SeverityIcon(DiagnosticSeverity severity) => severity switch
+    {
+        DiagnosticSeverity.Ok => MaterialDesign3Icons.Regular.CheckCircle,
+        DiagnosticSeverity.Warning => MaterialDesign3Icons.Regular.Warning,
+        _ => MaterialDesign3Icons.Regular.Error,
+    };
+
+    private static FlareColor SeverityColor(DiagnosticSeverity severity) => severity switch
+    {
+        DiagnosticSeverity.Ok => FlareColor.Tertiary,
+        DiagnosticSeverity.Warning => FlareColor.Warning,
+        _ => FlareColor.Error,
+    };
+
+    /// <summary>
+    /// One choice as a card: the design's policy picker is a grid of options carrying a title, a hint
+    /// and the radio, which FlareRadio (a control plus a label on one line) does not draw. Filed as
+    /// selectable-option-card.md; this markup goes away when Flare grows the component.
+    /// </summary>
+    private RenderFragment Choice(
+        string group,
+        PolicyOption option,
+        ActionPolicy selected,
+        Action<ActionPolicy> select) => @<label class="aiko-choice @(selected == Enum.Parse<ActionPolicy>(option.Value) ? "aiko-choice--on" : null)">
+        <span class="aiko-choice__head">
+            <FlareText Element="span" Typo="TypographyScale.BodySmall" Weight="FontWeight.SemiBold">
+                @Loc.Get(option.TitleKey)
+            </FlareText>
+            <input type="radio"
+                   name="@($"aiko-{group}")"
+                   value="@option.Value"
+                   checked="@(selected == Enum.Parse<ActionPolicy>(option.Value))"
+                   @onchange="() => select(Enum.Parse<ActionPolicy>(option.Value))" />
+        </span>
+        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant">
+            @Loc.Get(option.HintKey)
+        </FlareText>
+    </label>;
+
+    private static string NewCriterionId(IReadOnlyList<CriterionDraft> existing)
+    {
+        var id = "criterion";
+        var suffix = existing.Count + 1;
+        while (existing.Any(item => StringComparer.Ordinal.Equals(item.Id, id)))
+        {
+            id = $"criterion-{suffix++}";
+        }
+
+        return id;
+    }
+
+    /// <summary>A criterion as the form holds it, before it becomes a <see cref="PriorityCriterion"/>.</summary>
+    private sealed class CriterionDraft
+    {
+        public required string Id { get; init; }
+        public string? Title { get; set; }
+        public string? Description { get; set; }
+        public decimal? Weight { get; set; } = 1m;
+
+        public static CriterionDraft From(PriorityCriterion criterion) => new()
+        {
+            Id = criterion.Id,
+            Title = criterion.Title,
+            Description = criterion.Description,
+            Weight = criterion.Weight,
+        };
+    }
+}

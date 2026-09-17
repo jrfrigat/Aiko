@@ -406,3 +406,167 @@
 .aiko-heat__cell--l4 {
     background: var(--flare-color-primary);
 }
+
+/* ---------------------------------------------------------------------------------------------
+ * The settings screen: the v2 frame's twelve-column page, its panels and the tiles inside them.
+ * Only layout and paint: every colour and radius is a theme token.
+ * ------------------------------------------------------------------------------------------- */
+
+.aiko-settings {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 0.75rem;
+    align-items: start;
+}
+
+.aiko-settings__main {
+    grid-column: span 7;
+    min-width: 0;
+}
+
+.aiko-settings__side {
+    grid-column: span 5;
+    min-width: 0;
+}
+
+/* A panel: one plane below the canvas, as the design draws it. FlarePaper paints the
+   surface-container role, and the design's panel is the recessed one. */
+.aiko-panel {
+    border-radius: var(--flare-shape-large);
+    background: var(--flare-color-surface-container-low);
+}
+
+/* The squared icon tile that opens a panel. */
+.aiko-panel__icon {
+    display: grid;
+    place-items: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    flex: 0 0 auto;
+    border-radius: var(--flare-shape-large);
+    background: var(--flare-color-surface-container);
+}
+
+.aiko-panel__icon--secondary {
+    color: var(--flare-color-secondary);
+}
+
+.aiko-panel__icon--primary {
+    color: var(--flare-color-primary);
+}
+
+.aiko-panel__icon--tertiary {
+    color: var(--flare-color-tertiary);
+}
+
+/* The recessed tiles a panel is built from. */
+.aiko-tiles {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.aiko-tile {
+    padding: 0.75rem;
+    border-radius: var(--flare-shape-large);
+    background: var(--flare-color-background);
+}
+
+/* A value read from the daemon: monospaced, like every other identifier in the cockpit. */
+.aiko-value {
+    font-family: var(--aiko-font-mono, monospace);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.125rem;
+    color: var(--flare-color-secondary);
+}
+
+.aiko-value--clip {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.aiko-value--formula {
+    font-weight: 500;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+/* The concurrency stepper sits on its own strip. */
+.aiko-stepper {
+    padding: 0.125rem 0.25rem;
+    border-radius: var(--flare-shape-large);
+    background: var(--flare-color-surface-container);
+}
+
+/* The policy picker: a card per option, with the radio in its head. */
+.aiko-choices {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.375rem;
+}
+
+.aiko-choice {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.375rem;
+    border: var(--flare-border-width, 1px) solid transparent;
+    border-radius: var(--flare-shape-large);
+    background: var(--flare-color-surface-container);
+    cursor: pointer;
+}
+
+.aiko-choice:hover {
+    background: var(--flare-color-surface-container-high);
+}
+
+/* The chosen option is the one the accent outlines. */
+.aiko-choice--on {
+    border-color: var(--flare-color-primary);
+}
+
+.aiko-choice__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.aiko-choice__head input {
+    accent-color: var(--flare-color-primary);
+}
+
+/* The criteria table of the formula panel. */
+.aiko-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.aiko-table th {
+    padding: 0.25rem 0.375rem;
+    text-align: start;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--flare-color-on-surface-variant2);
+}
+
+.aiko-table td {
+    padding: 0.125rem 0.375rem;
+    vertical-align: middle;
+}
+
+.aiko-table__num {
+    width: 1%;
+    text-align: end;
+    white-space: nowrap;
+}
+
+/* One finding of the doctor checklist. */
+.aiko-check {
+    padding: 0.25rem 0.375rem;
+    border-radius: var(--flare-shape-extra-small);
+    background: var(--flare-color-surface-container);
+}

@@ -65,3 +65,9 @@ internal sealed record SystemInfo(
     int ProcessId,
     string BaseUrl,
     DateTimeOffset Time);
+
+/// <summary>
+/// A freshly issued one-time pairing code. The browser builds the self-pairing URL from it
+/// (<c>#pair=&lt;code&gt;</c>), which is what <c>aiko pair</c> prints for a second machine.
+/// </summary>
+internal sealed record PairCodeResponse(string Code);
