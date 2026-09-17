@@ -85,15 +85,18 @@ its default agent, the artifacts it must produce (each with a policy for when it
 that verify its outcome. The workflow itself has a name, a description, an icon and a colour - that is how
 the type is drawn in the pickers and on the board.
 
-Edit them in **Project settings**: the panel lists the stages of the pipeline and lets you reorder them, and
-clicking a stage opens it in a drawer where its column icon and colour are chosen too. The icon comes from a
+Edit them in **Project settings**: the card types are the tabs at the top of the panel, and everything below
+belongs to the tab that is open. The type's own fields - its id, its name, what it is for, and its icon and
+colour - are written by **Save type**; clicking a stage opens it in a drawer where its column icon and colour
+are chosen too. The icon comes from a
 set of ten and the colour from Flare's palette; "Default" means there is no icon, and the column title keeps
 the theme's own colour. The two are connected - the colour tints the icon and the title - so it is visible
-together with a chosen icon. The "New
-card type" panel adds another workflow: give it an id (for example `epic`), a name and a description ("a
+together with a chosen icon. **+** opens a draft type as a tab of its own, which the same fields then fill
+in: give it an id (for example `epic`), a name and a description ("a
 global card type that groups several stories") and pick an icon and a colour - the type appears at once in
 the create-card picker and as a board section, and its pipeline starts with `backlog`, "In progress" and
-"Done".
+"Done". The id may be changed while the type has no cards; once cards exist it is fixed, because their folder
+and their board section are named after it.
 
 A project owns its own copy of the pipelines, so a change there never reaches another project - or a project
 created later from the template. Removing a stage that still contains cards is rejected, removing a card type
