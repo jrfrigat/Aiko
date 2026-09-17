@@ -1,142 +1,174 @@
 @inject HttpClient Http
 
-<aside class="card-inspector settings-inspector" aria-label="Настройки">
-    <header class="inspector-header">
-        <div>
-            <span>@(Project?.Name ?? Loc.Get("ProjectSettings")) - @Loc.Get("SettingsTitle").ToLowerInvariant()</span>
-            <strong>@Loc.Get("SettingsTitle")</strong>
-        </div>
-        <FlareButton Variant="ButtonVariant.Text"
-                     Size="ButtonSize.Sm"
-                     AriaLabel="Закрыть настройки"
-                     OnClick="() => OnClose.InvokeAsync()">Закрыть</FlareButton>
-    </header>
+@* Settings body. Every fact list is a FlareList (label left, value right), the source tag is a
+   FlareChip, the policies are FlareSelects and the run limits are FlareNumericFields, so the panel has
+   no raw inputs and no hand-written field CSS. *@
+<FlarePaper Elevation="0" Padding="FlareSpacing.Medium" Square="true">
+    <FlareStack Gap="FlareSpacing.Medium">
+        <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XSmall">
+            <FlareStack Gap="FlareSpacing.None">
+                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
+                    @(Project?.Name ?? Loc.Get("GlobalSettings"))
+                </FlareText>
+                <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("SettingsTitle")</FlareText>
+            </FlareStack>
+            <FlareIconButton Variant="ButtonVariant.Text"
+                             Icon="@FlareIcons.Close"
+                             AriaLabel="@Loc.Get("Close")"
+                             OnClick="() => OnClose.InvokeAsync()" />
+        </FlareStack>
 
-    @if (!string.IsNullOrWhiteSpace(_message))
-    {
-        <div class="inspector-message @(_hasError ? "is-error" : null)" role="status">@_message</div>
-    }
+        @if (!string.IsNullOrWhiteSpace(_message))
+        {
+            <FlareAlert Severity="@(_hasError ? AlertSeverity.Error : AlertSeverity.Success)"
+                        Variant="AlertVariant.Outlined">@_message</FlareAlert>
+        }
 
-    @if (_loading)
-    {
-        <p class="inspector-empty">@Loc.Get("LoadingSettings")</p>
-    }
-    else
-    {
-        <section class="inspector-section">
-            <h3>@Loc.Get("Daemon")</h3>
-            @if (_system is not null)
-            {
-                <ul class="settings-facts">
-                    <li><span>@Loc.Get("Version")</span><strong>@_system.Version</strong></li>
-                    <li><span>@Loc.Get("Address")</span><strong>@_system.BaseUrl</strong></li>
-                    <li><span>PID</span><strong>@_system.ProcessId</strong></li>
-                </ul>
-            }
-        </section>
+        @if (_loading)
+        {
+            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                <FlareProgressCircular Size="TrackSize.Xs" />
+                <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant">
+                    @Loc.Get("LoadingSettings")
+                </FlareText>
+            </FlareStack>
+        }
+        else
+        {
+            <FlareStack Gap="FlareSpacing.Small">
+                <FlareText Element="h3" Typo="TypographyScale.TitleSmall">@Loc.Get("Daemon")</FlareText>
+                @if (_system is not null)
+                {
+                    <FlareList TItem="string" Dense="true">
+                        <FlareListItem Primary="@Loc.Get("Version")">
+                            <Trailing><FlareText Element="span" Typo="TypographyScale.LabelMedium">@_system.Version</FlareText></Trailing>
+                        </FlareListItem>
+                        <FlareListItem Primary="@Loc.Get("Address")">
+                            <Trailing><FlareText Element="span" Typo="TypographyScale.LabelMedium">@_system.BaseUrl</FlareText></Trailing>
+                        </FlareListItem>
+                        <FlareListItem Primary="PID">
+                            <Trailing><FlareText Element="span" Typo="TypographyScale.LabelMedium">@_system.ProcessId</FlareText></Trailing>
+                        </FlareListItem>
+                    </FlareList>
+                }
+            </FlareStack>
 
-        <section class="inspector-section">
-            <h3>@Loc.Get("EffectiveConfig")</h3>
-            <ul class="settings-facts">
-                <li>
-                    <span>@Loc.Get("Source")</span>
-                    <strong class="settings-source">@SourceCaption(_view?.ExecutionSource)</strong>
-                </li>
-                <li><span>@Loc.Get("Workspace")</span><strong>@(_view?.EffectiveExecution.WorkspaceMode.ToString() ?? "-")</strong></li>
-                <li><span>@Loc.Get("MaxRuns")</span><strong>@(_view?.EffectiveExecution.MaxConcurrentRuns.ToString() ?? "-")</strong></li>
-                <li><span>@Loc.Get("ScopeOverlap")</span><strong>@(_view?.EffectiveExecution.ScopeOverlapPolicy.ToString() ?? "-")</strong></li>
-                <li><span>@Loc.Get("CommitPolicy")</span><strong>@(_view?.EffectiveExecution.SharedCheckoutCommitPolicy.ToString() ?? "-")</strong></li>
-            </ul>
-            @if (IsParallelShared(_view?.EffectiveExecution))
-            {
-                <div class="notice notice-warning" role="alert">
-                    <strong>@Loc.Get("ParallelSharedOn")</strong>
-                    <span>Агенты используют общую рабочую копию и Git index. Изменения разных карточек
-                    и ваши локальные изменения могут попасть в один commit, конфликтовать или быть
-                    ошибочно отнесены к другому запуску.</span>
-                </div>
-            }
-        </section>
+            <FlareDivider />
 
-        <section class="inspector-section editor-fields">
-            @if (Project is not null)
-            {
-                <h3>@Loc.Get("ProjectSettings") <span class="settings-scope">.aiko/settings.json</span></h3>
-                <label class="settings-field">
-                    <span>@Loc.Get("Workspace")</span>
-                    <select value="@_projectWorkspace" @onchange="SetProjectWorkspace">
-                        <option value="Shared">@Loc.Get("WorkspaceOption")</option>
-                        <option value="Worktree" disabled>@Loc.Get("WorktreeOption")</option>
-                    </select>
-                </label>
-                <FlareTextField Label="@Loc.Get("MaxRunsLabel")"
-                                Type="text"
-                                InputMode="numeric"
-                                ErrorText="@_projectMaxError"
-                                @bind-Value="_projectMaxRuns" />
-                <label class="settings-field">
-                    <span>@Loc.Get("ScopePolicy")</span>
-                    <select value="@_projectScopePolicy" @onchange="SetProjectScopePolicy">
+            <FlareStack Gap="FlareSpacing.Small">
+                <FlareText Element="h3" Typo="TypographyScale.TitleSmall">@Loc.Get("EffectiveConfig")</FlareText>
+                <FlareList TItem="string" Dense="true">
+                    <FlareListItem Primary="@Loc.Get("Source")">
+                        <Trailing><FlareChip Variant="ChipVariant.Filled" Label="@SourceCaption(_view?.ExecutionSource)" /></Trailing>
+                    </FlareListItem>
+                    <FlareListItem Primary="@Loc.Get("Workspace")">
+                        <Trailing><FlareText Element="span" Typo="TypographyScale.LabelMedium">@Text(_view?.EffectiveExecution.WorkspaceMode)</FlareText></Trailing>
+                    </FlareListItem>
+                    <FlareListItem Primary="@Loc.Get("MaxRuns")">
+                        <Trailing><FlareText Element="span" Typo="TypographyScale.LabelMedium">@Text(_view?.EffectiveExecution.MaxConcurrentRuns)</FlareText></Trailing>
+                    </FlareListItem>
+                    <FlareListItem Primary="@Loc.Get("ScopeOverlap")">
+                        <Trailing><FlareText Element="span" Typo="TypographyScale.LabelMedium">@Text(_view?.EffectiveExecution.ScopeOverlapPolicy)</FlareText></Trailing>
+                    </FlareListItem>
+                    <FlareListItem Primary="@Loc.Get("CommitPolicy")">
+                        <Trailing><FlareText Element="span" Typo="TypographyScale.LabelMedium">@Text(_view?.EffectiveExecution.SharedCheckoutCommitPolicy)</FlareText></Trailing>
+                    </FlareListItem>
+                </FlareList>
+                @if (IsParallelShared(_view?.EffectiveExecution))
+                {
+                    <FlareAlert Severity="AlertSeverity.Warning"
+                                Variant="AlertVariant.Outlined"
+                                Title="@Loc.Get("ParallelSharedOn")">
+                        Агенты используют общую рабочую копию и Git index. Изменения разных карточек
+                        и ваши локальные изменения могут попасть в один commit, конфликтовать или быть
+                        ошибочно отнесены к другому запуску.
+                    </FlareAlert>
+                }
+            </FlareStack>
+
+            <FlareDivider />
+
+            <FlareStack Gap="FlareSpacing.Small">
+                @if (Project is not null)
+                {
+                    <FlareText Element="h3" Typo="TypographyScale.TitleSmall">
+                        @Loc.Get("ProjectSettings")
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant">.aiko/settings.json</FlareText>
+                    </FlareText>
+                    <FlareSelect TValue="string"
+                                 Label="@Loc.Get("Workspace")"
+                                 Items="@WorkspaceOptions"
+                                 ItemLabel="@WorkspaceLabel"
+                                 ItemDisabled="@WorkspaceDisabled"
+                                 @bind-Value="_projectWorkspace" />
+                    <FlareNumericField TValue="int?"
+                                       Label="@Loc.Get("MaxRunsLabel")"
+                                       Min="1"
+                                       ErrorText="@_projectMaxError"
+                                       @bind-Value="_projectMaxRuns" />
+                    <FlareSelect TValue="string" Label="@Loc.Get("ScopePolicy")" @bind-Value="_projectScopePolicy">
                         <option value="Ask">@Loc.Get("PolicyAsk")</option>
                         <option value="Allow">@Loc.Get("PolicyAllow")</option>
                         <option value="Deny">@Loc.Get("PolicyDeny")</option>
-                    </select>
-                </label>
-                <label class="settings-field">
-                    <span>@Loc.Get("CommitPolicy")</span>
-                    <select value="@_projectCommitPolicy" @onchange="SetProjectCommitPolicy">
+                    </FlareSelect>
+                    <FlareSelect TValue="string" Label="@Loc.Get("CommitPolicy")" @bind-Value="_projectCommitPolicy">
                         <option value="Deny">@Loc.Get("PolicyDeny")</option>
                         <option value="Ask">@Loc.Get("PolicyAsk")</option>
                         <option value="Allow">@Loc.Get("PolicyAllow")</option>
-                    </select>
-                </label>
+                    </FlareSelect>
+                    <FlareButton FullWidth="true"
+                                 Loading="@_savingProject"
+                                 OnClick="SaveProjectAsync">@Loc.Get("SaveProjectSettings")</FlareButton>
+                }
+                else
+                {
+                    <FlareText Element="h3" Typo="TypographyScale.TitleSmall">@Loc.Get("ProjectSettings")</FlareText>
+                    <FlareAlert Severity="AlertSeverity.Info"
+                                Variant="AlertVariant.Text">@Loc.Get("SelectProjectForLocalSettings")</FlareAlert>
+                }
+            </FlareStack>
+
+            <FlareDivider />
+
+            <FlareStack Gap="FlareSpacing.Small">
+                <FlareText Element="h3" Typo="TypographyScale.TitleSmall">
+                    @Loc.Get("GlobalSettings")
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant">@Loc.Get("SourceGlobal")</FlareText>
+                </FlareText>
+                <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant">
+                    @Loc.Get("GlobalHint")
+                </FlareText>
+                <FlareNumericField TValue="int?"
+                                   Label="@Loc.Get("MaxRunsLabel")"
+                                   Min="1"
+                                   ErrorText="@_globalMaxError"
+                                   @bind-Value="_globalMaxRuns" />
+                <FlareSelect TValue="string" Label="@Loc.Get("ScopePolicy")" @bind-Value="_globalScopePolicy">
+                    <option value="Ask">@Loc.Get("PolicyAsk")</option>
+                    <option value="Allow">@Loc.Get("PolicyAllow")</option>
+                    <option value="Deny">@Loc.Get("PolicyDeny")</option>
+                </FlareSelect>
+                <FlareSelect TValue="string" Label="@Loc.Get("CommitPolicy")" @bind-Value="_globalCommitPolicy">
+                    <option value="Deny">@Loc.Get("PolicyDeny")</option>
+                    <option value="Ask">@Loc.Get("PolicyAsk")</option>
+                    <option value="Allow">@Loc.Get("PolicyAllow")</option>
+                </FlareSelect>
                 <FlareButton FullWidth="true"
-                             Loading="@_savingProject"
-                             OnClick="SaveProjectAsync">@Loc.Get("SaveProjectSettings")</FlareButton>
-            }
-            else
-            {
-                <h3>@Loc.Get("ProjectSettings")</h3>
-                <p class="inspector-empty">@Loc.Get("SelectProjectForLocalSettings")</p>
-            }
-        </section>
-
-        <section class="inspector-section editor-fields">
-            <h3>@Loc.Get("GlobalSettings") <span class="settings-scope">@Loc.Get("SourceGlobal")</span></h3>
-            <p class="inspector-empty">@Loc.Get("GlobalHint")</p>
-            <FlareTextField Label="@Loc.Get("MaxRunsLabel")"
-                            Type="text"
-                            InputMode="numeric"
-                            ErrorText="@_globalMaxError"
-                            @bind-Value="_globalMaxRuns" />
-            <label class="settings-field">
-                <span>@Loc.Get("ScopePolicy")</span>
-                <select value="@_globalScopePolicy" @onchange="SetGlobalScopePolicy">
-                    <option value="Ask">@Loc.Get("PolicyAsk")</option>
-                    <option value="Allow">@Loc.Get("PolicyAllow")</option>
-                    <option value="Deny">@Loc.Get("PolicyDeny")</option>
-                </select>
-            </label>
-            <label class="settings-field">
-                <span>@Loc.Get("CommitPolicy")</span>
-                <select value="@_globalCommitPolicy" @onchange="SetGlobalCommitPolicy">
-                    <option value="Deny">@Loc.Get("PolicyDeny")</option>
-                    <option value="Ask">@Loc.Get("PolicyAsk")</option>
-                    <option value="Allow">@Loc.Get("PolicyAllow")</option>
-                </select>
-            </label>
-            <FlareButton FullWidth="true"
-                         Variant="ButtonVariant.Outlined"
-                         Loading="@_savingGlobal"
-                         OnClick="SaveGlobalAsync">@Loc.Get("SaveGlobalSettings")</FlareButton>
-        </section>
-    }
-</aside>
+                             Variant="ButtonVariant.Outlined"
+                             Loading="@_savingGlobal"
+                             OnClick="SaveGlobalAsync">@Loc.Get("SaveGlobalSettings")</FlareButton>
+            </FlareStack>
+        }
+    </FlareStack>
+</FlarePaper>
 
 @code {
     [Parameter] public RegisteredProject? Project { get; set; }
     [Parameter] public EventCallback OnSaved { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
+
+    /// <summary>Shared worktree is the only selectable workspace; Worktree stays visible but disabled.</summary>
+    private static readonly IReadOnlyList<string> WorkspaceOptions = ["Shared", "Worktree"];
 
     private AppSettingsView? _view;
     private SystemInfo? _system;
@@ -146,16 +178,24 @@
     private bool _savingProject;
     private bool _savingGlobal;
 
-    private string _projectWorkspace = "Shared";
-    private string _projectMaxRuns = "1";
+    private string? _projectWorkspace = "Shared";
+    private int? _projectMaxRuns = 1;
     private string? _projectMaxError;
-    private string _projectScopePolicy = "Ask";
-    private string _projectCommitPolicy = "Deny";
+    private string? _projectScopePolicy = "Ask";
+    private string? _projectCommitPolicy = "Deny";
 
-    private string _globalMaxRuns = "1";
+    private int? _globalMaxRuns = 1;
     private string? _globalMaxError;
-    private string _globalScopePolicy = "Ask";
-    private string _globalCommitPolicy = "Deny";
+    private string? _globalScopePolicy = "Ask";
+    private string? _globalCommitPolicy = "Deny";
+
+    private static string WorkspaceLabel(string? value) =>
+        value == "Worktree" ? Loc.Get("WorktreeOption") : Loc.Get("WorkspaceOption");
+
+    private static bool WorkspaceDisabled(string? value) => value == "Worktree";
+
+    /// <summary>Renders a nullable value with an explicit placeholder - Nullable&lt;T&gt;.ToString() returns "" for null.</summary>
+    private static string Text<T>(T? value) where T : struct => value?.ToString() ?? "-";
 
     protected override async Task OnParametersSetAsync()
     {
@@ -192,14 +232,12 @@
         _view = projectView;
         var projectExecution = projectView?.Project?.Execution ?? projectView?.EffectiveExecution;
         _projectWorkspace = projectExecution?.WorkspaceMode.ToString() ?? "Shared";
-        _projectMaxRuns = (projectExecution?.MaxConcurrentRuns ?? 1)
-            .ToString(System.Globalization.CultureInfo.InvariantCulture);
+        _projectMaxRuns = projectExecution?.MaxConcurrentRuns ?? 1;
         _projectScopePolicy = projectExecution?.ScopeOverlapPolicy.ToString() ?? "Ask";
         _projectCommitPolicy = projectExecution?.SharedCheckoutCommitPolicy.ToString() ?? "Deny";
 
         var globalExecution = globalView?.Global?.Execution ?? globalView?.EffectiveExecution;
-        _globalMaxRuns = (globalExecution?.MaxConcurrentRuns ?? 1)
-            .ToString(System.Globalization.CultureInfo.InvariantCulture);
+        _globalMaxRuns = globalExecution?.MaxConcurrentRuns ?? 1;
         _globalScopePolicy = globalExecution?.ScopeOverlapPolicy.ToString() ?? "Ask";
         _globalCommitPolicy = globalExecution?.SharedCheckoutCommitPolicy.ToString() ?? "Deny";
     }
@@ -227,7 +265,7 @@
     {
         if (!TryBuildExecution(
                 _globalMaxRuns,
-                "Shared",
+                nameof(WorkspaceMode.Shared),
                 _globalScopePolicy,
                 _globalCommitPolicy,
                 out var execution,
@@ -286,37 +324,16 @@
         }
     }
 
-    private void SetProjectWorkspace(ChangeEventArgs args) =>
-        _projectWorkspace = args.Value?.ToString() ?? "Shared";
-
-    private void SetProjectScopePolicy(ChangeEventArgs args) =>
-        _projectScopePolicy = args.Value?.ToString() ?? "Ask";
-
-    private void SetProjectCommitPolicy(ChangeEventArgs args) =>
-        _projectCommitPolicy = args.Value?.ToString() ?? "Deny";
-
-    private void SetGlobalScopePolicy(ChangeEventArgs args) =>
-        _globalScopePolicy = args.Value?.ToString() ?? "Ask";
-
-    private void SetGlobalCommitPolicy(ChangeEventArgs args) =>
-        _globalCommitPolicy = args.Value?.ToString() ?? "Deny";
-
     private static bool TryBuildExecution(
-        string maxRunsText,
-        string workspace,
-        string scopePolicy,
-        string commitPolicy,
+        int? maxRuns,
+        string? workspace,
+        string? scopePolicy,
+        string? commitPolicy,
         out ExecutionSettings execution,
         out string? error)
     {
         error = null;
-        var normalized = (maxRunsText ?? string.Empty).Trim();
-        if (!int.TryParse(
-                normalized,
-                System.Globalization.NumberStyles.Integer,
-                System.Globalization.CultureInfo.InvariantCulture,
-                out var maxRuns) ||
-            maxRuns < 1)
+        if (maxRuns is not { } runs || runs < 1)
         {
             execution = ExecutionSettings.SafeDefault;
             error = Loc.Get("InvalidMaxRuns");
@@ -326,10 +343,10 @@
         try
         {
             execution = new ExecutionSettings(
-                Enum.Parse<WorkspaceMode>(workspace),
-                maxRuns,
-                Enum.Parse<ActionPolicy>(scopePolicy),
-                Enum.Parse<ActionPolicy>(commitPolicy));
+                Enum.Parse<WorkspaceMode>(workspace ?? nameof(WorkspaceMode.Shared)),
+                runs,
+                Enum.Parse<ActionPolicy>(scopePolicy ?? nameof(ActionPolicy.Ask)),
+                Enum.Parse<ActionPolicy>(commitPolicy ?? nameof(ActionPolicy.Deny)));
             return true;
         }
         catch (ArgumentException)

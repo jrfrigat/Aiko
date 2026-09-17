@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      A theme package depends on the design language it speaks, not on the component library. The
+      baseline values come from Material 3 Expressive (every token group is populated), while every
+      group the Aiko cockpit actually speaks is restated in StitchFlowTheme - so only the components
+      Aiko never renders keep Material's numbers, and none of Material's CSS is loaded (the theme is
+      its own style family with its own StyleAssets).
+    -->
+    <PackageReference Include="Flare.Theme.MaterialDesign3Expressive" Version="0.37.0" />
+  </ItemGroup>
+
+</Project>

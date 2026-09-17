@@ -1,6 +1,6 @@
 using System.Globalization;
+using Aiko.Theme.StitchFlow;
 using Flare.Extensions;
-using Flare.Theme.MaterialDesign3Expressive;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Aiko.Pwa;
@@ -15,7 +15,9 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddFlare(options =>
 {
-    options.DefaultTheme = new MaterialDesign3ExpressiveTheme();
+    // The app's own theme package: the cockpit design language with the Aiko palette. No built-in
+    // theme is registered, so nothing can fall back to Material's look at runtime.
+    options.DefaultTheme = StitchFlowTheme.Create();
     options.RegisterAllBuiltInThemes = false;
 });
 builder.Services.AddScoped(_ => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });

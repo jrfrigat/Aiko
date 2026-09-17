@@ -14,7 +14,6 @@
          endpoint manifest. Keep only their build/static assets here; executable references live
          exclusively in Aiko.Pwa. -->
     <PackageReference Include="Flare.Blazor" Version="0.37.0" ExcludeAssets="compile;runtime" />
-    <PackageReference Include="Flare.Components.Kanban" Version="0.37.0" ExcludeAssets="compile;runtime" />
-    <PackageReference Include="Flare.Theme.MaterialDesign3Expressive" Version="0.37.0" ExcludeAssets="compile;runtime" />
+    <ProjectReference Include="../Aiko.Theme.StitchFlow/Aiko.Theme.StitchFlow.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 </Project>

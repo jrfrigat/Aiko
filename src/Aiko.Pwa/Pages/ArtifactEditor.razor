@@ -1,9 +1,14 @@
 @inject HttpClient Http
 
-<section class="inspector-section artifact-editor">
-    <h3>@Loc.Get("DocumentsTitle") <span>@AvailablePaths.Count</span></h3>
+@* Markdown artifact workbench. The document switcher is a FlareTabs bar (one tab per artifact, the tab
+   badge carries the artifact state) and the editor is a FlareCodeBlock, so both the tab strip and the
+   code surface are Flare's rather than hand-built lists and textareas. *@
+<FlareStack Gap="FlareSpacing.Small">
+    <FlareText Element="h3" Typo="TypographyScale.TitleSmall">
+        @Loc.Get("DocumentsTitle") (@AvailablePaths.Count)
+    </FlareText>
 
-    <div class="artifact-create">
+    <FlareStack Row="true" Align="FlareAlignItems.End" Gap="FlareSpacing.XSmall" StretchFirst="true">
         <FlareTextField Label="@Loc.Get("NewMarkdown")"
                         Placeholder="architecture.md"
                         Size="FieldSize.Sm"
@@ -11,57 +16,57 @@
         <FlareButton Variant="ButtonVariant.Outlined"
                      Size="ButtonSize.Sm"
                      OnClick="AddDocument">@Loc.Get("Add")</FlareButton>
-    </div>
+    </FlareStack>
 
     @if (AvailablePaths.Count == 0)
     {
-        <p class="inspector-empty">@Loc.Get("AddDocHint")</p>
+        <FlareAlert Severity="AlertSeverity.Info" Variant="AlertVariant.Text">@Loc.Get("AddDocHint")</FlareAlert>
     }
     else
     {
-        <div class="artifact-tabs" role="list" aria-label="Документы карточки">
+        @* Lazy: only the active document's panel is mounted, so the single _content field always belongs
+           to the tab the user is looking at. *@
+        <FlareTabs Lazy="true"
+                   ActiveIndex="_activeIndex"
+                   ActiveIndexChanged="OnActiveIndexChangedAsync">
             @foreach (var path in AvailablePaths)
             {
-                <button type="button"
-                        class="artifact-tab @(path == _selectedPath ? "is-active" : null)"
-                        @onclick="() => SelectDocumentAsync(path)">
-                    <strong>@path</strong>
-                    <span>@ArtifactState(path)</span>
-                </button>
+                <FlareTab Label="@path" Badge="@ArtifactState(path)" Tooltip="@path">
+                    <FlareStack Gap="FlareSpacing.Small">
+                        <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XSmall">
+                            <FlareStack Gap="FlareSpacing.None">
+                                <FlareText Element="span" Mono="true" Typo="TypographyScale.LabelMedium">@path</FlareText>
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant">
+                                    @(_version is null ? Loc.Get("NewFile") : Loc.Get("SavedFile"))
+                                </FlareText>
+                            </FlareStack>
+                            <FlareIconButton Variant="ButtonVariant.Text"
+                                             Icon="@FlareIcons.Refresh"
+                                             AriaLabel="@Loc.Get("Refresh")"
+                                             Loading="@_loading"
+                                             OnClick="ReloadDocumentAsync" />
+                        </FlareStack>
+                        <FlareCodeBlock Language="markdown"
+                                        ReadOnly="false"
+                                        Wrap="true"
+                                        Rows="16"
+                                        MaxLength="2000000"
+                                        @bind-Value="_content" />
+                        <FlareButton FullWidth="true"
+                                     Loading="@_saving"
+                                     OnClick="SaveDocumentAsync">@Loc.Get("SaveDocument")</FlareButton>
+                    </FlareStack>
+                </FlareTab>
             }
-        </div>
+        </FlareTabs>
     }
 
     @if (!string.IsNullOrWhiteSpace(_message))
     {
-        <div class="artifact-message @(_hasError ? "is-error" : null)" role="status">@_message</div>
+        <FlareAlert Severity="@(_hasError ? AlertSeverity.Error : AlertSeverity.Info)"
+                    Variant="AlertVariant.Outlined">@_message</FlareAlert>
     }
-
-    @if (_selectedPath is not null)
-    {
-        <div class="artifact-workbench">
-            <header>
-                <div>
-                    <strong>@_selectedPath</strong>
-                    <span>@(_version is null ? Loc.Get("NewFile") : Loc.Get("SavedFile"))</span>
-                </div>
-                <FlareButton Variant="ButtonVariant.Text"
-                             Size="ButtonSize.Sm"
-                             Loading="@_loading"
-                             OnClick="ReloadDocumentAsync">@Loc.Get("Refresh")</FlareButton>
-            </header>
-            <FlareCodeBlock Language="markdown"
-                            ReadOnly="false"
-                            Wrap="true"
-                            Rows="16"
-                            MaxLength="2000000"
-                            @bind-Value="_content" />
-            <FlareButton FullWidth="true"
-                         Loading="@_saving"
-                         OnClick="SaveDocumentAsync">@Loc.Get("SaveDocument")</FlareButton>
-        </div>
-    }
-</section>
+</FlareStack>
 
 @code {
     [Parameter, EditorRequired] public Card Card { get; set; } = null!;
@@ -79,6 +84,7 @@
     private bool _hasError;
     private bool _loading;
     private bool _saving;
+    private int _activeIndex;
 
     private IReadOnlyList<string> AvailablePaths => _savedArtifacts.Select(item => item.Path)
         .Concat(RequiredArtifactPaths)
@@ -107,6 +113,7 @@
         _addedPaths.Clear();
         await LoadListAsync();
         _selectedPath = AvailablePaths.FirstOrDefault();
+        SyncActiveIndex();
         if (_selectedPath is not null)
         {
             await LoadDocumentAsync(_selectedPath);
@@ -129,6 +136,16 @@
         finally
         {
             _loading = false;
+        }
+    }
+
+    private async Task OnActiveIndexChangedAsync(int index)
+    {
+        _activeIndex = index;
+        var paths = AvailablePaths;
+        if (index >= 0 && index < paths.Count)
+        {
+            await SelectDocumentAsync(paths[index]);
         }
     }
 
@@ -191,6 +208,7 @@
         _addedPaths.Add(path);
         _newPath = null;
         _selectedPath = path;
+        SyncActiveIndex();
         _content = $"# {Path.GetFileNameWithoutExtension(path)}{Environment.NewLine}{Environment.NewLine}";
         _version = null;
         _message = Loc.Get("NewDocPrepared");
@@ -241,6 +259,23 @@
         {
             _saving = false;
         }
+    }
+
+    /// <summary>Aligns the tab bar with the document the code selected programmatically.</summary>
+    private void SyncActiveIndex()
+    {
+        var index = -1;
+        var paths = AvailablePaths;
+        for (var i = 0; i < paths.Count; i++)
+        {
+            if (StringComparer.OrdinalIgnoreCase.Equals(paths[i], _selectedPath))
+            {
+                index = i;
+                break;
+            }
+        }
+
+        _activeIndex = index < 0 ? 0 : index;
     }
 
     private string ArtifactState(string path)

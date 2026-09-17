@@ -1,8 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <!-- The specs exercise the client's JSON contract (PwaJsonContext), so the PWA assembly is
-         referenced normally; the Blazor static web assets are irrelevant to a plain SDK project. -->
+    <!-- The specs exercise the client's JSON contract (PwaJsonContext) and the theme package, so both
+         are referenced normally; the Blazor static web assets are irrelevant to a plain SDK project. -->
     <ProjectReference Include="../../src/Aiko.Pwa/Aiko.Pwa.csproj" />
+    <ProjectReference Include="../../src/Aiko.Theme.StitchFlow/Aiko.Theme.StitchFlow.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />

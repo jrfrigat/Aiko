@@ -1,4 +1,7 @@
-<FlareThemeProvider RespectSystemColorScheme="false">
+@* Stylesheets="Manual": the app writes the theme's <link> tags into its own head, so the browser
+   fetches the cockpit's fonts and rules with the first wave of the page instead of after .NET has
+   started. The provider still verifies them and adds any that are missing. *@
+<FlareThemeProvider RespectSystemColorScheme="false" Stylesheets="ThemeStylesheets.Manual">
     <Router AppAssembly="@typeof(App).Assembly">
         <Found Context="routeData">
             <RouteView RouteData="routeData" />

@@ -4,6 +4,7 @@
   <Project Path="src/Aiko.Infrastructure/Aiko.Infrastructure.csproj" />
   <Project Path="src/Aiko.Server/Aiko.Server.csproj" />
   <Project Path="src/Aiko.Pwa/Aiko.Pwa.csproj" />
+  <Project Path="src/Aiko.Theme.StitchFlow/Aiko.Theme.StitchFlow.csproj" />
   <Project Path="src/Aiko.StdioProxy/Aiko.StdioProxy.csproj" />
   <Project Path="src/Aiko.Cli/Aiko.Cli.csproj" />
   <Project Path="tests/Aiko.Domain.Specs/Aiko.Domain.Specs.csproj" />

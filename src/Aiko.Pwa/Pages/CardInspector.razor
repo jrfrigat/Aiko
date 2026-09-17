@@ -1,113 +1,145 @@
 @inject HttpClient Http
 
-<aside class="card-inspector" aria-label="Карточка @Card.Reference.CardId">
-    <header class="inspector-header">
-        <div>
-            <span>@Card.Kind - rev @Card.Revision</span>
-            <strong>@Card.Reference.CardId</strong>
-        </div>
-        <FlareButton Variant="ButtonVariant.Text"
-                     Size="ButtonSize.Sm"
-                     AriaLabel="Закрыть карточку"
-                     OnClick="() => OnClose.InvokeAsync()">Закрыть</FlareButton>
-    </header>
+@* The inspector body. The surrounding FlareLayoutDrawer (owned by Home) supplies the panel surface and
+   the scroll, so this component is a plain FlareStack of sections separated by FlareDividers. *@
+<FlarePaper Elevation="0" Padding="FlareSpacing.Medium" Square="true">
+    <FlareStack Gap="FlareSpacing.Medium">
+        <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XSmall">
+            <FlareStack Gap="FlareSpacing.None">
+                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
+                    @Card.Kind · rev @Card.Revision
+                </FlareText>
+                <FlareText Element="h2" Mono="true" Typo="TypographyScale.TitleMedium">@Card.Reference.CardId</FlareText>
+            </FlareStack>
+            <FlareIconButton Variant="ButtonVariant.Text"
+                             Icon="@FlareIcons.Close"
+                             AriaLabel="@Loc.Get("Close")"
+                             OnClick="() => OnClose.InvokeAsync()" />
+        </FlareStack>
 
-    @if (!string.IsNullOrWhiteSpace(_message))
-    {
-        <div class="inspector-message @(_hasError ? "is-error" : null)" role="status">@_message</div>
-    }
-
-    <section class="inspector-section editor-fields">
-        <h3>@Loc.Get("Parameters")</h3>
-        <FlareTextField Label="@Loc.Get("Title")"
-                        Required="true"
-                        Immediate="true"
-                        @bind-Value="_title" />
-        <FlareTextField Label="@Loc.Get("PriorityLabel")"
-                        Type="text"
-                        InputMode="decimal"
-                        ErrorText="@_priorityError"
-                        @bind-Value="_priority" />
-        <FlareTextArea Label="Declared scope"
-                       HelperText="@Loc.Get("ScopeHelper")"
-                       Rows="4"
-                       @bind-Value="_scope" />
-        <FlareButton FullWidth="true"
-                     Loading="@_saving"
-                     OnClick="SaveAsync">@Loc.Get("SaveCard")</FlareButton>
-    </section>
-
-    <section class="inspector-section">
-        <h3>@Loc.Get("FilesTitle")</h3>
-        <FileGroup Title="Declared" Files="Card.DeclaredScopeFiles" />
-        <FileGroup Title="Actual" Files="Card.ActualChangedFiles" />
-        <FileGroup Title="@Loc.Get("OutOfScope")"
-                   Files="@BoardSection.FindOutOfScopeFiles(Card)"
-                   Warning="true" />
-    </section>
-
-    <section class="inspector-section">
-        <h3>@Loc.Get("Relations") <span>@Relations.Count</span></h3>
-        @if (Relations.Count == 0)
+        @if (!string.IsNullOrWhiteSpace(_message))
         {
-            <p class="inspector-empty">@Loc.Get("NoRelations")</p>
+            <FlareAlert Severity="@(_hasError ? AlertSeverity.Error : AlertSeverity.Success)"
+                        Variant="AlertVariant.Outlined">@_message</FlareAlert>
         }
-        else
-        {
-            <ul class="relation-list">
-                @foreach (var relation in Relations)
-                {
-                    <li>
-                        <span>@relation.Type</span>
-                        <strong>@OtherCardId(relation)</strong>
-                    </li>
-                }
-            </ul>
-        }
-    </section>
 
-    <ArtifactEditor Card="Card" Board="Board" Executions="_executions" />
+        <FlareDivider />
 
-    <section class="inspector-section">
-        <h3>Executions <span>@_executions.Count</span></h3>
-        @if (_loadingExecutions)
-        {
-            <p class="inspector-empty">@Loc.Get("LoadingHistory")</p>
-        }
-        else if (_executions.Count == 0)
-        {
-            <p class="inspector-empty">@Loc.Get("NoExecutions")</p>
-        }
-        else
-        {
-            <div class="execution-list">
-                @foreach (var execution in _executions.OrderByDescending(item => item.UpdatedAt))
-                {
-                    <article>
-                        <header>
-                            <strong>@execution.StageId</strong>
-                            <span class="execution-state">@execution.State</span>
-                        </header>
-                        @if (!string.IsNullOrWhiteSpace(execution.ProgressSummary))
-                        {
-                            <p>@execution.ProgressSummary</p>
-                        }
-                        <ul>
-                            @foreach (var attempt in execution.Attempts)
-                            {
-                                <li><strong>@attempt.AgentAdapterId</strong> - @attempt.State</li>
-                            }
-                        </ul>
-                        @if (execution.Artifacts.Count > 0)
-                        {
-                            <small>@Loc.Format("ArtifactsLabel", string.Join(", ", execution.Artifacts))</small>
-                        }
-                    </article>
-                }
-            </div>
-        }
-    </section>
-</aside>
+        <FlareStack Gap="FlareSpacing.Small">
+            <FlareText Element="h3" Typo="TypographyScale.TitleSmall">@Loc.Get("Parameters")</FlareText>
+            <FlareTextField Label="@Loc.Get("Title")"
+                            Required="true"
+                            Immediate="true"
+                            @bind-Value="_title" />
+            <FlareNumericField TValue="decimal?"
+                               Label="@Loc.Get("PriorityLabel")"
+                               ErrorText="@_priorityError"
+                               @bind-Value="_priority" />
+            <FlareTextArea Label="Declared scope"
+                           HelperText="@Loc.Get("ScopeHelper")"
+                           Rows="4"
+                           @bind-Value="_scope" />
+            <FlareButton FullWidth="true"
+                         Loading="@_saving"
+                         OnClick="SaveAsync">@Loc.Get("SaveCard")</FlareButton>
+        </FlareStack>
+
+        <FlareDivider />
+
+        <FlareStack Gap="FlareSpacing.Small">
+            <FlareText Element="h3" Typo="TypographyScale.TitleSmall">@Loc.Get("FilesTitle")</FlareText>
+            <FileGroup Title="Declared" Files="Card.DeclaredScopeFiles" />
+            <FileGroup Title="Actual" Files="Card.ActualChangedFiles" />
+            <FileGroup Title="@Loc.Get("OutOfScope")"
+                       Files="@BoardSection.FindOutOfScopeFiles(Card)"
+                       Warning="true" />
+        </FlareStack>
+
+        <FlareDivider />
+
+        <FlareStack Gap="FlareSpacing.Small">
+            <FlareText Element="h3" Typo="TypographyScale.TitleSmall">
+                @Loc.Get("Relations") (@Relations.Count)
+            </FlareText>
+            @if (Relations.Count == 0)
+            {
+                <FlareEmptyState Compact="true" Title="@Loc.Get("NoRelations")">
+                    <IconContent><FlareIconView Size="2rem" Value="@FlareIcons.Link" /></IconContent>
+                </FlareEmptyState>
+            }
+            else
+            {
+                <FlareList TItem="CardRelation" Dense="true">
+                    @foreach (var relation in Relations)
+                    {
+                        <FlareListItem Secondary="@relation.Type.ToString()">
+                            <FlareText Element="span" Mono="true" Typo="TypographyScale.LabelMedium">@OtherCardId(relation)</FlareText>
+                        </FlareListItem>
+                    }
+                </FlareList>
+            }
+        </FlareStack>
+
+        <FlareDivider />
+
+        <ArtifactEditor Card="Card" Board="Board" Executions="_executions" />
+
+        <FlareDivider />
+
+        <FlareStack Gap="FlareSpacing.Small">
+            <FlareText Element="h3" Typo="TypographyScale.TitleSmall">Executions (@_executions.Count)</FlareText>
+            @if (_loadingExecutions)
+            {
+                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                    <FlareProgressCircular Size="TrackSize.Xs" />
+                    <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant">
+                        @Loc.Get("LoadingHistory")
+                    </FlareText>
+                </FlareStack>
+            }
+            else if (_executions.Count == 0)
+            {
+                <FlareEmptyState Compact="true" Title="@Loc.Get("NoExecutions")">
+                    <IconContent><FlareIconView Size="2rem" Value="@FlareIcons.PlayArrow" /></IconContent>
+                </FlareEmptyState>
+            }
+            else
+            {
+                <FlareTimeline>
+                    @foreach (var execution in _executions.OrderByDescending(item => item.UpdatedAt))
+                    {
+                        <FlareTimelineItem Title="@execution.StageId" Color="@StateColor(execution.State)">
+                            <FlareStack Gap="FlareSpacing.XXSmall">
+                                <FlareBadge Standalone="true"
+                                            Text="@execution.State.ToString()"
+                                            Color="@StateColor(execution.State)" />
+                                @if (!string.IsNullOrWhiteSpace(execution.ProgressSummary))
+                                {
+                                    <FlareText Element="span" Typo="TypographyScale.BodySmall">@execution.ProgressSummary</FlareText>
+                                }
+                                @foreach (var attempt in execution.Attempts)
+                                {
+                                    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
+                                        <FlareText Element="span" Typo="TypographyScale.LabelSmall">@attempt.AgentAdapterId</FlareText>
+                                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant">
+                                            @attempt.State
+                                        </FlareText>
+                                    </FlareStack>
+                                }
+                                @if (execution.Artifacts.Count > 0)
+                                {
+                                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant">
+                                        @Loc.Format("ArtifactsLabel", string.Join(", ", execution.Artifacts))
+                                    </FlareText>
+                                }
+                            </FlareStack>
+                        </FlareTimelineItem>
+                    }
+                </FlareTimeline>
+            }
+        </FlareStack>
+    </FlareStack>
+</FlarePaper>
 
 @code {
     [Parameter, EditorRequired] public Card Card { get; set; } = null!;
@@ -119,7 +151,7 @@
     private string? _loadedCardKey;
     private int _lastRefreshTick;
     private string? _title;
-    private string? _priority;
+    private decimal? _priority;
     private string? _scope;
     private string? _priorityError;
     private string? _message;
@@ -141,8 +173,7 @@
         {
             _loadedCardKey = key;
             _title = Card.Title;
-            _priority = Card.OwnPriority.ToString(
-                System.Globalization.CultureInfo.InvariantCulture);
+            _priority = Card.OwnPriority;
             _scope = string.Join(Environment.NewLine, Card.DeclaredScopeFiles);
             _message = null;
             _hasError = false;
@@ -180,13 +211,7 @@
     {
         _priorityError = null;
         _message = null;
-        var normalizedPriority = (_priority ?? string.Empty).Replace(',', '.');
-        if (!decimal.TryParse(
-                normalizedPriority,
-                System.Globalization.NumberStyles.Number,
-                System.Globalization.CultureInfo.InvariantCulture,
-                out var priority) ||
-            priority < 0)
+        if (_priority is not { } priority || priority < 0)
         {
             _priorityError = Loc.Get("InvalidPriority");
             return;
@@ -233,6 +258,15 @@
             _saving = false;
         }
     }
+
+    private static FlareColor StateColor(StageExecutionState state) => state switch
+    {
+        StageExecutionState.Completed => FlareColor.Success,
+        StageExecutionState.NeedsAttention => FlareColor.Warning,
+        StageExecutionState.Cancelled => FlareColor.OnSurfaceVariant,
+        StageExecutionState.Running => FlareColor.Primary,
+        _ => FlareColor.Info
+    };
 
     private string OtherCardId(CardRelation relation) =>
         relation.Source.CardId == Card.Reference.CardId

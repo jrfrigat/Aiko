@@ -34,6 +34,18 @@
   <data name="Scope" xml:space="preserve"><value>Scope (через запятую)</value></data>
   <data name="Choose" xml:space="preserve"><value>Выберите...</value></data>
   <data name="GitPolicyLocalOnly" xml:space="preserve"><value>local-only (по умолчанию)</value></data>
+  <data name="GitPolicy" xml:space="preserve"><value>Git-политика</value></data>
+  <data name="CardKind" xml:space="preserve"><value>Тип карточки</value></data>
+  <data name="CardFilter" xml:space="preserve"><value>Фильтр</value></data>
+  <data name="WorkspaceFlow" xml:space="preserve"><value>Рабочее пространство</value></data>
+  <data name="KanbanBoard" xml:space="preserve"><value>Kanban-доска</value></data>
+  <data name="Projects" xml:space="preserve"><value>Проекты</value></data>
+  <data name="OrchestrationLoad" xml:space="preserve"><value>ЗАГРУЗКА ОРКЕСТРАЦИИ</value></data>
+  <data name="ContextEngine" xml:space="preserve"><value>Поток событий</value></data>
+  <data name="NativeAot" xml:space="preserve"><value>NATIVE AOT</value></data>
+  <data name="Host" xml:space="preserve"><value>host</value></data>
+  <data name="Unassigned" xml:space="preserve"><value>не назначен</value></data>
+  <data name="DropHere" xml:space="preserve"><value>Перетащите задачи в</value></data>
   <data name="GitPolicyTrackKnowledge" xml:space="preserve"><value>track-project-knowledge</value></data>
   <data name="GitPolicyCustom" xml:space="preserve"><value>custom</value></data>
   <data name="TaskKind" xml:space="preserve"><value>Task</value></data>

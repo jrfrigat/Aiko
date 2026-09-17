@@ -1,15 +1,25 @@
-<div class="file-group @((Warning && Files.Count > 0) ? "has-warning" : null)">
-    <span>@Title - @Files.Count</span>
+@* A file group is a FlareStack with a FlareText heading, a FlareBadge count and a FlareList of paths.
+   Paths stay monospace through FlareText's Mono switch, and the heading turns to the Error role when
+   the group carries out-of-scope files. *@
+<FlareStack Gap="FlareSpacing.XXSmall">
+    <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XSmall">
+        <FlareText Element="span" Mono="true" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant">@Title</FlareText>
+        <FlareBadge Standalone="true"
+                    Text="@Files.Count.ToString(CultureInfo.InvariantCulture)"
+                    Color="@(Warning && Files.Count > 0 ? FlareColor.Error : FlareColor.Info)" />
+    </FlareStack>
     @if (Files.Count > 0)
     {
-        <ul>
+        <FlareList TItem="string" Dense="true">
             @foreach (var file in Files)
             {
-                <li>@file</li>
+                <FlareListItem>
+                    <FlareText Element="span" Mono="true" Typo="TypographyScale.LabelSmall">@file</FlareText>
+                </FlareListItem>
             }
-        </ul>
+        </FlareList>
     }
-</div>
+</FlareStack>
 
 @code {
     [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;

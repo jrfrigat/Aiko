@@ -8,15 +8,26 @@
     <meta name="theme-color" content="#0b1326" />
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" type="image/svg+xml" href="aiko.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- The theme package's StyleAssets, written by hand (FlareThemeProvider Stylesheets="Manual") so
+         the cockpit's fonts and rules arrive with the first wave of the page. Keep this list in step
+         with StitchFlowTheme.StyleAssets. -->
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" />
+    <link rel="stylesheet" href="_content/Aiko.Theme.StitchFlow/css/stitchflow.css" />
     <link rel="stylesheet" href="_content/Flare.Components/css/flare-components.css" />
-    <link rel="stylesheet" href="_content/Flare.Components.Kanban/css/kanban.css" />
     <link rel="stylesheet" href="css/app.css" />
     <script src="_content/Flare.Components/js/flare-bootstrap.js"
-            data-default-theme="md3-expressive"
+            data-default-theme="stitchflow"
+            data-default-palette="stitchflow-kinetic"
             data-default-mode="dark"></script>
 </head>
 <body>
-    <div id="flare-splash" class="app-splash">
+    <!-- Static splash: index.html is plain HTML, so this one block is styled by #flare-splash in
+         css/app.css. FlareThemeProvider fades and removes an element tagged id="flare-splash"
+         once the app has booted. -->
+    <div id="flare-splash">
         <span class="splash-mark"><i></i><i></i><i></i></span>
         <strong>Aiko <small>AI kanban orchestrator</small></strong>
     </div>

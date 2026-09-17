@@ -6,258 +6,363 @@
 
 <PageTitle>Aiko</PageTitle>
 
-<div class="workspace-shell">
-    <aside class="project-rail" aria-label="Проекты Aiko">
-        <div class="brand">
-            <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
-            <div>
-                <strong>Aiko</strong>
-                <span>AI kanban orchestrator</span>
-            </div>
-        </div>
+@* The whole shell is a FlareLayout: the project rail is a persistent start drawer, the inspector is a
+   persistent end drawer, and the board lives in the content area. Flare owns the grid, the app bar,
+   the drawer tracks and the responsive switch to off-canvas overlays below the Md breakpoint, so the
+   app carries no shell CSS of its own. *@
+<FlareLayout>
+    <FlareLayoutAppBar DrawerToggle="true">
+        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small" StretchFirst="true">
+            @* Brand: an icon tile, the app name, the daemon version and the AOT tag. *@
+            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
+                <FlarePaper Elevation="0" Class="aiko-brand">
+                    <FlareIconView Value="@FlareIcons.GridOn" Color="FlareColor.Primary" />
+                </FlarePaper>
+                <FlareStack Gap="FlareSpacing.None">
+                    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
+                        <FlareText Element="h1" Typo="TypographyScale.HeadlineMedium">Aiko</FlareText>
+                        @if (_system is not null)
+                        {
+                            <span class="aiko-tag aiko-tag--accent">v@_system.Version</span>
+                        }
+                        <span class="aiko-tag">@Loc.Get("NativeAot")</span>
+                    </FlareStack>
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant">
+                        @(_board?.Project.Name ?? Loc.Get("BoardCaption"))
+                    </FlareText>
+                </FlareStack>
+            </FlareStack>
 
-        <div class="rail-heading">
-            <span>Проекты</span>
-            <span class="rail-count">@_projects.Count</span>
-        </div>
-
-        <nav class="project-list">
-            @foreach (var project in _projects)
-            {
-                <button class="project-item @(project.Id == _selectedProjectId ? "is-active" : null)"
-                        type="button"
-                        @onclick="() => SelectProjectAsync(project.Id)">
-                    <span class="project-glyph">@Initials(project.Name)</span>
-                    <span class="project-copy">
-                        <strong>@project.Name</strong>
-                        <small>@ProjectPath(project.RootPath)</small>
-                    </span>
-                </button>
-            }
-        </nav>
-
-        <div class="rail-footer">
-            <span class="health-dot @(_eventsConnected ? "is-live" : null)"></span>
-            <span>Локальный демон</span>
-            <strong>@(_eventsConnected ? "live" : "online")</strong>
-        </div>
-    </aside>
-
-    <main class="board-workspace @((_selectedCardId is not null || _editingWorkflow || _editingSettings) ? "has-inspector" : null)">
-        <header class="command-bar">
-            <div class="page-heading">
-                <span class="eyebrow">@Loc.Get("BoardCaption")</span>
-                <h1>@(_board?.Project.Name ?? "Aiko")</h1>
-            </div>
+            @* Telemetry: daemon state and the local endpoint. *@
+            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Class="aiko-status">
+                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall" Class="aiko-pill">
+                    <FlareBadge Dot="true"
+                                Standalone="true"
+                                Color="@(_eventsConnected ? FlareColor.Tertiary : FlareColor.Warning)" />
+                    <FlareText Element="span" Mono="true" Color="@(_eventsConnected ? FlareColor.Tertiary : FlareColor.Warning)">
+                        @(_eventsConnected ? "SSE LIVE" : "ONLINE")
+                    </FlareText>
+                </FlareStack>
+                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall" Class="aiko-pill">
+                    <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant2">@Loc.Get("Host")</FlareText>
+                    <FlareText Element="span" Mono="true">@HostCaption</FlareText>
+                </FlareStack>
+            </FlareStack>
 
             @if (_board is not null)
             {
-                <label class="card-chooser">
-                    <span>@Loc.Get("CreateCard")</span>
-                    <select value="@_selectedCardId" @onchange="SelectCard">
-                        <option value="">@Loc.Get("Choose")</option>
-                        @foreach (var card in VisibleCards)
-                        {
-                            <option value="@card.Reference.CardId">@card.Reference.CardId - @card.Title</option>
-                        }
-                    </select>
-                </label>
-                <div class="projection-switcher" aria-label="Проекция доски">
-                    <FlareButtonGroup Connected="true" Variant="ButtonVariant.Outlined" Size="ButtonSize.Sm">
-                        <FlareButton Selected="@(_projection == Projection.Stories)"
-                                     AriaPressed="@(_projection == Projection.Stories)"
-                                     OnClick="() => ChangeProjection(Projection.Stories)">Stories</FlareButton>
-                        <FlareButton Selected="@(_projection == Projection.Tasks)"
-                                     AriaPressed="@(_projection == Projection.Tasks)"
-                                     OnClick="() => ChangeProjection(Projection.Tasks)">Tasks</FlareButton>
-                        <FlareButton Selected="@(_projection == Projection.Combined)"
-                                     AriaPressed="@(_projection == Projection.Combined)"
-                                     OnClick="() => ChangeProjection(Projection.Combined)">Общая</FlareButton>
-                    </FlareButtonGroup>
-                </div>
+                <FlareSelect TValue="string"
+                             Label="@Loc.Get("CardFilter")"
+                             Size="FieldSize.Sm"
+                             Value="@_selectedCardId"
+                             ValueChanged="SelectCardAsync">
+                    <option value="">@Loc.Get("Choose")</option>
+                    @foreach (var card in VisibleCards)
+                    {
+                        <option value="@card.Reference.CardId">@card.Reference.CardId - @card.Title</option>
+                    }
+                </FlareSelect>
+
+                @* The design's mode switch: a hairline container with an accent-filled segment. *@
+                <FlareToggleGroup TValue="Projection"
+                                  Size="ButtonSize.Sm"
+                                  Value="_projection"
+                                  ValueChanged="ChangeProjectionAsync">
+                    @* Value is object-typed, so the enum member must be written as an expression - a bare
+                       literal would arrive at the group as the string "Projection.Stories". *@
+                    <FlareToggleButton Variant="ButtonVariant.Filled" Value="@Projection.Stories">Stories</FlareToggleButton>
+                    <FlareToggleButton Variant="ButtonVariant.Filled" Value="@Projection.Tasks">Tasks</FlareToggleButton>
+                    <FlareToggleButton Variant="ButtonVariant.Filled" Value="@Projection.Combined">Общая</FlareToggleButton>
+                </FlareToggleGroup>
             }
 
-            <div class="command-actions">
+            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
                 @if (_board is not null)
                 {
-                    <FlareButton Variant="ButtonVariant.Outlined"
-                                 Size="ButtonSize.Sm"
-                                 OnClick="OpenCreateCard">@Loc.Get("CreateCard")</FlareButton>
-                    <FlareButton Variant="ButtonVariant.Outlined"
-                                 Size="ButtonSize.Sm"
-                                 OnClick="OpenWorkflow">Workflow</FlareButton>
+                    <FlareButton Variant="ButtonVariant.Filled" Size="ButtonSize.Sm" OnClick="OpenCreateCard">
+                        <LeadingIcon><FlareIconView Value="@FlareIcons.Add" /></LeadingIcon>
+                        <ChildContent>@Loc.Get("CreateCard")</ChildContent>
+                    </FlareButton>
+                    <FlareButton Variant="ButtonVariant.Outlined" Size="ButtonSize.Sm" OnClick="OpenWorkflow">
+                        <LeadingIcon><FlareIconView Value="@FlareIcons.Tune" /></LeadingIcon>
+                        <ChildContent>@Loc.Get("Workflow")</ChildContent>
+                    </FlareButton>
                 }
-                <FlareButton Variant="ButtonVariant.Outlined"
-                             Size="ButtonSize.Sm"
-                             OnClick="OpenSettings">Настройки</FlareButton>
-                <FlareButton Variant="ButtonVariant.Text"
-                             Size="ButtonSize.Sm"
-                             Loading="@_loading"
-                             OnClick="ReloadAsync">Обновить</FlareButton>
-            </div>
-        </header>
+                <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm" OnClick="OpenSettings">
+                    <LeadingIcon><FlareIconView Value="@FlareIcons.Settings" /></LeadingIcon>
+                    <ChildContent>@Loc.Get("Settings")</ChildContent>
+                </FlareButton>
+                <FlareIconButton Variant="ButtonVariant.Text"
+                                 Icon="@FlareIcons.Refresh"
+                                 AriaLabel="@Loc.Get("Refresh")"
+                                 Loading="@_loading"
+                                 OnClick="ReloadAsync" />
+            </FlareStack>
+        </FlareStack>
+    </FlareLayoutAppBar>
 
-        @if (!string.IsNullOrWhiteSpace(_error))
-        {
-            <div class="notice notice-error" role="alert">
-                <strong>@Loc.Get("BoardUpdateFailed")</strong>
-                <span>@_error</span>
-            </div>
-        }
+    <FlareLayoutDrawer @bind-Open="_railOpen"
+                       Variant="DrawerVariant.Persistent"
+                       Width="16rem"
+                       AriaLabel="Проекты Aiko">
+        <FlareNavMenu>
+            <HeaderContent>
+                <FlareStack Class="aiko-rail__head" Gap="FlareSpacing.XXSmall">
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
+                        @Loc.Get("WorkspaceFlow")
+                    </FlareText>
+                    <FlareNavLink Active="@(_projection == Projection.Combined)"
+                                  OnClick="() => ShowProjectionAsync(Projection.Combined)">
+                        <IconContent><FlareIconView Value="@FlareIcons.GridOn" /></IconContent>
+                        <ChildContent>@Loc.Get("KanbanBoard")</ChildContent>
+                        <BadgeContent><span class="aiko-tag aiko-tag--accent">@(_board?.Cards.Count ?? 0)</span></BadgeContent>
+                    </FlareNavLink>
+                    <FlareNavLink Active="@(_projection == Projection.Stories)"
+                                  OnClick="() => ShowProjectionAsync(Projection.Stories)">
+                        <IconContent><FlareIconView Value="@FlareIcons.FolderOpen" /></IconContent>
+                        <ChildContent>Stories</ChildContent>
+                        <BadgeContent><span class="aiko-tag">@StoryCount</span></BadgeContent>
+                    </FlareNavLink>
+                    <FlareNavLink Active="@(_projection == Projection.Tasks)"
+                                  OnClick="() => ShowProjectionAsync(Projection.Tasks)">
+                        <IconContent><FlareIconView Value="@FlareIcons.ViewColumn" /></IconContent>
+                        <ChildContent>Tasks</ChildContent>
+                        <BadgeContent><span class="aiko-tag">@TaskCount</span></BadgeContent>
+                    </FlareNavLink>
+                    <FlareNavLink Active="@_editingWorkflow" OnClick="OpenWorkflow">
+                        <IconContent><FlareIconView Value="@FlareIcons.Tune" /></IconContent>
+                        <ChildContent>@Loc.Get("Workflow")</ChildContent>
+                        <BadgeContent><span class="aiko-tag">@(_board?.Workflows.Count ?? 0)</span></BadgeContent>
+                    </FlareNavLink>
+                    <FlareNavLink Active="@_editingSettings" OnClick="OpenSettings">
+                        <IconContent><FlareIconView Value="@FlareIcons.Settings" /></IconContent>
+                        <ChildContent>@Loc.Get("Settings")</ChildContent>
+                        <BadgeContent><FlareIconView Value="@FlareIcons.ChevronRight" /></BadgeContent>
+                    </FlareNavLink>
+                </FlareStack>
+            </HeaderContent>
 
-        @if (_loading && _board is null)
-        {
-            <div class="loading-state" aria-live="polite">
-                <span class="loading-stitch"></span>
-                <strong>@Loc.Get("LoadingContext")</strong>
-            </div>
-        }
-        else if (_projects.Count == 0)
-        {
-            <section class="empty-state">
-                <span class="empty-index">00</span>
-                <h2>@Loc.Get("EmptyStateTitle")</h2>
-                <p>Инициализируйте проект через Aiko, и он появится в этой панели.</p>
-                <FlareButton OnClick="OpenAddProject">@Loc.Get("AddProject")</FlareButton>
-            </section>
-        }
-        else if (_board is not null)
-        {
-            <section class="board-summary" aria-label="Сводка доски">
-                <div>
-                    <span>@Loc.Get("Cards")</span>
-                    <strong>@VisibleCardCount</strong>
-                </div>
-                <div>
-                    <span>@Loc.Get("InProgress")</span>
-                    <strong>@InProgressCount</strong>
-                </div>
-                <div>
-                    <span>@Loc.Get("Relations")</span>
-                    <strong>@_board.Relations.Count</strong>
-                </div>
-                <div class="summary-scope @(_scopeDeviationCount > 0 ? "has-warning" : null)">
-                    <span>@Loc.Get("OutOfScope")</span>
-                    <strong>@_scopeDeviationCount</strong>
-                </div>
-                <p>@ProjectionCaption</p>
-            </section>
+            <FooterContent>
+                <FlareStack Class="aiko-rail__foot" Gap="FlareSpacing.XXSmall">
+                    <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XXSmall">
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
+                            @Loc.Get("OrchestrationLoad")
+                        </FlareText>
+                        <FlareText Element="span" Mono="true" Color="FlareColor.Tertiary">@LoadPercent%</FlareText>
+                    </FlareStack>
+                    <FlareProgressLinear Value="@LoadPercent" Size="TrackSize.Xs" Color="FlareColor.Tertiary" />
+                    <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XXSmall">
+                        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
+                            <FlareBadge Dot="true"
+                                        Standalone="true"
+                                        Color="@(_eventsConnected ? FlareColor.Tertiary : FlareColor.Warning)" />
+                            <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant">
+                                @Loc.Get("ContextEngine")
+                            </FlareText>
+                        </FlareStack>
+                        <FlareText Element="span" Mono="true" Color="FlareColor.Secondary">
+                            @(_eventsConnected ? "SSE" : "online")
+                        </FlareText>
+                    </FlareStack>
+                </FlareStack>
+            </FooterContent>
 
-            @if (SettingsInspector.IsParallelShared(_settingsView?.EffectiveExecution))
-            {
-                <div class="notice notice-warning" role="alert">
-                    <strong>@Loc.Get("ParallelSharedTitle")</strong>
-                    <span>@Loc.Get("ParallelSharedText")</span>
-                </div>
-            }
-
-            <div class="stage-thread" aria-hidden="true"><span></span></div>
-
-            @if (_projection is Projection.Stories or Projection.Combined)
-            {
-                <BoardSection Title="Story flow"
-                              Kind="CardKind.Story"
-                              Board="_board"
-                              OnCardsChanged="cards => MoveCardAsync(CardKind.Story, cards)" />
-            }
-
-            @if (_projection == Projection.Combined)
-            {
-                <div class="flow-divider"><span>@Loc.Get("Implementation")</span></div>
-            }
-
-            @if (_projection is Projection.Tasks or Projection.Combined)
-            {
-                <BoardSection Title="Task flow"
-                              Kind="CardKind.Task"
-                              Board="_board"
-                              OnCardsChanged="cards => MoveCardAsync(CardKind.Task, cards)" />
-            }
-
-            @if (SelectedCard is not null)
-            {
-                <CardInspector Card="SelectedCard"
-                               Board="_board"
-                               ExecutionRefreshTick="_executionPulse"
-                               OnSaved="LoadBoardAsync"
-                               OnClose="CloseCard" />
-            }
-            else if (_editingSettings)
-            {
-                <SettingsInspector Project="_board?.Project"
-                                   OnSaved="LoadBoardAsync"
-                                   OnClose="CloseSettings" />
-            }
-            else if (_editingWorkflow && _board is not null && _board.Workflows.Count > 0)
-            {
-                <WorkflowInspector Board="_board"
-                                   InitialWorkflowId="@CurrentWorkflowId"
-                                   OnSaved="LoadBoardAsync"
-                                   OnClose="CloseWorkflow" />
-            }
-        }
-
-        @if (_editingSettings && _board is null)
-        {
-            @* Global settings must be reachable before any project exists. *@
-            <SettingsInspector OnSaved="LoadBoardAsync" OnClose="CloseSettings" />
-        }
-
-        @if (_showAddProject)
-        {
-            <section class="empty-state">
-                <h2>@Loc.Get("AddProject")</h2>
-                <p>@Loc.Get("AddProjectHint")</p>
-                <input class="field-input" placeholder="@Loc.Get("ProjectPath")" @bind="_newProjectPath" @bind:event="oninput" />
-                <input class="field-input" placeholder="@Loc.Get("ProjectName")" @bind="_newProjectName" />
-                <select class="field-input" @bind="_newGitPolicy">
-                    <option value="LocalOnly">@Loc.Get("GitPolicyLocalOnly")</option>
-                    <option value="TrackProjectKnowledge">@Loc.Get("GitPolicyTrackKnowledge")</option>
-                    <option value="Custom">@Loc.Get("GitPolicyCustom")</option>
-                </select>
-                <div class="form-actions">
-                    <FlareButton OnClick="AddProjectAsync">@Loc.Get("Add")</FlareButton>
-                    <FlareButton Variant="ButtonVariant.Text" OnClick="CloseAddProject">@Loc.Get("Cancel")</FlareButton>
-                </div>
-            </section>
-        }
-
-        @if (_showCreateCard)
-        {
-            <section class="empty-state">
-                <h2>@Loc.Get("CreateCardTitle")</h2>
-                <input class="field-input" placeholder="@Loc.Get("CardId")" @bind="_newCardId" />
-                <select class="field-input" @bind="_newCardKind">
-                    <option value="Task">@Loc.Get("TaskKind")</option>
-                    <option value="Story">@Loc.Get("StoryKind")</option>
-                </select>
-                <input class="field-input" placeholder="@Loc.Get("Title")" @bind="_newCardTitle" />
-                <input class="field-input" placeholder="@Loc.Get("Stage")" @bind="_newCardStage" />
-                @if (_priorityCriteria.Count > 0)
+            <ChildContent>
+                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow aiko-rail__group">
+                    @Loc.Get("Projects")
+                </FlareText>
+                @foreach (var project in _projects)
                 {
-                    @foreach (var criterion in _priorityCriteria)
+                    <FlareNavLink Active="@(project.Id == _selectedProjectId)"
+                                  Tooltip="@project.RootPath"
+                                  OnClick="() => SelectProjectAsync(project.Id)">
+                        <IconContent>
+                            <FlareAvatar Text="@Initials(project.Name)"
+                                         Size="AvatarSize.Xs"
+                                         Shape="AvatarShape.Square" />
+                        </IconContent>
+                        <ChildContent>@project.Name</ChildContent>
+                        <BadgeContent>
+                            <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant2">
+                                @ProjectPath(project.RootPath)
+                            </FlareText>
+                        </BadgeContent>
+                    </FlareNavLink>
+                }
+            </ChildContent>
+        </FlareNavMenu>
+    </FlareLayoutDrawer>
+
+    <FlareLayoutContent>
+        <FlareStack Gap="FlareSpacing.Medium">
+            @if (!string.IsNullOrWhiteSpace(_error))
+            {
+                <FlareAlert Severity="AlertSeverity.Error"
+                            Variant="AlertVariant.Outlined"
+                            Title="@Loc.Get("BoardUpdateFailed")">@_error</FlareAlert>
+            }
+
+            @if (_loading && _board is null)
+            {
+                <FlareStack Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
+                    <FlareProgressCircular />
+                    <FlareText Element="span" Typo="TypographyScale.BodyMedium" Color="FlareColor.OnSurfaceVariant">
+                        @Loc.Get("LoadingContext")
+                    </FlareText>
+                </FlareStack>
+            }
+            else if (_projects.Count == 0)
+            {
+                <FlareEmptyState Title="@Loc.Get("EmptyStateTitle")"
+                                 Description="Инициализируйте проект через Aiko, и он появится в этой панели.">
+                    <IconContent><FlareIconView Size="3rem" Value="@FlareIcons.FolderOpen" /></IconContent>
+                    <ActionContent>
+                        <FlareButton OnClick="OpenAddProject">@Loc.Get("AddProject")</FlareButton>
+                    </ActionContent>
+                </FlareEmptyState>
+            }
+            else if (_board is not null)
+            {
+                @* The design's metric strip: a mono summary line, not a row of tiles. *@
+                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true" Class="aiko-metrics">
+                    @foreach (var tile in SummaryTiles)
                     {
-                        <label class="field-label">
-                            <span>@criterion.Title</span>
-                            <input class="field-input" type="number" inputmode="decimal"
-                                   value="@GetCriterionValue(criterion.Id)"
-                                   @oninput="e => SetCriterionValue(criterion.Id, e.Value?.ToString())" />
-                        </label>
+                        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
+                            <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant">@tile.Label</FlareText>
+                            <FlareText Element="span" Mono="true"
+                                       Color="@(tile.Warn ? FlareColor.Error : FlareColor.Tertiary)"
+                                       Weight="FontWeight.SemiBold">@tile.Value</FlareText>
+                        </FlareStack>
                     }
-                }
-                else
+                    <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant2">@ProjectionCaption</FlareText>
+                </FlareStack>
+
+                @if (SettingsInspector.IsParallelShared(_settingsView?.EffectiveExecution))
                 {
-                    <input class="field-input" placeholder="@Loc.Get("Priority")" @bind="_newCardPriority" />
+                    <FlareAlert Severity="AlertSeverity.Warning"
+                                Variant="AlertVariant.Outlined"
+                                Title="@Loc.Get("ParallelSharedTitle")">@Loc.Get("ParallelSharedText")</FlareAlert>
                 }
-                <input class="field-input" placeholder="@Loc.Get("Scope")" @bind="_newCardScope" />
-                <div class="form-actions">
-                    <FlareButton OnClick="CreateCardAsync">@Loc.Get("Create")</FlareButton>
-                    <FlareButton Variant="ButtonVariant.Text" OnClick="CloseCreateCard">@Loc.Get("Cancel")</FlareButton>
-                </div>
-            </section>
+
+                <FlareDivider />
+
+                @if (_projection is Projection.Stories or Projection.Combined)
+                {
+                    <BoardSection Title="Story flow"
+                                  Kind="CardKind.Story"
+                                  Board="_board"
+                                  OnCardMoved="move => MoveCardAsync(CardKind.Story, move)" />
+                }
+
+                @if (_projection == Projection.Combined)
+                {
+                    <FlareDivider Text="@Loc.Get("Implementation")" />
+                }
+
+                @if (_projection is Projection.Tasks or Projection.Combined)
+                {
+                    <BoardSection Title="Task flow"
+                                  Kind="CardKind.Task"
+                                  Board="_board"
+                                  OnCardMoved="move => MoveCardAsync(CardKind.Task, move)" />
+                }
+            }
+
+            @if (_showAddProject)
+            {
+                <FlareCard Variant="CardVariant.Outlined">
+                    <FlareStack Gap="FlareSpacing.Small">
+                        <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("AddProject")</FlareText>
+                        <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant">
+                            @Loc.Get("AddProjectHint")
+                        </FlareText>
+                        <FlareTextField Label="@Loc.Get("ProjectPath")"
+                                        Immediate="true"
+                                        @bind-Value="_newProjectPath" />
+                        <FlareTextField Label="@Loc.Get("ProjectName")" @bind-Value="_newProjectName" />
+                        <FlareSelect TValue="string" Label="@Loc.Get("GitPolicy")" @bind-Value="_newGitPolicy">
+                            <option value="LocalOnly">@Loc.Get("GitPolicyLocalOnly")</option>
+                            <option value="TrackProjectKnowledge">@Loc.Get("GitPolicyTrackKnowledge")</option>
+                            <option value="Custom">@Loc.Get("GitPolicyCustom")</option>
+                        </FlareSelect>
+                        <FlareStack Row="true" Gap="FlareSpacing.XSmall">
+                            <FlareButton OnClick="AddProjectAsync">@Loc.Get("Add")</FlareButton>
+                            <FlareButton Variant="ButtonVariant.Text" OnClick="CloseAddProject">@Loc.Get("Cancel")</FlareButton>
+                        </FlareStack>
+                    </FlareStack>
+                </FlareCard>
+            }
+
+            @if (_showCreateCard)
+            {
+                <FlareCard Variant="CardVariant.Outlined">
+                    <FlareStack Gap="FlareSpacing.Small">
+                        <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("CreateCardTitle")</FlareText>
+                        <FlareTextField Label="@Loc.Get("CardId")" @bind-Value="_newCardId" />
+                        <FlareSelect TValue="string" Label="@Loc.Get("CardKind")" @bind-Value="_newCardKind">
+                            <option value="Task">@Loc.Get("TaskKind")</option>
+                            <option value="Story">@Loc.Get("StoryKind")</option>
+                        </FlareSelect>
+                        <FlareTextField Label="@Loc.Get("Title")" @bind-Value="_newCardTitle" />
+                        <FlareTextField Label="@Loc.Get("Stage")" @bind-Value="_newCardStage" />
+                        @if (_priorityCriteria.Count > 0)
+                        {
+                            @foreach (var criterion in _priorityCriteria)
+                            {
+                                <FlareNumericField TValue="decimal?"
+                                                   Min="0"
+                                                   Label="@criterion.Title"
+                                                   Value="GetCriterionValue(criterion.Id)"
+                                                   ValueChanged="value => SetCriterionValue(criterion.Id, value)" />
+                            }
+                        }
+                        else
+                        {
+                            <FlareNumericField TValue="decimal?" Label="@Loc.Get("Priority")" @bind-Value="_newCardPriority" />
+                        }
+                        <FlareTextField Label="@Loc.Get("Scope")" @bind-Value="_newCardScope" />
+                        <FlareStack Row="true" Gap="FlareSpacing.XSmall">
+                            <FlareButton OnClick="CreateCardAsync">@Loc.Get("Create")</FlareButton>
+                            <FlareButton Variant="ButtonVariant.Text" OnClick="CloseCreateCard">@Loc.Get("Cancel")</FlareButton>
+                        </FlareStack>
+                    </FlareStack>
+                </FlareCard>
+            }
+        </FlareStack>
+    </FlareLayoutContent>
+
+    @* The inspector is a push drawer rather than a fixed panel, so an open inspector narrows the board
+       instead of covering it. It stays mounted while closed - the layout keeps a stable track count -
+       and FlareLayout turns it into a modal overlay (with scrim and Escape) below the Md breakpoint. *@
+    <FlareLayoutDrawer Anchor="DrawerAnchor.Right"
+                       Variant="DrawerVariant.Persistent"
+                       Width="26rem"
+                       Open="InspectorOpen"
+                       OpenChanged="OnInspectorOpenChanged"
+                       AriaLabel="Инспектор Aiko">
+        @if (SelectedCard is { } selectedCard && _board is { } cardBoard)
+        {
+            <CardInspector Card="selectedCard"
+                           Board="cardBoard"
+                           ExecutionRefreshTick="_executionPulse"
+                           OnSaved="LoadBoardAsync"
+                           OnClose="CloseCard" />
         }
-    </main>
-</div>
+        else if (_editingSettings)
+        {
+            <SettingsInspector Project="_board?.Project"
+                               OnSaved="LoadBoardAsync"
+                               OnClose="CloseSettings" />
+        }
+        else if (_editingWorkflow && _board is { } workflowBoard && workflowBoard.Workflows.Count > 0)
+        {
+            <WorkflowInspector Board="workflowBoard"
+                               InitialWorkflowId="@CurrentWorkflowId"
+                               OnSaved="LoadBoardAsync"
+                               OnClose="CloseWorkflow" />
+        }
+    </FlareLayoutDrawer>
+</FlareLayout>
 
 @code {
     private enum Projection { Stories, Tasks, Combined }
@@ -266,30 +371,32 @@
     private ProjectBoardSnapshot? _board;
     private string? _selectedProjectId;
     private string? _selectedCardId;
+    private bool _railOpen = true;
     private bool _editingWorkflow;
     private bool _editingSettings;
     private string? _error;
     private bool _loading = true;
     private Projection _projection = Projection.Tasks;
     private AppSettingsView? _settingsView;
+    private SystemInfo? _system;
     private ProjectEventClient? _events;
     private CancellationTokenSource? _boardReloadDelay;
     private bool _eventsConnected;
     private int _executionPulse;
 
     private bool _showAddProject;
-    private string _newProjectPath = string.Empty;
-    private string _newProjectName = string.Empty;
-    private string _newGitPolicy = "LocalOnly";
+    private string? _newProjectPath;
+    private string? _newProjectName;
+    private string? _newGitPolicy = "LocalOnly";
     private bool _showCreateCard;
-    private string _newCardId = string.Empty;
-    private string _newCardKind = "Task";
-    private string _newCardTitle = string.Empty;
-    private string _newCardStage = string.Empty;
-    private string _newCardPriority = "1";
-    private string _newCardScope = string.Empty;
+    private string? _newCardId;
+    private string? _newCardKind = "Task";
+    private string? _newCardTitle;
+    private string? _newCardStage;
+    private decimal? _newCardPriority = 1m;
+    private string? _newCardScope;
     private IReadOnlyList<PriorityCriterion> _priorityCriteria = [];
-    private readonly Dictionary<string, string> _criterionValues = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, decimal?> _criterionValues = new(StringComparer.Ordinal);
 
     private IReadOnlyList<Card> VisibleCards => _board?.Cards
         .Where(card => _projection switch
@@ -313,6 +420,37 @@
 
     private int InProgressCount => _board?.Cards.Count(IsInProgress) ?? 0;
 
+    /// <summary>The four board metrics, rendered as FlareCard tiles in a FlareGrid.</summary>
+    private IReadOnlyList<(string Label, string Value, bool Warn)> SummaryTiles =>
+    [
+        (Loc.Get("Cards"), VisibleCardCount.ToString(CultureInfo.InvariantCulture), false),
+        (Loc.Get("InProgress"), InProgressCount.ToString(CultureInfo.InvariantCulture), false),
+        (Loc.Get("Relations"), (_board?.Relations.Count ?? 0).ToString(CultureInfo.InvariantCulture), false),
+        (Loc.Get("OutOfScope"), _scopeDeviationCount.ToString(CultureInfo.InvariantCulture), _scopeDeviationCount > 0)
+    ];
+
+    /// <summary>Whether the end drawer holds an inspector and should be pushed open.</summary>
+    private bool InspectorOpen => SelectedCard is not null || _editingSettings || _editingWorkflow;
+
+    /// <summary>The local endpoint the daemon serves, as the top bar's host pill.</summary>
+    private string HostCaption => Http.BaseAddress is { } address
+        ? $"{address.Host}:{address.Port}"
+        : "—";
+
+    private int StoryCount => _board?.Cards.Count(card => card.Kind == CardKind.Story) ?? 0;
+
+    private int TaskCount => _board?.Cards.Count(card => card.Kind == CardKind.Task) ?? 0;
+
+    private int TotalCount => _board?.Cards.Count ?? 0;
+
+    /// <summary>
+    /// The rail's orchestration load: the share of cards an agent is working right now. It is a real
+    /// measurement (cards between the first and the last stage), not a decorative number.
+    /// </summary>
+    private double LoadPercent => TotalCount == 0
+        ? 0
+        : Math.Round(InProgressCount * 100d / TotalCount, MidpointRounding.AwayFromZero);
+
     private bool IsInProgress(Card card)
     {
         if (_board is null)
@@ -332,9 +470,9 @@
         return index > 0 && index < stageIds.Length - 1;
     }
 
-    private string DefaultStage(string kind)
+    private string DefaultStage(CardKind kind)
     {
-        var workflowId = kind == "Story" ? "story" : "task";
+        var workflowId = kind == CardKind.Story ? "story" : "task";
         return _board?.Workflows
             .FirstOrDefault(workflow => StringComparer.Ordinal.Equals(workflow.Id, workflowId))
             ?.Stages.OrderBy(stage => stage.Order).Select(stage => stage.Id).FirstOrDefault()
@@ -360,6 +498,8 @@
         {
             _projects = await Http.GetFromJsonAsync<IReadOnlyList<RegisteredProject>>(
                 "api/v1/projects", PwaJson.Options) ?? [];
+            // The top bar's version tag comes from the daemon itself, not from the client build.
+            _system = await Http.GetFromJsonAsync<SystemInfo>("api/v1/system", PwaJson.Options);
             _selectedProjectId = ReadProjectFromQuery() is { } requested &&
                                  _projects.Any(project => project.Id == requested)
                 ? requested
@@ -482,36 +622,7 @@
         _loading = false;
     }
 
-    private async Task LoadBoardAsync()
-    {
-        _error = null;
-        if (_selectedProjectId is null)
-        {
-            _board = null;
-            return;
-        }
-
-        try
-        {
-            _board = await Http.GetFromJsonAsync<ProjectBoardSnapshot>(
-                $"api/v1/projects/{Uri.EscapeDataString(_selectedProjectId)}/board",
-                PwaJson.Options);
-            _settingsView = await Http.GetFromJsonAsync<AppSettingsView>(
-                $"api/v1/projects/{Uri.EscapeDataString(_selectedProjectId)}/settings",
-                PwaJson.Options);
-            if (_selectedCardId is not null &&
-                !_board!.Cards.Any(card => card.Reference.CardId == _selectedCardId))
-            {
-                _selectedCardId = null;
-            }
-        }
-        catch (Exception exception)
-        {
-            _error = exception.Message;
-        }
-    }
-
-    private void ChangeProjection(Projection projection)
+    private Task ChangeProjectionAsync(Projection projection)
     {
         _projection = projection;
         if (SelectedCard is not null && !VisibleCards.Contains(SelectedCard))
@@ -522,19 +633,53 @@
         {
             NavigateToSelection();
         }
+
+        return Task.CompletedTask;
     }
 
-    private void SelectCard(ChangeEventArgs args)
+    /// <summary>
+    /// The rail's view links: they switch the projection like the top bar's switch does, and they also
+    /// leave the workflow or settings editor, because "show me the board" is a navigation.
+    /// </summary>
+    private Task ShowProjectionAsync(Projection projection)
     {
-        _selectedCardId = args.Value?.ToString();
-        if (string.IsNullOrWhiteSpace(_selectedCardId))
-        {
-            _selectedCardId = null;
-        }
+        _editingWorkflow = false;
+        _editingSettings = false;
+        return ChangeProjectionAsync(projection);
+    }
 
+    private Task SelectCardAsync(string? value)
+    {
+        _selectedCardId = string.IsNullOrWhiteSpace(value) ? null : value;
         _editingWorkflow = false;
         _editingSettings = false;
         NavigateToSelection();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// A scrim tap, Escape or a route change closed the end drawer: release whichever inspector asked
+    /// for it, so the drawer's open state and the page state cannot drift apart.
+    /// </summary>
+    private void OnInspectorOpenChanged(bool open)
+    {
+        if (open)
+        {
+            return;
+        }
+
+        if (_selectedCardId is not null)
+        {
+            CloseCard();
+        }
+        else if (_editingWorkflow)
+        {
+            CloseWorkflow();
+        }
+        else if (_editingSettings)
+        {
+            CloseSettings();
+        }
     }
 
     private void CloseCard()
@@ -577,6 +722,35 @@
         NavigateToSelection();
     }
 
+    private async Task LoadBoardAsync()
+    {
+        _error = null;
+        if (_selectedProjectId is null)
+        {
+            _board = null;
+            return;
+        }
+
+        try
+        {
+            _board = await Http.GetFromJsonAsync<ProjectBoardSnapshot>(
+                $"api/v1/projects/{Uri.EscapeDataString(_selectedProjectId)}/board",
+                PwaJson.Options);
+            _settingsView = await Http.GetFromJsonAsync<AppSettingsView>(
+                $"api/v1/projects/{Uri.EscapeDataString(_selectedProjectId)}/settings",
+                PwaJson.Options);
+            if (_selectedCardId is not null &&
+                !_board!.Cards.Any(card => card.Reference.CardId == _selectedCardId))
+            {
+                _selectedCardId = null;
+            }
+        }
+        catch (Exception exception)
+        {
+            _error = exception.Message;
+        }
+    }
+
     private void NavigateToSelection()
     {
         if (_selectedProjectId is null)
@@ -601,20 +775,20 @@
         Navigation.NavigateTo(location, replace: true);
     }
 
-    private async Task MoveCardAsync(CardKind kind, IReadOnlyList<KanbanCard> movedCards)
+    /// <summary>
+    /// Applies one board drop: the board reports the card and the stage it landed in, so exactly one
+    /// request goes out and the optimistic revision comes from the current snapshot.
+    /// </summary>
+    private async Task MoveCardAsync(CardKind kind, BoardCardMove move)
     {
         if (_board is null)
         {
             return;
         }
 
-        var originalCards = _board.Cards.Where(card => card.Kind == kind).ToArray();
-        var changed = movedCards
-            .Select(moved => (Moved: moved, Original: originalCards.FirstOrDefault(card =>
-                card.Reference.CardId == moved.Id)))
-            .FirstOrDefault(pair => pair.Original is not null &&
-                                    pair.Original.StageId != pair.Moved.ColumnId);
-        if (changed.Original is null)
+        var card = _board.Cards.FirstOrDefault(item =>
+            item.Kind == kind && StringComparer.Ordinal.Equals(item.Reference.CardId, move.CardId));
+        if (card is null)
         {
             return;
         }
@@ -622,15 +796,15 @@
         try
         {
             using var response = await Http.PutAsJsonAsync(
-                $"api/v1/projects/{Uri.EscapeDataString(_board.Project.Id)}/cards/{Uri.EscapeDataString(changed.Original.Reference.CardId)}/stage",
-                new MoveCardRequest(changed.Moved.ColumnId, changed.Original.Revision),
+                $"api/v1/projects/{Uri.EscapeDataString(_board.Project.Id)}/cards/{Uri.EscapeDataString(card.Reference.CardId)}/stage",
+                new MoveCardRequest(move.StageId, card.Revision),
                 PwaJson.Options);
             response.EnsureSuccessStatusCode();
             await LoadBoardAsync();
         }
         catch (Exception exception)
         {
-            _error = Loc.Format("MoveFailed", changed.Original.Reference.CardId, exception.Message);
+            _error = Loc.Format("MoveFailed", card.Reference.CardId, exception.Message);
             await LoadBoardAsync();
         }
     }
@@ -674,7 +848,7 @@
             var request = new InitializeProjectRequest(
                 _newProjectPath.Trim(),
                 string.IsNullOrWhiteSpace(_newProjectName) ? null : _newProjectName.Trim(),
-                Enum.Parse<ProjectGitPolicy>(_newGitPolicy));
+                Enum.Parse<ProjectGitPolicy>(_newGitPolicy ?? nameof(ProjectGitPolicy.LocalOnly)));
             using var response = await Http.PostAsJsonAsync(
                 "api/v1/projects/initialize",
                 request,
@@ -685,8 +859,8 @@
             var project = await response.Content.ReadFromJsonAsync<RegisteredProject>(PwaJson.Options);
             _selectedProjectId = project?.Id ?? _projects.FirstOrDefault()?.Id;
             _showAddProject = false;
-            _newProjectPath = string.Empty;
-            _newProjectName = string.Empty;
+            _newProjectPath = null;
+            _newProjectName = null;
             await LoadBoardAsync();
             await ConnectEventsAsync();
         }
@@ -719,21 +893,19 @@
 
     private void CloseCreateCard() => _showCreateCard = false;
 
-    private string GetCriterionValue(string id) =>
-        _criterionValues.TryGetValue(id, out var value) ? value : string.Empty;
+    private decimal? GetCriterionValue(string id) =>
+        _criterionValues.TryGetValue(id, out var value) ? value : null;
 
-    private void SetCriterionValue(string id, string? value) =>
-        _criterionValues[id] = value ?? string.Empty;
+    private void SetCriterionValue(string id, decimal? value) => _criterionValues[id] = value;
 
     private Dictionary<string, decimal> BuildCriterionValues()
     {
         var result = new Dictionary<string, decimal>(StringComparer.Ordinal);
         foreach (var criterion in _priorityCriteria)
         {
-            if (_criterionValues.TryGetValue(criterion.Id, out var text) &&
-                decimal.TryParse(text, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var value))
+            if (_criterionValues.TryGetValue(criterion.Id, out var value) && value is { } numeric)
             {
-                result[criterion.Id] = value;
+                result[criterion.Id] = numeric;
             }
         }
 
@@ -750,18 +922,21 @@
 
         try
         {
+            var kind = _newCardKind == nameof(CardKind.Story) ? CardKind.Story : CardKind.Task;
             var criterionValues = BuildCriterionValues();
             var ownPriority = criterionValues.Count > 0
                 ? PriorityCalculator.CalculateOwnPriority(criterionValues, _priorityCriteria)
-                : (decimal.TryParse(_newCardPriority, out var priority) ? priority : 0m);
+                : _newCardPriority ?? 0m;
             var request = new CreateCardRequest(
                 _newCardId.Trim(),
-                Enum.Parse<CardKind>(_newCardKind),
+                kind,
                 _newCardTitle.Trim(),
-                _newCardKind == "Story" ? "story" : "task",
-                string.IsNullOrWhiteSpace(_newCardStage) ? DefaultStage(_newCardKind) : _newCardStage.Trim(),
+                kind == CardKind.Story ? "story" : "task",
+                string.IsNullOrWhiteSpace(_newCardStage) ? DefaultStage(kind) : _newCardStage.Trim(),
                 ownPriority,
-                _newCardScope.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToArray(),
+                (_newCardScope ?? string.Empty)
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .ToArray(),
                 criterionValues.Count > 0 ? criterionValues : null);
             using var response = await Http.PostAsJsonAsync(
                 $"api/v1/projects/{Uri.EscapeDataString(_board.Project.Id)}/cards",
@@ -769,9 +944,9 @@
                 PwaJson.Options);
             response.EnsureSuccessStatusCode();
             _showCreateCard = false;
-            _newCardId = string.Empty;
-            _newCardTitle = string.Empty;
-            _newCardScope = string.Empty;
+            _newCardId = null;
+            _newCardTitle = null;
+            _newCardScope = null;
             _criterionValues.Clear();
             await LoadBoardAsync();
         }
