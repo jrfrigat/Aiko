@@ -656,8 +656,8 @@
 }
 
 /* The card's two columns: the work on the left, its state on the right, as the design lays a card out.
-   The placement is by column line rather than by source order, so the sidebar can be written beside the
-   block it belongs to and the grid still puts the work first. */
+   The placement is by column line, and the work column is the first item in the markup: grid places items
+   forward only, so a sidebar written first would take the first row and push the work to a second one. */
 .aiko-card__main {
     grid-column: 1 / span 8;
     min-width: 0;

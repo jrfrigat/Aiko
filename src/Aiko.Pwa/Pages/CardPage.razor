@@ -184,7 +184,11 @@ else
         }
     }
 
-    /// <summary>The counts the banner reports: what the card declares, what it touched, and who has run it.</summary>
+    /// <summary>
+    /// The counts the banner reports: what the card declares, what it touched, what it left outside the
+    /// scope and how many cards it is linked to. All four are about this card, because that is what the
+    /// banner is about - the board's own totals belong to the board.
+    /// </summary>
     private IReadOnlyList<(string Label, string Value, bool Warn)> Counters
     {
         get
@@ -194,13 +198,17 @@ else
                 return [];
             }
 
-            var outOfScope = BoardMetrics.OutOfScopeCount(State.Board);
+            var outOfScope = BoardSection.FindOutOfScopeFiles(card).Count;
+            var relations = (State.Board?.Relations ?? [])
+                .Count(relation =>
+                    StringComparer.Ordinal.Equals(relation.Source.CardId, card.Reference.CardId) ||
+                    StringComparer.Ordinal.Equals(relation.Target.CardId, card.Reference.CardId));
             return
             [
                 (Loc.Get("FilesDeclared"), DisplayFormat.Number(card.DeclaredScopeFiles.Count), false),
                 (Loc.Get("FilesActual"), DisplayFormat.Number(card.ActualChangedFiles.Count), false),
                 (Loc.Get("OutOfScope"), DisplayFormat.Number(outOfScope), outOfScope > 0),
-                (Loc.Get("Relations"), DisplayFormat.Number(State.Board?.Relations.Count ?? 0), false)
+                (Loc.Get("Relations"), DisplayFormat.Number(relations), false)
             ];
         }
     }
