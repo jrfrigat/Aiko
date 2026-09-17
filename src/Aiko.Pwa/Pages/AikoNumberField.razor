@@ -1,0 +1,104 @@
+@* A number in the design's field: the same recessed box, with the value in mono and the parse kept here
+   rather than in every caller.
+
+   The text the user is typing is held locally, so a half-typed value ("1." or "-") is not rewritten
+   underneath them by the next render; a value that does not parse never reaches the caller at all. *@
+<div class="aiko-field">
+    @if (Label is { Length: > 0 } label)
+    {
+        <label class="aiko-field__label" for="@_id">@label</label>
+    }
+    <div class="aiko-field__box @(ErrorText is { Length: > 0 } ? "aiko-field__box--error" : null)">
+        @if (Icon is not null)
+        {
+            <FlareIconView Value="Icon" Color="FlareColor.OnSurfaceVariant2" />
+        }
+        <input id="@_id"
+               class="aiko-field__input"
+               type="number"
+               inputmode="decimal"
+               aria-label="@AriaLabel"
+               placeholder="@Placeholder"
+               min="@Min"
+               max="@Max"
+               step="@Step"
+               disabled="@Disabled"
+               value="@_text"
+               @oninput="OnInput" />
+        @if (Trailing is { Length: > 0 } trailing)
+        {
+            <span class="aiko-field__trailing">@trailing</span>
+        }
+    </div>
+    @if (ErrorText is { Length: > 0 } error)
+    {
+        <span class="aiko-field__error">@error</span>
+    }
+    else if (Hint is { Length: > 0 } hint)
+    {
+        <span class="aiko-field__hint">@hint</span>
+    }
+</div>
+
+@code {
+    private readonly string _id = $"aiko-number-{Guid.NewGuid():N}";
+    private string? _text;
+
+    /// <summary>The field's name, above it.</summary>
+    [Parameter] public string? Label { get; set; }
+
+    /// <summary>What the number is read against, under the field.</summary>
+    [Parameter] public string? Hint { get; set; }
+
+    /// <summary>Why the value is not acceptable; empty means it is.</summary>
+    [Parameter] public string? ErrorText { get; set; }
+
+    /// <summary>The number, or null for an empty field.</summary>
+    [Parameter] public decimal? Value { get; set; }
+
+    /// <summary>Raised when the text in the field parses; an unparsable value is not reported.</summary>
+    [Parameter] public EventCallback<decimal?> ValueChanged { get; set; }
+
+    [Parameter] public string? Placeholder { get; set; }
+    [Parameter] public FlareIcon? Icon { get; set; }
+    [Parameter] public string? Trailing { get; set; }
+    [Parameter] public string? AriaLabel { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Bounds and step, so the browser's own spinner knows the range.</summary>
+    [Parameter] public decimal? Min { get; set; }
+    [Parameter] public decimal? Max { get; set; }
+    [Parameter] public decimal? Step { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        // The caller's value wins while the field is not being typed in: the digits a person is in the
+        // middle of writing belong to them, not to the model.
+        var formatted = Value?.ToString("0.##", System.Globalization.CultureInfo.CurrentCulture) ?? string.Empty;
+        if (!_typing || string.IsNullOrEmpty(_text))
+        {
+            _text = formatted;
+        }
+    }
+
+    private bool _typing;
+
+    private async Task OnInput(ChangeEventArgs args)
+    {
+        _typing = true;
+        _text = args.Value?.ToString();
+        if (string.IsNullOrWhiteSpace(_text))
+        {
+            await ValueChanged.InvokeAsync(null);
+            return;
+        }
+
+        if (decimal.TryParse(_text, System.Globalization.NumberStyles.Number,
+                System.Globalization.CultureInfo.CurrentCulture, out var parsed) ||
+            decimal.TryParse(_text, System.Globalization.NumberStyles.Number,
+                System.Globalization.CultureInfo.InvariantCulture, out parsed))
+        {
+            await ValueChanged.InvokeAsync(parsed);
+        }
+    }
+}

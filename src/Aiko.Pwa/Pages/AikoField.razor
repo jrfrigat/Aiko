@@ -1,0 +1,96 @@
+@* A field, as the design draws it: a mono label in the outline colour, a recessed box that holds the
+   control (with room for a leading icon and a trailing unit), and a hint below it.
+
+   One component per control kind - this one, <see cref="AikoNumberField"/> and <see cref="AikoSelectField"/>
+   - so a form reads the same wherever it is written, and the cockpit stops looking like a Flare showcase. *@
+<div class="aiko-field">
+    @if (Label is { Length: > 0 } label)
+    {
+        <label class="aiko-field__label" for="@_id">@label</label>
+    }
+    <div class="aiko-field__box @(Rows > 1 ? "aiko-field__box--multiline" : null) @(ErrorText is { Length: > 0 } ? "aiko-field__box--error" : null)">
+        @if (Icon is not null)
+        {
+            <FlareIconView Value="Icon" Color="FlareColor.OnSurfaceVariant2" />
+        }
+        @if (Rows > 1)
+        {
+            <textarea id="@_id"
+                      class="aiko-field__input aiko-field__input--multiline"
+                      rows="@Rows"
+                      aria-label="@AriaLabel"
+                      placeholder="@Placeholder"
+                      readonly="@ReadOnly"
+                      disabled="@Disabled"
+                      value="@Value"
+                      @oninput="OnInput"></textarea>
+        }
+        else
+        {
+            <input id="@_id"
+                   class="aiko-field__input"
+                   type="@Type"
+                   aria-label="@AriaLabel"
+                   placeholder="@Placeholder"
+                   readonly="@ReadOnly"
+                   disabled="@Disabled"
+                   value="@Value"
+                   @oninput="OnInput" />
+        }
+        @if (Trailing is { Length: > 0 } trailing)
+        {
+            <span class="aiko-field__trailing">@trailing</span>
+        }
+    </div>
+    @if (ErrorText is { Length: > 0 } error)
+    {
+        <span class="aiko-field__error">@error</span>
+    }
+    else if (Hint is { Length: > 0 } hint)
+    {
+        <span class="aiko-field__hint">@hint</span>
+    }
+</div>
+
+@code {
+    // One id per component instance, so the label points at its own control.
+    private readonly string _id = $"aiko-field-{Guid.NewGuid():N}";
+
+    /// <summary>The field's name, above it. Empty draws no label.</summary>
+    [Parameter] public string? Label { get; set; }
+
+    /// <summary>What the field means, under it. An error replaces it.</summary>
+    [Parameter] public string? Hint { get; set; }
+
+    /// <summary>Why the value is not acceptable; empty means it is.</summary>
+    [Parameter] public string? ErrorText { get; set; }
+
+    /// <summary>The text in the field.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>Raised on every keystroke, so a form's state follows the field.</summary>
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>What an empty field invites the reader to write.</summary>
+    [Parameter] public string? Placeholder { get; set; }
+
+    /// <summary>The input's own type, for the handful of fields that are not plain text.</summary>
+    [Parameter] public string Type { get; set; } = "text";
+
+    /// <summary>More than one row turns the field into a text area that many lines tall.</summary>
+    [Parameter] public int Rows { get; set; }
+
+    /// <summary>The icon in the box, as the design's identifier rows carry one.</summary>
+    [Parameter] public FlareIcon? Icon { get; set; }
+
+    /// <summary>A quiet note at the end of the box, for a unit or a format hint.</summary>
+    [Parameter] public string? Trailing { get; set; }
+
+    /// <summary>The field's name for a screen reader, when the label is not enough.</summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    [Parameter] public bool ReadOnly { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+
+    private Task OnInput(ChangeEventArgs args) => ValueChanged.InvokeAsync(args.Value?.ToString());
+}

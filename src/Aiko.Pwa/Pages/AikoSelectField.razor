@@ -1,0 +1,59 @@
+@* A choice in the design's field: the same recessed box as the text fields, with the native arrow replaced
+   by a chevron of our own so a select sits beside an input without looking like another product. *@
+<div class="aiko-field">
+    @if (Label is { Length: > 0 } label)
+    {
+        <label class="aiko-field__label" for="@_id">@label</label>
+    }
+    <div class="aiko-field__box @(ErrorText is { Length: > 0 } ? "aiko-field__box--error" : null)">
+        @if (Icon is not null)
+        {
+            <FlareIconView Value="Icon" Color="FlareColor.OnSurfaceVariant2" />
+        }
+        <select id="@_id"
+                class="aiko-field__select"
+                aria-label="@AriaLabel"
+                disabled="@Disabled"
+                value="@Value"
+                @onchange="OnChange">
+            @ChildContent
+        </select>
+        <FlareIconView Value="@MaterialDesign3Icons.Regular.KeyboardArrowDown" Color="FlareColor.OnSurfaceVariant2" />
+    </div>
+    @if (ErrorText is { Length: > 0 } error)
+    {
+        <span class="aiko-field__error">@error</span>
+    }
+    else if (Hint is { Length: > 0 } hint)
+    {
+        <span class="aiko-field__hint">@hint</span>
+    }
+</div>
+
+@code {
+    private readonly string _id = $"aiko-select-{Guid.NewGuid():N}";
+
+    /// <summary>The field's name, above it.</summary>
+    [Parameter] public string? Label { get; set; }
+
+    /// <summary>What the choice means, under the field.</summary>
+    [Parameter] public string? Hint { get; set; }
+
+    /// <summary>Why the choice is not acceptable; empty means it is.</summary>
+    [Parameter] public string? ErrorText { get; set; }
+
+    /// <summary>The selected value.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>Raised when the reader picks another option.</summary>
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>The <c>&lt;option&gt;</c> elements, written by the caller.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [Parameter] public FlareIcon? Icon { get; set; }
+    [Parameter] public string? AriaLabel { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+
+    private Task OnChange(ChangeEventArgs args) => ValueChanged.InvokeAsync(args.Value?.ToString());
+}

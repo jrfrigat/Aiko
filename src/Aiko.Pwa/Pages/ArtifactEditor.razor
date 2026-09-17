@@ -12,10 +12,10 @@
     }
 
     <FlareStack Row="true" Align="FlareAlignItems.End" Gap="FlareSpacing.XSmall" StretchFirst="true">
-        <FlareTextField Label="@Loc.Get("NewMarkdown")"
-                        Placeholder="architecture.md"
-                        Size="FieldSize.Sm"
-                        @bind-Value="_newPath" />
+        <AikoField Label="@Loc.Get("NewMarkdown")"
+                   Placeholder="architecture.md"
+                   Value="@_newPath"
+                   ValueChanged="value => _newPath = value" />
         <FlareButton Variant="ButtonVariant.Outlined"
                      Size="ButtonSize.Sm"
                      OnClick="AddDocument">@Loc.Get("Add")</FlareButton>

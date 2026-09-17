@@ -175,33 +175,40 @@
                         @Loc.Get("AddProjectHint")
                     </FlareText>
                     <FlareStack Row="true" Align="FlareAlignItems.End" Gap="FlareSpacing.XSmall" StretchFirst="true">
-                        <FlareTextField Label="@Loc.Get("ProjectPath")" Immediate="true" @bind-Value="_newProjectPath" />
+                        <AikoField Label="@Loc.Get("ProjectPath")"
+                                   Placeholder="C:\work\project"
+                                   Value="@_newProjectPath"
+                                   ValueChanged="value => _newProjectPath = value" />
                         <FlareButton Variant="ButtonVariant.Outlined" Size="ButtonSize.Sm" OnClick="OpenBrowserAsync">
                             <LeadingIcon><FlareIconView Value="@FlareIcons.FolderOpen" /></LeadingIcon>
                             <ChildContent>@Loc.Get("Browse")</ChildContent>
                         </FlareButton>
                     </FlareStack>
-                    <FlareTextField Label="@Loc.Get("ProjectName")" @bind-Value="_newProjectName" />
-                    <FlareSelect TValue="string" Label="@Loc.Get("GitPolicy")" @bind-Value="_newGitPolicy">
+                    <AikoField Label="@Loc.Get("ProjectName")"
+                               Value="@_newProjectName"
+                               ValueChanged="value => _newProjectName = value" />
+                    <AikoSelectField Label="@Loc.Get("GitPolicy")"
+                                     Value="@_newGitPolicy"
+                                     ValueChanged="value => _newGitPolicy = value">
                         <option value="LocalOnly">@Loc.Get("GitPolicyLocalOnly")</option>
                         <option value="TrackProjectKnowledge">@Loc.Get("GitPolicyTrackKnowledge")</option>
                         <option value="Custom">@Loc.Get("GitPolicyCustom")</option>
-                    </FlareSelect>
+                    </AikoSelectField>
                     @* The template decides what the project starts with: stages, their artifacts, the board
                        projections, the starting memory and the default settings. It is copied in, so changing
                        it later never reaches a project that already exists. *@
                     @if (State.Templates.Count > 0)
                     {
-                        <FlareSelect TValue="string" Label="@Loc.Get("Template")" @bind-Value="_newTemplateId">
+                        <AikoSelectField Label="@Loc.Get("Template")"
+                                         Hint="@Loc.Get("TemplateHint")"
+                                         Value="@_newTemplateId"
+                                         ValueChanged="value => _newTemplateId = value">
                             @foreach (var template in State.Templates)
                             {
                                 var option = template;
                                 <option value="@option.Id">@TemplateOption(option)</option>
                             }
-                        </FlareSelect>
-                        <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant">
-                            @Loc.Get("TemplateHint")
-                        </FlareText>
+                        </AikoSelectField>
                     }
                     else
                     {

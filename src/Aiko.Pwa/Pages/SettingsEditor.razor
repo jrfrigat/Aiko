@@ -315,33 +315,27 @@
                                                          AriaLabel="@Loc.Get("Remove")"
                                                          OnClick="() => _criteria.Remove(draft)" />
                                     </FlareStack>
-                                    <FlareTextField Size="FieldSize.Xs"
-                                                    Label="@Loc.Get("CriterionTitle")"
-                                                    Value="@draft.Title"
-                                                    ValueChanged="value => draft.Title = value" />
-                                    <FlareTextField Size="FieldSize.Xs"
-                                                    Label="@Loc.Get("CriterionDescription")"
-                                                    Value="@draft.Description"
-                                                    ValueChanged="value => draft.Description = value" />
+                                    <AikoField Label="@Loc.Get("CriterionTitle")"
+                                               Value="@draft.Title"
+                                               ValueChanged="value => draft.Title = value" />
+                                    <AikoField Label="@Loc.Get("CriterionDescription")"
+                                               Value="@draft.Description"
+                                               ValueChanged="value => draft.Description = value" />
                                     <FlareStack Row="true" Align="FlareAlignItems.End" Gap="FlareSpacing.XSmall">
-                                        <FlareNumericField TValue="decimal"
-                                                           Size="FieldSize.Xs"
-                                                           Label="@Loc.Get("MinimumLabel")"
-                                                           @bind-Value="draft.Minimum" />
-                                        <FlareNumericField TValue="decimal"
-                                                           Size="FieldSize.Xs"
-                                                           Label="@Loc.Get("MaximumLabel")"
-                                                           @bind-Value="draft.Maximum" />
-                                        <FlareNumericField TValue="decimal"
-                                                           Size="FieldSize.Xs"
-                                                           Label="@Loc.Get("CriterionWeight")"
-                                                           @bind-Value="draft.Weight" />
+                                        <AikoNumberField Label="@Loc.Get("MinimumLabel")"
+                                                         Value="@draft.Minimum"
+                                                         ValueChanged="value => draft.Minimum = value ?? 0m" />
+                                        <AikoNumberField Label="@Loc.Get("MaximumLabel")"
+                                                         Value="@draft.Maximum"
+                                                         ValueChanged="value => draft.Maximum = value ?? 0m" />
+                                        <AikoNumberField Label="@Loc.Get("CriterionWeight")"
+                                                         Value="@draft.Weight"
+                                                         ValueChanged="value => draft.Weight = value ?? 0m" />
                                     </FlareStack>
-                                    <FlareTextField Size="FieldSize.Xs"
-                                                    Label="@Loc.Get("AiInstructionLabel")"
-                                                    HelperText="@Loc.Get("AiInstructionHint")"
-                                                    Value="@draft.AiInstruction"
-                                                    ValueChanged="value => draft.AiInstruction = value" />
+                                    <AikoField Label="@Loc.Get("AiInstructionLabel")"
+                                               Hint="@Loc.Get("AiInstructionHint")"
+                                               Value="@draft.AiInstruction"
+                                               ValueChanged="value => draft.AiInstruction = value" />
                                 </FlareStack>
                             }
                         }

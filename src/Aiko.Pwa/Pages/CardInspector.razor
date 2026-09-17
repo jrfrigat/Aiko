@@ -378,10 +378,11 @@
                                         @Loc.Get("LeaveTaskNote")
                                     </FlareText>
                                 </FlareStack>
-                                <FlareTextArea Label="@Loc.Get("TaskNote")"
-                                               HelperText="@Loc.Get("TaskNoteHint")"
-                                               Rows="3"
-                                               @bind-Value="_commentBody" />
+                                <AikoField Label="@Loc.Get("TaskNote")"
+                                           Value="@_commentBody"
+                                           ValueChanged="value => _commentBody = value"
+                                           Rows="3"
+                                           Hint="@Loc.Get("TaskNoteHint")" />
                                 <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small" Wrap="true">
                                     <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall" Wrap="true">
                                         @foreach (var command in PromptShortcuts)
@@ -573,22 +574,17 @@
                 </div>
 
                 @* The size step the agent assigns from the project's grid, and what it does to the score. *@
-                <FlareStack Gap="FlareSpacing.None">
-                    <FlareSelect TValue="string" Label="@Loc.Get("SizeIdLabel")" @bind-Value="_size">
-                        <option value="">@Loc.Get("NoSize")</option>
-                        @foreach (var step in SizeGrid)
-                        {
-                            var option = step;
-                            <option value="@option.Id">@SizeOption(option)</option>
-                        }
-                    </FlareSelect>
-                    @if (SelectedSize is { } selected)
+                <AikoSelectField Label="@Loc.Get("SizeIdLabel")"
+                                 Value="@_size"
+                                 ValueChanged="value => _size = value"
+                                 Hint="@SizeHint">
+                    <option value="">@Loc.Get("NoSize")</option>
+                    @foreach (var step in SizeGrid)
                     {
-                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                            @($"x{selected.Coefficient} · {selected.Description}")
-                        </FlareText>
+                        var option = step;
+                        <option value="@option.Id">@SizeOption(option)</option>
                     }
-                </FlareStack>
+                </AikoSelectField>
 
                 @* Every criterion the project scores by, in the project's order: a card with no value for one
                    is scored as if that criterion did not exist, so the person editing the card sees them all,
@@ -611,11 +607,10 @@
                         @foreach (var criterion in Criteria)
                         {
                             var item = criterion;
-                            <FlareNumericField TValue="decimal?"
-                                               Label="@item.Title"
-                                               HelperText="@CriterionRange(item)"
-                                               Value="@CriterionValue(item.Id)"
-                                               ValueChanged="value => SetCriterion(item.Id, value)" />
+                            <AikoNumberField Label="@item.Title"
+                                             Hint="@CriterionRange(item)"
+                                             Value="@CriterionValue(item.Id)"
+                                             ValueChanged="value => SetCriterion(item.Id, value)" />
                         }
                     }
                 </FlareStack>
@@ -762,10 +757,10 @@
     </HeaderContent>
     <ChildContent>
         <FlareStack Gap="FlareSpacing.Small">
-            <FlareTextField Label="@Loc.Get("Title")"
-                            Required="true"
-                            Immediate="true"
-                            @bind-Value="_title" />
+            <AikoField Label="@Loc.Get("Title")"
+                       Value="@_title"
+                       ValueChanged="value => _title = value"
+                       Placeholder="@Loc.Get("Title")" />
             <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
                 @Loc.Get("EditCardHint")
             </FlareText>
@@ -1106,6 +1101,14 @@
     private SizeDefinition? SelectedSize => string.IsNullOrWhiteSpace(_size)
         ? null
         : SizeGrid.FirstOrDefault(step => StringComparer.Ordinal.Equals(step.Id, _size));
+
+    /// <summary>
+    /// What the size field says under itself: the coefficient the chosen step applies and what the step
+    /// means, or the fact that a card without one is neutral in the formula.
+    /// </summary>
+    private string SizeHint => SelectedSize is { } selected
+        ? $"x{selected.Coefficient} · {selected.Description}"
+        : Loc.Get("SizeHintEmpty");
 
     /// <summary>A step as the select shows it.</summary>
     private static string SizeOption(SizeDefinition step) => $"{step.Id} (x{step.Coefficient})";

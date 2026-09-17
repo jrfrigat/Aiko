@@ -426,6 +426,7 @@
   <data name="ValidationCommands" xml:space="preserve"><value>Команды проверки</value></data>
   <data name="ValidationCommandsHelper" xml:space="preserve"><value>По одной команде в строке. Они записываются как definition of done этапа и показываются агенту; Aiko их не исполняет.</value></data>
   <data name="NoSize" xml:space="preserve"><value>Без размера</value></data>
+  <data name="SizeHintEmpty" xml:space="preserve"><value>Без шага: коэффициент размера нейтральный (x1.00)</value></data>
   <data name="Template" xml:space="preserve"><value>Шаблон</value></data>
   <data name="TemplatesNav" xml:space="preserve"><value>Шаблоны проектов</value></data>
   <data name="TemplatesTitle" xml:space="preserve"><value>Шаблоны</value></data>

@@ -200,7 +200,9 @@
                                readonly="@(!stage.IsNew)"
                                @bind="stage.Id" />
                     </div>
-                    <FlareTextField Label="@Loc.Get("Title")" @bind-Value="stage.Title" />
+                        <AikoField Label="@Loc.Get("Title")"
+                               Value="@stage.Title"
+                               ValueChanged="value => stage.Title = value" />
                 </div>
                 @* The instruction and the two skill lists as the design's prompt block - the same component
                    the card page uses for the same text - with the character and token foot the mock draws. *@
@@ -263,14 +265,16 @@
                             @Loc.Get("AllowedExecutorsHint")
                         </FlareText>
                     </FlareStack>
-                    <FlareSelect TValue="string" Label="@Loc.Get("DefaultAgent")" @bind-Value="stage.DefaultAgentAdapterId">
+                    <AikoSelectField Label="@Loc.Get("DefaultAgent")"
+                                     Value="@stage.DefaultAgentAdapterId"
+                                     ValueChanged="value => stage.DefaultAgentAdapterId = value">
                         <option value="">@Loc.Get("AnyAgent")</option>
                         @foreach (var agent in State.Agents)
                         {
                             var option = agent;
                             <option value="@option.Id">@option.DisplayName</option>
                         }
-                    </FlareSelect>
+                    </AikoSelectField>
                 </div>
                 @* What the stage must produce and the commands that verify it, side by side: on the wide
                    drawer the two read as one contract. *@

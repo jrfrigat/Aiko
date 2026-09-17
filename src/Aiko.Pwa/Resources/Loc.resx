@@ -426,6 +426,7 @@
   <data name="ValidationCommands" xml:space="preserve"><value>Validation commands</value></data>
   <data name="ValidationCommandsHelper" xml:space="preserve"><value>One command per line. They are recorded as this stage's definition of done and shown to the agent; Aiko does not run them itself.</value></data>
   <data name="NoSize" xml:space="preserve"><value>No size</value></data>
+  <data name="SizeHintEmpty" xml:space="preserve"><value>No step: the size factor stays neutral (x1.00)</value></data>
   <data name="Template" xml:space="preserve"><value>Template</value></data>
   <data name="TemplateHint" xml:space="preserve"><value>Copied into the project at creation: it fixes the stages and their artifacts, the board projections, the starting memory and the default settings. Changing the template later affects only projects created afterwards.</value></data>
   <data name="TemplatesNav" xml:space="preserve"><value>Project templates</value></data>

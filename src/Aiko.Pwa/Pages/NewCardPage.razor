@@ -51,14 +51,14 @@
                         </FlareStack>
 
                         <div class="aiko-form-row">
-                            <FlareTextField Label="@Loc.Get("CardId")"
-                                            HelperText="@Loc.Get("CardIdHelper")"
-                                            Immediate="true"
-                                            @bind-Value="_newCardId" />
-                            <FlareTextField Label="@Loc.Get("Title")"
-                                            Required="true"
-                                            Immediate="true"
-                                            @bind-Value="_newCardTitle" />
+                            <AikoField Label="@Loc.Get("CardId")"
+                                       Hint="@Loc.Get("CardIdHelper")"
+                                       Placeholder="FL-201"
+                                       Value="@_newCardId"
+                                       ValueChanged="value => _newCardId = value" />
+                            <AikoField Label="@Loc.Get("Title")"
+                                       Value="@_newCardTitle"
+                                       ValueChanged="value => _newCardTitle = value" />
                         </div>
                     </FlareStack>
                 </FlarePaper>
@@ -76,10 +76,12 @@
                                 </FlareText>
                             </FlareStack>
                         </FlareStack>
-                        <FlareTextArea Label="@Loc.Get("DeclaredScope")"
-                                       HelperText="@Loc.Get("ScopeHelper")"
-                                       Rows="5"
-                                       @bind-Value="_newCardScope" />
+                        <AikoField Label="@Loc.Get("DeclaredScope")"
+                                   Hint="@Loc.Get("ScopeHelper")"
+                                   Placeholder="@Loc.Get("ScopeHelper")"
+                                   Rows="5"
+                                   Value="@_newCardScope"
+                                   ValueChanged="value => _newCardScope = value" />
                         @if (ScopePreview is { Count: > 0 } preview)
                         {
                             <FlareStack Gap="FlareSpacing.XXSmall">
@@ -102,41 +104,35 @@
                         <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
                             @Loc.Get("CardPlaceTitle")
                         </FlareText>
-                        <FlareSelect TValue="string"
-                                     Label="@Loc.Get("CardKind")"
-                                     Value="@_newCardKind"
-                                     ValueChanged="OnKindChangedAsync">
+                        <AikoSelectField Label="@Loc.Get("CardKind")"
+                                         Value="@_newCardKind"
+                                         ValueChanged="OnKindChangedAsync">
                             <option value="Task">@Loc.Get("TaskKind")</option>
                             <option value="Story">@Loc.Get("StoryKind")</option>
-                        </FlareSelect>
+                        </AikoSelectField>
                         @* The stage list is the chosen kind's own workflow: a task cannot join a story stage,
                            which is why the field is a select rather than free text. *@
-                        <FlareSelect TValue="string" Label="@Loc.Get("Stage")" @bind-Value="_newCardStage">
+                        <AikoSelectField Label="@Loc.Get("Stage")"
+                                         Value="@_newCardStage"
+                                         ValueChanged="value => _newCardStage = value"
+                                         Hint="@Loc.Format("WorkflowStagesHint", StagesFor(SelectedKind).Count)">
                             @foreach (var stage in StagesFor(SelectedKind))
                             {
                                 var option = stage;
                                 <option value="@option.Id">@option.Title</option>
                             }
-                        </FlareSelect>
-                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                            @Loc.Format("WorkflowStagesHint", StagesFor(SelectedKind).Count)
-                        </FlareText>
-                        <FlareStack Gap="FlareSpacing.None">
-                            <FlareSelect TValue="string" Label="@Loc.Get("SizeIdLabel")" @bind-Value="_newCardSize">
-                                <option value="">@Loc.Get("NoSize")</option>
-                                @foreach (var step in SizeGrid)
-                                {
-                                    var option = step;
-                                    <option value="@option.Id">@SizeOption(option)</option>
-                                }
-                            </FlareSelect>
-                            @if (SelectedSize is { } selected)
+                        </AikoSelectField>
+                        <AikoSelectField Label="@Loc.Get("SizeIdLabel")"
+                                         Value="@_newCardSize"
+                                         ValueChanged="value => _newCardSize = value"
+                                         Hint="@SizeHint">
+                            <option value="">@Loc.Get("NoSize")</option>
+                            @foreach (var step in SizeGrid)
                             {
-                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                                    @($"x{selected.Coefficient} · {selected.Description}")
-                                </FlareText>
+                                var option = step;
+                                <option value="@option.Id">@SizeOption(option)</option>
                             }
-                        </FlareStack>
+                        </AikoSelectField>
                     </FlareStack>
                 </FlarePaper>
                 <FlarePaper Elevation="0" Padding="FlareSpacing.Medium" Square="true" Class="aiko-panel">
@@ -155,11 +151,10 @@
                             @foreach (var criterion in _priorityCriteria)
                             {
                                 var item = criterion;
-                                <FlareNumericField TValue="decimal?"
-                                                   Label="@item.Title"
-                                                   HelperText="@($"{item.Minimum} - {item.Maximum}")"
-                                                   Value="GetCriterionValue(item.Id)"
-                                                   ValueChanged="value => SetCriterionValue(item.Id, value)" />
+                                <AikoNumberField Label="@item.Title"
+                                                 Hint="@($"{item.Minimum} - {item.Maximum}")"
+                                                 Value="GetCriterionValue(item.Id)"
+                                                 ValueChanged="value => SetCriterionValue(item.Id, value)" />
                             }
                             <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
                                 @Loc.Get("ScoringHint")
@@ -168,10 +163,10 @@
                         else
                         {
                             @* No criteria: the project scores by hand, so the form asks for the number. *@
-                            <FlareNumericField TValue="decimal?"
-                                               Label="@Loc.Get("Priority")"
-                                               HelperText="@Loc.Get("NoCriteria")"
-                                               @bind-Value="_newCardPriority" />
+                            <AikoNumberField Label="@Loc.Get("Priority")"
+                                             Hint="@Loc.Get("NoCriteria")"
+                                             Value="@_newCardPriority"
+                                             ValueChanged="value => _newCardPriority = value" />
                         }
                     </FlareStack>
                 </FlarePaper>
@@ -236,6 +231,14 @@
     private SizeDefinition? SelectedSize => string.IsNullOrWhiteSpace(_newCardSize)
         ? null
         : _sizeGrid.FirstOrDefault(step => StringComparer.Ordinal.Equals(step.Id, _newCardSize));
+
+    /// <summary>
+    /// What the size field says under itself: the coefficient the chosen step applies and what the step
+    /// means, or the fact that a card without one is neutral in the formula.
+    /// </summary>
+    private string SizeHint => SelectedSize is { } selected
+        ? $"x{selected.Coefficient} · {selected.Description}"
+        : Loc.Get("SizeHintEmpty");
 
     /// <summary>A step as the select shows it.</summary>
     private static string SizeOption(SizeDefinition step) => $"{step.Id} (x{step.Coefficient})";

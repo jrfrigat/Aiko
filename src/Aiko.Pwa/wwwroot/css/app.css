@@ -983,6 +983,117 @@
     color: var(--flare-color-error);
 }
 
+/* ---------------------------------------------------------------------------------------------
+ * The design's field: a mono label, a recessed box and a hint. Every input in the cockpit wears it -
+ * the card's parameters, the new-card form, the settings screens - so a form reads the same wherever
+ * it is written. Only layout and paint: every colour and radius is a theme token.
+ * ------------------------------------------------------------------------------------------- */
+
+.aiko-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.aiko-field__label {
+    color: var(--flare-color-outline);
+    font-family: var(--aiko-font-mono, monospace);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    line-height: 1rem;
+    text-transform: uppercase;
+}
+
+.aiko-field__box {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    min-width: 0;
+    padding: 0.5rem 0.75rem;
+    /* A resting rule, not just the fill: an empty field on a dark panel has to read as a field before
+       anything is typed into it. The design's own screenshot leans on the fill alone; this keeps the
+       control visible at every contrast a user may run. */
+    border: var(--flare-border-width, 1px) solid
+        color-mix(in srgb, var(--flare-color-outline-variant) 40%, transparent);
+    border-radius: var(--flare-shape-large);
+    background: var(--flare-color-surface-container-lowest);
+}
+
+.aiko-field__box:focus-within {
+    border-color: var(--flare-color-primary);
+}
+
+.aiko-field__box--error {
+    border-color: var(--flare-color-error);
+}
+
+/* The long-text variant: the box grows downward, and the text keeps its own lines. */
+.aiko-field__box--multiline {
+    align-items: stretch;
+}
+
+.aiko-field__input,
+.aiko-field__select {
+    flex: 1 1 auto;
+    min-width: 0;
+    border: none;
+    outline: none;
+    background: none;
+    color: var(--flare-color-secondary);
+    font-family: var(--aiko-font-mono, monospace);
+    font-size: 0.8125rem;
+    line-height: 1.125rem;
+}
+
+.aiko-field__input--multiline {
+    resize: vertical;
+    min-height: 3.5rem;
+}
+
+.aiko-field__input::placeholder {
+    color: var(--flare-color-outline);
+}
+
+.aiko-field__input:disabled,
+.aiko-field__select:disabled {
+    color: var(--flare-color-on-surface-variant2);
+    cursor: not-allowed;
+}
+
+/* The choice keeps the field's own look: no native arrow, no operating-system chrome. */
+.aiko-field__select {
+    appearance: none;
+    cursor: pointer;
+}
+
+.aiko-field__select option {
+    background: var(--flare-color-surface-container);
+    color: var(--flare-color-on-surface);
+}
+
+/* A quiet note at the end of the box: a unit, a format, the range a value is read against. */
+.aiko-field__trailing {
+    color: var(--flare-color-outline-variant);
+    font-family: var(--aiko-font-mono, monospace);
+    font-size: 0.6875rem;
+    line-height: 1rem;
+    white-space: nowrap;
+}
+
+.aiko-field__hint {
+    color: var(--flare-color-outline);
+    font-size: 0.6875rem;
+    line-height: 1rem;
+}
+
+.aiko-field__error {
+    color: var(--flare-color-error);
+    font-size: 0.6875rem;
+    line-height: 1rem;
+}
+
 .aiko-code-row input,
 .aiko-code-row select {
     flex: 1 1 auto;

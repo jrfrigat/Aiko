@@ -53,19 +53,23 @@
                     </FlareText>
                 </FlareStack>
                 <div class="aiko-form-row">
-                    <FlareSelect TValue="string" Label="@Loc.Get("TableProject")" @bind-Value="_captureProjectId">
+                    <AikoSelectField Label="@Loc.Get("TableProject")"
+                                     Value="@_captureProjectId"
+                                     ValueChanged="value => _captureProjectId = value">
                         @foreach (var project in State.Projects)
                         {
                             var option = project;
                             <option value="@option.Id">@option.Name</option>
                         }
-                    </FlareSelect>
-                    <FlareTextField Label="@Loc.Get("TemplateIdLabel")"
-                                    HelperText="@Loc.Get("TemplateIdHelper")"
-                                    Immediate="true"
-                                    @bind-Value="_captureTemplateId" />
+                    </AikoSelectField>
+                    <AikoField Label="@Loc.Get("TemplateIdLabel")"
+                               Hint="@Loc.Get("TemplateIdHelper")"
+                               Value="@_captureTemplateId"
+                               ValueChanged="value => _captureTemplateId = value" />
                 </div>
-                <FlareTextField Label="@Loc.Get("Name")" Immediate="true" @bind-Value="_captureName" />
+                <AikoField Label="@Loc.Get("Name")"
+                           Value="@_captureName"
+                           ValueChanged="value => _captureName = value" />
                 <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
                     <FlareButton Variant="ButtonVariant.Filled" Size="ButtonSize.Sm"
                                  Loading="@_busy" OnClick="CaptureAsync">@Loc.Get("Create")</FlareButton>
@@ -87,15 +91,15 @@
                     </FlareText>
                 </FlareStack>
                 <FlareStack Row="true" Align="FlareAlignItems.End" Gap="FlareSpacing.XSmall" StretchFirst="true">
-                    <FlareTextField Label="@Loc.Get("TemplatePathLabel")"
-                                    HelperText="@Loc.Get("TemplatePathHelper")"
-                                    Immediate="true"
-                                    @bind-Value="_importPath" />
+                    <AikoField Label="@Loc.Get("TemplatePathLabel")"
+                               Hint="@Loc.Get("TemplatePathHelper")"
+                               Value="@_importPath"
+                               ValueChanged="value => _importPath = value" />
                 </FlareStack>
-                <FlareTextField Label="@Loc.Get("TemplateIdLabel")"
-                                HelperText="@Loc.Get("ImportTemplateIdHelper")"
-                                Immediate="true"
-                                @bind-Value="_importTemplateId" />
+                <AikoField Label="@Loc.Get("TemplateIdLabel")"
+                           Hint="@Loc.Get("ImportTemplateIdHelper")"
+                           Value="@_importTemplateId"
+                           ValueChanged="value => _importTemplateId = value" />
                 <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
                     <FlareButton Variant="ButtonVariant.Filled" Size="ButtonSize.Sm"
                                  Loading="@_busy" OnClick="ImportAsync">@Loc.Get("Import")</FlareButton>
@@ -186,30 +190,30 @@
                         @if (_applyingId == item.Id)
                         {
                             <FlareStack Row="true" Align="FlareAlignItems.End" Gap="FlareSpacing.XSmall" Wrap="true">
-                                <FlareSelect TValue="string" Label="@Loc.Get("ApplyToProject")" @bind-Value="_applyProjectId">
+                                <AikoSelectField Label="@Loc.Get("ApplyToProject")"
+                                                 Hint="@Loc.Get("ApplyTemplateHint")"
+                                                 Value="@_applyProjectId"
+                                                 ValueChanged="value => _applyProjectId = value">
                                     @foreach (var project in State.Projects)
                                     {
                                         var option = project;
                                         <option value="@option.Id">@option.Name</option>
                                     }
-                                </FlareSelect>
+                                </AikoSelectField>
                                 <FlareButton Variant="ButtonVariant.Filled" Size="ButtonSize.Sm"
                                              Disabled="@_busy" OnClick="ApplyAsync">@Loc.Get("Apply")</FlareButton>
                                 <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm"
                                              OnClick="CancelRowActions">@Loc.Get("Cancel")</FlareButton>
                             </FlareStack>
-                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                                @Loc.Get("ApplyTemplateHint")
-                            </FlareText>
                         }
 
                         @if (_exportingId == item.Id)
                         {
                             <FlareStack Row="true" Align="FlareAlignItems.End" Gap="FlareSpacing.XSmall" Wrap="true" StretchFirst="true">
-                                <FlareTextField Label="@Loc.Get("TemplatePathLabel")"
-                                                HelperText="@Loc.Get("TemplatePathHelper")"
-                                                Immediate="true"
-                                                @bind-Value="_exportPath" />
+                                <AikoField Label="@Loc.Get("TemplatePathLabel")"
+                                           Hint="@Loc.Get("TemplatePathHelper")"
+                                           Value="@_exportPath"
+                                           ValueChanged="value => _exportPath = value" />
                                 <FlareButton Variant="ButtonVariant.Filled" Size="ButtonSize.Sm"
                                              Disabled="@_busy" OnClick="() => ExportAsync(item.Id)">@Loc.Get("Export")</FlareButton>
                                 <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm"
@@ -220,11 +224,13 @@
                         @if (_copyingId == item.Id)
                         {
                             <FlareStack Row="true" Align="FlareAlignItems.End" Gap="FlareSpacing.XSmall" Wrap="true">
-                                <FlareTextField Label="@Loc.Get("TemplateIdLabel")"
-                                                HelperText="@Loc.Get("TemplateIdHelper")"
-                                                Immediate="true"
-                                                @bind-Value="_copyTemplateId" />
-                                <FlareTextField Label="@Loc.Get("Name")" Immediate="true" @bind-Value="_copyName" />
+                                <AikoField Label="@Loc.Get("TemplateIdLabel")"
+                                           Hint="@Loc.Get("TemplateIdHelper")"
+                                           Value="@_copyTemplateId"
+                                           ValueChanged="value => _copyTemplateId = value" />
+                                <AikoField Label="@Loc.Get("Name")"
+                                           Value="@_copyName"
+                                           ValueChanged="value => _copyName = value" />
                                 <FlareButton Variant="ButtonVariant.Filled" Size="ButtonSize.Sm"
                                              Disabled="@_busy" OnClick="() => CopyAsync(item.Id)">@Loc.Get("DuplicateTemplate")</FlareButton>
                                 <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm"
