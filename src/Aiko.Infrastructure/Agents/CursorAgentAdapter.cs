@@ -29,7 +29,10 @@ public sealed class CursorAgentAdapter : BuiltInAgentAdapter
     private protected override IReadOnlyList<AgentFileDefinition> CreateFiles(
         string projectRoot,
         string projectMcpEndpoint,
-        string? accessToken) =>
+        string? accessToken,
+        // Cursor has no slash commands, so the card types change nothing here; the argument is part of the
+        // shared contract and the rule it writes teaches it to read the context.
+        IReadOnlyList<CardTypeDescriptor> cardTypes) =>
     [
         AgentFileDefinition.JsonMcp(
             Path.Combine(projectRoot, ".cursor", "mcp.json"),

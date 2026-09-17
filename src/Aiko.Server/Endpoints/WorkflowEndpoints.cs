@@ -1,6 +1,8 @@
+using Aiko.Application.Agents;
 using Aiko.Application.Contracts;
 using Aiko.Domain.Workflow;
 using Aiko.Server.Contracts;
+using Aiko.Server.Security;
 
 namespace Aiko.Server.Endpoints;
 
@@ -22,6 +24,9 @@ internal static class WorkflowEndpoints
                 string projectId,
                 CreateWorkflowRequest request,
                 IProjectDefinitionStore definitions,
+                IUnifiedAgentInstaller agents,
+                DaemonAccessToken accessToken,
+                HttpRequest httpRequest,
                 CancellationToken cancellationToken) =>
             {
                 if (Validate(workflowId: request.Id, request.Title, request.Stages) is { } invalid)
@@ -51,6 +56,7 @@ internal static class WorkflowEndpoints
                     return Results.BadRequest(new ErrorResponse(exception.Message));
                 }
 
+                await ReprojectAsync(projectId, httpRequest, agents, accessToken, cancellationToken);
                 return Results.Created(
                     $"/api/v1/projects/{projectId}/workflows/{created.Id}",
                     created);
@@ -64,6 +70,9 @@ internal static class WorkflowEndpoints
                 UpdateWorkflowRequest request,
                 IProjectDefinitionStore definitions,
                 ICardStore cards,
+                IUnifiedAgentInstaller agents,
+                DaemonAccessToken accessToken,
+                HttpRequest httpRequest,
                 CancellationToken cancellationToken) =>
             {
                 if (Validate(workflowId, request.Title, request.Stages) is { } invalid)
@@ -115,6 +124,7 @@ internal static class WorkflowEndpoints
                     return Results.BadRequest(new ErrorResponse(exception.Message));
                 }
 
+                await ReprojectAsync(projectId, httpRequest, agents, accessToken, cancellationToken);
                 return Results.Ok(updated);
             });
 
@@ -125,6 +135,9 @@ internal static class WorkflowEndpoints
                 string workflowId,
                 IProjectDefinitionStore definitions,
                 ICardStore cards,
+                IUnifiedAgentInstaller agents,
+                DaemonAccessToken accessToken,
+                HttpRequest httpRequest,
                 CancellationToken cancellationToken) =>
             {
                 var definition = await definitions.ReadAsync(projectId, cancellationToken);
@@ -153,8 +166,34 @@ internal static class WorkflowEndpoints
                     return Results.NotFound();
                 }
 
+                await ReprojectAsync(projectId, httpRequest, agents, accessToken, cancellationToken);
                 return Results.NoContent();
             });
+    }
+
+    /// <summary>
+    /// Refreshes the per-type agent commands after the set of card types changed.
+    /// </summary>
+    /// <remarks>
+    /// A failure here does not fail the request: the commands are a convenience derived from the pipelines,
+    /// the workflow itself is already saved, and the next <c>aiko agent install</c> repairs the files.
+    /// </remarks>
+    private static async ValueTask ReprojectAsync(
+        string projectId,
+        HttpRequest httpRequest,
+        IUnifiedAgentInstaller agents,
+        DaemonAccessToken accessToken,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var endpoint =
+                $"{httpRequest.Scheme}://{httpRequest.Host}/mcp/projects/{Uri.EscapeDataString(projectId)}";
+            await agents.ReprojectCardTypesAsync(projectId, endpoint, accessToken.Value, cancellationToken);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+        }
     }
 
     /// <summary>

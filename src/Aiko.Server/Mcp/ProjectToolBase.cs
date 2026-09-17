@@ -73,14 +73,4 @@ internal abstract class ProjectToolBase(
     /// </summary>
     protected static string SerializeExecution(StageExecution execution) =>
         JsonSerializer.Serialize(execution, ServerJsonContext.Default.StageExecution);
-
-    /// <summary>
-    /// Reads a text file, returning "(not configured)" when it does not exist.
-    /// </summary>
-    protected static async ValueTask<string> ReadOptionalTextAsync(
-        string path,
-        CancellationToken cancellationToken) =>
-        File.Exists(path)
-            ? await File.ReadAllTextAsync(path, cancellationToken)
-            : "(not configured)";
 }

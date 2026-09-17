@@ -3,36 +3,34 @@ using System.Text;
 using ModelContextProtocol.Server;
 using Aiko.Application.Contracts;
 using Aiko.Domain.Prioritization;
-using Aiko.Infrastructure.Storage;
+using Aiko.Domain.Workflow;
 
 namespace Aiko.Server.Mcp;
 
 /// <summary>
-/// MCP tools describing the current project: context for planning work and the UI URL.
+/// MCP tools describing the current project: the card types it defines, context for planning work and the
+/// UI URL.
 /// </summary>
 [McpServerToolType]
 internal sealed class ProjectContextTools(
     IHttpContextAccessor httpContextAccessor,
     IProjectCatalog projects,
+    IProjectDefinitionStore definitions,
     IAppSettingsService settings) : ProjectToolBase(httpContextAccessor, projects)
 {
     [McpServerTool(
         Name = "aiko_get_project_context",
         Title = "Get Aiko project context")]
     [Description(
-        "Call this first. Returns the current project, how its cards are scored and sized, the workflow "
-        + "instructions and durable-memory guidance.")]
+        "Call this first. Returns the current project, every card type it defines with the stages of its "
+        + "pipeline, how its cards are scored and sized, and durable-memory guidance.")]
     public async Task<string> GetProjectContextAsync(CancellationToken cancellationToken)
     {
         var project = await GetProjectAsync(cancellationToken);
-        var stitchRoot = AikoProjectPaths.DataRoot(project.RootPath);
-        var storyWorkflow = await ReadOptionalTextAsync(
-            Path.Combine(stitchRoot, "workflows", "story.json"),
-            cancellationToken);
-        var taskWorkflow = await ReadOptionalTextAsync(
-            Path.Combine(stitchRoot, "workflows", "task.json"),
-            cancellationToken);
         var priority = await settings.GetEffectivePriorityAsync(project.Id, cancellationToken);
+        // Read from the project's own workflows rather than from a fixed pair of files: the set of card types
+        // is project data, and an agent that never learns about a type cannot create one.
+        var workflows = (await definitions.ReadAsync(project.Id, cancellationToken)).Workflows;
 
         return $"""
             # Aiko project context
@@ -52,12 +50,71 @@ internal sealed class ProjectContextTools(
 
             {DescribePriority(priority)}
 
-            ## Story workflow
-            {storyWorkflow}
-
-            ## Task workflow
-            {taskWorkflow}
+            {DescribeCardTypes(workflows)}
             """;
+    }
+
+    /// <summary>
+    /// The card types the project defines, one section per type, each with the stages of its pipeline.
+    /// </summary>
+    /// <remarks>
+    /// A card type is the workflow of the same name, so this is the project's own pipelined data rendered for
+    /// an agent: it is what makes a type the user added in the workflow editor usable without a code change.
+    /// </remarks>
+    /// <param name="workflows">The project's workflows, each one a card type.</param>
+    private static string DescribeCardTypes(IReadOnlyList<WorkflowDefinition> workflows)
+    {
+        var builder = new StringBuilder();
+        builder.AppendLine("## Card types of this project");
+        builder.AppendLine();
+        if (workflows.Count == 0)
+        {
+            builder.AppendLine("No workflow is defined, so this project has no card type yet.");
+            return builder.ToString().TrimEnd();
+        }
+
+        builder.Append("A card's kind is the type id below and its workflowId is the same id lower-cased; a ")
+            .Append("new card starts in the \"").Append(WorkflowDefinition.BacklogStageId)
+            .AppendLine("\" stage of its own pipeline.");
+        builder.AppendLine();
+
+        foreach (var workflow in workflows.OrderBy(item => item.Title, StringComparer.Ordinal))
+        {
+            builder.Append("### ").Append(workflow.CardType)
+                .Append(" (workflowId: ").Append(workflow.Id).Append(')');
+            if (!string.IsNullOrWhiteSpace(workflow.Description))
+            {
+                builder.Append(" - ").Append(workflow.Description.Trim());
+            }
+
+            builder.AppendLine();
+            foreach (var stage in workflow.Stages.OrderBy(item => item.Order))
+            {
+                builder.Append("- ").Append(stage.Id).Append(" \"").Append(stage.Title).Append('"');
+                if (WorkflowDefinition.IsBacklog(stage))
+                {
+                    builder.Append(" (backlog: a new card starts here)");
+                }
+
+                if (!string.IsNullOrWhiteSpace(stage.Instruction))
+                {
+                    builder.Append(": ").Append(stage.Instruction.Trim());
+                }
+
+                if (stage.RequiredArtifacts.Count > 0)
+                {
+                    builder.Append(" Required artifacts: ")
+                        .Append(string.Join(", ", stage.RequiredArtifacts.Select(artifact => artifact.Path)))
+                        .Append('.');
+                }
+
+                builder.AppendLine();
+            }
+
+            builder.AppendLine();
+        }
+
+        return builder.ToString().TrimEnd();
     }
 
     /// <summary>

@@ -34,7 +34,10 @@ public sealed class CodexAgentAdapter : BuiltInAgentAdapter
     private protected override IReadOnlyList<AgentFileDefinition> CreateFiles(
         string projectRoot,
         string projectMcpEndpoint,
-        string? accessToken) =>
+        string? accessToken,
+        // Codex has no slash commands, so the card types change nothing here; the argument is part of the
+        // shared contract and the context it writes teaches it every type.
+        IReadOnlyList<CardTypeDescriptor> cardTypes) =>
     [
         new(
             Path.Combine(projectRoot, ".codex", "config.toml"),

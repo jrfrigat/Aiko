@@ -1,3 +1,7 @@
+using Aiko.Application.Agents;
+using Aiko.Domain.Cards;
+using Aiko.Domain.Workflow;
+
 namespace Aiko.Infrastructure.Agents;
 
 /// <summary>
@@ -24,24 +28,48 @@ internal static class AgentTemplates
         """;
 
     /// <summary>
-    /// Slash command that creates a story card.
+    /// Slash command that creates a card of a type the user names, resolved against the project's own
+    /// workflows.
     /// </summary>
-    public const string StoryCreate =
+    /// <remarks>
+    /// This is the type-agnostic entry point: it reads the project context instead of naming types itself, so
+    /// a project that adds a card type later needs no regenerated file for the agent to learn about it.
+    /// </remarks>
+    public const string Create =
         """
-        Create a story card in Aiko. Pick a file-safe id (for example STORY-001), a clear title, the
-        story workflow id and the initial stage (normally backlog), then call aiko_create_card with
-        kind=story and an own priority. Report the created card id.
+        Create a card in Aiko. Read aiko_get_project_context first: it lists every card type this project
+        defines, the workflow behind each one and the stages of its pipeline. Use the type the user named;
+        if they named none, ask which type they mean. Then call aiko_create_card with that type's kind, its
+        workflow id and its backlog stage, a file-safe id (type id plus a number, for example BUG-001), a
+        clear title taken from what the user asked for, and an own priority. Report the created card id.
         """;
 
     /// <summary>
-    /// Slash command that creates a task card.
+    /// Slash command for one card type of the project this file is installed into, named after that type.
     /// </summary>
-    public const string TaskCreate =
-        """
-        Create a task card in Aiko. Pick a file-safe id (for example TASK-001), a clear title, the
-        task workflow id and the initial stage (normally backlog), then call aiko_create_card with
-        kind=task, an own priority and the declared scope files. Report the created card id.
-        """;
+    /// <remarks>
+    /// Generated rather than written by hand, because the set of types is project data: the daemon re-writes
+    /// these commands when a type is added or removed. The type id is the workflow id, so the command can
+    /// name the pipeline it belongs to without re-reading the project.
+    /// </remarks>
+    /// <param name="type">The card type the command creates.</param>
+    public static string CreateCard(CardTypeDescriptor type)
+    {
+        var kind = CardKind.FromWorkflowId(type.Id);
+        var prefix = type.Id.ToUpperInvariant();
+        var intro = string.IsNullOrWhiteSpace(type.Description)
+            ? $"Create a {type.Title} card in Aiko."
+            : $"Create a {type.Title} card in Aiko. {type.Description.Trim()}";
+        return $"""
+            {intro}
+
+            This type is the workflow {type.Id}: call aiko_create_card with kind={kind}, workflowId={type.Id}
+            and stageId={WorkflowDefinition.BacklogStageId}. The project context lists the rest of that
+            pipeline if you need it. Pick a file-safe id (for example {prefix}-001), a clear title taken from
+            what the user asked for, an own priority and, for work that changes files, the declared scope
+            patterns. Report the created card id.
+            """;
+    }
 
     /// <summary>
     /// Slash command that moves a card to the next workflow stage.

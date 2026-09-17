@@ -10,7 +10,8 @@ namespace Aiko.Infrastructure.Agents;
 /// </summary>
 public sealed class UnifiedAgentInstaller(
     IEnumerable<IAgentAdapter> adapters,
-    IProjectCatalog projects) : IUnifiedAgentInstaller
+    IProjectCatalog projects,
+    IProjectDefinitionStore definitions) : IUnifiedAgentInstaller
 {
     private readonly IReadOnlyDictionary<string, IAgentAdapter> adaptersById = adapters
         .ToDictionary(adapter => adapter.Id, StringComparer.Ordinal);
@@ -85,6 +86,7 @@ public sealed class UnifiedAgentInstaller(
     {
         var (project, selected, unknown) = await ResolveSelectionAsync(
             projectId, selectedAdapterIds, cancellationToken);
+        var cardTypes = await ReadCardTypesAsync(projectId, cancellationToken);
         var plans = new List<InstallationPlan>();
 
         foreach (var adapterId in selected)
@@ -93,6 +95,7 @@ public sealed class UnifiedAgentInstaller(
                 project.RootPath,
                 projectMcpEndpoint,
                 accessToken,
+                cardTypes,
                 cancellationToken));
         }
 
@@ -113,6 +116,7 @@ public sealed class UnifiedAgentInstaller(
     {
         var (project, selected, unknown) = await ResolveSelectionAsync(
             projectId, selectedAdapterIds, cancellationToken);
+        var cardTypes = await ReadCardTypesAsync(projectId, cancellationToken);
         var results = new List<AgentInstallationResult>();
 
         foreach (var adapterId in selected)
@@ -124,6 +128,7 @@ public sealed class UnifiedAgentInstaller(
                     project.RootPath,
                     projectMcpEndpoint,
                     accessToken,
+                    cardTypes,
                     cancellationToken));
             }
             catch (Exception exception) when (exception is not OperationCanceledException)
@@ -141,6 +146,78 @@ public sealed class UnifiedAgentInstaller(
             projectMcpEndpoint,
             results,
             unknown);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<IReadOnlyList<AgentInstallationResult>> ReprojectCardTypesAsync(
+        string projectId,
+        string projectMcpEndpoint,
+        string? accessToken,
+        CancellationToken cancellationToken)
+    {
+        var project = await projects.FindAsync(projectId, cancellationToken)
+            ?? throw new KeyNotFoundException($"Unknown Aiko project: {projectId}");
+        var cardTypes = await ReadCardTypesAsync(projectId, cancellationToken);
+        var results = new List<AgentInstallationResult>();
+
+        foreach (var adapter in adaptersById.Values.OrderBy(item => item.DisplayName, StringComparer.Ordinal))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            // Only the adapters already connected to this project: writing agent files into a project that
+            // never installed that agent would be an unasked-for change to someone's working copy.
+            if (!await adapter.IsProjectConfiguredAsync(project.RootPath, cancellationToken))
+            {
+                continue;
+            }
+
+            try
+            {
+                results.Add(await adapter.ApplyProjectInstallAsync(
+                    project.RootPath,
+                    projectMcpEndpoint,
+                    accessToken,
+                    cardTypes,
+                    cancellationToken));
+            }
+            catch (Exception exception) when (exception is not OperationCanceledException)
+            {
+                results.Add(new AgentInstallationResult(
+                    adapter.Id,
+                    false,
+                    [],
+                    [$"Adapter re-projection failed: {exception.Message}"]));
+            }
+        }
+
+        return results;
+    }
+
+    /// <summary>
+    /// Reads the project's card types for the adapters that generate a command per type.
+    /// </summary>
+    /// <remarks>
+    /// A failure is not fatal: the MCP entry and the stage commands do not depend on the set of types, so a
+    /// project whose definitions cannot be read still gets a usable agent configuration.
+    /// </remarks>
+    private async ValueTask<IReadOnlyList<CardTypeDescriptor>> ReadCardTypesAsync(
+        string projectId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var definition = await definitions.ReadAsync(projectId, cancellationToken);
+            return definition.Workflows
+                .Select(workflow => new CardTypeDescriptor(
+                    workflow.Id,
+                    workflow.Title,
+                    workflow.Description))
+                .OrderBy(type => type.Title, StringComparer.Ordinal)
+                .ToArray();
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            return [];
+        }
     }
 
     /// <inheritdoc />

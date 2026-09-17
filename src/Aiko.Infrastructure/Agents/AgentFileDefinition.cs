@@ -1,6 +1,20 @@
 namespace Aiko.Infrastructure.Agents;
 
 /// <summary>
+/// Marks the files and blocks Aiko owns inside an agent's configuration.
+/// </summary>
+/// <remarks>
+/// The marker is the whole ownership check: a file carrying it may be replaced or deleted, and one without it
+/// never is. It lives beside the definition rather than inside the record because a primary constructor's
+/// default value cannot reference the record's own members.
+/// </remarks>
+internal static class AgentFileMarkers
+{
+    /// <summary>Marks a whole file as Aiko's, for the files nothing else writes to.</summary>
+    public const string Managed = "<!-- Managed by Aiko -->";
+}
+
+/// <summary>
 /// Description of an agent configuration file: path, purpose, integration kind
 /// and desired content.
 /// </summary>
@@ -25,11 +39,12 @@ internal sealed record AgentFileDefinition(
     AgentFileKind Kind,
     string Content,
     string ServerKey = "aiko",
-    string OwnedMarker = "<!-- Managed by Aiko -->",
+    string OwnedMarker = AgentFileMarkers.Managed,
     string BlockMarkerName = "aiko",
     string? AccessToken = null,
     string? McpTransport = null)
 {
+
     /// <summary>
     /// Creates a definition for an HTTP MCP server entry in the root mcpServers object.
     /// </summary>

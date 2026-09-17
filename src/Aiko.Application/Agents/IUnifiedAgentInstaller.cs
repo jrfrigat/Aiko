@@ -72,4 +72,25 @@ public interface IUnifiedAgentInstaller
         string projectId,
         IReadOnlyList<string> selectedAdapterIds,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Re-applies the project files that are derived from the project's card types - the per-type
+    /// <c>/aiko-create-&lt;type&gt;</c> commands - and removes the ones whose type no longer exists.
+    /// </summary>
+    /// <remarks>
+    /// Called when a workflow is created, renamed or removed: the set of card types is project data, while
+    /// the agent files are a projection of it, so the projection is refreshed where the data changes. Only
+    /// adapters already connected to the project are touched, so this never writes agent files into a project
+    /// that did not ask for them.
+    /// </remarks>
+    /// <param name="projectId">Identifier of a registered project.</param>
+    /// <param name="projectMcpEndpoint">Absolute loopback URL of the project MCP server.</param>
+    /// <param name="accessToken">The daemon's access token, as in <see cref="ApplyAsync"/>.</param>
+    /// <param name="cancellationToken">Cancellation token for the operation.</param>
+    /// <returns>One result per adapter that was re-projected; empty when none is connected.</returns>
+    ValueTask<IReadOnlyList<AgentInstallationResult>> ReprojectCardTypesAsync(
+        string projectId,
+        string projectMcpEndpoint,
+        string? accessToken,
+        CancellationToken cancellationToken);
 }

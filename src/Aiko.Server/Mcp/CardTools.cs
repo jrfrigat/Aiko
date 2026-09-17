@@ -65,15 +65,17 @@ internal sealed class CardTools(
     }
 
     [McpServerTool(Name = "aiko_create_card", Title = "Create Aiko card")]
-    [Description("Creates a story or task at revision 1 in the current project.")]
+    [Description(
+        "Creates a card of any type the project defines at revision 1 in the current project. Read "
+        + "aiko_get_project_context to see which types exist and which stage each one starts in.")]
     public async Task<string> CreateCardAsync(
         [Description("Stable file-safe card id, for example TASK-001.")]
         string cardId,
-        [Description("Card kind: story or task.")]
+        [Description("Card kind: story, task, or any type this project defines.")]
         string kind,
         [Description("Human-readable title.")]
         string title,
-        [Description("Workflow id, normally story or task.")]
+        [Description("Workflow id that defines the type, for example story or task.")]
         string workflowId,
         [Description("Initial stage id.")]
         string stageId,

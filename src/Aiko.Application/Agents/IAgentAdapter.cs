@@ -37,11 +37,16 @@ public interface IAgentAdapter
     /// The daemon's access token. The MCP endpoint requires it, so it belongs in the configuration the
     /// adapter writes; null only when there is no token (an unprotected daemon).
     /// </param>
+    /// <param name="cardTypes">
+    /// The card types the project defines. An adapter with commands derives one command per type from this,
+    /// because the set of types is project data and the adapter never reads the project itself.
+    /// </param>
     /// <param name="cancellationToken">Cancellation token for the operation.</param>
     ValueTask<InstallationPlan> PlanProjectInstallAsync(
         string projectRoot,
         string projectMcpEndpoint,
         string? accessToken,
+        IReadOnlyList<CardTypeDescriptor> cardTypes,
         CancellationToken cancellationToken);
 
     /// <summary>
@@ -52,6 +57,22 @@ public interface IAgentAdapter
         string projectRoot,
         string projectMcpEndpoint,
         string? accessToken,
+        IReadOnlyList<CardTypeDescriptor> cardTypes,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Whether Aiko is already connected to this agent in this project - that is, whether the adapter's own
+    /// files are there.
+    /// </summary>
+    /// <remarks>
+    /// Used before re-projecting the per-type commands after a card type changed: writing agent files into
+    /// a project that never installed that agent would be an unasked-for change, so re-projection only
+    /// repairs what is already connected.
+    /// </remarks>
+    /// <param name="projectRoot">Full path to the project root.</param>
+    /// <param name="cancellationToken">Cancellation token for the operation.</param>
+    ValueTask<bool> IsProjectConfiguredAsync(
+        string projectRoot,
         CancellationToken cancellationToken);
 
     /// <summary>

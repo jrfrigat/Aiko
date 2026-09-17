@@ -203,7 +203,7 @@ public class InfrastructureSpecs
             var doctor = new WorkshopDoctor(
                 dataPaths,
                 context.Catalog,
-                new UnifiedAgentInstaller([], context.Catalog),
+                new UnifiedAgentInstaller([], context.Catalog, new FileProjectDefinitionStore(context.Catalog)),
                 [],
                 new DaemonEndpointConfiguration(dataPaths),
                 new AccessTokenStore(dataPaths));
@@ -1346,6 +1346,97 @@ public class InfrastructureSpecs
     }
 
     [Fact]
+    public async Task Card_types_drive_the_generated_create_commands()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            var installer = new UnifiedAgentInstaller(
+                [new ClaudeCodeAgentAdapter()],
+                context.Catalog,
+                new FileProjectDefinitionStore(context.Catalog));
+            var endpoint = $"http://127.0.0.1:18471/mcp/projects/{context.Project.Id}";
+            var commands = Path.Combine(context.Project.RootPath, ".claude", "commands");
+
+            await installer.ApplyAsync(
+                context.Project.Id, endpoint, "test-token", ["claude-code"], CancellationToken.None);
+
+            // One type-agnostic command plus one command per type the project declares.
+            Assert.True(File.Exists(Path.Combine(commands, "aiko-create.md")));
+            Assert.True(File.Exists(Path.Combine(commands, "aiko-create-story.md")));
+            Assert.True(File.Exists(Path.Combine(commands, "aiko-create-task.md")));
+            var story = await File.ReadAllTextAsync(Path.Combine(commands, "aiko-create-story.md"));
+            Assert.Contains("kind=Story", story, StringComparison.Ordinal);
+            Assert.Contains("workflowId=story", story, StringComparison.Ordinal);
+
+            // A command an older Aiko wrote for a fixed pair of types is no longer part of the plan, so the
+            // next install sweeps it instead of leaving two ways to create the same card.
+            var legacy = Path.Combine(commands, "aiko-story-create.md");
+            await File.WriteAllTextAsync(legacy, "<!-- Managed by Aiko -->\nlegacy");
+            await installer.ApplyAsync(
+                context.Project.Id, endpoint, "test-token", ["claude-code"], CancellationToken.None);
+            Assert.False(File.Exists(legacy));
+
+            // A type the project adds gets a command of its own.
+            var store = new FileProjectDefinitionStore(context.Catalog);
+            await store.CreateWorkflowAsync(
+                context.Project.Id,
+                new WorkflowDefinition(
+                    "bug",
+                    "Bugs",
+                    [
+                        new StageDefinition(
+                            "backlog", "Backlog", 10, "Clarify the bug.", ["Bug"], null, [],
+                            new Dictionary<string, ActionPolicy>(StringComparer.Ordinal)),
+                        new StageDefinition(
+                            "done", "Done", 20, "Record the fix.", ["Bug"], null, [],
+                            new Dictionary<string, ActionPolicy>(StringComparer.Ordinal))
+                    ],
+                    1,
+                    "Something that does not work."),
+                CancellationToken.None);
+
+            await installer.ReprojectCardTypesAsync(
+                context.Project.Id, endpoint, "test-token", CancellationToken.None);
+            var bug = Path.Combine(commands, "aiko-create-bug.md");
+            Assert.True(File.Exists(bug));
+            var bugCommand = await File.ReadAllTextAsync(bug);
+            Assert.Contains("BUG-001", bugCommand, StringComparison.Ordinal);
+            Assert.Contains("Something that does not work.", bugCommand, StringComparison.Ordinal);
+
+            // Removing the type removes its command, and leaves the other types alone.
+            await store.DeleteWorkflowAsync(context.Project.Id, "bug", CancellationToken.None);
+            await installer.ReprojectCardTypesAsync(
+                context.Project.Id, endpoint, "test-token", CancellationToken.None);
+            Assert.False(File.Exists(bug));
+            Assert.True(File.Exists(Path.Combine(commands, "aiko-create-task.md")));
+        });
+    }
+
+    [Fact]
+    public async Task Card_type_commands_are_not_written_into_a_project_that_never_connected_an_agent()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            var installer = new UnifiedAgentInstaller(
+                [new ClaudeCodeAgentAdapter()],
+                context.Catalog,
+                new FileProjectDefinitionStore(context.Catalog));
+
+            await installer.ReprojectCardTypesAsync(
+                context.Project.Id,
+                $"http://127.0.0.1:18471/mcp/projects/{context.Project.Id}",
+                "test-token",
+                CancellationToken.None);
+
+            // Re-projection repairs what is connected; it never introduces an agent the project never
+            // installed, because that would be an unasked-for change to someone's working copy.
+            Assert.False(Directory.Exists(Path.Combine(context.Project.RootPath, ".claude")));
+            Assert.False(Directory.Exists(Path.Combine(context.Project.RootPath, ".zcode")));
+        });
+    }
+
+
+    [Fact]
     public async Task User_scope_state_says_whether_aiko_is_connected_to_an_agent()
     {
         var home = Path.Combine(Path.GetTempPath(), "Aiko.Specs", Guid.NewGuid().ToString("N"));
@@ -1357,7 +1448,7 @@ public class InfrastructureSpecs
             await WithInitializedProjectAsync(async context =>
             {
                 IAgentAdapter[] adapters = [new ZCodeAgentAdapter()];
-                var installer = new UnifiedAgentInstaller(adapters, context.Catalog);
+                var installer = new UnifiedAgentInstaller(adapters, context.Catalog, new FileProjectDefinitionStore(context.Catalog));
 
                 // Nothing written yet: the state says "not connected" rather than pretending the adapter
                 // is absent - the two are different facts.
@@ -1395,7 +1486,8 @@ public class InfrastructureSpecs
         {
             var installer = new UnifiedAgentInstaller(
                 [new ClaudeCodeAgentAdapter(), new CodexAgentAdapter()],
-                context.Catalog);
+                context.Catalog,
+                new FileProjectDefinitionStore(context.Catalog));
 
             var applied = await installer.ApplyAsync(
                 context.Project.Id,
@@ -1456,7 +1548,7 @@ public class InfrastructureSpecs
                 var doctor = new WorkshopDoctor(
                     dataPaths,
                     context.Catalog,
-                    new UnifiedAgentInstaller([new ClaudeCodeAgentAdapter()], context.Catalog),
+                    new UnifiedAgentInstaller([new ClaudeCodeAgentAdapter()], context.Catalog, new FileProjectDefinitionStore(context.Catalog)),
                     [new ClaudeCodeAgentAdapter()],
                     configuration,
                     new AccessTokenStore(dataPaths));
@@ -1487,7 +1579,7 @@ public class InfrastructureSpecs
                 new CursorAgentAdapter(),
                 new ZCodeAgentAdapter()
             ];
-            var installer = new UnifiedAgentInstaller(adapters, context.Catalog);
+            var installer = new UnifiedAgentInstaller(adapters, context.Catalog, new FileProjectDefinitionStore(context.Catalog));
             var options = await installer.DiscoverAsync(CancellationToken.None);
             Assert.Equal(4, options.Count);
 
@@ -1528,7 +1620,7 @@ public class InfrastructureSpecs
                 new CursorAgentAdapter(),
                 new ZCodeAgentAdapter()
             ];
-            var installer = new UnifiedAgentInstaller(adapters, context.Catalog);
+            var installer = new UnifiedAgentInstaller(adapters, context.Catalog, new FileProjectDefinitionStore(context.Catalog));
             var codexConfig = Path.Combine(context.Project.RootPath, ".codex", "config.toml");
             var cursorConfig = Path.Combine(context.Project.RootPath, ".cursor", "mcp.json");
             var zcodeConfig = Path.Combine(context.Project.RootPath, ".zcode", "config.json");
@@ -1606,7 +1698,7 @@ public class InfrastructureSpecs
                 new CodexAgentAdapter(),
                 new CursorAgentAdapter()
             ];
-            var installer = new UnifiedAgentInstaller(adapters, context.Catalog);
+            var installer = new UnifiedAgentInstaller(adapters, context.Catalog, new FileProjectDefinitionStore(context.Catalog));
             var codexConfig = Path.Combine(context.Project.RootPath, ".codex", "config.toml");
             var cursorConfig = Path.Combine(context.Project.RootPath, ".cursor", "mcp.json");
             var cursorRule = Path.Combine(context.Project.RootPath, ".cursor", "rules", "aiko.mdc");

@@ -369,7 +369,7 @@ static async Task<int> AgentInstallAsync(string[] args, bool uninstall)
     var database = new AikoDatabase(dataPaths);
     await database.InitializeAsync();
     var catalog = new SqliteProjectCatalog(database);
-    var installer = new UnifiedAgentInstaller(CreateAdapters(), catalog);
+    var installer = new UnifiedAgentInstaller(CreateAdapters(), catalog, new FileProjectDefinitionStore(catalog));
 
     if (uninstall)
     {
@@ -483,7 +483,7 @@ static async Task<int> RepairAsync(string[] args)
     await database.InitializeAsync();
     var catalog = new SqliteProjectCatalog(database);
     var reindexer = new ProjectReindexer(catalog, database);
-    var installer = new UnifiedAgentInstaller(CreateAdapters(), catalog);
+    var installer = new UnifiedAgentInstaller(CreateAdapters(), catalog, new FileProjectDefinitionStore(catalog));
     var settings = await new DaemonEndpointConfiguration(dataPaths).TryReadAsync();
     // Rewriting agent configurations is the point of a repair, so the token has to be at hand: the
     // configurations carry it, and a repair that dropped it would leave agents at 401.
@@ -573,7 +573,7 @@ static async Task<WorkshopDiagnostics> InspectAsync(string? projectId)
     var database = new AikoDatabase(dataPaths);
     await database.InitializeAsync();
     var catalog = new SqliteProjectCatalog(database);
-    var installer = new UnifiedAgentInstaller(CreateAdapters(), catalog);
+    var installer = new UnifiedAgentInstaller(CreateAdapters(), catalog, new FileProjectDefinitionStore(catalog));
     var diagnostics = new WorkshopDoctor(
         dataPaths,
         catalog,

@@ -33,7 +33,8 @@ public sealed class ClaudeCodeAgentAdapter : BuiltInAgentAdapter
     private protected override IReadOnlyList<AgentFileDefinition> CreateFiles(
         string projectRoot,
         string projectMcpEndpoint,
-        string? accessToken)
+        string? accessToken,
+        IReadOnlyList<CardTypeDescriptor> cardTypes)
     {
         AgentFileDefinition Command(string name, string content) =>
             new(
@@ -57,8 +58,10 @@ public sealed class ClaudeCodeAgentAdapter : BuiltInAgentAdapter
                 "Install the Aiko workflow skill.",
                 AgentFileKind.OwnedText,
                 AgentTemplates.Skill),
-            Command("aiko-story-create", AgentTemplates.StoryCreate),
-            Command("aiko-task-create", AgentTemplates.TaskCreate),
+            Command("aiko-create", AgentTemplates.Create),
+            .. cardTypes.Select(type => Command(
+                $"aiko-create-{type.Id}",
+                AgentTemplates.CreateCard(type))),
             Command("aiko-next-stage", AgentTemplates.NextStage),
             Command("aiko-analyze", AgentTemplates.Analyze),
             Command("aiko-implement", AgentTemplates.Implement),
@@ -71,6 +74,12 @@ public sealed class ClaudeCodeAgentAdapter : BuiltInAgentAdapter
             Command("aiko-ui", AgentTemplates.UiCommand)
         ];
     }
+
+    /// <inheritdoc />
+    private protected override IReadOnlyList<OwnedDirectory> OwnedDirectories(string projectRoot) =>
+    [
+        new(Path.Combine(projectRoot, ".claude", "commands"), "aiko-*.md")
+    ];
 
     private protected override IReadOnlyList<AgentFileDefinition> CreateUserFiles()
     {

@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
@@ -86,6 +87,49 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         var text = FirstText(context);
         Assert.False(string.IsNullOrWhiteSpace(text));
         Assert.Contains("Aiko project context", text, StringComparison.Ordinal);
+        // The card types come from the project's own workflows: an agent that does not learn them here
+        // cannot create a card of a type the user added.
+        Assert.Contains("## Card types of this project", text, StringComparison.Ordinal);
+        Assert.Contains("### Story (workflowId: story)", text, StringComparison.Ordinal);
+        Assert.Contains("### Task (workflowId: task)", text, StringComparison.Ordinal);
+        Assert.Contains("backlog: a new card starts here", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Project_context_describes_a_card_type_the_project_added()
+    {
+        using var http = new HttpClient { BaseAddress = fixture.BaseUrl };
+        using var created = await http.PostAsJsonAsync(
+            $"api/v1/projects/{fixture.ProjectId}/workflows",
+            new
+            {
+                id = "bug",
+                title = "Bugs",
+                description = "Something that does not work.",
+                stages = new object[]
+                {
+                    new
+                    {
+                        id = "backlog",
+                        title = "Backlog",
+                        order = 10,
+                        instruction = "Clarify the bug.",
+                        allowedCardKinds = new[] { "Bug" },
+                        defaultAgentAdapterId = (string?)null,
+                        requiredArtifacts = Array.Empty<object>(),
+                        actionPolicies = new Dictionary<string, string>()
+                    }
+                }
+            });
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+
+        await using var client = await ConnectAsync();
+        var context = await client.CallToolAsync(
+            "aiko_get_project_context",
+            cancellationToken: CancellationToken.None);
+        var text = FirstText(context);
+        Assert.Contains("### Bug (workflowId: bug)", text, StringComparison.Ordinal);
+        Assert.Contains("Something that does not work.", text, StringComparison.Ordinal);
     }
 
     [Fact]
