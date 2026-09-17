@@ -1084,6 +1084,10 @@
  * filled with a panel, tinted with the accent and underlined, and the rest reading as outline text
  * that wash on hover. Flare's native strip is a bare underline, so it is redressed once here
  * instead of per screen, and every tab set in the cockpit reads the same.
+ *
+ * Workaround for tabs-filled-active-variant.md in the Flare issues: no variant combines a filled,
+ * top-rounded active tab with the accent indicator, and the fill and radius are not tokens. The
+ * whole block goes away once that lands - the markup does not change.
  * ------------------------------------------------------------------------------------------- */
 
 .flare-tabs__bar-wrap {

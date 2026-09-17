@@ -10,7 +10,8 @@
     @* ChildContent travels as a parameter, not as child markup. Blazor compiles markup children into a
        fragment even when they render nothing, and FlareSelect prefers that fragment over Items - so an
        Items-based field would silently lose its list and show only the "no value" row. Passed this way a
-       field with no children hands over null and FlareSelect reads Items as intended. *@
+       field with no children hands over null and FlareSelect reads Items as intended.
+       Workaround for select-empty-child-content-suppresses-items.md in the Flare issues. *@
     <FlareSelect TValue="string"
                  Value="@Value"
                  ValueChanged="OnValueChanged"

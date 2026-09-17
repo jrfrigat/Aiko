@@ -13,7 +13,10 @@ else
 {
     <FlareStack Gap="FlareSpacing.Medium">
         @* Which card types the board draws. It is a filter rather than a route, so a person can show two
-           types at once and the address stays the board's own; "Combined" is the absence of a filter. *@
+           types at once and the address stays the board's own; "Combined" is the absence of a filter.
+           FlareMenu with a toggle in its Activator slot is the idiom for a button that opens a menu:
+           Flare has no FlareMenuButton yet (menu-button.md in the Flare issues), and its absence is also
+           why the menu's ARIA sits on the activator wrapper rather than on the button itself. *@
         <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
             <FlareMenu AriaLabel="@Loc.Get("BoardTypesFilter")" Anchor="MenuAnchor.BottomLeft">
                 <Activator>
