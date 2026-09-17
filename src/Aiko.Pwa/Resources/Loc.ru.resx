@@ -257,8 +257,7 @@
   <data name="AgentConnectFailed" xml:space="preserve"><value>Не удалось изменить подключение {0}: {1}</value></data>
   <data name="CardNotFound" xml:space="preserve"><value>Такой карточки на доске проекта нет.</value></data>
   <data name="OverviewGroup" xml:space="preserve"><value>Обзор</value></data>
-  <data name="CurrentProjectGroup" xml:space="preserve"><value>Текущий проект ({0})</value></data>
-  <data name="GlobalSystemGroup" xml:space="preserve"><value>Глобальная система</value></data>
+  <data name="CurrentProjectGroup" xml:space="preserve"><value>Проект ({0})</value></data>
   <data name="ProjectOverviewStats" xml:space="preserve"><value>Обзор проекта / статистика</value></data>
   <data name="DaemonMcpBridges" xml:space="preserve"><value>Демон и мосты MCP</value></data>
   <data name="LiveTag" xml:space="preserve"><value>live</value></data>

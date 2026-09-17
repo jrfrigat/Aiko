@@ -257,8 +257,7 @@
   <data name="AgentConnectFailed" xml:space="preserve"><value>Could not change the {0} connection: {1}</value></data>
   <data name="CardNotFound" xml:space="preserve"><value>No such card on this project's board.</value></data>
   <data name="OverviewGroup" xml:space="preserve"><value>Overview</value></data>
-  <data name="CurrentProjectGroup" xml:space="preserve"><value>Current project ({0})</value></data>
-  <data name="GlobalSystemGroup" xml:space="preserve"><value>Global system</value></data>
+  <data name="CurrentProjectGroup" xml:space="preserve"><value>Project ({0})</value></data>
   <data name="ProjectOverviewStats" xml:space="preserve"><value>Project overview / stats</value></data>
   <data name="DaemonMcpBridges" xml:space="preserve"><value>Daemon &amp; MCP bridges</value></data>
   <data name="LiveTag" xml:space="preserve"><value>live</value></data>

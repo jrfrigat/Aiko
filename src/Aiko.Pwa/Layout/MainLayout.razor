@@ -193,6 +193,30 @@
                         </BadgeContent>
                     </FlareNavLink>
 
+                    @* The installation's own screens sit with the dashboard, in the same group: they describe
+                       the daemon, not the open project, and the project below them is what changes as you
+                       move between projects. *@
+                    <FlareNavLink Href="/daemon">
+                        <ChildContent>@Loc.Get("DaemonMcpBridges")</ChildContent>
+                        <BadgeContent>
+                            @if (State.EventsConnected)
+                            {
+                                <span class="aiko-tag aiko-tag--live">
+                                    <span class="aiko-dot aiko-dot--pulse"></span>@Loc.Get("LiveTag")
+                                </span>
+                            }
+                        </BadgeContent>
+                    </FlareNavLink>
+                    <FlareNavLink Href="/templates">
+                        <ChildContent>@Loc.Get("TemplatesNav")</ChildContent>
+                        <BadgeContent>
+                            <span class="aiko-tag aiko-tag--quiet">@DisplayFormat.Number(State.Templates.Count)</span>
+                        </BadgeContent>
+                    </FlareNavLink>
+                    <FlareNavLink Href="@SettingsHref">
+                        <ChildContent>@Loc.Get("GlobalSettingsNav")</ChildContent>
+                    </FlareNavLink>
+
                     @if (State.SelectedProject is { } open)
                     {
                         <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow aiko-rail__group">
@@ -222,30 +246,6 @@
                             <ChildContent>@Loc.Get("ProjectSettingsNav")</ChildContent>
                         </FlareNavLink>
                     }
-
-                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow aiko-rail__group">
-                        @Loc.Get("GlobalSystemGroup")
-                    </FlareText>
-                    <FlareNavLink Href="/daemon">
-                        <ChildContent>@Loc.Get("DaemonMcpBridges")</ChildContent>
-                        <BadgeContent>
-                            @if (State.EventsConnected)
-                            {
-                                <span class="aiko-tag aiko-tag--live">
-                                    <span class="aiko-dot aiko-dot--pulse"></span>@Loc.Get("LiveTag")
-                                </span>
-                            }
-                        </BadgeContent>
-                    </FlareNavLink>
-                    <FlareNavLink Href="/templates">
-                        <ChildContent>@Loc.Get("TemplatesNav")</ChildContent>
-                        <BadgeContent>
-                            <span class="aiko-tag aiko-tag--quiet">@DisplayFormat.Number(State.Templates.Count)</span>
-                        </BadgeContent>
-                    </FlareNavLink>
-                    <FlareNavLink Href="@SettingsHref">
-                        <ChildContent>@Loc.Get("GlobalSettingsNav")</ChildContent>
-                    </FlareNavLink>
                 </FlareStack>
             </ChildContent>
 

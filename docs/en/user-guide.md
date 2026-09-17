@@ -2,7 +2,8 @@
 
 ## The project
 
-The project page (the first item in the rail) answers two questions: what this project is and how its cards
+The project page (the first item of the rail's **Project** group) answers two questions: what this project is
+and how its cards
 are doing. It shows the project's path, its workflows and how many stages they have, the board projections
 and the relations, plus the cards per stage of each pipeline. "Re-index project" rebuilds the daemon's index
 from the `.aiko` files - the one write this screen performs, and one that is safe to repeat.
