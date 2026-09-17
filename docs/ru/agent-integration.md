@@ -22,7 +22,7 @@ http://127.0.0.1:<port>/mcp
 aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<projectId>
 ```
 
-## Набор инструментов (27 tools)
+## Набор инструментов (28 tools)
 
 - **Контекст проекта** - `aiko_get_project_context`, `aiko_open_ui`.
 - **Карточки** - `aiko_list_cards`, `aiko_get_card`, `aiko_create_card`, `aiko_update_card`,
@@ -31,7 +31,7 @@ aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<projectId>
   `aiko_complete_stage`, `aiko_pause_execution`, `aiko_handoff_execution`,
   `aiko_resume_execution`, `aiko_report_agent_state`, `aiko_report_commit`, `aiko_approve_commit`.
 - **Память** - `aiko_search_memory`, `aiko_store_memory`.
-- **Daemon (глобальные)** - `aiko_init_project`, `aiko_list_projects`,
+- **Daemon (глобальные)** - `aiko_init_project`, `aiko_list_projects`, `aiko_list_templates`,
   `aiko_create_card_in_project`, `aiko_doctor`, `aiko_reindex`, `aiko_get_settings`, `aiko_token`,
   `aiko_backup`.
 
@@ -86,7 +86,7 @@ UI пока нет, таблица говорит это прямо, а не д�
 
 | Действие | Скилл агента | MCP tool | UI |
 | :-- | :-- | :-- | :-- |
-| Зарегистрировать проект | `/aiko-init` | `aiko_init_project` | Дашборд - *Добавить проект* (с обзором папок) |
+| Зарегистрировать проект по выбранному шаблону | `/aiko-init` | `aiko_list_templates`, `aiko_init_project` | Дашборд - *Добавить проект* (обзор папок + выбор шаблона) |
 | Список проектов | `/aiko-list-projects` | `aiko_list_projects` | Дашборд - список проектов |
 | Открыть доску | `/aiko-ui` | `aiko_open_ui` | `aiko ui` или адрес в верхней панели |
 | Создать story / task | `/aiko-story-create`, `/aiko-task-create` | `aiko_create_card`, `aiko_create_card_in_project` | Доска - *Создать карточку* |

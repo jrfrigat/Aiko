@@ -15,6 +15,9 @@ namespace Aiko.Infrastructure.Projects;
     WriteIndented = true,
     UseStringEnumConverter = true)]
 [JsonSerializable(typeof(ProjectManifest))]
+[JsonSerializable(typeof(ProjectTemplate))]
+[JsonSerializable(typeof(TemplateDocument))]
+[JsonSerializable(typeof(AppSettings))]
 [JsonSerializable(typeof(WorkflowDefinition))]
 [JsonSerializable(typeof(BoardProjectionDefinition))]
 [JsonSerializable(typeof(Card))]

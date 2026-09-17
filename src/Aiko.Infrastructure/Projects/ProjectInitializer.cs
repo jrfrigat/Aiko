@@ -1,20 +1,26 @@
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using Aiko.Application.Contracts;
-using Aiko.Domain.Cards;
-using Aiko.Domain.Workflow;
 using Aiko.Infrastructure.Storage;
 
 namespace Aiko.Infrastructure.Projects;
 
 /// <summary>
-/// Project initializer: creates the .aiko structure, default documents
-/// (workflows, projections, memory), applies the gitignore policy and runs the initial reindex.
+/// Project initializer: creates the .aiko structure, applies the chosen template (workflows, projections,
+/// starting memory, default settings), applies the gitignore policy and runs the initial reindex.
 /// </summary>
+/// <remarks>
+/// The template is the only source of "what a project starts as". The workflows, projections and memory
+/// files that used to be hardcoded here now live in <see cref="BuiltInProjectTemplate"/>, and the settings
+/// come from the template's own section or, when it leaves them out, from the global application settings.
+/// Nothing is ever overwritten: a file that already exists in the project belongs to the user, so re-running
+/// an init fills gaps and records provenance rather than resetting a working project.
+/// </remarks>
 public sealed class ProjectInitializer(
     IProjectCatalog catalog,
     IProjectReindexer reindexer,
-    IAppSettingsStore settings) : IProjectInitializer
+    IAppSettingsStore settings,
+    IProjectTemplateStore templates) : IProjectInitializer
 {
     private const int CurrentSchemaVersion = 1;
 
@@ -55,6 +61,12 @@ public sealed class ProjectInitializer(
         var stitchRoot = AikoProjectPaths.DataRoot(rootPath);
         CreateDirectories(stitchRoot);
 
+        // The template is resolved before the manifest, because the manifest records which template built
+        // the project. An init without a choice uses the default template, which is written on first use.
+        var template = request.TemplateId is { Length: > 0 } templateId
+            ? await templates.ReadAsync(templateId, cancellationToken)
+            : await templates.EnsureDefaultAsync(cancellationToken);
+
         var manifestPath = Path.Combine(stitchRoot, "project.json");
         var manifest = await ReadManifestAsync(manifestPath, cancellationToken)
             ?? new ProjectManifest(
@@ -63,7 +75,9 @@ public sealed class ProjectInitializer(
                 NormalizeProjectName(request.Name, rootPath),
                 rootPath,
                 request.GitPolicy,
-                DateTimeOffset.UtcNow);
+                DateTimeOffset.UtcNow,
+                template.Id,
+                template.Version);
 
         await WriteNewJsonAsync(
             manifestPath,
@@ -71,7 +85,7 @@ public sealed class ProjectInitializer(
             ProjectJsonContext.Default.ProjectManifest,
             cancellationToken);
 
-        await WriteDefaultsAsync(stitchRoot, cancellationToken);
+        await ApplyTemplateAsync(stitchRoot, template, cancellationToken);
         await WriteNewJsonAsync(
             Path.Combine(stitchRoot, "relations.json"),
             new RelationDocument(CurrentSchemaVersion, 0, []),
@@ -82,29 +96,75 @@ public sealed class ProjectInitializer(
         var project = new RegisteredProject(manifest.Id, manifest.Name, rootPath);
         await catalog.SaveAsync(project, cancellationToken);
 
-        // Copy the global defaults into the project on first initialization; afterwards the
-        // project settings are authoritative and editing globals does not affect it.
-        await CopyGlobalDefaultsAsync(project, cancellationToken);
+        // The settings snapshot is taken once, at init: afterwards the project's own file is authoritative
+        // and editing the template or the global settings does not reach it.
+        await CopyDefaultSettingsAsync(project, template, cancellationToken);
 
         await reindexer.ReindexAsync(project.Id, cancellationToken);
         return project;
     }
 
-    private async ValueTask CopyGlobalDefaultsAsync(
-        RegisteredProject project,
+    /// <summary>
+    /// Writes the template's documents into the project, skipping everything that already exists.
+    /// </summary>
+    private static async ValueTask ApplyTemplateAsync(
+        string stitchRoot,
+        ProjectTemplate template,
         CancellationToken cancellationToken)
     {
-        var global = await settings.ReadGlobalAsync(cancellationToken);
-        if (global is null)
+        foreach (var workflow in template.Workflows)
+        {
+            await WriteNewJsonAsync(
+                Path.Combine(stitchRoot, "workflows", $"{workflow.Id}.json"),
+                workflow,
+                ProjectJsonContext.Default.WorkflowDefinition,
+                cancellationToken);
+        }
+
+        foreach (var projection in template.Projections)
+        {
+            await WriteNewJsonAsync(
+                Path.Combine(stitchRoot, "projections", $"{projection.Id}.json"),
+                projection,
+                ProjectJsonContext.Default.BoardProjectionDefinition,
+                cancellationToken);
+        }
+
+        foreach (var document in template.MemoryFiles)
+        {
+            var path = Path.Combine(stitchRoot, document.RelativePath);
+            var directory = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            await WriteNewTextAsync(path, document.Content, cancellationToken);
+        }
+    }
+
+    /// <summary>
+    /// Gives the project its settings snapshot: the template's own section when it has one, otherwise the
+    /// global application settings.
+    /// </summary>
+    private async ValueTask CopyDefaultSettingsAsync(
+        RegisteredProject project,
+        ProjectTemplate template,
+        CancellationToken cancellationToken)
+    {
+        if (await settings.ReadProjectAsync(project.Id, cancellationToken) is not null)
         {
             return;
         }
 
-        var existing = await settings.ReadProjectAsync(project.Id, cancellationToken);
-        if (existing is null)
+        var defaults = template.Settings ?? await settings.ReadGlobalAsync(cancellationToken);
+        if (defaults is null)
         {
-            await settings.SaveProjectAsync(project.Id, global, cancellationToken);
+            // Nothing to copy: the project resolves through its own safe defaults instead.
+            return;
         }
+
+        await settings.SaveProjectAsync(project.Id, defaults, cancellationToken);
     }
 
     private static void CreateDirectories(string stitchRoot)
@@ -154,134 +214,6 @@ public sealed class ProjectInitializer(
 
         return manifest;
     }
-
-    private static async ValueTask WriteDefaultsAsync(
-        string stitchRoot,
-        CancellationToken cancellationToken)
-    {
-        await WriteNewJsonAsync(
-            Path.Combine(stitchRoot, "workflows", "story.json"),
-            CreateStoryWorkflow(),
-            ProjectJsonContext.Default.WorkflowDefinition,
-            cancellationToken);
-        await WriteNewJsonAsync(
-            Path.Combine(stitchRoot, "workflows", "task.json"),
-            CreateTaskWorkflow(),
-            ProjectJsonContext.Default.WorkflowDefinition,
-            cancellationToken);
-
-        foreach (var projection in CreateProjections())
-        {
-            await WriteNewJsonAsync(
-                Path.Combine(stitchRoot, "projections", $"{projection.Id}.json"),
-                projection,
-                ProjectJsonContext.Default.BoardProjectionDefinition,
-                cancellationToken);
-        }
-
-        await WriteNewTextAsync(
-            Path.Combine(stitchRoot, "memory", "index.md"),
-            "# Память проекта\n\nЭтот индекс содержит ссылки на устойчивые знания проекта.\n",
-            cancellationToken);
-        await WriteNewTextAsync(
-            Path.Combine(stitchRoot, "memory", "architecture.md"),
-            "# Архитектура\n\n",
-            cancellationToken);
-        await WriteNewTextAsync(
-            Path.Combine(stitchRoot, "memory", "conventions.md"),
-            "# Соглашения\n\n",
-            cancellationToken);
-        await WriteNewTextAsync(
-            Path.Combine(stitchRoot, "memory", "lessons.md"),
-            "# Накопленный опыт\n\n",
-            cancellationToken);
-    }
-
-    private static WorkflowDefinition CreateStoryWorkflow() =>
-        new(
-            "story",
-            "Stories",
-            [
-                Stage("backlog", "Бэклог", 10, CardKind.Story, "Уточни ценность, границы и связи story."),
-                Stage(
-                    "elaboration",
-                    "Проработка",
-                    20,
-                    CardKind.Story,
-                    "Проработай требования и архитектурные ограничения story.",
-                    [
-                        new ArtifactRequirement(
-                            "analysis.md",
-                            "Результат проработки story.",
-                            MissingArtifactPolicy.NeedsAttention)
-                    ]),
-                Stage("ready", "Готово к декомпозиции", 30, CardKind.Story, "Проверь готовность story к декомпозиции."),
-                Stage("in-progress", "В работе", 40, CardKind.Story, "Координируй реализацию дочерних задач."),
-                Stage("done", "Завершено", 50, CardKind.Story, "Проверь достижение результата story.")
-            ],
-            1);
-
-    private static WorkflowDefinition CreateTaskWorkflow() =>
-        new(
-            "task",
-            "Tasks",
-            [
-                Stage("backlog", "Бэклог", 10, CardKind.Task, "Уточни запрос, scope и связи задачи."),
-                Stage(
-                    "analysis",
-                    "Анализ",
-                    20,
-                    CardKind.Task,
-                    "Проанализируй задачу, риски и варианты реализации.",
-                    [
-                        new ArtifactRequirement(
-                            "analysis.md",
-                            "Результат анализа задачи.",
-                            MissingArtifactPolicy.NeedsAttention)
-                    ]),
-                Stage(
-                    "implementation",
-                    "Реализация",
-                    30,
-                    CardKind.Task,
-                    "Реализуй задачу и зафиксируй фактически измененные файлы.",
-                    [
-                        new ArtifactRequirement(
-                            "implementation.md",
-                            "Итог реализации и проверки.",
-                            MissingArtifactPolicy.Warn)
-                    ]),
-                Stage("review", "Проверка", 40, CardKind.Task, "Проверь результат, тесты и отклонения от scope."),
-                Stage("done", "Завершено", 50, CardKind.Task, "Зафиксируй итог выполнения задачи.")
-            ],
-            1);
-
-    private static StageDefinition Stage(
-        string id,
-        string title,
-        int order,
-        CardKind kind,
-        string instruction,
-        IReadOnlyList<ArtifactRequirement>? artifacts = null) =>
-        new(
-            id,
-            title,
-            order,
-            instruction,
-            [kind],
-            null,
-            artifacts ?? [],
-            new Dictionary<string, ActionPolicy>(StringComparer.Ordinal));
-
-    private static IReadOnlyList<BoardProjectionDefinition> CreateProjections() =>
-    [
-        new(CurrentSchemaVersion, "tasks", "Tasks", "kanban", "task", "stage", EmptyFilters()),
-        new(CurrentSchemaVersion, "stories", "Stories", "kanban", "story", "stage", EmptyFilters()),
-        new(CurrentSchemaVersion, "combined", "Combined", "swimlane", null, "story", EmptyFilters())
-    ];
-
-    private static IReadOnlyDictionary<string, string> EmptyFilters() =>
-        new Dictionary<string, string>(StringComparer.Ordinal);
 
     private static string NormalizeProjectName(string? requestedName, string rootPath)
     {

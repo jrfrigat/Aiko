@@ -22,7 +22,7 @@ Clients without reliable Streamable HTTP use the stdio proxy:
 aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<projectId>
 ```
 
-## The tool set (27 tools)
+## The tool set (28 tools)
 
 - **Project context** - `aiko_get_project_context`, `aiko_open_ui`.
 - **Cards** - `aiko_list_cards`, `aiko_get_card`, `aiko_create_card`, `aiko_update_card`,
@@ -31,8 +31,9 @@ aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<projectId>
   `aiko_complete_stage`, `aiko_pause_execution`, `aiko_handoff_execution`,
   `aiko_resume_execution`, `aiko_report_agent_state`, `aiko_report_commit`, `aiko_approve_commit`.
 - **Memory** - `aiko_search_memory`, `aiko_store_memory`.
-- **Daemon (global)** - `aiko_init_project`, `aiko_list_projects`, `aiko_create_card_in_project`,
-  `aiko_doctor`, `aiko_reindex`, `aiko_get_settings`, `aiko_token`, `aiko_backup`.
+- **Daemon (global)** - `aiko_init_project`, `aiko_list_projects`, `aiko_list_templates`,
+  `aiko_create_card_in_project`, `aiko_doctor`, `aiko_reindex`, `aiko_get_settings`, `aiko_token`,
+  `aiko_backup`.
 
 Tool descriptions instruct agents to fetch the project context first; the installed skills and
 rules reinforce this per agent.
@@ -84,7 +85,7 @@ has no path yet, the table says so rather than pretending the sets are already e
 
 | Action | Agent skill | MCP tool | UI |
 | :-- | :-- | :-- | :-- |
-| Register a project | `/aiko-init` | `aiko_init_project` | Dashboard - *Add project* (with the folder browser) |
+| Register a project from a chosen template | `/aiko-init` | `aiko_list_templates`, `aiko_init_project` | Dashboard - *Add project* (folder browser + template select) |
 | List projects | `/aiko-list-projects` | `aiko_list_projects` | Dashboard - project list |
 | Open the board | `/aiko-ui` | `aiko_open_ui` | `aiko ui`, or the URL in the app bar |
 | Create a story / task | `/aiko-story-create`, `/aiko-task-create` | `aiko_create_card`, `aiko_create_card_in_project` | Board - *Create card* |

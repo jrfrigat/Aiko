@@ -101,7 +101,7 @@ directories and the database are never deleted automatically.
 dotnet test Aiko.slnx
 ```
 
-93 xUnit facts across four suites: domain rules, infrastructure/file/SQLite behavior, daemon
+96 xUnit facts across four suites: domain rules, infrastructure/file/SQLite behavior, daemon
 integration (MCP tools plus the REST API, its status codes and the loopback/Host/Origin guard) and the
 client JSON contract. The integration suite boots its own daemon on a random port with an isolated
 database - no manual orchestration needed.
@@ -154,7 +154,7 @@ forwarding, loopback-only):
 aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<projectId>
 ```
 
-The stable tool set (27 tools): project context, card CRUD and linking, taking a card, the full
+The stable tool set (28 tools): project context, card CRUD and linking, taking a card, the full
 stage-execution life cycle (start / report progress / request scope expansion / complete / pause /
 handoff / resume / report agent state), memory search and store, project registration and listing,
 diagnostics and reindex, and opening the UI. Tool

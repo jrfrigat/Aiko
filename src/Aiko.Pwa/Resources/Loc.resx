@@ -251,6 +251,9 @@
   <data name="ActiveProjectTag" xml:space="preserve"><value>(active)</value></data>
   <data name="OpenProjectLabel" xml:space="preserve"><value>Open project</value></data>
   <data name="DaemonRoundTrip" xml:space="preserve"><value>round-trip</value></data>
+  <data name="Template" xml:space="preserve"><value>Template</value></data>
+  <data name="TemplateHint" xml:space="preserve"><value>Copied into the project at creation: it fixes the stages and their artifacts, the board projections, the starting memory and the default settings. Changing the template later affects only projects created afterwards.</value></data>
+  <data name="TemplateFirstProjectHint" xml:space="preserve"><value>This installation has no templates yet; the first project is created from the built-in default template, which is written next to the daemon's database.</value></data>
   <data name="ProjectLabel" xml:space="preserve"><value>Project</value></data>
   <data name="CoreFallbackConfig" xml:space="preserve"><value>Core fallback config</value></data>
   <data name="ImmutableSync" xml:space="preserve"><value>Immutable sync</value></data>

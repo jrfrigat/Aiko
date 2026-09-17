@@ -156,11 +156,20 @@ internal static class AgentTemplates
     /// <summary>
     /// Global slash command that registers the current project.
     /// </summary>
+    /// <remarks>
+    /// The template choice is part of the command, not an afterthought: the template decides the stages
+    /// with their agent instructions and required artifacts, the board projections, the starting memory and
+    /// the default settings, and changing a template later only affects projects created afterwards.
+    /// </remarks>
     public const string Init =
         """
-        Register the current directory as an Aiko project. Run `aiko init <path> [--name <n>]
-        [--git-policy <p>]` in the terminal (Aiko is installed and on PATH), then restart this
-        agent so the project-scoped MCP configuration and skills are loaded.
+        Register the current directory as an Aiko project. First call the daemon MCP tool
+        `aiko_list_templates` and ask the user which template to create the project from - the template
+        fixes the stages, their agent instructions, the required artifacts, the board projections, the
+        starting memory and the default settings, and a later change to it does not reach this project.
+        Then run `aiko init <path> [--name <n>] [--git-policy <p>] [--template <id>]` in the terminal
+        (Aiko is installed and on PATH), or call `aiko_init_project` with the chosen templateId, and
+        restart this agent so the project-scoped MCP configuration and skills are loaded.
         """;
 
     /// <summary>

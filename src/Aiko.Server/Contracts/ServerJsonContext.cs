@@ -17,6 +17,8 @@ namespace Aiko.Server.Contracts;
 [JsonSerializable(typeof(RegisteredProject[]))]
 [JsonSerializable(typeof(IReadOnlyList<RegisteredProject>))]
 [JsonSerializable(typeof(InitializeProjectRequest))]
+[JsonSerializable(typeof(ProjectTemplateSummary))]
+[JsonSerializable(typeof(IReadOnlyList<ProjectTemplateSummary>))]
 [JsonSerializable(typeof(ReindexResult))]
 [JsonSerializable(typeof(Card))]
 [JsonSerializable(typeof(IReadOnlyList<Card>))]

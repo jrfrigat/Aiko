@@ -43,6 +43,19 @@ Per section, project settings override global settings, which override the safe 
 Currently configured: execution (workspace mode, max concurrent runs, scope-overlap and commit
 policies) and priority weights.
 
+## Project templates
+
+A project is created from a **template**, and the template decides what it starts with: the stages of each
+pipeline with their agent instructions and required artifacts, the board projections, the starting memory
+and the default settings. Choose it in the dashboard's *Add project* form, with
+`aiko init <path> --template <id>`, or through `aiko_init_project` after listing the options with
+`aiko_list_templates` (the same list is available as `GET /api/v1/templates`).
+
+The template is **copied** into the project, and the project owns its configuration from then on. Editing a
+template - in the UI or by editing `templates/<id>/template.json` next to the daemon's database - affects
+the projects created afterwards, never the ones that already exist. `.aiko/project.json` records
+`templateId` and `templateVersion`, so a project can always say which template built it.
+
 ## Executions
 
 Each card can have stage executions. An execution owns the workspace and keeps a history of

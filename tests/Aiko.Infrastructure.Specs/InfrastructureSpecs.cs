@@ -1716,7 +1716,12 @@ public class InfrastructureSpecs
             var reindexer = new ProjectReindexer(catalog, database);
             var appSettingsStore = new FileAppSettingsStore(
                 new AikoDataPaths(Path.Combine(testRoot, "data", "aiko.db")), catalog);
-            var initializer = new ProjectInitializer(catalog, reindexer, appSettingsStore);
+            var initializer = new ProjectInitializer(
+                catalog,
+                reindexer,
+                appSettingsStore,
+                new FileProjectTemplateStore(
+                    new AikoDataPaths(Path.Combine(testRoot, "data", "aiko.db"))));
             var project = await initializer.InitializeAsync(
                 new InitializeProjectRequest(projectRoot),
                 CancellationToken.None);

@@ -40,6 +40,7 @@ builder.Services.AddSingleton<IProjectCatalog, SqliteProjectCatalog>();
 builder.Services.AddSingleton<IDirectoryBrowser, DirectoryBrowser>();
 builder.Services.AddSingleton<IWorkshopDiagnostics, WorkshopDoctor>();
 builder.Services.AddSingleton<IProjectInitializer, ProjectInitializer>();
+builder.Services.AddSingleton<IProjectTemplateStore, FileProjectTemplateStore>();
 builder.Services.AddSingleton<IProjectDefinitionStore, FileProjectDefinitionStore>();
 builder.Services.AddSingleton<ICardStore, FileCardStore>();
 builder.Services.AddSingleton<ICardArtifactStore, FileCardArtifactStore>();

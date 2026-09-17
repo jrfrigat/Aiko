@@ -27,6 +27,12 @@ internal static class ProjectEndpoints
                 var project = await initializer.InitializeAsync(request, cancellationToken);
                 return TypedResults.Created($"/api/v1/projects/{project.Id}", project);
             });
+        // The templates a project can be created from. Read-only: the only one that exists today is the
+        // built-in default, and authoring templates is the post-MVP half of the feature.
+        app.MapGet(
+            "/api/v1/templates",
+            async (IProjectTemplateStore templates, CancellationToken cancellationToken) =>
+                TypedResults.Ok(await templates.ListAsync(cancellationToken)));
         app.MapPost(
             "/api/v1/projects/{projectId}/reindex",
             async (

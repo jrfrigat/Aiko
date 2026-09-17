@@ -50,6 +50,8 @@ namespace Aiko.Pwa.Services;
 [JsonSerializable(typeof(ErrorResponse))]
 [JsonSerializable(typeof(SystemInfo))]
 [JsonSerializable(typeof(PairCodeResponse))]
+[JsonSerializable(typeof(ProjectTemplateSummary))]
+[JsonSerializable(typeof(IReadOnlyList<ProjectTemplateSummary>))]
 [JsonSerializable(typeof(WorkshopDiagnostics))]
 [JsonSerializable(typeof(DiagnosticFinding))]
 [JsonSerializable(typeof(IReadOnlyList<DiagnosticFinding>))]

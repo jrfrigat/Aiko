@@ -172,6 +172,28 @@
                         <option value="TrackProjectKnowledge">@Loc.Get("GitPolicyTrackKnowledge")</option>
                         <option value="Custom">@Loc.Get("GitPolicyCustom")</option>
                     </FlareSelect>
+                    @* The template decides what the project starts with: stages, their artifacts, the board
+                       projections, the starting memory and the default settings. It is copied in, so changing
+                       it later never reaches a project that already exists. *@
+                    @if (State.Templates.Count > 0)
+                    {
+                        <FlareSelect TValue="string" Label="@Loc.Get("Template")" @bind-Value="_newTemplateId">
+                            @foreach (var template in State.Templates)
+                            {
+                                var option = template;
+                                <option value="@option.Id">@TemplateOption(option)</option>
+                            }
+                        </FlareSelect>
+                        <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant">
+                            @Loc.Get("TemplateHint")
+                        </FlareText>
+                    }
+                    else
+                    {
+                        <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant">
+                            @Loc.Get("TemplateFirstProjectHint")
+                        </FlareText>
+                    }
                     <FlareStack Row="true" Gap="FlareSpacing.XSmall">
                         <FlareButton OnClick="AddProjectAsync">@Loc.Get("Add")</FlareButton>
                         <FlareButton Variant="ButtonVariant.Text" OnClick="CloseAddProject">@Loc.Get("Cancel")</FlareButton>
@@ -317,6 +339,7 @@
     private bool _loading = true;
     private string? _error;
     private bool _showAddProject;
+    private string? _newTemplateId;
     private string? _removingProjectId;
     private bool _browsing;
     private DirectoryListing? _browse;
@@ -475,7 +498,18 @@
     private static string CellTitle(ActivityCell cell) =>
         $"{cell.Date:yyyy-MM-dd} · {DisplayFormat.Number(cell.Count)}";
 
-    private void OpenAddProject() => _showAddProject = true;
+    /// <summary>A template as the select shows it: the name, and the version it will be copied at.</summary>
+    private static string TemplateOption(ProjectTemplateSummary template) =>
+        $"{template.Name} v{template.Version}";
+
+    private void OpenAddProject()
+    {
+        _showAddProject = true;
+        // Preselect the template an init without a choice would use anyway, so the common case is one
+        // click and the choice is still visible.
+        _newTemplateId ??= State.Templates.FirstOrDefault(template => template.IsDefault)?.Id
+            ?? State.Templates.FirstOrDefault()?.Id;
+    }
 
     private void CloseAddProject()
     {
@@ -545,7 +579,8 @@
         var project = await State.InitializeProjectAsync(
             _newProjectPath.Trim(),
             string.IsNullOrWhiteSpace(_newProjectName) ? null : _newProjectName.Trim(),
-            Enum.Parse<ProjectGitPolicy>(_newGitPolicy ?? nameof(ProjectGitPolicy.LocalOnly)));
+            Enum.Parse<ProjectGitPolicy>(_newGitPolicy ?? nameof(ProjectGitPolicy.LocalOnly)),
+            _newTemplateId);
         if (project is null)
         {
             _error = State.Error;
@@ -555,6 +590,7 @@
         _showAddProject = false;
         _newProjectPath = null;
         _newProjectName = null;
+        _newTemplateId = null;
         // Land on the new project's board: registering a project is a step towards working in it.
         OpenProject(project.Id);
         await Task.CompletedTask;

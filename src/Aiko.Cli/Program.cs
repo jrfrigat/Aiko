@@ -14,6 +14,7 @@ var command = args.Length == 0 ? "help" : args[0];
 var exitCode = command switch
 {
     "init" => await InitAsync(args),
+    "templates" => await TemplatesAsync(),
     "project" => await ProjectAsync(args),
     "serve" => await ServeAsync(),
     "ui" => await UiAsync(),
@@ -37,7 +38,9 @@ static int Help()
         Usage: aiko <command> [options]
 
         Commands:
-          init <path> [--name <n>] [--git-policy <p>]   Register a project (.aiko)
+          init <path> [--name <n>] [--git-policy <p>] [--template <id>]
+                                                        Register a project (.aiko)
+          templates                                     List the project templates to create from
           project remove <id> [--yes]                   Unregister a project (keeps its files)
           serve                                         Start the Aiko daemon
           ui                                            Open the UI in the browser
@@ -64,12 +67,38 @@ static int Unknown(string command)
     return 2;
 }
 
+static async Task<int> TemplatesAsync()
+{
+    var store = new FileProjectTemplateStore(AikoDataPaths.FromEnvironment());
+    var listed = await store.ListAsync(CancellationToken.None);
+    if (listed.Count == 0)
+    {
+        // Reading is read-only: the default template is written by the first init, not by a listing.
+        Console.WriteLine("No project templates yet.");
+        Console.WriteLine("aiko init <path> creates a project from the built-in default template.");
+        return 0;
+    }
+
+    foreach (var template in listed)
+    {
+        Console.WriteLine($"{(template.IsDefault ? "*" : " ")} {template.Id,-16} v{template.Version}  {template.Name}");
+        if (!string.IsNullOrWhiteSpace(template.Description))
+        {
+            Console.WriteLine($"    {template.Description}");
+        }
+    }
+
+    Console.WriteLine();
+    Console.WriteLine("Pass --template <id> to aiko init to create a project from one of them.");
+    return 0;
+}
+
 static async Task<int> InitAsync(string[] args)
 {
     var path = args.Length > 1 ? args[1] : null;
     if (string.IsNullOrWhiteSpace(path))
     {
-        Console.Error.WriteLine("Usage: aiko init <path> [--name <n>] [--git-policy <p>]");
+        Console.Error.WriteLine("Usage: aiko init <path> [--name <n>] [--git-policy <p>] [--template <id>]");
         return 2;
     }
 
@@ -79,12 +108,21 @@ static async Task<int> InitAsync(string[] args)
     await database.InitializeAsync();
     var catalog = new SqliteProjectCatalog(database);
     var reindexer = new ProjectReindexer(catalog, database);
-    var initializer = new ProjectInitializer(catalog, reindexer, new FileAppSettingsStore(dataPaths, catalog));
+    var initializer = new ProjectInitializer(
+        catalog,
+        reindexer,
+        new FileAppSettingsStore(dataPaths, catalog),
+        new FileProjectTemplateStore(dataPaths));
 
     try
     {
         var project = await initializer.InitializeAsync(
-            new InitializeProjectRequest(path, ReadOption(args, "--name"), policy),
+            // --template picks what the project is created from; without it the default template is used.
+            new InitializeProjectRequest(
+                path,
+                ReadOption(args, "--name"),
+                policy,
+                ReadOption(args, "--template")),
             CancellationToken.None);
         Console.WriteLine($"Registered project {project.Id} at {project.RootPath}");
         return 0;

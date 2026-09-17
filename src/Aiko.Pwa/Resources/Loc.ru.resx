@@ -251,6 +251,9 @@
   <data name="ActiveProjectTag" xml:space="preserve"><value>(активный)</value></data>
   <data name="OpenProjectLabel" xml:space="preserve"><value>Открыть проект</value></data>
   <data name="DaemonRoundTrip" xml:space="preserve"><value>отклик</value></data>
+  <data name="Template" xml:space="preserve"><value>Шаблон</value></data>
+  <data name="TemplateHint" xml:space="preserve"><value>Копируется в проект при создании: он задаёт этапы и их артефакты, проекции доски, стартовую память и значения по умолчанию. Изменение шаблона позже действует только на проекты, созданные после.</value></data>
+  <data name="TemplateFirstProjectHint" xml:space="preserve"><value>В этой установке шаблонов пока нет; первый проект создаётся из встроенного шаблона по умолчанию, который записывается рядом с базой демона.</value></data>
   <data name="ProjectLabel" xml:space="preserve"><value>Проект</value></data>
   <data name="CoreFallbackConfig" xml:space="preserve"><value>Базовая конфигурация ядра</value></data>
   <data name="ImmutableSync" xml:space="preserve"><value>Неизменяемый источник</value></data>

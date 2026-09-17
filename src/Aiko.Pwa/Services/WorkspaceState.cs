@@ -45,6 +45,12 @@ internal sealed class WorkspaceState : IAsyncDisposable
     /// <summary>Agent adapters the daemon discovered, with their installations.</summary>
     public IReadOnlyList<AgentAdapterOption> Agents { get; private set; } = [];
 
+    /// <summary>
+    /// The project templates a new project can be created from. Read once with the rest of the shell data;
+    /// the only one that exists today is the built-in default.
+    /// </summary>
+    public IReadOnlyList<ProjectTemplateSummary> Templates { get; private set; } = [];
+
     /// <summary>The daemon's own identification, when it answered.</summary>
     public SystemInfo? System { get; private set; }
 
@@ -119,6 +125,10 @@ internal sealed class WorkspaceState : IAsyncDisposable
             {
                 Agents = [];
             }
+
+            // The templates a project can be created from. Same reasoning: the dashboard is still usable
+            // without them, and an install that never created a project has no templates root yet.
+            await ReloadTemplatesAsync();
         }
         catch (Exception exception)
         {
@@ -237,7 +247,8 @@ internal sealed class WorkspaceState : IAsyncDisposable
     public async Task<RegisteredProject?> InitializeProjectAsync(
         string rootPath,
         string? name,
-        ProjectGitPolicy gitPolicy)
+        ProjectGitPolicy gitPolicy,
+        string? templateId = null)
     {
         await EnsureInitializedAsync();
         Error = null;
@@ -245,11 +256,14 @@ internal sealed class WorkspaceState : IAsyncDisposable
         {
             using var response = await _http.PostAsJsonAsync(
                 "api/v1/projects/initialize",
-                new InitializeProjectRequest(rootPath, name, gitPolicy),
+                new InitializeProjectRequest(rootPath, name, gitPolicy, templateId),
                 PwaJson.Options);
             response.EnsureSuccessStatusCode();
             var project = await response.Content.ReadFromJsonAsync<RegisteredProject>(PwaJson.Options);
             await ReloadProjectsAsync();
+            // The first project writes the installation's default template, so the list the add-project
+            // form offers is refreshed here rather than at the next page load.
+            await ReloadTemplatesAsync();
             return project;
         }
         catch (Exception exception)
@@ -259,6 +273,23 @@ internal sealed class WorkspaceState : IAsyncDisposable
             return null;
         }
     }
+    /// <summary>
+    /// Re-reads the project templates. A failure is not an error state: an installation that never created
+    /// a project has no templates root yet, and the daemon writes the default template at the first init.
+    /// </summary>
+    public async Task ReloadTemplatesAsync()
+    {
+        try
+        {
+            Templates = await _http.GetFromJsonAsync<IReadOnlyList<ProjectTemplateSummary>>(
+                "api/v1/templates", PwaJson.Options) ?? [];
+        }
+        catch (Exception)
+        {
+            Templates = [];
+        }
+    }
+
     /// <summary>
     /// Re-reads the agent adapters: whether each agent is installed on this machine and whether Aiko has
     /// connected to it.

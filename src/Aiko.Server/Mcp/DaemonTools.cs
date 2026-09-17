@@ -18,6 +18,7 @@ namespace Aiko.Server.Mcp;
 internal sealed class DaemonTools(
     IProjectCatalog catalog,
     IProjectInitializer initializer,
+    IProjectTemplateStore templates,
     ICardStore cards,
     IProjectDefinitionStore definitions)
 {
@@ -29,9 +30,22 @@ internal sealed class DaemonTools(
         return JsonSerializer.Serialize(projects, ServerJsonContext.Default.IReadOnlyListRegisteredProject);
     }
 
+    [McpServerTool(Name = "aiko_list_templates", Title = "List Aiko project templates")]
+    [Description(
+        "Lists the project templates a new project can be created from. Ask the user which one to use "
+        + "before calling aiko_init_project when more than one is listed.")]
+    public async Task<string> ListTemplatesAsync(CancellationToken cancellationToken)
+    {
+        var listed = await templates.ListAsync(cancellationToken);
+        return JsonSerializer.Serialize(listed, ServerJsonContext.Default.IReadOnlyListProjectTemplateSummary);
+    }
+
     [McpServerTool(Name = "aiko_init_project", Title = "Initialize Aiko project")]
     [Description(
-        "Registers a local directory as an Aiko project, creating the .aiko structure, default workflow and projections.")]
+        "Registers a local directory as an Aiko project by copying the chosen template into it: the .aiko "
+        + "structure, the workflows with their stages and artifacts, the board projections, the starting "
+        + "memory and the default settings. A later change to a template does not reach a project created "
+        + "before it.")]
     public async Task<string> InitProjectAsync(
         [Description("Absolute path to the project root directory.")]
         string rootPath,
@@ -39,10 +53,12 @@ internal sealed class DaemonTools(
         [Optional] string? name,
         [Description("Git policy: local-only, track-project-knowledge or custom. Defaults to local-only.")]
         [Optional] string? gitPolicy,
+        [Description("Template id from aiko_list_templates. Defaults to the built-in default template.")]
+        [Optional] string? templateId,
         CancellationToken cancellationToken)
     {
         var project = await initializer.InitializeAsync(
-            new InitializeProjectRequest(rootPath, name, ParseGitPolicy(gitPolicy)),
+            new InitializeProjectRequest(rootPath, name, ParseGitPolicy(gitPolicy), templateId),
             cancellationToken);
         return JsonSerializer.Serialize(project, ServerJsonContext.Default.RegisteredProject);
     }
