@@ -176,4 +176,29 @@
   <data name="ServerRejectedChanges" xml:space="preserve"><value>Сервер отклонил изменения: {0}.</value></data>
   <data name="WorkflowSaved" xml:space="preserve"><value>Workflow сохранён.</value></data>
   <data name="FileNotCreatedYet" xml:space="preserve"><value>Файл ещё не создан. Сохранение добавит его в папку карточки.</value></data>
+  <data name="Overview" xml:space="preserve"><value>Обзор</value></data>
+  <data name="OverviewCaption" xml:space="preserve"><value>Локальный оркестратор: один демон, доска, агенты и долговременная память проекта.</value></data>
+  <data name="Agents" xml:space="preserve"><value>Агенты</value></data>
+  <data name="AgentsNotFound" xml:space="preserve"><value>не обнаружен</value></data>
+  <data name="AgentsHint" xml:space="preserve"><value>Подключение выполняется на проект: aiko agent install --project &lt;id&gt; --agent &lt;id&gt;</value></data>
+  <data name="QuickStart" xml:space="preserve"><value>Быстрый старт</value></data>
+  <data name="QuickStartStep1" xml:space="preserve"><value>1. Запустите демон: aiko serve</value></data>
+  <data name="QuickStartStep2" xml:space="preserve"><value>2. Добавьте проект ниже или выполните aiko init &lt;путь&gt;</value></data>
+  <data name="QuickStartStep3" xml:space="preserve"><value>3. Подключите агента: aiko agent install --project &lt;id&gt; --agent codex</value></data>
+  <data name="QuickStartStep4" xml:space="preserve"><value>4. Работайте в агенте: каждая задача начинается с карточки</value></data>
+  <data name="ProjectsRegistered" xml:space="preserve"><value>Зарегистрированные проекты</value></data>
+  <data name="OpenProject" xml:space="preserve"><value>Открыть</value></data>
+  <data name="PriorityFormula" xml:space="preserve"><value>Формула приоритета</value></data>
+  <data name="PriorityFormulaHint" xml:space="preserve"><value>Итоговый приоритет = вес собственной оценки × оценка карточки + вес родителя × лучшая родительская история.</value></data>
+  <data name="OwnWeight" xml:space="preserve"><value>Вес собственной оценки</value></data>
+  <data name="ParentWeight" xml:space="preserve"><value>Вес лучшего родителя</value></data>
+  <data name="Criteria" xml:space="preserve"><value>Критерии оценки</value></data>
+  <data name="AddCriterion" xml:space="preserve"><value>Добавить критерий</value></data>
+  <data name="CriterionDescription" xml:space="preserve"><value>Описание</value></data>
+  <data name="CriterionWeight" xml:space="preserve"><value>Вес</value></data>
+  <data name="CriterionIdHelper" xml:space="preserve"><value>Id используется карточками для своих значений и не меняется вместе с названием.</value></data>
+  <data name="NoCriteria" xml:space="preserve"><value>Критериев нет: приоритет карточки вводится вручную.</value></data>
+  <data name="InvalidWeights" xml:space="preserve"><value>Веса должны быть неотрицательными, и хотя бы один — больше нуля.</value></data>
+  <data name="CriterionTitleRequired" xml:space="preserve"><value>У каждого критерия должно быть название.</value></data>
+  <data name="NotPairedHint" xml:space="preserve"><value>Браузер ещё не сопряжён с демоном. Откройте доску командой: aiko ui</value></data>
 </root>

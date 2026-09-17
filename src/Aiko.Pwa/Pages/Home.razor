@@ -108,33 +108,44 @@
                        AriaLabel="@Loc.Get("RailAriaLabel")">
         <FlareNavMenu>
             <HeaderContent>
+                @* One location at a time: an open inspector wins over the projection, so the rail never
+                   marks two items as current (an inspector is what the user is looking at). The
+                   project-scoped views exist only while a project is open - before that the overview
+                   is the workspace, and it is always reachable. *@
                 <FlareStack Class="aiko-rail__head" Gap="FlareSpacing.XXSmall">
                     <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
                         @Loc.Get("WorkspaceFlow")
                     </FlareText>
-                    <FlareNavLink Active="@(_projection == Projection.Combined)"
-                                  OnClick="() => ShowProjectionAsync(Projection.Combined)">
-                        <IconContent><FlareIconView Value="@FlareIcons.GridOn" /></IconContent>
-                        <ChildContent>@Loc.Get("KanbanBoard")</ChildContent>
-                        <BadgeContent><span class="aiko-tag aiko-tag--accent">@(_board?.Cards.Count ?? 0)</span></BadgeContent>
+                    <FlareNavLink Active="@(!InspectorOpen && _board is null)" OnClick="ShowOverviewAsync">
+                        <IconContent><FlareIconView Value="@FlareIcons.Home" /></IconContent>
+                        <ChildContent>@Loc.Get("Overview")</ChildContent>
                     </FlareNavLink>
-                    <FlareNavLink Active="@(_projection == Projection.Stories)"
-                                  OnClick="() => ShowProjectionAsync(Projection.Stories)">
-                        <IconContent><FlareIconView Value="@FlareIcons.FolderOpen" /></IconContent>
-                        <ChildContent>@Loc.Get("StoriesNav")</ChildContent>
-                        <BadgeContent><span class="aiko-tag">@StoryCount</span></BadgeContent>
-                    </FlareNavLink>
-                    <FlareNavLink Active="@(_projection == Projection.Tasks)"
-                                  OnClick="() => ShowProjectionAsync(Projection.Tasks)">
-                        <IconContent><FlareIconView Value="@FlareIcons.ViewColumn" /></IconContent>
-                        <ChildContent>@Loc.Get("TasksNav")</ChildContent>
-                        <BadgeContent><span class="aiko-tag">@TaskCount</span></BadgeContent>
-                    </FlareNavLink>
-                    <FlareNavLink Active="@_editingWorkflow" OnClick="OpenWorkflow">
-                        <IconContent><FlareIconView Value="@FlareIcons.Tune" /></IconContent>
-                        <ChildContent>@Loc.Get("Workflow")</ChildContent>
-                        <BadgeContent><span class="aiko-tag">@(_board?.Workflows.Count ?? 0)</span></BadgeContent>
-                    </FlareNavLink>
+                    @if (_board is not null)
+                    {
+                        <FlareNavLink Active="@(_projection == Projection.Combined && !InspectorOpen)"
+                                      OnClick="() => ShowProjectionAsync(Projection.Combined)">
+                            <IconContent><FlareIconView Value="@FlareIcons.GridOn" /></IconContent>
+                            <ChildContent>@Loc.Get("KanbanBoard")</ChildContent>
+                            <BadgeContent><span class="aiko-tag aiko-tag--accent">@_board.Cards.Count</span></BadgeContent>
+                        </FlareNavLink>
+                        <FlareNavLink Active="@(_projection == Projection.Stories && !InspectorOpen)"
+                                      OnClick="() => ShowProjectionAsync(Projection.Stories)">
+                            <IconContent><FlareIconView Value="@FlareIcons.FolderOpen" /></IconContent>
+                            <ChildContent>@Loc.Get("StoriesNav")</ChildContent>
+                            <BadgeContent><span class="aiko-tag">@StoryCount</span></BadgeContent>
+                        </FlareNavLink>
+                        <FlareNavLink Active="@(_projection == Projection.Tasks && !InspectorOpen)"
+                                      OnClick="() => ShowProjectionAsync(Projection.Tasks)">
+                            <IconContent><FlareIconView Value="@FlareIcons.ViewColumn" /></IconContent>
+                            <ChildContent>@Loc.Get("TasksNav")</ChildContent>
+                            <BadgeContent><span class="aiko-tag">@TaskCount</span></BadgeContent>
+                        </FlareNavLink>
+                        <FlareNavLink Active="@_editingWorkflow" OnClick="OpenWorkflow">
+                            <IconContent><FlareIconView Value="@FlareIcons.Tune" /></IconContent>
+                            <ChildContent>@Loc.Get("Workflow")</ChildContent>
+                            <BadgeContent><span class="aiko-tag">@_board.Workflows.Count</span></BadgeContent>
+                        </FlareNavLink>
+                    }
                     <FlareNavLink Active="@_editingSettings" OnClick="OpenSettings">
                         <IconContent><FlareIconView Value="@FlareIcons.Settings" /></IconContent>
                         <ChildContent>@Loc.Get("Settings")</ChildContent>
@@ -210,15 +221,16 @@
                     </FlareText>
                 </FlareStack>
             }
-            else if (_projects.Count == 0)
+            else if (_board is null)
             {
-                <FlareEmptyState Title="@Loc.Get("EmptyStateTitle")"
-                                 Description="@Loc.Get("EmptyStateHint")">
-                    <IconContent><FlareIconView Size="3rem" Value="@FlareIcons.FolderOpen" /></IconContent>
-                    <ActionContent>
-                        <FlareButton OnClick="OpenAddProject">@Loc.Get("AddProject")</FlareButton>
-                    </ActionContent>
-                </FlareEmptyState>
+                @* No project is open: the overview, not an error and not an empty board. *@
+                <Overview Projects="_projects"
+                          Agents="_agents"
+                          Address="@_system?.BaseUrl"
+                          Version="@_system?.Version"
+                          ProcessId="@_system?.ProcessId"
+                          OnOpenProject="SelectProjectAsync"
+                          OnAddProject="OpenAddProject" />
             }
             else if (_board is not null)
             {
@@ -378,6 +390,7 @@
     private Projection _projection = Projection.Tasks;
     private AppSettingsView? _settingsView;
     private SystemInfo? _system;
+    private IReadOnlyList<AgentAdapterOption> _agents = [];
     private ProjectEventClient? _events;
     private CancellationTokenSource? _boardReloadDelay;
     private bool _eventsConnected;
@@ -499,10 +512,23 @@
                 "api/v1/projects", PwaJson.Options) ?? [];
             // The top bar's version tag comes from the daemon itself, not from the client build.
             _system = await Http.GetFromJsonAsync<SystemInfo>("api/v1/system", PwaJson.Options);
+            // Which agents the daemon can see is overview information: a failure here must not turn
+            // the board into an error screen.
+            try
+            {
+                _agents = await Http.GetFromJsonAsync<IReadOnlyList<AgentAdapterOption>>(
+                    "api/v1/agents", PwaJson.Options) ?? [];
+            }
+            catch (Exception)
+            {
+                _agents = [];
+            }
+            // No project is opened by default: the app lands on the overview, and a project is entered
+            // explicitly - from the rail, from the overview's list, or through the deep link.
             _selectedProjectId = ReadProjectFromQuery() is { } requested &&
                                  _projects.Any(project => project.Id == requested)
                 ? requested
-                : _projects.FirstOrDefault()?.Id;
+                : null;
             _selectedCardId = ReadQueryValue("card");
             var requestedWorkflow = ReadQueryValue("workflow");
             _editingWorkflow = requestedWorkflow is not null;
@@ -515,7 +541,7 @@
         }
         catch (Exception exception)
         {
-            _error = exception.Message;
+            _error = FailureText.Describe(exception);
         }
         finally
         {
@@ -637,6 +663,21 @@
     }
 
     /// <summary>
+    /// The rail's home item: leaves the project and returns to the overview. State is cleared rather
+    /// than re-fetched - the board has no meaning without a project.
+    /// </summary>
+    private Task ShowOverviewAsync()
+    {
+        _selectedProjectId = null;
+        _selectedCardId = null;
+        _editingWorkflow = false;
+        _editingSettings = false;
+        _board = null;
+        Navigation.NavigateTo("?", replace: true);
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// The rail's view links: they switch the projection like the top bar's switch does, and they also
     /// leave the workflow or settings editor, because "show me the board" is a navigation.
     /// </summary>
@@ -746,7 +787,7 @@
         }
         catch (Exception exception)
         {
-            _error = exception.Message;
+            _error = FailureText.Describe(exception);
         }
     }
 
@@ -803,7 +844,7 @@
         }
         catch (Exception exception)
         {
-            _error = Loc.Format("MoveFailed", card.Reference.CardId, exception.Message);
+            _error = Loc.Format("MoveFailed", card.Reference.CardId, FailureText.Describe(exception));
             await LoadBoardAsync();
         }
     }
@@ -865,7 +906,7 @@
         }
         catch (Exception exception)
         {
-            _error = Loc.Format("AddProjectFailed", exception.Message);
+            _error = Loc.Format("AddProjectFailed", FailureText.Describe(exception));
         }
     }
 
@@ -951,7 +992,7 @@
         }
         catch (Exception exception)
         {
-            _error = Loc.Format("CreateCardFailed", exception.Message);
+            _error = Loc.Format("CreateCardFailed", FailureText.Describe(exception));
         }
     }
 

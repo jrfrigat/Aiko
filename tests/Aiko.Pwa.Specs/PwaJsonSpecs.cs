@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Aiko.Application.Agents;
 using Aiko.Application.Contracts;
 using Aiko.Domain.Cards;
 using Aiko.Domain.Execution;
@@ -44,7 +45,10 @@ public sealed class PwaJsonSpecs
             typeof(UpdateArtifactRequest),
             typeof(UpdateWorkflowRequest),
             typeof(ErrorResponse),
-            typeof(SystemInfo)
+            typeof(SystemInfo),
+            typeof(AgentAdapterOption),
+            typeof(IReadOnlyList<AgentAdapterOption>),
+            typeof(AgentInstallation)
         ];
 
         foreach (var type in types)

@@ -56,25 +56,32 @@
             <FlareDivider />
 
             <FlareStack Gap="FlareSpacing.Small">
-                <FlareText Element="h3" Typo="TypographyScale.TitleSmall">@Loc.Get("EffectiveConfig")</FlareText>
+                <FlareText Element="h3" Typo="TypographyScale.TitleSmall">
+                    @Loc.Get("EffectiveConfig")
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant">
+                        @Loc.Get(Project is null ? "GlobalSettings" : "ProjectSettings")
+                    </FlareText>
+                </FlareText>
+                @* Without a project the effective view is the global one; reading the project view here
+                   left every row as "-" on the global settings screen. *@
                 <FlareList TItem="string" Dense="true">
                     <FlareListItem Primary="@Loc.Get("Source")">
-                        <Trailing><FlareChip Variant="ChipVariant.Filled" Label="@SourceCaption(_view?.ExecutionSource)" /></Trailing>
+                        <Trailing><FlareChip Variant="ChipVariant.Filled" Label="@SourceCaption(EffectiveView?.ExecutionSource)" /></Trailing>
                     </FlareListItem>
                     <FlareListItem Primary="@Loc.Get("Workspace")">
-                        <Trailing><FlareText Element="span" Typo="TypographyScale.LabelMedium">@Text(_view?.EffectiveExecution.WorkspaceMode)</FlareText></Trailing>
+                        <Trailing><FlareText Element="span" Typo="TypographyScale.LabelMedium">@Text(EffectiveView?.EffectiveExecution.WorkspaceMode)</FlareText></Trailing>
                     </FlareListItem>
                     <FlareListItem Primary="@Loc.Get("MaxRuns")">
-                        <Trailing><FlareText Element="span" Typo="TypographyScale.LabelMedium">@Text(_view?.EffectiveExecution.MaxConcurrentRuns)</FlareText></Trailing>
+                        <Trailing><FlareText Element="span" Typo="TypographyScale.LabelMedium">@Text(EffectiveView?.EffectiveExecution.MaxConcurrentRuns)</FlareText></Trailing>
                     </FlareListItem>
                     <FlareListItem Primary="@Loc.Get("ScopeOverlap")">
-                        <Trailing><FlareText Element="span" Typo="TypographyScale.LabelMedium">@Text(_view?.EffectiveExecution.ScopeOverlapPolicy)</FlareText></Trailing>
+                        <Trailing><FlareText Element="span" Typo="TypographyScale.LabelMedium">@Text(EffectiveView?.EffectiveExecution.ScopeOverlapPolicy)</FlareText></Trailing>
                     </FlareListItem>
                     <FlareListItem Primary="@Loc.Get("CommitPolicy")">
-                        <Trailing><FlareText Element="span" Typo="TypographyScale.LabelMedium">@Text(_view?.EffectiveExecution.SharedCheckoutCommitPolicy)</FlareText></Trailing>
+                        <Trailing><FlareText Element="span" Typo="TypographyScale.LabelMedium">@Text(EffectiveView?.EffectiveExecution.SharedCheckoutCommitPolicy)</FlareText></Trailing>
                     </FlareListItem>
                 </FlareList>
-                @if (IsParallelShared(_view?.EffectiveExecution))
+                @if (IsParallelShared(EffectiveView?.EffectiveExecution))
                 {
                     <FlareAlert Severity="AlertSeverity.Warning"
                                 Variant="AlertVariant.Outlined"
@@ -114,6 +121,55 @@
                         <option value="Ask">@Loc.Get("PolicyAsk")</option>
                         <option value="Allow">@Loc.Get("PolicyAllow")</option>
                     </FlareSelect>
+
+                    @* The priority section: the formula's two weights and the project's scoring
+                       criteria, which is what a card's own priority is computed from. *@
+                    <FlareDivider />
+                    <FlareText Element="h4" Typo="TypographyScale.TitleSmall">@Loc.Get("PriorityFormula")</FlareText>
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant">
+                        @Loc.Get("PriorityFormulaHint")
+                    </FlareText>
+                    <FlareNumericField TValue="decimal?" Label="@Loc.Get("OwnWeight")" Min="0"
+                                       ErrorText="@_projectPriorityError"
+                                       @bind-Value="_projectTaskWeight" />
+                    <FlareNumericField TValue="decimal?" Label="@Loc.Get("ParentWeight")" Min="0"
+                                       @bind-Value="_projectParentWeight" />
+
+                    <FlareText Element="h4" Typo="TypographyScale.TitleSmall">@Loc.Get("Criteria")</FlareText>
+                    @if (_projectCriteria.Count == 0)
+                    {
+                        <FlareAlert Severity="AlertSeverity.Info" Variant="AlertVariant.Text">@Loc.Get("NoCriteria")</FlareAlert>
+                    }
+                    else
+                    {
+                        @foreach (var criterion in _projectCriteria)
+                        {
+                            var draft = criterion;
+                            <FlareCard Variant="CardVariant.Outlined" Size="CardSize.Sm">
+                                <FlareStack Gap="FlareSpacing.XXSmall">
+                                    <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XXSmall">
+                                        <span class="aiko-tag">@draft.Id</span>
+                                        <FlareIconButton Variant="ButtonVariant.Text"
+                                                         Icon="@FlareIcons.Delete"
+                                                         AriaLabel="@Loc.Get("Remove")"
+                                                         OnClick="() => RemoveCriterion(_projectCriteria, draft)" />
+                                    </FlareStack>
+                                    <FlareTextField Label="@Loc.Get("Title")" @bind-Value="draft.Title" Immediate="true" />
+                                    <FlareTextField Label="@Loc.Get("CriterionDescription")" @bind-Value="draft.Description" Immediate="true" />
+                                    <FlareNumericField TValue="decimal?" Label="@Loc.Get("CriterionWeight")" Min="0" @bind-Value="draft.Weight" />
+                                </FlareStack>
+                            </FlareCard>
+                        }
+                    }
+                    <FlareButton Variant="ButtonVariant.Outlined" Size="ButtonSize.Sm"
+                                 OnClick="() => AddCriterion(_projectCriteria)">
+                        <LeadingIcon><FlareIconView Value="@FlareIcons.Add" /></LeadingIcon>
+                        <ChildContent>@Loc.Get("AddCriterion")</ChildContent>
+                    </FlareButton>
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                        @Loc.Get("CriterionIdHelper")
+                    </FlareText>
+
                     <FlareButton FullWidth="true"
                                  Loading="@_savingProject"
                                  OnClick="SaveProjectAsync">@Loc.Get("SaveProjectSettings")</FlareButton>
@@ -151,6 +207,55 @@
                     <option value="Ask">@Loc.Get("PolicyAsk")</option>
                     <option value="Allow">@Loc.Get("PolicyAllow")</option>
                 </FlareSelect>
+
+                @* The same priority editor as the project scope has: for the global level these are the
+                   defaults a new project starts from. *@
+                <FlareDivider />
+                <FlareText Element="h4" Typo="TypographyScale.TitleSmall">@Loc.Get("PriorityFormula")</FlareText>
+                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant">
+                    @Loc.Get("PriorityFormulaHint")
+                </FlareText>
+                <FlareNumericField TValue="decimal?" Label="@Loc.Get("OwnWeight")" Min="0"
+                                   ErrorText="@_globalPriorityError"
+                                   @bind-Value="_globalTaskWeight" />
+                <FlareNumericField TValue="decimal?" Label="@Loc.Get("ParentWeight")" Min="0"
+                                   @bind-Value="_globalParentWeight" />
+
+                <FlareText Element="h4" Typo="TypographyScale.TitleSmall">@Loc.Get("Criteria")</FlareText>
+                @if (_globalCriteria.Count == 0)
+                {
+                    <FlareAlert Severity="AlertSeverity.Info" Variant="AlertVariant.Text">@Loc.Get("NoCriteria")</FlareAlert>
+                }
+                else
+                {
+                    @foreach (var criterion in _globalCriteria)
+                    {
+                        var draft = criterion;
+                        <FlareCard Variant="CardVariant.Outlined" Size="CardSize.Sm">
+                            <FlareStack Gap="FlareSpacing.XXSmall">
+                                <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XXSmall">
+                                    <span class="aiko-tag">@draft.Id</span>
+                                    <FlareIconButton Variant="ButtonVariant.Text"
+                                                     Icon="@FlareIcons.Delete"
+                                                     AriaLabel="@Loc.Get("Remove")"
+                                                     OnClick="() => RemoveCriterion(_globalCriteria, draft)" />
+                                </FlareStack>
+                                <FlareTextField Label="@Loc.Get("Title")" @bind-Value="draft.Title" Immediate="true" />
+                                <FlareTextField Label="@Loc.Get("CriterionDescription")" @bind-Value="draft.Description" Immediate="true" />
+                                <FlareNumericField TValue="decimal?" Label="@Loc.Get("CriterionWeight")" Min="0" @bind-Value="draft.Weight" />
+                            </FlareStack>
+                        </FlareCard>
+                    }
+                }
+                <FlareButton Variant="ButtonVariant.Outlined" Size="ButtonSize.Sm"
+                             OnClick="() => AddCriterion(_globalCriteria)">
+                    <LeadingIcon><FlareIconView Value="@FlareIcons.Add" /></LeadingIcon>
+                    <ChildContent>@Loc.Get("AddCriterion")</ChildContent>
+                </FlareButton>
+                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                    @Loc.Get("CriterionIdHelper")
+                </FlareText>
+
                 <FlareButton FullWidth="true"
                              Variant="ButtonVariant.Outlined"
                              Loading="@_savingGlobal"
@@ -169,6 +274,7 @@
     private static readonly IReadOnlyList<string> WorkspaceOptions = ["Shared", "Worktree"];
 
     private AppSettingsView? _view;
+    private AppSettingsView? _globalView;
     private SystemInfo? _system;
     private string? _message;
     private bool _hasError;
@@ -181,11 +287,19 @@
     private string? _projectMaxError;
     private string? _projectScopePolicy = "Ask";
     private string? _projectCommitPolicy = "Deny";
+    private decimal? _projectTaskWeight;
+    private decimal? _projectParentWeight;
+    private List<CriterionDraft> _projectCriteria = [];
+    private string? _projectPriorityError;
 
     private int? _globalMaxRuns = 1;
     private string? _globalMaxError;
     private string? _globalScopePolicy = "Ask";
     private string? _globalCommitPolicy = "Deny";
+    private decimal? _globalTaskWeight;
+    private decimal? _globalParentWeight;
+    private List<CriterionDraft> _globalCriteria = [];
+    private string? _globalPriorityError;
 
     private static string WorkspaceLabel(string? value) =>
         value == "Worktree" ? Loc.Get("WorktreeOption") : Loc.Get("WorkspaceOption");
@@ -194,6 +308,12 @@
 
     /// <summary>Renders a nullable value with an explicit placeholder - Nullable&lt;T&gt;.ToString() returns "" for null.</summary>
     private static string Text<T>(T? value) where T : struct => value?.ToString() ?? "-";
+
+    /// <summary>
+    /// The view whose resolved values the panel reports: the project's when one is selected, the
+    /// global one otherwise (both are resolved project → global → safe default by the daemon).
+    /// </summary>
+    private AppSettingsView? EffectiveView => Project is not null ? _view : _globalView;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -216,7 +336,7 @@
         }
         catch (Exception exception)
         {
-            _message = Loc.Format("LoadSettingsFailed", exception.Message);
+            _message = Loc.Format("LoadSettingsFailed", FailureText.Describe(exception));
             _hasError = true;
         }
         finally
@@ -228,6 +348,7 @@
     private void ApplyView(AppSettingsView? projectView, AppSettingsView? globalView)
     {
         _view = projectView;
+        _globalView = globalView;
         var projectExecution = projectView?.Project?.Execution ?? projectView?.EffectiveExecution;
         _projectWorkspace = projectExecution?.WorkspaceMode.ToString() ?? "Shared";
         _projectMaxRuns = projectExecution?.MaxConcurrentRuns ?? 1;
@@ -238,6 +359,25 @@
         _globalMaxRuns = globalExecution?.MaxConcurrentRuns ?? 1;
         _globalScopePolicy = globalExecution?.ScopeOverlapPolicy.ToString() ?? "Ask";
         _globalCommitPolicy = globalExecution?.SharedCheckoutCommitPolicy.ToString() ?? "Deny";
+
+        // The priority drafts come from the level's OWN snapshot, not from the resolved view: the
+        // resolved values are what is in force, and showing them keeps the form meaningful on a level
+        // that has never been configured - saving then makes them explicit.
+        var projectPriority = projectView?.Project?.Priority ?? projectView?.EffectivePriority;
+        _projectTaskWeight = projectPriority?.Weights.TaskWeight;
+        _projectParentWeight = projectPriority?.Weights.ParentWeight;
+        _projectCriteria = (projectPriority?.Criteria ?? [])
+            .Select(CriterionDraft.From)
+            .ToList();
+        _projectPriorityError = null;
+
+        var globalPriority = globalView?.Global?.Priority ?? globalView?.EffectivePriority;
+        _globalTaskWeight = globalPriority?.Weights.TaskWeight;
+        _globalParentWeight = globalPriority?.Weights.ParentWeight;
+        _globalCriteria = (globalPriority?.Criteria ?? [])
+            .Select(CriterionDraft.From)
+            .ToList();
+        _globalPriorityError = null;
     }
 
     private async Task SaveProjectAsync()
@@ -248,7 +388,13 @@
                 _projectScopePolicy,
                 _projectCommitPolicy,
                 out var execution,
-                out _projectMaxError))
+                out _projectMaxError) ||
+            !TryBuildPriority(
+                _projectCriteria,
+                _projectTaskWeight,
+                _projectParentWeight,
+                out var priority,
+                out _projectPriorityError))
         {
             return;
         }
@@ -256,6 +402,7 @@
         await SaveAsync(
             $"api/v1/projects/{Uri.EscapeDataString(Project!.Id)}/settings",
             execution,
+            priority,
             isProject: true);
     }
 
@@ -267,15 +414,125 @@
                 _globalScopePolicy,
                 _globalCommitPolicy,
                 out var execution,
-                out _globalMaxError))
+                out _globalMaxError) ||
+            !TryBuildPriority(
+                _globalCriteria,
+                _globalTaskWeight,
+                _globalParentWeight,
+                out var priority,
+                out _globalPriorityError))
         {
             return;
         }
 
-        await SaveAsync("api/v1/settings", execution, isProject: false);
+        await SaveAsync("api/v1/settings", execution, priority, isProject: false);
     }
 
-    private async Task SaveAsync(string url, ExecutionSettings execution, bool isProject)
+    /// <summary>
+    /// Builds the priority section from the form. Both weights must be non-negative with at least one
+    /// above zero (the domain constructor refuses anything else), every criterion needs a title, and
+    /// the criteria must stay uniquely identified - the id is what cards report their values against.
+    /// </summary>
+    private static bool TryBuildPriority(
+        IReadOnlyList<CriterionDraft> criteria,
+        decimal? taskWeight,
+        decimal? parentWeight,
+        out PrioritySettings priority,
+        out string? error)
+    {
+        priority = PrioritySettings.SafeDefault;
+        error = null;
+
+        if (taskWeight is not { } own || parentWeight is not { } parent || own < 0 || parent < 0 || own + parent == 0)
+        {
+            error = Loc.Get("InvalidWeights");
+            return false;
+        }
+
+        var built = new List<PriorityCriterion>(criteria.Count);
+        foreach (var draft in criteria)
+        {
+            var title = (draft.Title ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                error = Loc.Get("CriterionTitleRequired");
+                return false;
+            }
+
+            if (built.Any(item => StringComparer.Ordinal.Equals(item.Id, draft.Id)))
+            {
+                error = Loc.Format("StageIdUnique", draft.Id);
+                return false;
+            }
+
+            built.Add(new PriorityCriterion(
+                draft.Id,
+                title,
+                (draft.Description ?? string.Empty).Trim(),
+                draft.Weight is { } weight && weight >= 0 ? weight : 0m));
+        }
+
+        priority = new PrioritySettings(new PriorityWeights(own, parent), built);
+        return true;
+    }
+
+    /// <summary>
+    /// Appends a criterion. Its id is derived from the title once and then frozen: cards store their
+    /// values under that id, so renaming a criterion must not orphan what was already reported.
+    /// </summary>
+    private static void AddCriterion(List<CriterionDraft> criteria) =>
+        criteria.Add(new CriterionDraft
+        {
+            Id = NewCriterionId(criteria),
+            Title = string.Empty,
+            Description = string.Empty,
+            Weight = 1m
+        });
+
+    private static void RemoveCriterion(List<CriterionDraft> criteria, CriterionDraft draft) =>
+        criteria.Remove(draft);
+
+    private static string NewCriterionId(IReadOnlyList<CriterionDraft> existing)
+    {
+        var stem = new string(
+            (existing.Count == 0 ? "criterion" : existing[^1].Title ?? string.Empty)
+                .ToLowerInvariant()
+                .Select(character => char.IsAsciiLetterOrDigit(character) ? character : '-')
+                .ToArray())
+            .Trim('-');
+        if (string.IsNullOrWhiteSpace(stem))
+        {
+            stem = "criterion";
+        }
+
+        var id = stem;
+        var suffix = 2;
+        while (existing.Any(item => StringComparer.Ordinal.Equals(item.Id, id)))
+        {
+            id = $"{stem}-{suffix++}";
+        }
+
+        return id;
+    }
+
+    /// <summary>A criterion as the form holds it, before it becomes a <see cref="PriorityCriterion"/>.</summary>
+    private sealed class CriterionDraft
+    {
+        public required string Id { get; init; }
+        public string? Title { get; set; }
+        public string? Description { get; set; }
+        public decimal? Weight { get; set; }
+
+        public static CriterionDraft From(PriorityCriterion criterion) => new()
+        {
+            Id = criterion.Id,
+            Title = criterion.Title,
+            Description = criterion.Description,
+            Weight = criterion.Weight
+        };
+    }
+
+    private async Task SaveAsync(string url, ExecutionSettings execution, PrioritySettings priority, bool isProject)
     {
         _message = null;
         _hasError = false;
@@ -290,9 +547,11 @@
 
         try
         {
+            // Both sections travel together: the settings document is replaced as a whole, so sending
+            // only the execution section would silently drop the level's priority story.
             using var response = await Http.PutAsJsonAsync(
                 url,
-                new AppSettings(AppSettings.CurrentSchemaVersion, execution),
+                new AppSettings(AppSettings.CurrentSchemaVersion, execution, priority),
                 PwaJson.Options);
             if (!response.IsSuccessStatusCode)
             {
@@ -312,7 +571,7 @@
         }
         catch (Exception exception)
         {
-            _message = Loc.Format("SaveSettingsFailed", exception.Message);
+            _message = Loc.Format("SaveSettingsFailed", FailureText.Describe(exception));
             _hasError = true;
         }
         finally

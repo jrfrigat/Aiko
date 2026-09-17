@@ -69,11 +69,22 @@ static async Task<int> InitAsync(string[] args)
     var reindexer = new ProjectReindexer(catalog, database);
     var initializer = new ProjectInitializer(catalog, reindexer, new FileAppSettingsStore(dataPaths, catalog));
 
-    var project = await initializer.InitializeAsync(
-        new InitializeProjectRequest(path, ReadOption(args, "--name"), policy),
-        CancellationToken.None);
-    Console.WriteLine($"Registered project {project.Id} at {project.RootPath}");
-    return 0;
+    try
+    {
+        var project = await initializer.InitializeAsync(
+            new InitializeProjectRequest(path, ReadOption(args, "--name"), policy),
+            CancellationToken.None);
+        Console.WriteLine($"Registered project {project.Id} at {project.RootPath}");
+        return 0;
+    }
+    catch (Exception exception) when (exception is IOException or UnauthorizedAccessException
+                                         or ArgumentException or InvalidOperationException)
+    {
+        // A path that does not exist, a duplicate registration or an unreadable directory is a user
+        // mistake, not a crash: report it the way the usage branch above does, without a stack trace.
+        Console.Error.WriteLine(exception.Message);
+        return 1;
+    }
 }
 
 static async Task<int> ServeAsync()
@@ -175,6 +186,12 @@ static async Task<int> StatusAsync()
     catch (HttpRequestException)
     {
         Console.WriteLine("Daemon:          not running");
+    }
+    catch (OperationCanceledException)
+    {
+        // A daemon that does not answer within the timeout is stopped as far as the user is concerned;
+        // an escaping TaskCanceledException here prints a stack trace instead of saying so.
+        Console.WriteLine("Daemon:          not running (no answer)");
     }
 
     return 0;

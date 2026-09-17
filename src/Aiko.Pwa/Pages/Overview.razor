@@ -1,0 +1,145 @@
+@* The overview: what Aiko is, where the daemon is, which agents it can see, and which projects are
+   registered. It is the page you land on before a project is chosen; the board takes over from there.
+   Nothing here depends on a project, which is the point - the rail's project views appear only once
+   one is selected. *@
+<FlareStack Gap="FlareSpacing.Medium">
+    <FlareStack Gap="FlareSpacing.XXSmall">
+        <FlareText Element="h2" Typo="TypographyScale.HeadlineSmall">Aiko</FlareText>
+        <FlareText Element="span" Typo="TypographyScale.BodyMedium" Color="FlareColor.OnSurfaceVariant">
+            @Loc.Get("OverviewCaption")
+        </FlareText>
+    </FlareStack>
+
+    <FlareGrid Columns="3" Gap="FlareSpacing.XSmall">
+        <FlareCol Span="1">
+            <FlareCard Variant="CardVariant.Filled">
+                <FlareStack Gap="FlareSpacing.XXSmall">
+                    <FlareText Element="h3" Typo="TypographyScale.TitleSmall">@Loc.Get("Daemon")</FlareText>
+                    <FlareList TItem="string" Dense="true">
+                        <FlareListItem Primary="@Loc.Get("Address")">
+                            <Trailing><FlareText Element="span" Mono="true" Typo="TypographyScale.LabelSmall">@(Address ?? "-")</FlareText></Trailing>
+                        </FlareListItem>
+                        <FlareListItem Primary="@Loc.Get("Version")">
+                            <Trailing><FlareText Element="span" Mono="true" Typo="TypographyScale.LabelSmall">@(Version ?? "-")</FlareText></Trailing>
+                        </FlareListItem>
+                        <FlareListItem Primary="PID">
+                            <Trailing><FlareText Element="span" Mono="true" Typo="TypographyScale.LabelSmall">@(ProcessId?.ToString(CultureInfo.InvariantCulture) ?? "-")</FlareText></Trailing>
+                        </FlareListItem>
+                    </FlareList>
+                </FlareStack>
+            </FlareCard>
+        </FlareCol>
+
+        <FlareCol Span="1">
+            <FlareCard Variant="CardVariant.Filled">
+                <FlareStack Gap="FlareSpacing.XXSmall">
+                    <FlareText Element="h3" Typo="TypographyScale.TitleSmall">@Loc.Get("Agents")</FlareText>
+                    <FlareList TItem="string" Dense="true">
+                        @foreach (var adapter in Agents)
+                        {
+                            var installation = adapter.Installations.FirstOrDefault();
+                            <FlareListItem Primary="@adapter.DisplayName">
+                                <Trailing>
+                                    <FlareText Element="span" Mono="true" Typo="TypographyScale.LabelSmall"
+                                               Color="@(installation is null ? FlareColor.OnSurfaceVariant2 : FlareColor.Tertiary)">
+                                        @(installation?.Version ?? (installation is null ? Loc.Get("AgentsNotFound") : "ok"))
+                                    </FlareText>
+                                </Trailing>
+                            </FlareListItem>
+                        }
+                    </FlareList>
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                        @Loc.Get("AgentsHint")
+                    </FlareText>
+                </FlareStack>
+            </FlareCard>
+        </FlareCol>
+
+        <FlareCol Span="1">
+            <FlareCard Variant="CardVariant.Filled">
+                <FlareStack Gap="FlareSpacing.XXSmall">
+                    <FlareText Element="h3" Typo="TypographyScale.TitleSmall">@Loc.Get("QuickStart")</FlareText>
+                    <FlareStack Gap="FlareSpacing.XXSmall">
+                        <FlareText Element="span" Mono="true" Typo="TypographyScale.LabelSmall">@Loc.Get("QuickStartStep1")</FlareText>
+                        <FlareText Element="span" Mono="true" Typo="TypographyScale.LabelSmall">@Loc.Get("QuickStartStep2")</FlareText>
+                        <FlareText Element="span" Mono="true" Typo="TypographyScale.LabelSmall">@Loc.Get("QuickStartStep3")</FlareText>
+                        <FlareText Element="span" Mono="true" Typo="TypographyScale.LabelSmall">@Loc.Get("QuickStartStep4")</FlareText>
+                    </FlareStack>
+                </FlareStack>
+            </FlareCard>
+        </FlareCol>
+    </FlareGrid>
+
+    <FlareDivider />
+
+    <FlareStack Gap="FlareSpacing.Small">
+        <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XSmall">
+            <FlareText Element="h3" Typo="TypographyScale.TitleSmall">
+                @Loc.Get("ProjectsRegistered")
+                <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant2">@Projects.Count</FlareText>
+            </FlareText>
+            <FlareButton Variant="ButtonVariant.Outlined" Size="ButtonSize.Sm" OnClick="OnAddProject">
+                <LeadingIcon><FlareIconView Value="@FlareIcons.Add" /></LeadingIcon>
+                <ChildContent>@Loc.Get("AddProject")</ChildContent>
+            </FlareButton>
+        </FlareStack>
+
+        @if (Projects.Count == 0)
+        {
+            <FlareEmptyState Compact="true"
+                             Title="@Loc.Get("EmptyStateTitle")"
+                             Description="@Loc.Get("EmptyStateHint")">
+                <IconContent><FlareIconView Size="2rem" Value="@FlareIcons.FolderOpen" /></IconContent>
+            </FlareEmptyState>
+        }
+        else
+        {
+            <FlareList TItem="RegisteredProject">
+                @foreach (var project in Projects)
+                {
+                    var selected = project;
+                    <FlareListItem Primary="@selected.Name" Secondary="@selected.RootPath">
+                        <Leading>
+                            <FlareAvatar Text="@Initials(selected.Name)" Size="AvatarSize.Xs" Shape="AvatarShape.Square" />
+                        </Leading>
+                        <Trailing>
+                            <FlareButton Variant="ButtonVariant.Text"
+                                         Size="ButtonSize.Sm"
+                                         OnClick="() => OnOpenProject.InvokeAsync(selected.Id)">@Loc.Get("OpenProject")</FlareButton>
+                        </Trailing>
+                    </FlareListItem>
+                }
+            </FlareList>
+        }
+    </FlareStack>
+</FlareStack>
+
+@code {
+    /// <summary>Registered projects, in the daemon's order.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<RegisteredProject> Projects { get; set; } = [];
+
+    /// <summary>Agent adapters the daemon discovered, with their installations.</summary>
+    [Parameter] public IReadOnlyList<AgentAdapterOption> Agents { get; set; } = [];
+
+    /// <summary>The daemon's own identification, when it answered. Passed as values rather than as the
+    /// client's SystemInfo DTO, which is internal on purpose.</summary>
+    [Parameter] public string? Address { get; set; }
+
+    /// <inheritdoc cref="Address" />
+    [Parameter] public string? Version { get; set; }
+
+    /// <inheritdoc cref="Address" />
+    [Parameter] public int? ProcessId { get; set; }
+
+    /// <summary>Opens a project on the board.</summary>
+    [Parameter] public EventCallback<string> OnOpenProject { get; set; }
+
+    /// <summary>Opens the "add project" form.</summary>
+    [Parameter] public EventCallback OnAddProject { get; set; }
+
+    private static string Initials(string name)
+    {
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return string.Concat(parts.Take(2).Select(part => char.ToUpperInvariant(part[0])));
+    }
+}

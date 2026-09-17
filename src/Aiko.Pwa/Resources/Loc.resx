@@ -176,4 +176,29 @@
   <data name="SettingsSaved" xml:space="preserve"><value>Settings saved.</value></data>
   <data name="InvalidMaxRuns" xml:space="preserve"><value>Enter a whole number of 1 or more.</value></data>
   <data name="InvalidSettingValue" xml:space="preserve"><value>Invalid setting value.</value></data>
+  <data name="Overview" xml:space="preserve"><value>Overview</value></data>
+  <data name="OverviewCaption" xml:space="preserve"><value>Local-first orchestrator: one daemon, the board, the agents and durable project memory.</value></data>
+  <data name="Agents" xml:space="preserve"><value>Agents</value></data>
+  <data name="AgentsNotFound" xml:space="preserve"><value>not detected</value></data>
+  <data name="AgentsHint" xml:space="preserve"><value>Connecting is per project: aiko agent install --project &lt;id&gt; --agent &lt;id&gt;</value></data>
+  <data name="QuickStart" xml:space="preserve"><value>Quick start</value></data>
+  <data name="QuickStartStep1" xml:space="preserve"><value>1. Start the daemon: aiko serve</value></data>
+  <data name="QuickStartStep2" xml:space="preserve"><value>2. Add a project below, or run aiko init &lt;path&gt;</value></data>
+  <data name="QuickStartStep3" xml:space="preserve"><value>3. Connect an agent: aiko agent install --project &lt;id&gt; --agent codex</value></data>
+  <data name="QuickStartStep4" xml:space="preserve"><value>4. Work in the agent: every task starts with a card</value></data>
+  <data name="ProjectsRegistered" xml:space="preserve"><value>Registered projects</value></data>
+  <data name="OpenProject" xml:space="preserve"><value>Open</value></data>
+  <data name="PriorityFormula" xml:space="preserve"><value>Priority formula</value></data>
+  <data name="PriorityFormulaHint" xml:space="preserve"><value>Effective priority = own weight × the card's own score + parent weight × the best parent story.</value></data>
+  <data name="OwnWeight" xml:space="preserve"><value>Own score weight</value></data>
+  <data name="ParentWeight" xml:space="preserve"><value>Best parent weight</value></data>
+  <data name="Criteria" xml:space="preserve"><value>Scoring criteria</value></data>
+  <data name="AddCriterion" xml:space="preserve"><value>Add criterion</value></data>
+  <data name="CriterionDescription" xml:space="preserve"><value>Description</value></data>
+  <data name="CriterionWeight" xml:space="preserve"><value>Weight</value></data>
+  <data name="CriterionIdHelper" xml:space="preserve"><value>The id is what cards report their values against, and it does not change when the title does.</value></data>
+  <data name="NoCriteria" xml:space="preserve"><value>No criteria: a card's priority is entered by hand.</value></data>
+  <data name="InvalidWeights" xml:space="preserve"><value>Weights must be zero or greater, and at least one of them above zero.</value></data>
+  <data name="CriterionTitleRequired" xml:space="preserve"><value>Every criterion needs a title.</value></data>
+  <data name="NotPairedHint" xml:space="preserve"><value>This browser is not paired with the daemon yet. Open the board with: aiko ui</value></data>
 </root>

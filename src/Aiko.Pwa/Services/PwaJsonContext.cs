@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Aiko.Application.Agents;
 using Aiko.Application.Contracts;
 using Aiko.Application.Prioritization;
 using Aiko.Domain.Cards;
@@ -48,6 +49,9 @@ namespace Aiko.Pwa.Services;
 [JsonSerializable(typeof(UpdateWorkflowRequest))]
 [JsonSerializable(typeof(ErrorResponse))]
 [JsonSerializable(typeof(SystemInfo))]
+[JsonSerializable(typeof(AgentAdapterOption))]
+[JsonSerializable(typeof(IReadOnlyList<AgentAdapterOption>))]
+[JsonSerializable(typeof(AgentInstallation))]
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     UseStringEnumConverter = true)]
