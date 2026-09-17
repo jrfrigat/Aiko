@@ -1067,6 +1067,18 @@
     min-width: 0;
 }
 
+/* The appearance pickers: an icon or a colour name beside its swatch needs more room than the field's
+   default, and there is space in the row, so the field and its panel are widened together. The list is
+   anchored to the field, and min-width (not width) leaves Flare's own positioning free to be narrower
+   only when the content demands it. */
+.aiko-field--wide {
+    min-width: 11rem;
+}
+
+.aiko-field--wide .flare-select__dropdown {
+    min-width: 11rem;
+}
+
 .aiko-field .flare-select__control {
     padding: 0.5rem 0.75rem;
     min-height: 0;

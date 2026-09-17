@@ -85,8 +85,10 @@
 
         <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XSmall" Wrap="true">
             <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
-                <FlareIconView Value="@IconOf(_workflowIcon)" Color="@ColorOf(_workflowColor)" />
+                @* Each picker draws the icon or the swatch it is offering, so the pair needs no separate
+                   preview beside them. *@
                 <AikoSelectField Label="@Loc.Get("CardTypeIcon")"
+                                 Class="aiko-field--wide"
                                  Value="@_workflowIcon"
                                  ValueChanged="value => _workflowIcon = value"
                                  Items="@IconChoices"
@@ -94,6 +96,7 @@
                                  ItemTemplate="@IconOption"
                                  SelectedTemplate="@IconValue(ColorOf(_workflowColor))" />
                 <AikoSelectField Label="@Loc.Get("CardTypeColor")"
+                                 Class="aiko-field--wide"
                                  Value="@_workflowColor"
                                  ValueChanged="value => _workflowColor = value"
                                  Items="@ColorChoices"
@@ -160,8 +163,8 @@
                                Value="@_newTypeDescription"
                                ValueChanged="value => _newTypeDescription = value" />
                     <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
-                        <FlareIconView Value="@IconOf(_newTypeIcon)" Color="@ColorOf(_newTypeColor)" />
                         <AikoSelectField Label="@Loc.Get("CardTypeIcon")"
+                                         Class="aiko-field--wide"
                                          Value="@_newTypeIcon"
                                          ValueChanged="value => _newTypeIcon = value"
                                          Items="@IconChoices"
@@ -169,6 +172,7 @@
                                          ItemTemplate="@IconOption"
                                          SelectedTemplate="@IconValue(ColorOf(_newTypeColor))" />
                         <AikoSelectField Label="@Loc.Get("CardTypeColor")"
+                                         Class="aiko-field--wide"
                                          Value="@_newTypeColor"
                                          ValueChanged="value => _newTypeColor = value"
                                          Items="@ColorChoices"
@@ -411,8 +415,8 @@
                    optional - an unset stage keeps the positional default - so a project that never touches
                    them looks exactly as it did before the choice existed. *@
                 <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small" Wrap="true">
-                    <FlareIconView Value="@IconOf(stage.Icon)" Color="@ColorOf(stage.Color)" />
                     <AikoSelectField Label="@Loc.Get("StageIcon")"
+                                     Class="aiko-field--wide"
                                      Value="@stage.Icon"
                                      ValueChanged="value => OnStageIconPicked(stage, value)"
                                      Items="@IconChoices"
@@ -420,6 +424,7 @@
                                      ItemTemplate="@IconOption"
                                      SelectedTemplate="@IconValue(ColorOf(stage.Color))" />
                     <AikoSelectField Label="@Loc.Get("StageColor")"
+                                     Class="aiko-field--wide"
                                      Value="@stage.Color"
                                      ValueChanged="value => OnStageColorPicked(stage, value)"
                                      Items="@ColorChoices"

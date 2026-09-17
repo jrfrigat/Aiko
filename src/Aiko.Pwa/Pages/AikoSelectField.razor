@@ -2,11 +2,15 @@
    FlareSelect so an option can carry more than text - an icon, a colour swatch, anything a template draws.
    FlareSelect brings its own control, which the stylesheet dresses as the cockpit's box; the caller writes
    native <option> elements as before, or Items with templates when the value itself needs a picture. *@
-<div class="aiko-field">
+<div class="aiko-field @Class">
     @if (Label is { Length: > 0 } label)
     {
         <label class="aiko-field__label">@label</label>
     }
+    @* ChildContent travels as a parameter, not as child markup. Blazor compiles markup children into a
+       fragment even when they render nothing, and FlareSelect prefers that fragment over Items - so an
+       Items-based field would silently lose its list and show only the "no value" row. Passed this way a
+       field with no children hands over null and FlareSelect reads Items as intended. *@
     <FlareSelect TValue="string"
                  Value="@Value"
                  ValueChanged="OnValueChanged"
@@ -17,9 +21,8 @@
                  ItemLabel="@ItemLabel"
                  ItemTemplate="@ItemTemplate"
                  SelectedTemplate="@SelectedTemplate"
-                 NullOption="@NullOption">
-        @ChildContent
-    </FlareSelect>
+                 ChildContent="@ChildContent"
+                 NullOption="@NullOption" />
     @if (ErrorText is { Length: > 0 } error)
     {
         <span class="aiko-field__error">@error</span>
@@ -33,6 +36,9 @@
 @code {
     /// <summary>The field's name, above it.</summary>
     [Parameter] public string? Label { get; set; }
+
+    /// <summary>Extra classes for the field wrapper, for a field that needs its own width or spacing.</summary>
+    [Parameter] public string? Class { get; set; }
 
     /// <summary>What the choice means, under the field.</summary>
     [Parameter] public string? Hint { get; set; }
