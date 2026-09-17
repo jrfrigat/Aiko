@@ -176,10 +176,10 @@ http://127.0.0.1:<port>/mcp/projects/<projectId>
 aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<projectId>
 ```
 
-Стабильный набор инструментов (28 tools): контекст проекта, CRUD карточек и связи, взятие
+Стабильный набор инструментов (31 tools): контекст проекта, CRUD карточек, связи, оценка и взятие
 карточки, полный цикл выполнения этапа (start / report progress / request scope expansion /
 complete / pause / handoff / resume / report agent state), поиск и запись памяти, регистрация и
-список проектов, диагностика и reindex, открытие UI.
+список проектов, шаблоны, диагностика и reindex, настройки, backup и открытие UI.
 Описания инструментов требуют сначала получать контекст проекта; установленные skills, rules и
 блоки `AGENTS.md` усиливают это для каждого агента.
 

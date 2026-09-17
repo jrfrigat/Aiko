@@ -40,6 +40,7 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         "aiko_open_ui",
         "aiko_init_project",
         "aiko_list_projects",
+        "aiko_list_templates",
         "aiko_create_card_in_project",
         "aiko_doctor",
         "aiko_reindex",
