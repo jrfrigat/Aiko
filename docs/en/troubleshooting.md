@@ -20,6 +20,12 @@ powershell -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.c
 
 ## The port is busy
 
+If a daemon you left running holds it, stop that one first instead of hunting for the process:
+
+```powershell
+aiko serve stop
+```
+
 Aiko prefers port `24560`. If it is busy, `aiko serve` asks for another port (or picks a free one
 from `18000-18999` in non-interactive mode) and saves it. If the port changed, the agent MCP
 configs may be stale - reinstall them:

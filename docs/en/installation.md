@@ -83,6 +83,16 @@ Start the daemon (it listens on loopback only):
 aiko serve
 ```
 
+Stop it again from any terminal:
+
+```powershell
+aiko serve stop
+```
+
+It asks the daemon to stop - the port it saved when it started, or one named with `--port <p>`, which is
+how a daemon started by hand is reached. The stop is refused without the local access token, like every
+other API call, and the command waits until the port really stops answering before it reports success.
+
 Open the UI - this pairs the browser with the daemon using a one-time code and opens the board:
 
 ```powershell

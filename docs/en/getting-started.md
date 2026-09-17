@@ -9,6 +9,8 @@ aiko serve     # in one terminal
 aiko ui        # in another (opens the browser, pairs it with the daemon)
 ```
 
+Stop it again with `aiko serve stop` - from any terminal, whether or not that one started it.
+
 ## 2. Register your project
 
 In the UI, click **Add project**, enter the path to your project folder, and choose a git policy. The

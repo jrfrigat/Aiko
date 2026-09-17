@@ -88,6 +88,7 @@ irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1 | i
 
 ```powershell
 aiko serve     # запустить демон (только loopback; предпочитает порт 24560)
+aiko serve stop                    # остановить демон из любого терминала
 aiko ui        # сопрячь браузер с демоном и открыть доску
 aiko doctor    # проверить установку; `aiko repair --fix` применяет найденные исправления
 ```

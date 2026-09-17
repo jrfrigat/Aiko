@@ -89,6 +89,7 @@ it non-interactively with `-Agents claude-code,codex`, or skip it with `-NoAgent
 
 ```powershell
 aiko serve     # start the daemon (loopback only; prefers port 24560)
+aiko serve stop                    # stop the daemon again, from any terminal
 aiko ui        # pair the browser with the daemon and open the board
 aiko doctor    # check the installation; `aiko repair --fix` applies the fixes it names
 ```
