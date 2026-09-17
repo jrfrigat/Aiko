@@ -70,5 +70,20 @@ internal static class SystemEndpoints
             "/api/v1/system/diagnostics",
             async (IWorkshopDiagnostics diagnostics, CancellationToken cancellationToken) =>
                 TypedResults.Ok(await diagnostics.InspectAsync(null, cancellationToken)));
+        // The counterpart of `aiko serve`: what a user who left the daemon running in another terminal needs.
+        // It sits behind the same token check as every other /api route, so only a local caller holding the
+        // credential can stop the service, and the stop is *asked for* rather than imposed - which is the
+        // difference between this and killing the process, and the reason a hung daemon still has to be
+        // killed by hand.
+        app.MapPost(
+            "/api/v1/system/shutdown",
+            (IHostApplicationLifetime lifetime) =>
+            {
+                // Signalled while this response is still on its way out: the host stops accepting new work
+                // and lets the in-flight request finish, so the caller is told the daemon is stopping instead
+                // of watching the connection drop.
+                lifetime.StopApplication();
+                return TypedResults.Ok(new ShutdownResponse(Environment.ProcessId));
+            });
     }
 }

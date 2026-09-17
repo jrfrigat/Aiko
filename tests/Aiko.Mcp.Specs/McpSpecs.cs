@@ -746,10 +746,64 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
             {
                 Assert.Equal(HttpStatusCode.OK, cookieResponse.StatusCode);
             }
+
+            // The daemon can be asked to stop, which is what `aiko serve stop` does: refused without the token
+            // like every other API call, and fatal with it. The command therefore has a contract to keep
+            // rather than a process to kill.
+            // Refused without the token, like every other API call. A cookie-free client on purpose: the
+            // pairing cookie this spec set a moment ago would otherwise authenticate the request, and the
+            // check would pass for the wrong reason - by stopping the daemon.
+            using (var anonymous = new HttpClient(new HttpClientHandler { UseCookies = false })
+                   {
+                       BaseAddress = baseUrl
+                   })
+            {
+                using var unauthenticatedStop = await anonymous.PostAsync("/api/v1/system/shutdown", null);
+                Assert.Equal(HttpStatusCode.Unauthorized, unauthenticatedStop.StatusCode);
+            }
+
+            using (var stillUp = await httpClient.GetAsync("/health"))
+            {
+                Assert.Equal(HttpStatusCode.OK, stillUp.StatusCode);
+            }
+
+            // A client with a short timeout of its own: once the daemon goes away a request either fails at
+            // once or hangs, and the poll must not wait out the default hundred seconds to learn which.
+            using (var stopping = new HttpClient { BaseAddress = baseUrl, Timeout = TimeSpan.FromSeconds(2) })
+            {
+                using var stop = new HttpRequestMessage(HttpMethod.Post, "/api/v1/system/shutdown");
+                stop.Headers.Authorization = new AuthenticationHeaderValue("Bearer", "test-token-123");
+                using var stopResponse = await stopping.SendAsync(stop);
+                Assert.Equal(HttpStatusCode.OK, stopResponse.StatusCode);
+                var answer = await stopResponse.Content.ReadFromJsonAsync<JsonElement>();
+                Assert.True(answer.GetProperty("processId").GetInt32() > 0);
+
+                var stopped = false;
+                for (var attempt = 0; attempt < 40 && !stopped; attempt++)
+                {
+                    await Task.Delay(250);
+                    try
+                    {
+                        using var health = await stopping.GetAsync("/health");
+                    }
+                    catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException)
+                    {
+                        stopped = true;
+                    }
+                }
+
+                Assert.True(stopped, "The daemon kept answering after it accepted a shutdown.");
+            }
         }
         finally
         {
-            server.Kill(entireProcessTree: true);
+            // The last part of this spec stops the daemon through its own endpoint, so it may already be gone
+            // by the time cleanup runs.
+            if (!server.HasExited)
+            {
+                server.Kill(entireProcessTree: true);
+            }
+
             await server.WaitForExitAsync(CancellationToken.None);
         }
     }

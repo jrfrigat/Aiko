@@ -12,6 +12,7 @@ namespace Aiko.Server.Contracts;
 /// Source-generated JSON context of the daemon HTTP API (camelCase, string enum values).
 /// </summary>
 [JsonSerializable(typeof(HealthResponse))]
+[JsonSerializable(typeof(ShutdownResponse))]
 [JsonSerializable(typeof(SystemResponse))]
 [JsonSerializable(typeof(RegisteredProject))]
 [JsonSerializable(typeof(RegisteredProject[]))]

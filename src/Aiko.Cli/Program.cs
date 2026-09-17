@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using Aiko.Application.Agents;
@@ -16,7 +17,7 @@ var exitCode = command switch
     "init" => await InitAsync(args),
     "templates" => await TemplatesAsync(),
     "project" => await ProjectAsync(args),
-    "serve" => await ServeAsync(),
+    "serve" => await ServeAsync(args),
     "ui" => await UiAsync(),
     "status" => await StatusAsync(),
     "doctor" => await DoctorAsync(args),
@@ -43,7 +44,8 @@ static int Help()
                                                         handle used in the UI's URLs
           templates                                     List the project templates to create from
           project remove <id> [--yes]                   Unregister a project (keeps its files)
-          serve                                         Start the Aiko daemon
+          serve [stop] [--port <p>]                       Start the Aiko daemon, or ask a running one to
+                                                        stop (the port it saved, or one given with --port)
           ui                                            Open the UI in the browser
           status                                        Daemon, data and port status
           doctor [--project <id>]                       Check the installation and report (changes nothing)
@@ -200,8 +202,22 @@ static bool Confirm(string question)
 static bool HasFlag(string[] args, params string[] flags) =>
     args.Any(arg => flags.Any(flag => string.Equals(arg, flag, StringComparison.Ordinal)));
 
-static async Task<int> ServeAsync()
+// `aiko serve` runs the daemon in the foreground; `aiko serve stop` asks a running one to stop. The stop
+// goes through the daemon's own endpoint rather than to the process table, because the daemon owns its
+// shutdown: it can finish what it is doing, and the caller is told the request was accepted.
+static async Task<int> ServeAsync(string[] args)
 {
+    if (args.Length > 1 && string.Equals(args[1], "stop", StringComparison.OrdinalIgnoreCase))
+    {
+        return await StopDaemonAsync(ReadOption(args, "--port"));
+    }
+
+    if (args.Length > 1)
+    {
+        Console.Error.WriteLine(
+            $"Unknown argument for `aiko serve`: {args[1]}. Use `aiko serve` to start a daemon or `aiko serve stop` to stop one.");
+        return 2;
+    }
 
     var server = ResolveServerCommand();
     if (server is null)
@@ -220,6 +236,93 @@ static async Task<int> ServeAsync()
     Console.WriteLine($"Started Aiko daemon (pid {process.Id}). Press Ctrl+C to stop.");
     await process.WaitForExitAsync();
     return process.ExitCode;
+}
+
+// Stops the daemon through its own endpoint. The port is the one the daemon saved when it started, or the one
+// named with --port - which is how a daemon started by hand is reached, since a port requested through
+// AIKO_PORT is never written to the settings file.
+static async Task<int> StopDaemonAsync(string? requestedPort)
+{
+    var dataPaths = AikoDataPaths.FromEnvironment();
+    var port = requestedPort;
+    if (string.IsNullOrWhiteSpace(port))
+    {
+        var settings = await new DaemonEndpointConfiguration(dataPaths).TryReadAsync();
+        if (settings is null)
+        {
+            Console.Error.WriteLine(
+                "No daemon port is known yet: pass --port <p>, or run `aiko status` to see the saved one.");
+            return 1;
+        }
+
+        port = settings.Port.ToString();
+    }
+
+    // AIKO_TOKEN, when set, is the token the daemon being stopped was started with, so it has to win over the
+    // stored one: a daemon started that way would otherwise answer 401 to its own stop command.
+    var accessToken = Environment.GetEnvironmentVariable("AIKO_TOKEN");
+    if (string.IsNullOrWhiteSpace(accessToken))
+    {
+        accessToken = await new AccessTokenStore(dataPaths).GetOrCreateAsync();
+    }
+
+    using var http = new HttpClient
+    {
+        BaseAddress = new Uri($"http://127.0.0.1:{port}"),
+        Timeout = TimeSpan.FromSeconds(5)
+    };
+    http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+    try
+    {
+        using var response = await http.PostAsync("/api/v1/system/shutdown", content: null);
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            Console.Error.WriteLine(
+                $"The daemon on port {port} refused the access token. If it was started with AIKO_TOKEN, " +
+                "run this command with the same value in the environment.");
+            return 1;
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            Console.Error.WriteLine(
+                $"The daemon on port {port} answered {(int)response.StatusCode} to the shutdown request.");
+            return 1;
+        }
+    }
+    catch (HttpRequestException)
+    {
+        Console.Error.WriteLine($"No daemon is answering on port {port}.");
+        Console.Error.WriteLine(
+            "Run `aiko status` to see the saved port, or pass the port of a hand-started daemon with --port <p>.");
+        return 1;
+    }
+    catch (TaskCanceledException)
+    {
+        Console.Error.WriteLine($"The daemon on port {port} did not answer within 5 seconds.");
+        return 1;
+    }
+
+    // The endpoint answers while the host is still winding down, so the port is polled until it really stops
+    // answering: reporting "stopped" over a daemon that is still serving is a lie the next command exposes.
+    for (var attempt = 0; attempt < 20; attempt++)
+    {
+        await Task.Delay(250);
+        try
+        {
+            using var health = await http.GetAsync("/health");
+        }
+        catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException)
+        {
+            Console.WriteLine($"Daemon stopped (port {port}).");
+            return 0;
+        }
+    }
+
+    Console.Error.WriteLine(
+        $"The daemon on port {port} accepted the stop but is still answering; it may be finishing a run.");
+    return 1;
 }
 
 // The release layout ships the daemon as a self-contained executable (Aiko.Server.exe) either next
