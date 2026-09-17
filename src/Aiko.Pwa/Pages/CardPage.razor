@@ -1,0 +1,36 @@
+@page "/p/{ProjectId}/cards/{CardId}"
+@inject WorkspaceState State
+
+@* A card as its own page: the board is where you work across cards, this is where you work inside one -
+   and unlike the drawer it replaces, it has a URL that can be linked, reloaded and shared. *@
+<PageTitle>@CardId</PageTitle>
+
+<FlareStack Gap="FlareSpacing.Small">
+    <FlareNavLink Href="@BoardHref">
+        <ChildContent>@Loc.Get("KanbanBoard")</ChildContent>
+    </FlareNavLink>
+
+    @if (Card is null || State.Board is not { } board)
+    {
+        <FlareAlert Severity="AlertSeverity.Info" Variant="AlertVariant.Text">@Loc.Get("CardNotFound")</FlareAlert>
+    }
+    else
+    {
+        <CardInspector Card="Card"
+                       Board="board"
+                       ExecutionRefreshTick="State.ExecutionPulse"
+                       OnSaved="State.LoadBoardAsync" />
+    }
+</FlareStack>
+
+@code {
+    [Parameter] public string ProjectId { get; set; } = string.Empty;
+    [Parameter] public string CardId { get; set; } = string.Empty;
+
+    private string BoardHref => $"/p/{Uri.EscapeDataString(ProjectId)}/board";
+
+    private Card? Card => State.Board?.Cards.FirstOrDefault(card =>
+        StringComparer.Ordinal.Equals(card.Reference.CardId, CardId));
+
+    protected override async Task OnParametersSetAsync() => await State.EnsureProjectAsync(ProjectId);
+}

@@ -55,6 +55,10 @@
                                                 Id="@card.Reference.CardId"
                                                 Payload="@(new BoardCardDrag(card.Reference.CardId, card.StageId))"
                                                 Class="aiko-drag">
+                                    @* The whole card opens the card page. A plain wrapper carries the click
+                                       rather than FlareCard itself: the drag handle lives inside, and a
+                                       click must not fight the drag gesture. *@
+                                    <div class="aiko-card__open" @onclick="() => OnCardSelected.InvokeAsync(card.Reference.CardId)">
                                     <FlareCard Variant="CardVariant.Filled" Size="CardSize.Sm" Class="aiko-card">
                                         <FlareStack Gap="FlareSpacing.XXSmall">
                                             <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XXSmall">
@@ -92,6 +96,7 @@
                                             </FlareStack>
                                         </FlareStack>
                                     </FlareCard>
+                                    </div>
                                 </FlareDraggable>
                             }
 
@@ -113,6 +118,9 @@
 
     /// <summary>Raised when a card lands in another stage; the page turns it into one request.</summary>
     [Parameter] public EventCallback<BoardCardMove> OnCardMoved { get; set; }
+
+    /// <summary>Raised when a card is clicked; the page opens it as its own route.</summary>
+    [Parameter] public EventCallback<string> OnCardSelected { get; set; }
 
     private WorkflowDefinition? _workflow;
     private IReadOnlyList<StageDefinition> _stages = [];

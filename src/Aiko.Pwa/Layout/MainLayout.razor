@@ -52,23 +52,6 @@
                 </FlareStack>
             </FlareStack>
 
-            @* The card jump list exists only where cards are drawn: on a board route. *@
-            @if (OnBoardRoute && State.Board is { } board)
-            {
-                <FlareSelect TValue="string"
-                             Label="@Loc.Get("CardFilter")"
-                             Placeholder="@Loc.Get("Choose")"
-                             Size="FieldSize.Sm"
-                             Value="@State.SelectedCardId"
-                             ValueChanged="SelectCardAsync">
-                    <option value="">@Loc.Get("Choose")</option>
-                    @foreach (var card in board.Cards.OrderBy(card => card.Reference.CardId, StringComparer.Ordinal))
-                    {
-                        <option value="@card.Reference.CardId">@card.Reference.CardId - @card.Title</option>
-                    }
-                </FlareSelect>
-            }
-
             <FlareIconButton Variant="ButtonVariant.Text"
                              Icon="@FlareIcons.Refresh"
                              AriaLabel="@Loc.Get("Refresh")"
@@ -203,25 +186,6 @@
             }
         </FlareStack>
     </FlareLayoutContent>
-
-    @* The card detail is a push drawer rather than a panel in the page, so it narrows the board
-       instead of covering it, and FlareLayout turns it into a modal overlay (scrim and Escape) below the
-       Md breakpoint. It stays mounted while closed so the layout keeps a stable track count. *@
-    <FlareLayoutDrawer Anchor="DrawerAnchor.Right"
-                       Variant="DrawerVariant.Persistent"
-                       Width="26rem"
-                       Open="@(State.SelectedCard is not null)"
-                       OpenChanged="OnInspectorOpenChanged"
-                       AriaLabel="@Loc.Get("InspectorAriaLabel")">
-        @if (State.SelectedCard is { } card && State.Board is { } board)
-        {
-            <CardInspector Card="card"
-                           Board="board"
-                           ExecutionRefreshTick="State.ExecutionPulse"
-                           OnSaved="State.LoadBoardAsync"
-                           OnClose="CloseCard" />
-        }
-    </FlareLayoutDrawer>
 </FlareLayout>
 
 @code {
@@ -240,20 +204,6 @@
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs args) =>
         InvokeAsync(StateHasChanged);
-
-    /// <summary>Whether the current route draws cards, i.e. whether the card jump list belongs here.</summary>
-    private bool OnBoardRoute => State.SelectedProjectId is not null &&
-        CurrentSection() is "board" or "stories" or "tasks";
-
-    /// <summary>The section of the current route; "board" when the route names no other one.</summary>
-    private string CurrentSection()
-    {
-        var path = new Uri(Navigation.Uri).AbsolutePath;
-        string[] sections = ["stories", "tasks", "workflow", "settings"];
-        return sections.FirstOrDefault(section =>
-            path.Contains($"/{section}/", StringComparison.Ordinal) ||
-            path.EndsWith($"/{section}", StringComparison.Ordinal)) ?? "board";
-    }
 
     private static string BoardHref(string projectId) =>
         $"/p/{Uri.EscapeDataString(projectId)}/board";
@@ -282,42 +232,6 @@
             return Math.Round(
                 BoardMetrics.InProgressCount(State.Board) * 100d / total,
                 MidpointRounding.AwayFromZero);
-        }
-    }
-
-    /// <summary>
-    /// The jump list is a navigation, not a local selection: the chosen card becomes a route segment so
-    /// the drawer, the URL and the back button all agree.
-    /// </summary>
-    private async Task SelectCardAsync(string? cardId)
-    {
-        if (State.SelectedProjectId is not { } projectId)
-        {
-            return;
-        }
-
-        var section = CurrentSection();
-        var target = string.IsNullOrWhiteSpace(cardId)
-            ? SectionHref(projectId, section)
-            : $"{SectionHref(projectId, section)}/card/{Uri.EscapeDataString(cardId)}";
-        Navigation.NavigateTo(target);
-        await Task.CompletedTask;
-    }
-
-    /// <summary>A scrim tap, Escape or a route change closed the drawer: leave the card route.</summary>
-    private void OnInspectorOpenChanged(bool open)
-    {
-        if (!open && State.SelectedCardId is not null)
-        {
-            CloseCard();
-        }
-    }
-
-    private void CloseCard()
-    {
-        if (State.SelectedProjectId is { } projectId)
-        {
-            Navigation.NavigateTo(SectionHref(projectId, CurrentSection()));
         }
     }
 

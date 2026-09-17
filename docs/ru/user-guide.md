@@ -23,7 +23,7 @@ optimistic concurrency; если карточка изменилась в дру
 - `declaredScopeFiles` (намеченные файлы/glob) и `actualChangedFiles` (что реально изменено).
   Файлы вне объявленного scope помечаются как out-of-scope.
 
-В инспекторе редактируются название, приоритет и declared scope; видны связи, executions,
+На странице карточки редактируются название, приоритет и declared scope; видны связи, executions,
 попытки агентов, прогресс и артефакты.
 
 ## Workflow

@@ -1,7 +1,8 @@
-@* One board screen, shared by the three board routes: the metric strip, the in-flight warning, the
+@* One board screen, shared by the three board routes: the projection switch, the metric strip, the
    create form and one section per card kind the mode asks for. The routes differ only by Mode. *@
 @inject HttpClient Http
 @inject WorkspaceState State
+@inject NavigationManager Navigation
 
 @if (State.Board is not { } board)
 {
@@ -10,6 +11,22 @@
 else
 {
     <FlareStack Gap="FlareSpacing.Medium">
+        @* Which cards the board shows, as the design's filter row does it: one control, three projections,
+           and the route follows the choice so the rail, the back button and the address bar agree. *@
+        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
+            <FlareToggleGroup TValue="BoardViewMode"
+                              Size="ButtonSize.Sm"
+                              Value="Mode"
+                              ValueChanged="ChangeModeAsync">
+                @* Value is object-typed, so the enum member must be an expression - a bare literal would
+                   arrive at the group as the string "BoardViewMode.Combined". *@
+                <FlareToggleButton Variant="ButtonVariant.Filled" Value="@BoardViewMode.Combined">@Loc.Get("CombinedNav")</FlareToggleButton>
+                <FlareToggleButton Variant="ButtonVariant.Filled" Value="@BoardViewMode.Stories">@Loc.Get("StoriesNav")</FlareToggleButton>
+                <FlareToggleButton Variant="ButtonVariant.Filled" Value="@BoardViewMode.Tasks">@Loc.Get("TasksNav")</FlareToggleButton>
+            </FlareToggleGroup>
+            <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant2">@ProjectionCaption</FlareText>
+        </FlareStack>
+
         @* The design's metric strip: a mono summary line, not a row of tiles. *@
         <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true" Class="aiko-metrics">
             @foreach (var tile in SummaryTiles)
@@ -21,10 +38,9 @@ else
                                Weight="FontWeight.SemiBold">@tile.Value</FlareText>
                 </FlareStack>
             }
-            <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant2">@ProjectionCaption</FlareText>
         </FlareStack>
 
-        @if (SettingsInspector.IsParallelShared(State.SettingsView?.EffectiveExecution))
+        @if (SettingsPanel.IsParallelShared(State.SettingsView?.EffectiveExecution))
         {
             <FlareAlert Severity="AlertSeverity.Warning"
                         Variant="AlertVariant.Outlined"
@@ -32,47 +48,11 @@ else
         }
 
         <FlareStack Row="true" Gap="FlareSpacing.XSmall">
-            <FlareButton Variant="ButtonVariant.Filled" Size="ButtonSize.Sm" OnClick="OpenCreateCard">
+            <FlareButton Variant="ButtonVariant.Filled" Size="ButtonSize.Sm" OnClick="OpenNewCard">
                 <LeadingIcon><FlareIconView Value="@FlareIcons.Add" /></LeadingIcon>
                 <ChildContent>@Loc.Get("CreateCard")</ChildContent>
             </FlareButton>
         </FlareStack>
-
-        @if (_showCreateCard)
-        {
-            <FlareCard Variant="CardVariant.Outlined">
-                <FlareStack Gap="FlareSpacing.Small">
-                    <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("CreateCardTitle")</FlareText>
-                    <FlareTextField Label="@Loc.Get("CardId")" @bind-Value="_newCardId" />
-                    <FlareSelect TValue="string" Label="@Loc.Get("CardKind")" @bind-Value="_newCardKind">
-                        <option value="Task">@Loc.Get("TaskKind")</option>
-                        <option value="Story">@Loc.Get("StoryKind")</option>
-                    </FlareSelect>
-                    <FlareTextField Label="@Loc.Get("Title")" @bind-Value="_newCardTitle" />
-                    <FlareTextField Label="@Loc.Get("Stage")" @bind-Value="_newCardStage" />
-                    @if (_priorityCriteria.Count > 0)
-                    {
-                        @foreach (var criterion in _priorityCriteria)
-                        {
-                            <FlareNumericField TValue="decimal?"
-                                               Min="0"
-                                               Label="@criterion.Title"
-                                               Value="GetCriterionValue(criterion.Id)"
-                                               ValueChanged="value => SetCriterionValue(criterion.Id, value)" />
-                        }
-                    }
-                    else
-                    {
-                        <FlareNumericField TValue="decimal?" Label="@Loc.Get("Priority")" @bind-Value="_newCardPriority" />
-                    }
-                    <FlareTextField Label="@Loc.Get("Scope")" @bind-Value="_newCardScope" />
-                    <FlareStack Row="true" Gap="FlareSpacing.XSmall">
-                        <FlareButton OnClick="CreateCardAsync">@Loc.Get("Create")</FlareButton>
-                        <FlareButton Variant="ButtonVariant.Text" OnClick="CloseCreateCard">@Loc.Get("Cancel")</FlareButton>
-                    </FlareStack>
-                </FlareStack>
-            </FlareCard>
-        }
 
         <FlareDivider />
 
@@ -81,6 +61,7 @@ else
             <BoardSection Title="@Loc.Get("StoryFlow")"
                           Kind="CardKind.Story"
                           Board="board"
+                          OnCardSelected="OpenCard"
                           OnCardMoved="move => MoveCardAsync(CardKind.Story, move)" />
         }
 
@@ -94,6 +75,7 @@ else
             <BoardSection Title="@Loc.Get("TaskFlow")"
                           Kind="CardKind.Task"
                           Board="board"
+                          OnCardSelected="OpenCard"
                           OnCardMoved="move => MoveCardAsync(CardKind.Task, move)" />
         }
     </FlareStack>
@@ -106,24 +88,36 @@ else
     /// <summary>The project id from the route.</summary>
     [Parameter, EditorRequired] public string ProjectId { get; set; } = string.Empty;
 
-    /// <summary>The card the route names, or null when the drawer is closed.</summary>
-    [Parameter] public string? CardId { get; set; }
+    /// <summary>The route opens the project; the board itself has no other state of its own.</summary>
+    protected override async Task OnParametersSetAsync() => await State.EnsureProjectAsync(ProjectId);
 
-    private bool _showCreateCard;
-    private string? _newCardId;
-    private string? _newCardKind = "Task";
-    private string? _newCardTitle;
-    private string? _newCardStage;
-    private decimal? _newCardPriority = 1m;
-    private string? _newCardScope;
-    private IReadOnlyList<PriorityCriterion> _priorityCriteria = [];
-    private readonly Dictionary<string, decimal?> _criterionValues = new(StringComparer.Ordinal);
+    /// <summary>Creating a card is its own page: the board only links to it.</summary>
+    private void OpenNewCard() => Navigation.NavigateTo($"{ProjectHref}/cards/new");
 
-    protected override async Task OnParametersSetAsync()
+    /// <summary>A card is its own page too, so a card can be linked, reloaded and shared.</summary>
+    private void OpenCard(string cardId) =>
+        Navigation.NavigateTo($"{ProjectHref}/cards/{Uri.EscapeDataString(cardId)}");
+
+    private string ProjectHref => $"/p/{Uri.EscapeDataString(ProjectId)}";
+
+    /// <summary>
+    /// The projection switch is a navigation, not local state: the choice becomes the route, so the rail,
+    /// the address bar and the back button all agree on which projection is showing.
+    /// </summary>
+    private void ChangeModeAsync(BoardViewMode mode)
     {
-        // The route is the source of truth for both: open the project and the card it names.
-        await State.EnsureProjectAsync(ProjectId);
-        await State.SetCardAsync(CardId);
+        if (mode == Mode)
+        {
+            return;
+        }
+
+        var section = mode switch
+        {
+            BoardViewMode.Stories => "stories",
+            BoardViewMode.Tasks => "tasks",
+            _ => "board"
+        };
+        Navigation.NavigateTo($"{ProjectHref}/{section}");
     }
 
     private IReadOnlyList<Card> VisibleCards => Mode switch
@@ -156,107 +150,6 @@ else
         BoardViewMode.Tasks => Loc.Get("TasksCaption"),
         _ => Loc.Get("CombinedCaption")
     };
-
-    /// <summary>The first stage of the workflow a new card of this kind joins.</summary>
-    private string DefaultStage(CardKind kind)
-    {
-        var workflowId = kind == CardKind.Story ? "story" : "task";
-        return State.Board?.Workflows
-            .FirstOrDefault(workflow => StringComparer.Ordinal.Equals(workflow.Id, workflowId))
-            ?.Stages.OrderBy(stage => stage.Order).Select(stage => stage.Id).FirstOrDefault()
-            ?? "backlog";
-    }
-
-    private decimal? GetCriterionValue(string id) =>
-        _criterionValues.TryGetValue(id, out var value) ? value : null;
-
-    private void SetCriterionValue(string id, decimal? value) => _criterionValues[id] = value;
-
-    private Dictionary<string, decimal> BuildCriterionValues()
-    {
-        var result = new Dictionary<string, decimal>(StringComparer.Ordinal);
-        foreach (var criterion in _priorityCriteria)
-        {
-            if (_criterionValues.TryGetValue(criterion.Id, out var value) && value is { } numeric)
-            {
-                result[criterion.Id] = numeric;
-            }
-        }
-
-        return result;
-    }
-
-    private async Task OpenCreateCard()
-    {
-        _showCreateCard = true;
-        _priorityCriteria = [];
-        _criterionValues.Clear();
-        if (State.Board is not { } board)
-        {
-            return;
-        }
-
-        // The project's scoring criteria decide which fields the form asks for, so they are read when
-        // the form opens rather than with the board.
-        try
-        {
-            var view = await Http.GetFromJsonAsync<AppSettingsView>(
-                $"api/v1/projects/{Uri.EscapeDataString(board.Project.Id)}/settings", PwaJson.Options);
-            _priorityCriteria = view?.EffectivePriority.Criteria ?? [];
-        }
-        catch
-        {
-            _priorityCriteria = [];
-        }
-    }
-
-    private void CloseCreateCard() => _showCreateCard = false;
-
-    private async Task CreateCardAsync()
-    {
-        if (State.Board is not { } board ||
-            string.IsNullOrWhiteSpace(_newCardId) ||
-            string.IsNullOrWhiteSpace(_newCardTitle))
-        {
-            await State.ReportErrorAsync(Loc.Get("IdTitleRequired"));
-            return;
-        }
-
-        try
-        {
-            var kind = _newCardKind == nameof(CardKind.Story) ? CardKind.Story : CardKind.Task;
-            var criterionValues = BuildCriterionValues();
-            var ownPriority = criterionValues.Count > 0
-                ? PriorityCalculator.CalculateOwnPriority(criterionValues, _priorityCriteria)
-                : _newCardPriority ?? 0m;
-            var request = new CreateCardRequest(
-                _newCardId.Trim(),
-                kind,
-                _newCardTitle.Trim(),
-                kind == CardKind.Story ? "story" : "task",
-                string.IsNullOrWhiteSpace(_newCardStage) ? DefaultStage(kind) : _newCardStage.Trim(),
-                ownPriority,
-                (_newCardScope ?? string.Empty)
-                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                    .ToArray(),
-                criterionValues.Count > 0 ? criterionValues : null);
-            using var response = await Http.PostAsJsonAsync(
-                $"api/v1/projects/{Uri.EscapeDataString(board.Project.Id)}/cards",
-                request,
-                PwaJson.Options);
-            response.EnsureSuccessStatusCode();
-            _showCreateCard = false;
-            _newCardId = null;
-            _newCardTitle = null;
-            _newCardScope = null;
-            _criterionValues.Clear();
-            await State.LoadBoardAsync();
-        }
-        catch (Exception exception)
-        {
-            await State.ReportErrorAsync(Loc.Format("CreateCardFailed", FailureText.Describe(exception)));
-        }
-    }
 
     /// <summary>
     /// Applies one board drop: the board reports the card and the stage it landed in, so exactly one

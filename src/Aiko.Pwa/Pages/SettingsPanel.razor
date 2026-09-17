@@ -38,6 +38,11 @@
         }
         else
         {
+            @* The two scopes are separate screens, so this panel renders only the one its page asked for:
+               application settings are the defaults a new project starts from, project settings are what
+               the project actually runs with. Showing both on one page invites editing the wrong one. *@
+            @if (Scope == SettingsScope.Application)
+            {
             <FlareStack Gap="FlareSpacing.Small">
                 <FlareText Element="h3" Typo="TypographyScale.TitleSmall">@Loc.Get("Daemon")</FlareText>
                 @if (_system is not null)
@@ -57,7 +62,10 @@
             </FlareStack>
 
             <FlareDivider />
+            }
 
+            @if (Scope == SettingsScope.Project)
+            {
             <FlareStack Gap="FlareSpacing.Small">
                 <FlareText Element="h3" Typo="TypographyScale.TitleSmall">
                     @Loc.Get("EffectiveConfig")
@@ -95,9 +103,10 @@
             </FlareStack>
 
             <FlareDivider />
+            }
 
             <FlareStack Gap="FlareSpacing.Small">
-                @if (Project is not null)
+                @if (Scope == SettingsScope.Project && Project is not null)
                 {
                     <FlareText Element="h3" Typo="TypographyScale.TitleSmall">
                         @Loc.Get("ProjectSettings")
@@ -177,7 +186,7 @@
                                  Loading="@_savingProject"
                                  OnClick="SaveProjectAsync">@Loc.Get("SaveProjectSettings")</FlareButton>
                 }
-                else
+                else if (Scope == SettingsScope.Project)
                 {
                     <FlareText Element="h3" Typo="TypographyScale.TitleSmall">@Loc.Get("ProjectSettings")</FlareText>
                     <FlareAlert Severity="AlertSeverity.Info"
@@ -185,6 +194,8 @@
                 }
             </FlareStack>
 
+            @if (Scope == SettingsScope.Application)
+            {
             <FlareDivider />
 
             <FlareStack Gap="FlareSpacing.Small">
@@ -264,11 +275,28 @@
                              Loading="@_savingGlobal"
                              OnClick="SaveGlobalAsync">@Loc.Get("SaveGlobalSettings")</FlareButton>
             </FlareStack>
+            }
         }
     </FlareStack>
 </FlarePaper>
 
 @code {
+    /// <summary>Which scope this panel edits: the application, or one project.</summary>
+    public enum SettingsScope
+    {
+        /// <summary>Daemon information and the global defaults a new project starts from.</summary>
+        Application,
+
+        /// <summary>What one project actually runs with, and where each value comes from.</summary>
+        Project
+    }
+
+    /// <summary>
+    /// The scope this page edits. The two are separate screens on purpose (see the comment in the markup):
+    /// the panel renders only the sections that belong to the scope it was opened for.
+    /// </summary>
+    [Parameter] public SettingsScope Scope { get; set; }
+
     [Parameter] public RegisteredProject? Project { get; set; }
     [Parameter] public EventCallback OnSaved { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
@@ -327,7 +355,7 @@
 
         try
         {
-            // The inspector also opens without a project, where only global settings apply.
+            // The panel also opens for the application scope, where only the global defaults apply.
             var projectView = Project is null
                 ? null
                 : await Http.GetFromJsonAsync<AppSettingsView>(

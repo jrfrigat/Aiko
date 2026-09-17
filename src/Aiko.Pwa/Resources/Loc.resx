@@ -235,4 +235,5 @@
   <data name="ConnectAgent" xml:space="preserve"><value>Connect</value></data>
   <data name="DisconnectAgent" xml:space="preserve"><value>Disconnect</value></data>
   <data name="AgentConnectFailed" xml:space="preserve"><value>Could not change the {0} connection: {1}</value></data>
+  <data name="CardNotFound" xml:space="preserve"><value>No such card on this project's board.</value></data>
 </root>

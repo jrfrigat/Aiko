@@ -235,4 +235,5 @@
   <data name="ConnectAgent" xml:space="preserve"><value>Подключить</value></data>
   <data name="DisconnectAgent" xml:space="preserve"><value>Отключить</value></data>
   <data name="AgentConnectFailed" xml:space="preserve"><value>Не удалось изменить подключение {0}: {1}</value></data>
+  <data name="CardNotFound" xml:space="preserve"><value>Такой карточки на доске проекта нет.</value></data>
 </root>

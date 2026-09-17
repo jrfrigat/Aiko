@@ -71,13 +71,13 @@ UI пока нет, таблица говорит это прямо, а не д�
 | Список проектов | `/aiko-list-projects` | `aiko_list_projects` | Дашборд - список проектов |
 | Открыть доску | `/aiko-ui` | `aiko_open_ui` | `aiko ui` или адрес в верхней панели |
 | Создать story / task | `/aiko-story-create`, `/aiko-task-create` | `aiko_create_card`, `aiko_create_card_in_project` | Доска - *Создать карточку* |
-| Прочитать доску | `/aiko-status` | `aiko_list_cards`, `aiko_get_card` | Доска и карточка |
-| Изменить карточку | — | `aiko_update_card` | Карточка - *Сохранить* |
+| Прочитать доску | `/aiko-status` | `aiko_list_cards`, `aiko_get_card` | Доска, и карточка как отдельная страница |
+| Изменить карточку | — | `aiko_update_card` | Страница карточки - *Сохранить* |
 | Перевести карточку по этапам | `/aiko-next-stage` | `aiko_move_card` | Перетаскивание между колонками |
 | Запустить этап | — | `aiko_start_stage` | — (доска покажет результат) |
-| Отчитаться о прогрессе | `/aiko-analyze`, `/aiko-implement`, `/aiko-review` | `aiko_report_progress` | Карточка - история исполнения |
-| Запросить расширение scope | `/aiko-scope` | `aiko_request_scope_expansion` | Карточка - declared и actual файлы |
-| Передать этап другому агенту | `/aiko-handoff` | `aiko_handoff_execution` | Карточка - история исполнения |
+| Отчитаться о прогрессе | `/aiko-analyze`, `/aiko-implement`, `/aiko-review` | `aiko_report_progress` | Страница карточки - история исполнения |
+| Запросить расширение scope | `/aiko-scope` | `aiko_request_scope_expansion` | Страница карточки - declared и actual файлы |
+| Передать этап другому агенту | `/aiko-handoff` | `aiko_handoff_execution` | Страница карточки - история исполнения |
 | Завершить этап | `/aiko-complete` | `aiko_complete_stage` | Перетаскивание в следующую колонку |
 | Записать и найти память | `/aiko-memory` | `aiko_store_memory`, `aiko_search_memory` | — (в UI пока нет) |
 | Изменить конвейер | — | — | Страница Workflow |

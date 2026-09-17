@@ -1,0 +1,23 @@
+@page "/p/{ProjectId}/settings"
+@inject WorkspaceState State
+
+@* One project's settings: what it actually runs with, and where each value comes from. The application
+   defaults are a separate screen at /settings. *@
+<PageTitle>@Loc.Get("ProjectSettings")</PageTitle>
+
+@if (State.Board is not { } board)
+{
+    <FlareAlert Severity="AlertSeverity.Info" Variant="AlertVariant.Text">@Loc.Get("BoardUnavailable")</FlareAlert>
+}
+else
+{
+    <SettingsPanel Scope="SettingsPanel.SettingsScope.Project"
+                   Project="board.Project"
+                   OnSaved="State.LoadBoardAsync" />
+}
+
+@code {
+    [Parameter] public string ProjectId { get; set; } = string.Empty;
+
+    protected override async Task OnParametersSetAsync() => await State.EnsureProjectAsync(ProjectId);
+}

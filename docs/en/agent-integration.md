@@ -69,13 +69,13 @@ has no path yet, the table says so rather than pretending the sets are already e
 | List projects | `/aiko-list-projects` | `aiko_list_projects` | Dashboard - project list |
 | Open the board | `/aiko-ui` | `aiko_open_ui` | `aiko ui`, or the URL in the app bar |
 | Create a story / task | `/aiko-story-create`, `/aiko-task-create` | `aiko_create_card`, `aiko_create_card_in_project` | Board - *Create card* |
-| Read the board | `/aiko-status` | `aiko_list_cards`, `aiko_get_card` | Board and card drawer |
-| Edit a card | — | `aiko_update_card` | Card drawer - *Save card* |
+| Read the board | `/aiko-status` | `aiko_list_cards`, `aiko_get_card` | Board, and the card as its own page |
+| Edit a card | — | `aiko_update_card` | Card page - *Save card* |
 | Move a card between stages | `/aiko-next-stage` | `aiko_move_card` | Drag a card between columns |
 | Start a stage | — | `aiko_start_stage` | — (the board shows the resulting state) |
-| Report progress | `/aiko-analyze`, `/aiko-implement`, `/aiko-review` | `aiko_report_progress` | Card drawer - execution history |
-| Request scope expansion | `/aiko-scope` | `aiko_request_scope_expansion` | Card drawer - declared vs actual files |
-| Hand off to another agent | `/aiko-handoff` | `aiko_handoff_execution` | Card drawer - execution history |
+| Report progress | `/aiko-analyze`, `/aiko-implement`, `/aiko-review` | `aiko_report_progress` | Card page - execution history |
+| Request scope expansion | `/aiko-scope` | `aiko_request_scope_expansion` | Card page - declared vs actual files |
+| Hand off to another agent | `/aiko-handoff` | `aiko_handoff_execution` | Card page - execution history |
 | Complete a stage | `/aiko-complete` | `aiko_complete_stage` | Drag to the next column |
 | Record and search memory | `/aiko-memory` | `aiko_store_memory`, `aiko_search_memory` | — (not in the UI yet) |
 | Edit the pipeline | — | — | Workflow page |

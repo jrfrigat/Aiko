@@ -1,0 +1,16 @@
+@page "/settings"
+@inject WorkspaceState State
+
+@* Application settings: the daemon, and the defaults every new project starts from. A project's own
+   settings are a different screen at /p/{projectId}/settings, not another section of this one. *@
+<PageTitle>@Loc.Get("GlobalSettings")</PageTitle>
+
+<SettingsPanel Scope="SettingsPanel.SettingsScope.Application" OnSaved="State.ReloadAsync" />
+
+@code {
+    protected override async Task OnParametersSetAsync()
+    {
+        // The application scope has no project, so the board and the live stream are released.
+        await State.ClearProjectAsync();
+    }
+}

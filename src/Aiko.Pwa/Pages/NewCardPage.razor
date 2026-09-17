@@ -1,0 +1,172 @@
+@page "/p/{ProjectId}/cards/new"
+@inject HttpClient Http
+@inject WorkspaceState State
+@inject NavigationManager Navigation
+
+@* Creating a card is a page of its own, not a form wedged into the board: it has several fields, a
+   per-project priority formula, and it deserves a URL that can be linked and reloaded. *@
+<PageTitle>@Loc.Get("CreateCardTitle")</PageTitle>
+
+<FlareStack Gap="FlareSpacing.Small">
+    <FlareNavLink Href="@BoardHref">
+        <ChildContent>@Loc.Get("KanbanBoard")</ChildContent>
+    </FlareNavLink>
+
+    @if (State.Board is null)
+    {
+        <FlareAlert Severity="AlertSeverity.Info" Variant="AlertVariant.Text">@Loc.Get("BoardUnavailable")</FlareAlert>
+    }
+    else
+    {
+        <FlareCard Variant="CardVariant.Outlined">
+            <FlareStack Gap="FlareSpacing.Small">
+                <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("CreateCardTitle")</FlareText>
+                <FlareTextField Label="@Loc.Get("CardId")" @bind-Value="_newCardId" />
+                <FlareSelect TValue="string" Label="@Loc.Get("CardKind")" @bind-Value="_newCardKind">
+                    <option value="Task">@Loc.Get("TaskKind")</option>
+                    <option value="Story">@Loc.Get("StoryKind")</option>
+                </FlareSelect>
+                <FlareTextField Label="@Loc.Get("Title")" @bind-Value="_newCardTitle" />
+                <FlareTextField Label="@Loc.Get("Stage")" @bind-Value="_newCardStage" />
+                @if (_priorityCriteria.Count > 0)
+                {
+                    @foreach (var criterion in _priorityCriteria)
+                    {
+                        <FlareNumericField TValue="decimal?"
+                                           Min="0"
+                                           Label="@criterion.Title"
+                                           Value="GetCriterionValue(criterion.Id)"
+                                           ValueChanged="value => SetCriterionValue(criterion.Id, value)" />
+                    }
+                }
+                else
+                {
+                    <FlareNumericField TValue="decimal?" Label="@Loc.Get("Priority")" @bind-Value="_newCardPriority" />
+                }
+                <FlareTextField Label="@Loc.Get("Scope")" HelperText="@Loc.Get("ScopeHelper")" @bind-Value="_newCardScope" />
+                <FlareStack Row="true" Gap="FlareSpacing.XSmall">
+                    <FlareButton OnClick="CreateAsync">@Loc.Get("Create")</FlareButton>
+                    <FlareButton Variant="ButtonVariant.Text" OnClick="Cancel">@Loc.Get("Cancel")</FlareButton>
+                </FlareStack>
+            </FlareStack>
+        </FlareCard>
+    }
+</FlareStack>
+
+@code {
+    [Parameter] public string ProjectId { get; set; } = string.Empty;
+
+    private string? _newCardId;
+    private string? _newCardKind = "Task";
+    private string? _newCardTitle;
+    private string? _newCardStage;
+    private decimal? _newCardPriority = 1m;
+    private string? _newCardScope;
+    private IReadOnlyList<PriorityCriterion> _priorityCriteria = [];
+    private readonly Dictionary<string, decimal?> _criterionValues = new(StringComparer.Ordinal);
+
+    private string BoardHref => $"/p/{Uri.EscapeDataString(ProjectId)}/board";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await State.EnsureProjectAsync(ProjectId);
+        await LoadCriteriaAsync();
+    }
+
+    /// <summary>The project's scoring criteria decide which fields the form asks for.</summary>
+    private async Task LoadCriteriaAsync()
+    {
+        _priorityCriteria = [];
+        _criterionValues.Clear();
+        if (State.Board is not { } board)
+        {
+            return;
+        }
+
+        try
+        {
+            var view = await Http.GetFromJsonAsync<AppSettingsView>(
+                $"api/v1/projects/{Uri.EscapeDataString(board.Project.Id)}/settings", PwaJson.Options);
+            _priorityCriteria = view?.EffectivePriority.Criteria ?? [];
+        }
+        catch
+        {
+            _priorityCriteria = [];
+        }
+    }
+
+    /// <summary>The first stage of the workflow a new card of this kind joins.</summary>
+    private string DefaultStage(CardKind kind)
+    {
+        var workflowId = kind == CardKind.Story ? "story" : "task";
+        return State.Board?.Workflows
+            .FirstOrDefault(workflow => StringComparer.Ordinal.Equals(workflow.Id, workflowId))
+            ?.Stages.OrderBy(stage => stage.Order).Select(stage => stage.Id).FirstOrDefault()
+            ?? "backlog";
+    }
+
+    private decimal? GetCriterionValue(string id) =>
+        _criterionValues.TryGetValue(id, out var value) ? value : null;
+
+    private void SetCriterionValue(string id, decimal? value) => _criterionValues[id] = value;
+
+    private Dictionary<string, decimal> BuildCriterionValues()
+    {
+        var result = new Dictionary<string, decimal>(StringComparer.Ordinal);
+        foreach (var criterion in _priorityCriteria)
+        {
+            if (_criterionValues.TryGetValue(criterion.Id, out var value) && value is { } numeric)
+            {
+                result[criterion.Id] = numeric;
+            }
+        }
+
+        return result;
+    }
+
+    private async Task CreateAsync()
+    {
+        if (State.Board is not { } board ||
+            string.IsNullOrWhiteSpace(_newCardId) ||
+            string.IsNullOrWhiteSpace(_newCardTitle))
+        {
+            await State.ReportErrorAsync(Loc.Get("IdTitleRequired"));
+            return;
+        }
+
+        try
+        {
+            var kind = _newCardKind == nameof(CardKind.Story) ? CardKind.Story : CardKind.Task;
+            var criterionValues = BuildCriterionValues();
+            var ownPriority = criterionValues.Count > 0
+                ? PriorityCalculator.CalculateOwnPriority(criterionValues, _priorityCriteria)
+                : _newCardPriority ?? 0m;
+            var request = new CreateCardRequest(
+                _newCardId.Trim(),
+                kind,
+                _newCardTitle.Trim(),
+                kind == CardKind.Story ? "story" : "task",
+                string.IsNullOrWhiteSpace(_newCardStage) ? DefaultStage(kind) : _newCardStage.Trim(),
+                ownPriority,
+                (_newCardScope ?? string.Empty)
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .ToArray(),
+                criterionValues.Count > 0 ? criterionValues : null);
+            using var response = await Http.PostAsJsonAsync(
+                $"api/v1/projects/{Uri.EscapeDataString(board.Project.Id)}/cards",
+                request,
+                PwaJson.Options);
+            response.EnsureSuccessStatusCode();
+            await State.LoadBoardAsync();
+            // Straight to the card: it exists now, and that is what the person came here to fill in.
+            Navigation.NavigateTo(
+                $"/p/{Uri.EscapeDataString(ProjectId)}/cards/{Uri.EscapeDataString(request.CardId)}");
+        }
+        catch (Exception exception)
+        {
+            await State.ReportErrorAsync(Loc.Format("CreateCardFailed", FailureText.Describe(exception)));
+        }
+    }
+
+    private void Cancel() => Navigation.NavigateTo(BoardHref);
+}

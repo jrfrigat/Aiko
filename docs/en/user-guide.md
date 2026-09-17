@@ -23,7 +23,7 @@ Every card is a folder in `.aiko` with a `card.json` and Markdown artifacts. A c
 - `declaredScopeFiles` (the intended files/globs) and `actualChangedFiles` (what was really
   changed). Files outside the declared scope are flagged as out-of-scope.
 
-Use the inspector to edit the title, priority and declared scope, and to view relations,
+Open a card to edit the title, priority and declared scope, and to view relations,
 executions, agent attempts, progress and artifacts.
 
 ## Workflows

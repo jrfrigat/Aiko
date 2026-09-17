@@ -225,6 +225,12 @@
     cursor: pointer;
 }
 
+/* The wrapper that carries the click opening a card: the drag handle lives inside the card, and the click
+   must not fight the drag gesture. Flare has no "clickable card" variant. */
+.aiko-card__open {
+    display: block;
+}
+
 .aiko-card__handle {
     opacity: 0.4;
     transition: opacity var(--flare-motion-duration-short2) var(--flare-motion-easing-standard);

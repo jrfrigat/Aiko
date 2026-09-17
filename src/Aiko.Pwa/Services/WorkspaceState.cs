@@ -56,9 +56,6 @@ internal sealed class WorkspaceState : IAsyncDisposable
     /// <summary>The id of the project the current route opened, or null on the dashboard.</summary>
     public string? SelectedProjectId { get; private set; }
 
-    /// <summary>The card the detail drawer shows, or null when it is closed.</summary>
-    public string? SelectedCardId { get; private set; }
-
     /// <summary>The last failure to show, cleared by the next successful load.</summary>
     public string? Error { get; private set; }
 
@@ -78,11 +75,6 @@ internal sealed class WorkspaceState : IAsyncDisposable
     public RegisteredProject? SelectedProject => SelectedProjectId is null
         ? null
         : Projects.FirstOrDefault(project => project.Id == SelectedProjectId);
-
-    /// <summary>The card the drawer shows, or null when it is closed or left the board.</summary>
-    public Card? SelectedCard => SelectedCardId is null
-        ? null
-        : Board?.Cards.FirstOrDefault(card => card.Reference.CardId == SelectedCardId);
 
     /// <summary>The local endpoint the daemon serves, as the top bar's host pill.</summary>
     public string HostCaption => _http.BaseAddress is { } address
@@ -140,7 +132,6 @@ internal sealed class WorkspaceState : IAsyncDisposable
         }
 
         SelectedProjectId = projectId;
-        SelectedCardId = null;
         Board = null;
         SettingsView = null;
         Loading = true;
@@ -170,7 +161,6 @@ internal sealed class WorkspaceState : IAsyncDisposable
         }
 
         SelectedProjectId = null;
-        SelectedCardId = null;
         Board = null;
         SettingsView = null;
         await _events.CloseAsync();
@@ -199,11 +189,6 @@ internal sealed class WorkspaceState : IAsyncDisposable
                 $"api/v1/projects/{projectId}/board", PwaJson.Options);
             SettingsView = await _http.GetFromJsonAsync<AppSettingsView>(
                 $"api/v1/projects/{projectId}/settings", PwaJson.Options);
-            if (SelectedCardId is not null &&
-                Board?.Cards.All(card => card.Reference.CardId != SelectedCardId) == true)
-            {
-                SelectedCardId = null;
-            }
         }
         catch (Exception exception)
         {
@@ -346,22 +331,6 @@ internal sealed class WorkspaceState : IAsyncDisposable
         }
     }
 
-
-    /// <summary>
-    /// Opens or closes the card detail drawer. A no-op when the selection already matches, so a board
-    /// page re-running its parameters cannot bounce a notification back through the shell.
-    /// </summary>
-    public async Task SetCardAsync(string? cardId)
-    {
-        var selected = string.IsNullOrWhiteSpace(cardId) ? null : cardId;
-        if (string.Equals(selected, SelectedCardId, StringComparison.Ordinal))
-        {
-            return;
-        }
-
-        SelectedCardId = selected;
-        await NotifyAsync();
-    }
 
     /// <summary>Clears the last error.</summary>
     public async Task ClearErrorAsync()
