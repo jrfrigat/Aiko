@@ -20,7 +20,6 @@
   <data name="CreateCardTitle" xml:space="preserve"><value>Создать карточку</value></data>
   <data name="CardIdentityTitle" xml:space="preserve"><value>Карточка</value></data>
   <data name="CardIdentityHint" xml:space="preserve"><value>Id придумывает Aiko, вы задаёте заголовок, по которому её читают</value></data>
-  <data name="CardIdAutoHint" xml:space="preserve"><value>Id придумывает Aiko, например TASK-3</value></data>
   <data name="Requirements" xml:space="preserve"><value>Требования</value></data>
   <data name="ScopeAndRequirementsHint" xml:space="preserve"><value>Что должна сделать карточка и какие файлы она может тронуть</value></data>
   <data name="RequirementsHelper" xml:space="preserve"><value>Что должна сделать эта карточка, вашими словами</value></data>

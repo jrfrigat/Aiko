@@ -86,7 +86,7 @@ public sealed class ProjectInitializer(
                 await WriteJsonIfChangedAsync(
                     manifestPath,
                     manifest with { Slug = slug },
-                    ProjectJsonContext.Default.ProjectManifest,
+                    AikoJson.Project,
                     cancellationToken);
             }
 
@@ -181,7 +181,7 @@ public sealed class ProjectInitializer(
         await WriteJsonIfChangedAsync(
             manifestPath,
             manifest,
-            ProjectJsonContext.Default.ProjectManifest,
+            AikoJson.Project,
             cancellationToken);
 
         await ApplyTemplateAsync(stitchRoot, template, cancellationToken);
@@ -189,7 +189,7 @@ public sealed class ProjectInitializer(
         await WriteNewJsonAsync(
             Path.Combine(stitchRoot, "relations.json"),
             new RelationDocument(CurrentSchemaVersion, 0, []),
-            ProjectJsonContext.Default.RelationDocument,
+            AikoJson.Project,
             cancellationToken);
         await ApplyGitPolicyAsync(rootPath, manifest.GitPolicy, AikoProjectPaths.DirectoryName, cancellationToken);
 
@@ -217,7 +217,7 @@ public sealed class ProjectInitializer(
             await WriteNewJsonAsync(
                 Path.Combine(stitchRoot, "workflows", $"{workflow.Id}.json"),
                 workflow,
-                ProjectJsonContext.Default.WorkflowDefinition,
+                AikoJson.Project,
                 cancellationToken);
         }
 
@@ -226,7 +226,7 @@ public sealed class ProjectInitializer(
             await WriteNewJsonAsync(
                 Path.Combine(stitchRoot, "projections", $"{projection.Id}.json"),
                 projection,
-                ProjectJsonContext.Default.BoardProjectionDefinition,
+                AikoJson.Project,
                 cancellationToken);
         }
 
@@ -396,7 +396,7 @@ public sealed class ProjectInitializer(
     private static async ValueTask WriteNewJsonAsync<T>(
         string path,
         T value,
-        JsonTypeInfo<T> typeInfo,
+        JsonSerializerOptions options,
         CancellationToken cancellationToken)
     {
         if (File.Exists(path))
@@ -415,7 +415,7 @@ public sealed class ProjectInitializer(
                 4096,
                 FileOptions.Asynchronous))
             {
-                await JsonSerializer.SerializeAsync(output, value, typeInfo, cancellationToken);
+                await JsonSerializer.SerializeAsync(output, value, options, cancellationToken);
             }
 
             File.Move(temporaryPath, path, false);
@@ -438,10 +438,10 @@ public sealed class ProjectInitializer(
     private static async ValueTask WriteJsonIfChangedAsync<T>(
         string path,
         T value,
-        JsonTypeInfo<T> typeInfo,
+        JsonSerializerOptions options,
         CancellationToken cancellationToken)
     {
-        var desired = JsonSerializer.Serialize(value, typeInfo);
+        var desired = JsonSerializer.Serialize(value, options);
         if (File.Exists(path) &&
             string.Equals(
                 await File.ReadAllTextAsync(path, cancellationToken),

@@ -116,7 +116,7 @@ public sealed class ProjectTemplateApplier(
             await WriteJsonAsync(
                 Path.Combine(directory, $"{projection.Id}.json"),
                 projection,
-                ProjectJsonContext.Default.BoardProjectionDefinition,
+                AikoJson.Project,
                 cancellationToken);
         }
     }
@@ -206,14 +206,14 @@ public sealed class ProjectTemplateApplier(
                 TemplateId = template.Id,
                 TemplateVersion = template.Version
             },
-            ProjectJsonContext.Default.ProjectManifest,
+            AikoJson.Project,
             cancellationToken);
     }
 
     private static async ValueTask WriteJsonAsync<T>(
         string path,
         T document,
-        System.Text.Json.Serialization.Metadata.JsonTypeInfo<T> typeInfo,
+        JsonSerializerOptions options,
         CancellationToken cancellationToken)
     {
         await using var output = new FileStream(
@@ -223,6 +223,6 @@ public sealed class ProjectTemplateApplier(
             FileShare.None,
             4096,
             FileOptions.Asynchronous);
-        await JsonSerializer.SerializeAsync(output, document, typeInfo, cancellationToken);
+        await JsonSerializer.SerializeAsync(output, document, options, cancellationToken);
     }
 }

@@ -20,7 +20,6 @@
   <data name="CreateCardTitle" xml:space="preserve"><value>Create card</value></data>
   <data name="CardIdentityTitle" xml:space="preserve"><value>The card</value></data>
   <data name="CardIdentityHint" xml:space="preserve"><value>Aiko names the card; you give it the title everyone reads it by</value></data>
-  <data name="CardIdAutoHint" xml:space="preserve"><value>Aiko names it, for example TASK-3</value></data>
   <data name="Requirements" xml:space="preserve"><value>Requirements</value></data>
   <data name="ScopeAndRequirementsHint" xml:space="preserve"><value>What the card must do, and the files it may touch</value></data>
   <data name="RequirementsHelper" xml:space="preserve"><value>What this card must do, in your words</value></data>

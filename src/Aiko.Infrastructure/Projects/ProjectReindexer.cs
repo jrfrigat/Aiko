@@ -31,9 +31,9 @@ public sealed class ProjectReindexer(
         await connection.OpenAsync(cancellationToken);
         await using var transaction = connection.BeginTransaction();
 
-        await DeleteProjectionAsync(connection, transaction, "relations", projectId, cancellationToken);
-        await DeleteProjectionAsync(connection, transaction, "cards", projectId, cancellationToken);
-        await DeleteProjectionAsync(connection, transaction, "memory_fts", projectId, cancellationToken);
+        await DeleteProjectionAsync(connection, transaction, "relations", project.Id, cancellationToken);
+        await DeleteProjectionAsync(connection, transaction, "cards", project.Id, cancellationToken);
+        await DeleteProjectionAsync(connection, transaction, "memory_fts", project.Id, cancellationToken);
 
         foreach (var card in cards)
         {
@@ -224,7 +224,7 @@ public sealed class ProjectReindexer(
         command.Parameters.AddWithValue("$revision", card.Revision);
         command.Parameters.AddWithValue(
             "$documentJson",
-            JsonSerializer.Serialize(card, ProjectJsonContext.Default.Card));
+            JsonSerializer.Serialize(card, AikoJson.Project));
         command.Parameters.AddWithValue("$updatedUtc", DateTimeOffset.UtcNow.ToString("O"));
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
@@ -251,7 +251,7 @@ public sealed class ProjectReindexer(
         command.Parameters.AddWithValue("$type", relation.Type);
         command.Parameters.AddWithValue(
             "$documentJson",
-            JsonSerializer.Serialize(relation, ProjectJsonContext.Default.CardRelation));
+            JsonSerializer.Serialize(relation, AikoJson.Project));
         command.Parameters.AddWithValue("$createdUtc", relation.CreatedAt.ToString("O"));
         await command.ExecuteNonQueryAsync(cancellationToken);
     }

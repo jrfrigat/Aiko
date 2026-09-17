@@ -42,7 +42,7 @@
           "weight": 0.30,
           "minimum": 0,
           "maximum": 10,
-          "aiInstruction": "How much of the promised outcome exists right now. Set it when the card is estimated, and recalculate it after every agent\u0027s change so the value describes the card as it is after that work, not as it was before. A card at its last stage tends toward the top of the range."
+          "aiInstruction": "How much of the promised outcome exists right now. Set it when the card is estimated, and recalculate it after every agent's change so the value describes the card as it is after that work, not as it was before. A card at its last stage tends toward the top of the range."
         }
       ],
       "sizes": [
@@ -192,7 +192,7 @@
           "id": "in-progress",
           "title": "In progress",
           "order": 40,
-          "instruction": "Coordinate the implementation of the child tasks. After every change, re-score complete so the story\u0027s score says what it now does.",
+          "instruction": "Coordinate the implementation of the child tasks. After every change, re-score complete so the story's score says what it now does.",
           "allowedCardKinds": [
             "Story"
           ],
@@ -214,7 +214,7 @@
           "id": "done",
           "title": "Done",
           "order": 50,
-          "instruction": "Verify that the story\u0027s outcome was reached and summarize it. Re-score complete to the top of its range before closing the card.",
+          "instruction": "Verify that the story's outcome was reached and summarize it. Re-score complete to the top of its range before closing the card.",
           "allowedCardKinds": [
             "Story"
           ],

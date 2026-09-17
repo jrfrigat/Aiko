@@ -98,10 +98,12 @@ internal sealed class CardTools(
         CancellationToken cancellationToken)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(ownPriority);
+        // The MCP route may carry the readable handle; the card is filed under the project's own id.
+        var project = await GetProjectAsync(cancellationToken);
         var canonicalKind = ParseCardKind(kind);
         var (workflow, backlog, reason) = await CardCreation.ResolveAsync(
             definitions,
-            GetProjectId(),
+            project.Id,
             canonicalKind,
             workflowId,
             cancellationToken);
@@ -111,7 +113,7 @@ internal sealed class CardTools(
         }
 
         var resolvedId = string.IsNullOrWhiteSpace(cardId)
-            ? await CardIdGenerator.NextAsync(cards, GetProjectId(), canonicalKind, cancellationToken)
+            ? await CardIdGenerator.NextAsync(cards, project.Id, canonicalKind, cancellationToken)
             : cardId.Trim();
         var metadata = new Dictionary<string, string>(StringComparer.Ordinal);
         if (!string.IsNullOrWhiteSpace(requirements))
@@ -120,7 +122,7 @@ internal sealed class CardTools(
         }
 
         var card = new Card(
-            new CardReference(GetProjectId(), resolvedId),
+            new CardReference(project.Id, resolvedId),
             canonicalKind,
             title,
             workflow.Id,

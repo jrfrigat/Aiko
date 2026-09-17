@@ -7,7 +7,7 @@ namespace Aiko.Infrastructure.Events;
 /// <summary>
 /// Reads the append-only event journal from SQLite in ascending id order.
 /// </summary>
-public sealed class SqliteAikoEventStore(AikoDatabase database) : IAikoEventStore
+public sealed class SqliteAikoEventStore(AikoDatabase database, IProjectCatalog projects) : IAikoEventStore
 {
     /// <inheritdoc />
     public async ValueTask<IReadOnlyList<AikoEvent>> ReadAsync(
@@ -18,6 +18,10 @@ public sealed class SqliteAikoEventStore(AikoDatabase database) : IAikoEventStor
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
         ArgumentOutOfRangeException.ThrowIfLessThan(limit, 1);
+
+        // Events are journaled under the project's immutable id; a subscriber may hold its readable handle.
+        var project = await projects.FindAsync(projectId, cancellationToken)
+            ?? throw new KeyNotFoundException($"Unknown Aiko project: {projectId}");
 
         await using var connection = database.CreateConnection();
         await connection.OpenAsync(cancellationToken);
@@ -30,7 +34,7 @@ public sealed class SqliteAikoEventStore(AikoDatabase database) : IAikoEventStor
             ORDER BY id
             LIMIT $limit;
             """;
-        command.Parameters.AddWithValue("$projectId", projectId);
+        command.Parameters.AddWithValue("$projectId", project.Id);
         command.Parameters.AddWithValue("$afterId", afterId);
         command.Parameters.AddWithValue("$limit", limit);
 

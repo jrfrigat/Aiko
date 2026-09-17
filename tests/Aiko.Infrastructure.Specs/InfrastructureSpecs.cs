@@ -595,30 +595,46 @@ public class InfrastructureSpecs
             var firstRevision = new Card(
                 reference,
                 CardKind.Task,
-                "Implement storage",
+                "Реализация хранилища",
                 "task",
                 "implementation",
                 1,
                 10m,
                 ["src/**"],
                 [],
-                new Dictionary<string, string>());
+                new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    ["requirements"] = "Сохранить карточку и показать её на доске"
+                });
 
             await context.Cards.SaveAsync(firstRevision, 0, CancellationToken.None);
 
             var saved = await context.Cards.FindAsync(reference, CancellationToken.None);
             Assert.Equal(1L, saved?.Revision);
-            Assert.True(
-                File.Exists(Path.Combine(
-                    context.StitchRoot,
-                    "tasks",
-                    reference.CardId,
-                    "card.json")),
-                "card.json was not created");
+            var cardPath = Path.Combine(
+                context.StitchRoot,
+                "tasks",
+                reference.CardId,
+                "card.json");
+            Assert.True(File.Exists(cardPath), "card.json was not created");
+
+            // A .aiko tree is read and diffed by people, so its text keeps its characters: the default
+            // encoder would turn the title above into a wall of \u0440 escapes.
+            var written = await File.ReadAllTextAsync(cardPath);
+            Assert.Contains("Реализация хранилища", written, StringComparison.Ordinal);
+            Assert.DoesNotContain("\\u04", written, StringComparison.Ordinal);
 
             var listed = await context.Cards.ListAsync(context.Project.Id, CancellationToken.None);
             Assert.Single(listed);
             Assert.Equal(reference.CardId, listed[0].Reference.CardId);
+
+            // The board addresses a project by its readable handle, while the rows are keyed by its id:
+            // listing by the handle has to find the same card, or the board answers with an empty list for
+            // a project that plainly has cards.
+            Assert.NotEqual(context.Project.Id, context.Project.Handle);
+            var byHandle = await context.Cards.ListAsync(context.Project.Handle, CancellationToken.None);
+            Assert.Single(byHandle);
+            Assert.Equal(reference.CardId, byHandle[0].Reference.CardId);
 
             var secondRevision = firstRevision with
             {
@@ -2018,7 +2034,7 @@ public class InfrastructureSpecs
                 database,
                 executions,
                 eventPublisher,
-                new SqliteAikoEventStore(database)));
+                new SqliteAikoEventStore(database, catalog)));
         }
         finally
         {

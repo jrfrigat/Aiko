@@ -212,7 +212,7 @@ public sealed class FileRelationStore(
                 await JsonSerializer.SerializeAsync(
                     output,
                     document,
-                    ProjectJsonContext.Default.RelationDocument,
+                    AikoJson.Project,
                     cancellationToken);
             }
 
@@ -274,7 +274,7 @@ public sealed class FileRelationStore(
             insert.Parameters.AddWithValue("$type", relation.Type);
             insert.Parameters.AddWithValue(
                 "$documentJson",
-                JsonSerializer.Serialize(relation, ProjectJsonContext.Default.CardRelation));
+                JsonSerializer.Serialize(relation, AikoJson.Project));
             insert.Parameters.AddWithValue("$createdUtc", relation.CreatedAt.ToString("O"));
             await insert.ExecuteNonQueryAsync(cancellationToken);
         }

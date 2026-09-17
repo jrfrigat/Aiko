@@ -345,6 +345,30 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
         Assert.Equal(
             fixture.ProjectId,
             bySlugBoard.GetProperty("project").GetProperty("id").GetString());
+
+        // The cards are projected under the project's id, so a board read by the handle has to resolve it:
+        // otherwise the project answers 200 with an empty board while its cards sit in the projection, and
+        // the card the UI just created cannot be opened.
+        var cardId = $"HANDLE-{Guid.NewGuid():N}";
+        using var created = await http.PostAsJsonAsync($"api/v1/projects/{slug}/cards", new
+        {
+            cardId,
+            kind = "Task",
+            title = "A card the handle can find",
+            ownPriority = 1,
+            declaredScopeFiles = Array.Empty<string>()
+        });
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+
+        using var afterCreate = await http.GetAsync($"api/v1/projects/{slug}/board");
+        Assert.Equal(HttpStatusCode.OK, afterCreate.StatusCode);
+        var afterCreateBoard = await afterCreate.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Contains(
+            afterCreateBoard.GetProperty("cards").EnumerateArray(),
+            card => string.Equals(
+                card.GetProperty("reference").GetProperty("cardId").GetString(),
+                cardId,
+                StringComparison.Ordinal));
     }
 
     [Fact]

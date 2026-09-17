@@ -28,12 +28,17 @@ internal static class EventEndpoints
                 IAikoEventStore store,
                 AikoEventBroadcaster broadcaster) =>
             {
-                if (await catalog.FindAsync(projectId, context.RequestAborted) is null)
+                var project = await catalog.FindAsync(projectId, context.RequestAborted);
+                if (project is null)
                 {
                     context.Response.StatusCode = StatusCodes.Status404NotFound;
                     return;
                 }
 
+                // Everything downstream keys on the project's immutable id: the route value may be the
+                // readable handle, and subscribing to the handle would silently deliver nothing, because
+                // events are journaled and broadcast under the id.
+                projectId = project.Id;
                 var response = context.Response;
                 response.StatusCode = StatusCodes.Status200OK;
                 response.ContentType = "text/event-stream";
@@ -78,12 +83,18 @@ internal static class EventEndpoints
                 string projectId,
                 long after,
                 int limit,
+                IProjectCatalog catalog,
                 IAikoEventStore store,
                 CancellationToken cancellationToken) =>
             {
+                if (await catalog.FindAsync(projectId, cancellationToken) is not { } project)
+                {
+                    return Results.NotFound();
+                }
+
                 var normalizedLimit = Math.Clamp(limit is 0 ? 100 : limit, 1, 500);
                 return Results.Ok(await store.ReadAsync(
-                    projectId,
+                    project.Id,
                     after,
                     normalizedLimit,
                     cancellationToken));

@@ -96,7 +96,7 @@ public sealed class FileCardDiscussionStore(IProjectCatalog projects, ICardStore
                 await JsonSerializer.SerializeAsync(
                     output,
                     document,
-                    ProjectJsonContext.Default.DiscussionDocument,
+                    AikoJson.Project,
                     cancellationToken);
             }
 

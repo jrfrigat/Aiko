@@ -31,6 +31,11 @@ public sealed class FileCardStore(
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
 
+        // Cards are projected under the project's immutable id, but a caller may address the project by its
+        // readable handle - the UI's URLs do, and so do the MCP routes. Resolving here is what keeps the
+        // board from answering with an empty list for a project that plainly has cards.
+        var project = await FindProjectAsync(projectId, cancellationToken);
+
         await using var connection = database.CreateConnection();
         await connection.OpenAsync(cancellationToken);
 
@@ -42,7 +47,7 @@ public sealed class FileCardStore(
             WHERE project_id = $projectId
             ORDER BY card_id;
             """;
-        command.Parameters.AddWithValue("$projectId", projectId);
+        command.Parameters.AddWithValue("$projectId", project.Id);
 
         var cards = new List<Card>();
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
@@ -97,6 +102,9 @@ public sealed class FileCardStore(
         }
 
         var project = await FindProjectAsync(card.Reference.ProjectId, cancellationToken);
+        // The caller may have addressed the project by its readable handle; what is stored, projected and
+        // published is always keyed by the immutable id, so a card can never be filed under a handle.
+        card = card with { Reference = new CardReference(project.Id, card.Reference.CardId) };
         var lockKey = $"{project.Id}/{card.Reference.CardId}";
 
         using (await locks.LockAsync(lockKey, cancellationToken))
@@ -126,7 +134,7 @@ public sealed class FileCardStore(
                 await events.PublishAsync(
                     card.Reference.ProjectId,
                     AikoEventTypes.CardUpdated,
-                    JsonSerializer.Serialize(card, ProjectJsonContext.Default.Card),
+                    JsonSerializer.Serialize(card, AikoJson.Project),
                     cancellationToken);
             }
         }
@@ -253,7 +261,7 @@ public sealed class FileCardStore(
                 await JsonSerializer.SerializeAsync(
                     output,
                     card,
-                    ProjectJsonContext.Default.Card,
+                    AikoJson.Project,
                     cancellationToken);
             }
 
@@ -288,7 +296,7 @@ public sealed class FileCardStore(
         Card card,
         CancellationToken cancellationToken)
     {
-        var json = JsonSerializer.Serialize(card, ProjectJsonContext.Default.Card);
+        var json = JsonSerializer.Serialize(card, AikoJson.Project);
         await using var connection = database.CreateConnection();
         await connection.OpenAsync(cancellationToken);
 

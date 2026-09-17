@@ -100,10 +100,13 @@ internal sealed class DaemonTools(
         CancellationToken cancellationToken)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(ownPriority);
+        // The target may be named by its readable handle; the card is filed under the project's own id.
+        var project = await catalog.FindAsync(projectId, cancellationToken)
+            ?? throw new KeyNotFoundException($"Unknown Aiko project: {projectId}");
         var canonicalKind = ParseKind(kind);
         var (workflow, backlog, reason) = await CardCreation.ResolveAsync(
             definitions,
-            projectId,
+            project.Id,
             canonicalKind,
             workflowId,
             cancellationToken);
@@ -113,9 +116,9 @@ internal sealed class DaemonTools(
         }
 
         var resolvedId = string.IsNullOrWhiteSpace(cardId)
-            ? await CardIdGenerator.NextAsync(cards, projectId, canonicalKind, cancellationToken)
+            ? await CardIdGenerator.NextAsync(cards, project.Id, canonicalKind, cancellationToken)
             : cardId.Trim();
-        var reference = new CardReference(projectId, resolvedId);
+        var reference = new CardReference(project.Id, resolvedId);
         if (await cards.FindAsync(reference, cancellationToken) is not null)
         {
             throw new InvalidOperationException($"Card '{resolvedId}' already exists in project {projectId}.");

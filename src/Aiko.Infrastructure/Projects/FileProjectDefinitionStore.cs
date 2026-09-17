@@ -195,7 +195,7 @@ public sealed class FileProjectDefinitionStore(IProjectCatalog projects) : IProj
                 await JsonSerializer.SerializeAsync(
                     output,
                     workflow,
-                    ProjectJsonContext.Default.WorkflowDefinition,
+                    AikoJson.Project,
                     cancellationToken);
             }
 

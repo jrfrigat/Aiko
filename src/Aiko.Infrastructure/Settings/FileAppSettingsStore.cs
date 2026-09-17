@@ -72,7 +72,7 @@ public sealed class FileAppSettingsStore(IProjectCatalog projects) : IAppSetting
                 await JsonSerializer.SerializeAsync(
                     output,
                     settings,
-                    SettingsJsonContext.Default.AppSettings,
+                    AikoJson.Settings,
                     cancellationToken);
             }
 

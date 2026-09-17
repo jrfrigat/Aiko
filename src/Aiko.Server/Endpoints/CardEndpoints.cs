@@ -157,6 +157,7 @@ internal static class CardEndpoints
             async (
                 string projectId,
                 CreateCardRequest request,
+                IProjectCatalog catalog,
                 ICardStore cards,
                 IProjectDefinitionStore definitions,
                 CancellationToken cancellationToken) =>
@@ -173,10 +174,17 @@ internal static class CardEndpoints
                         "A card is created in the backlog and moves from there; it cannot start in another stage."));
                 }
 
+                // The route may carry the readable handle; the card is filed under the project's own id.
+                var project = await catalog.FindAsync(projectId, cancellationToken);
+                if (project is null)
+                {
+                    return Results.NotFound();
+                }
+
                 var kind = CardKind.Canonical(request.Kind);
                 var (workflow, backlog, reason) = await CardCreation.ResolveAsync(
                     definitions,
-                    projectId,
+                    project.Id,
                     kind,
                     request.WorkflowId,
                     cancellationToken);
@@ -187,9 +195,9 @@ internal static class CardEndpoints
 
                 // The id is Aiko's own bookkeeping, so it is invented here unless the caller named one.
                 var cardId = string.IsNullOrWhiteSpace(request.CardId)
-                    ? await CardIdGenerator.NextAsync(cards, projectId, kind, cancellationToken)
+                    ? await CardIdGenerator.NextAsync(cards, project.Id, kind, cancellationToken)
                     : request.CardId.Trim();
-                var reference = new CardReference(projectId, cardId);
+                var reference = new CardReference(project.Id, cardId);
                 if (await cards.FindAsync(reference, cancellationToken) is not null)
                 {
                     return Results.Conflict(new ErrorResponse($"Card '{cardId}' already exists."));

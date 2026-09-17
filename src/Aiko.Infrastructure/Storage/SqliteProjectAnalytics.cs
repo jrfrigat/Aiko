@@ -12,7 +12,7 @@ namespace Aiko.Infrastructure.Storage;
 /// observed, not what the user authored. A lost table costs a chart; the cards themselves are files and are
 /// never touched by this.
 /// </remarks>
-public sealed class SqliteProjectAnalytics(AikoDatabase database) : IProjectAnalytics
+public sealed class SqliteProjectAnalytics(AikoDatabase database, IProjectCatalog projects) : IProjectAnalytics
 {
     /// <inheritdoc />
     public async ValueTask RecordStageAsync(
@@ -47,14 +47,18 @@ public sealed class SqliteProjectAnalytics(AikoDatabase database) : IProjectAnal
         int weeks,
         CancellationToken cancellationToken)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
         var window = Math.Clamp(weeks, 1, 52);
+        // The rows are keyed by the project's immutable id; a caller may hold its readable handle instead.
+        var project = await projects.FindAsync(projectId, cancellationToken)
+            ?? throw new KeyNotFoundException($"Unknown Aiko project: {projectId}");
         await using var connection = database.CreateConnection();
         await connection.OpenAsync(cancellationToken);
 
         // Every week of the window is drawn, including the quiet ones: a chart that hides its empty weeks
         // makes a project look busier than it is.
         var start = StartOfWeek(DateTimeOffset.UtcNow).AddDays(-7 * (window - 1));
-        var counts = await ReadWeeklyAsync(connection, projectId, start, cancellationToken);
+        var counts = await ReadWeeklyAsync(connection, project.Id, start, cancellationToken);
         var weekly = new List<AnalyticsBucket>(window);
         for (var index = 0; index < window; index++)
         {

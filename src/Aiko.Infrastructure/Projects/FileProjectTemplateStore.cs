@@ -195,7 +195,7 @@ public sealed class FileProjectTemplateStore(AikoDataPaths paths) : IProjectTemp
         await JsonSerializer.SerializeAsync(
             output,
             template,
-            ProjectJsonContext.Default.ProjectTemplate,
+            AikoJson.Project,
             cancellationToken);
     }
 
@@ -371,7 +371,7 @@ public sealed class FileProjectTemplateStore(AikoDataPaths paths) : IProjectTemp
                 await JsonSerializer.SerializeAsync(
                     output,
                     template,
-                    ProjectJsonContext.Default.ProjectTemplate,
+                    AikoJson.Project,
                     cancellationToken);
             }
 
