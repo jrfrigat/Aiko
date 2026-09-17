@@ -1,9 +1,10 @@
 @inject HttpClient Http
 @inject WorkspaceState State
 
-@* Workflow editor body. The stage sequence is a FlareChipGroup (one selectable chip per stage, in order,
-   the chip label carrying the order and the title), the stage fields are Flare fields, and results are
-   reported through FlareAlert instead of hand-written message divs. *@
+@* Workflow editor body. The pipeline is a grid of stage cards - each one naming its role, its executors,
+   the artifacts it must produce and the commands that verify it - and the stage being edited fills the form
+   below, so the shape of the pipeline and the fields of one stage are visible at the same time. The fields
+   are Flare fields and results are reported through FlareAlert rather than hand-written message divs. *@
 <FlarePaper Elevation="0" Padding="FlareSpacing.Medium" Square="true">
     <FlareStack Gap="FlareSpacing.Medium">
         <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XSmall">
@@ -49,14 +50,69 @@
             <FlareText Element="h3" Typo="TypographyScale.TitleSmall">
                 @Loc.Get("StagesTitle") (@_stages.Count)
             </FlareText>
-            <FlareChipGroup AriaLabel="@Loc.Get("StagesTitle")"
-                            SelectedValues="_selectedStageIds"
-                            SelectedValuesChanged="SelectStage">
+            @* The pipeline as the design draws it: one card per stage, saying what the stage is (its role in
+               the pipeline), who may run it, what it must produce and how it is verified. Clicking a card
+               opens it for editing below. *@
+            <div class="aiko-stages">
                 @foreach (var stageItem in _stages)
                 {
-                    <FlareChip Value="@stageItem.Id" Label="@StageLabel(stageItem)" />
+                    var card = stageItem;
+                    <button type="button"
+                            class="aiko-stage @(ReferenceEquals(card, SelectedStage) ? "aiko-stage--on" : null)"
+                            @onclick="() => SelectStageCard(card)">
+                        <span class="aiko-stage__head">
+                            <span class="aiko-stage__dot"></span>
+                            <FlareText Element="span" Typo="TypographyScale.BodySmall" Weight="FontWeight.SemiBold">
+                                @StageLabel(card)
+                            </FlareText>
+                            @if (StageRole(card) is { Length: > 0 } role)
+                            {
+                                <span class="aiko-tag">@role</span>
+                            }
+                        </span>
+                        <span class="aiko-stage__facts">
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                @Loc.Get("AllowedExecutors")
+                            </FlareText>
+                            @if (card.AllowedAgentAdapterIds.Count == 0)
+                            {
+                                <span class="aiko-tag aiko-tag--quiet">@Loc.Get("AnyAgent")</span>
+                            }
+                            else
+                            {
+                                @foreach (var agentId in card.AllowedAgentAdapterIds)
+                                {
+                                    <span class="aiko-tag aiko-tag--accent">@AgentName(agentId)</span>
+                                }
+                            }
+                        </span>
+                        @if (ArtifactPaths(card) is { Count: > 0 } artifacts)
+                        {
+                            <span class="aiko-stage__facts">
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                    @Loc.Get("RequiredArtifacts")
+                                </FlareText>
+                                @foreach (var artifact in artifacts)
+                                {
+                                    <span class="aiko-tag">@artifact</span>
+                                }
+                            </span>
+                        }
+                        @if (ParseCommands(card.CommandLines) is { Count: > 0 } commands)
+                        {
+                            <span class="aiko-stage__facts">
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                    @Loc.Get("ValidationCommands")
+                                </FlareText>
+                                @foreach (var command in commands)
+                                {
+                                    <span class="aiko-tag aiko-tag--quiet aiko-tag--clip" title="@command">@command</span>
+                                }
+                            </span>
+                        }
+                    </button>
                 }
-            </FlareChipGroup>
+            </div>
             <FlareStack Row="true" Gap="FlareSpacing.XXSmall">
                 <FlareButton Variant="ButtonVariant.Outlined" Size="ButtonSize.Sm" OnClick="AddStage">
                     <LeadingIcon><FlareIconView Value="@FlareIcons.Add" /></LeadingIcon>
@@ -171,10 +227,6 @@
 
     private StageDraft? SelectedStage => _selectedStage ?? _stages.FirstOrDefault();
 
-    /// <summary>Single-select chip group: the chip of the stage being edited is the selected one.</summary>
-    private IReadOnlyCollection<string> _selectedStageIds =>
-        SelectedStage is { } stage ? [stage.Id] : Array.Empty<string>();
-
     protected override void OnParametersSet()
     {
         var boardKey = $"{InitialWorkflowId}|{string.Join('|', Board.Workflows.Select(workflow =>
@@ -200,21 +252,6 @@
         }
 
         return Task.CompletedTask;
-    }
-
-    private void SelectStage(IReadOnlyCollection<string> values)
-    {
-        var id = values.FirstOrDefault();
-        if (id is null)
-        {
-            return;
-        }
-
-        var stage = _stages.FirstOrDefault(item => StringComparer.Ordinal.Equals(item.Id, id));
-        if (stage is not null)
-        {
-            _selectedStage = stage;
-        }
     }
 
     private static string StageLabel(StageDraft stage) => $"{stage.Order}. {stage.Title}";
@@ -412,6 +449,46 @@
         _message = message;
         _hasError = true;
     }
+
+    /// <summary>Opens one stage card for editing.</summary>
+    private void SelectStageCard(StageDraft stage) => _selectedStage = stage;
+
+    /// <summary>
+    /// A stage's place in the pipeline. Derived from the order rather than stored: the first stage is where
+    /// a card enters and the last is where it leaves, and a second field saying so would be a second truth.
+    /// </summary>
+    private string StageRole(StageDraft stage)
+    {
+        var ordered = _stages.OrderBy(item => item.Order).ToArray();
+        if (ordered.Length == 0)
+        {
+            return string.Empty;
+        }
+
+        if (ReferenceEquals(stage, ordered[0]))
+        {
+            return Loc.Get("StageRoleInitial");
+        }
+
+        return ReferenceEquals(stage, ordered[^1]) ? Loc.Get("StageRoleTerminal") : string.Empty;
+    }
+
+    /// <summary>The display name of an adapter id, falling back to the id when it was not discovered.</summary>
+    private string AgentName(string agentAdapterId) =>
+        State.Agents
+            .FirstOrDefault(agent => StringComparer.Ordinal.Equals(agent.Id, agentAdapterId))?.DisplayName
+        ?? agentAdapterId;
+
+    /// <summary>
+    /// The artifact paths of a stage, as its card lists them: the first field of each artifact line, so the
+    /// card reads as paths while the editor keeps the policy and the description.
+    /// </summary>
+    private static IReadOnlyList<string> ArtifactPaths(StageDraft stage) =>
+        (stage.ArtifactLines ?? string.Empty)
+            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(line => line.Split('|', 2, StringSplitOptions.TrimEntries)[0])
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .ToArray();
 
     /// <summary>
     /// Adds or removes one adapter from a stage's executor list. The list is a plain set of adapter ids:
