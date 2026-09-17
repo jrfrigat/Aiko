@@ -29,10 +29,15 @@ rate limit) hands off to another agent without losing history.
 - **Local daemon, one per user** - a single ASP.NET Core process serves every registered project:
   REST API, project-scoped MCP over Streamable HTTP, health endpoints and the PWA
 - **Kanban PWA** on Blazor WebAssembly ([Flare.Blazor](https://github.com/jrfrigat/Flare)) with
-  board projections (Tasks / Stories / Combined), card editor, artifacts and executions; the
-  interface language follows the browser, English and Russian ship, and any other language falls
-  back to English
-- **Cards as folders** - every Story/Task is a directory with a `card.json` (optimistic revisions)
+  board projections (one per card type, plus Combined), a backlog screen, the card editor, artifacts
+  and executions; the interface language follows the browser, English and Russian ship, and any other
+  language falls back to English
+- **Card types you define yourself** - a card type *is* a workflow: add an `Epic` with its own
+  description, icon and colour right in the workflow editor, and it appears in the pickers, as a board
+  section and in the backlog; every status column carries its own icon and colour too. The `backlog`
+  column is standard and cannot be removed, and a dedicated **Backlog** screen gathers every card that
+  has not been taken into work yet
+- **Cards as folders** - every card is a directory with a `card.json` (optimistic revisions)
   and Markdown artifacts; the whole `.aiko` tree is readable, diffable and Git-friendly
 - **Typed card graph** - `implements`, `parent-child`, `blocks` (cycle-checked) and symmetric
   `relates-to` relations; blocks drive scheduling

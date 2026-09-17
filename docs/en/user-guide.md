@@ -10,21 +10,29 @@ from the `.aiko` files - the one write this screen performs, and one that is saf
 
 ## The board
 
-The board shows the project's cards in three projections:
+The board shows the project's cards as one section per card type the project declares:
 
-- **Stories** - story cards grouped by their workflow stages.
-- **Tasks** - task cards grouped by their workflow stages.
-- **Combined** - stories and tasks together.
+- **Combined** - every type together, one section each.
+- **Stories**, **Tasks** and so on - one type's projection.
 
-Drag a card between columns to move it to another stage: a card is picked up by its handle icon, while a
-plain click opens the card's page. The move is saved with optimistic
+The projection switch is built from the project's workflows, so a type you added yourself appears here
+immediately and without a code change. Drag a card between columns to move it to another stage: a card is
+picked up by its handle icon, while a plain click opens the card's page. The move is saved with optimistic
 concurrency; if the card changed elsewhere, the UI asks you to reload.
+
+## The backlog
+
+The **backlog** is not a column: it is every card that has not been taken into work yet, gathered from the
+reserved `backlog` stage of each workflow and grouped by card type. "Take into work" moves a card to the
+next stage of its own pipeline. The `backlog` column cannot be removed - it is where a card enters its
+pipeline, and without it a new card would have nowhere to go.
 
 ## Cards
 
 Every card is a folder in `.aiko` with a `card.json` and Markdown artifacts. A card carries:
 
-- `kind` - `story` or `task`;
+- `kind` - the card type id (`Story`, `Task`, or any type the project declares). The type is defined by the
+  project's workflow, so a project can add its own type without a code change;
 - `title`, `workflowId`, `stageId`;
 - `revision` - the optimistic revision;
 - `ownPriority` and the computed effective priority (the task blends its own value with the
@@ -49,13 +57,24 @@ priority, size and every scoring criterion of the project).
 
 ## Workflows
 
-A workflow is an ordered list of stages. Each stage has a title, the card kinds it accepts, the
-instruction the agent is given, the skills it invokes **before** and **after** that instruction, the
-executors allowed to run it and its default agent, the artifacts it must produce (each with a policy for
-when it is missing) and the commands that verify its outcome. Edit them in **Project settings**: the panel
-lists the stages of the pipeline and lets you reorder them, and clicking a stage opens it in a drawer.
-A project owns its own copy of the pipelines, so a change there never reaches another project - or a
-project created later from the template. Removing a stage that still contains cards is rejected.
+A workflow is the card type: an ordered list of stages that defines both the pipeline a card runs through
+and what that card is. Each stage has a title, the card types it accepts, the instruction the agent is
+given, the skills it invokes **before** and **after** that instruction, the executors allowed to run it and
+its default agent, the artifacts it must produce (each with a policy for when it is missing) and the commands
+that verify its outcome. The workflow itself has a name, a description, an icon and a colour - that is how
+the type is drawn in the pickers and on the board.
+
+Edit them in **Project settings**: the panel lists the stages of the pipeline and lets you reorder them, and
+clicking a stage opens it in a drawer where its column icon and colour are chosen too. The icon comes from a
+set of ten and the colour from Flare's palette; "Default" restores the previous positional look. The "New
+card type" panel adds another workflow: give it an id (for example `epic`), a name and a description ("a
+global card type that groups several stories") and pick an icon and a colour - the type appears at once in
+the create-card picker and as a board section, and its pipeline starts with `backlog`, "In progress" and
+"Done".
+
+A project owns its own copy of the pipelines, so a change there never reaches another project - or a project
+created later from the template. Removing a stage that still contains cards is rejected, removing a card type
+that still contains cards is rejected too, and the `backlog` column is protected from removal.
 
 ## Agent bridges
 
@@ -175,5 +194,5 @@ lessons.
 
 ## Cross-project cards
 
-An agent working in one project can report a story or task into another project. The created card
+An agent working in one project can report a card into another project. The created card
 records its origin (`originProjectId`); the target project simply sees where it came from.
