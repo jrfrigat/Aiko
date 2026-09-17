@@ -373,31 +373,55 @@
                         }
                         else
                         {
-                            @foreach (var size in _sizes)
+                            @* The ladder as the design draws it: one tile per step, its coefficient under the
+                               name. The colour is derived from the coefficient - a step that rewards a card
+                               (above 1) reads as an accent, a step that penalizes it (below 1) as a caution -
+                               so the grid shows at a glance which way the ladder leans. *@
+                            <div class="aiko-sizes">
+                                @foreach (var step in _sizes)
+                                {
+                                    var tile = step;
+                                    <button type="button"
+                                            class="aiko-size @(ReferenceEquals(tile, SelectedSize) ? "aiko-size--on" : null)"
+                                            title="@tile.Description"
+                                            @onclick="() => SelectSize(tile)">
+                                        <span class="aiko-size__id">@tile.Id</span>
+                                        <span class="aiko-size__coefficient @CoefficientClass(tile.Coefficient)">
+                                            @CoefficientCaption(tile.Coefficient)
+                                        </span>
+                                    </button>
+                                }
+                            </div>
+
+                            @* The fields of the chosen step: its name, what it multiplies the score by, and the
+                               description the agent reads to pick it. *@
+                            @if (SelectedSize is { } size)
                             {
-                                var draft = size;
                                 <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
                                     <FlareStack Row="true" Align="FlareAlignItems.End" Gap="FlareSpacing.XSmall">
                                         <FlareTextField Size="FieldSize.Xs"
                                                         Label="@Loc.Get("SizeIdLabel")"
-                                                        Value="@draft.Id"
-                                                        ValueChanged="value => draft.Id = value" />
+                                                        Value="@size.Id"
+                                                        ValueChanged="value => size.Id = value" />
                                         <FlareNumericField TValue="decimal"
                                                            Size="FieldSize.Xs"
                                                            Label="@Loc.Get("SizeCoefficient")"
-                                                           @bind-Value="draft.Coefficient" />
+                                                           @bind-Value="size.Coefficient" />
                                         <FlareIconButton Variant="ButtonVariant.Text"
                                                          Icon="@MaterialDesign3Icons.Regular.Delete"
                                                          AriaLabel="@Loc.Get("Remove")"
-                                                         OnClick="() => _sizes.Remove(draft)" />
+                                                         OnClick="RemoveSelectedSize" />
                                     </FlareStack>
-                                    <FlareTextField Size="FieldSize.Xs"
-                                                    Label="@Loc.Get("SizeDescription")"
-                                                    HelperText="@Loc.Get("SizeDescriptionHint")"
-                                                    Value="@draft.Description"
-                                                    ValueChanged="value => draft.Description = value" />
+                                    <FlareTextArea Label="@Loc.Get("SizeDescription")"
+                                                   HelperText="@Loc.Get("SizeDescriptionHint")"
+                                                   Rows="3"
+                                                   @bind-Value="size.Description" />
                                 </FlareStack>
                             }
+
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                @Loc.Get("SizeGridPickHint")
+                            </FlareText>
                         }
                     </FlareStack>
                 </FlareStack>
@@ -557,6 +581,7 @@
     private ActionPolicy _commitPolicy = ActionPolicy.Deny;
     private List<CriterionDraft> _criteria = [];
     private List<SizeDraft> _sizes = [];
+    private SizeDraft? _selectedSize;
     private double _ownWeight = 0.7d;
     private double _parentWeight = 0.3d;
     private WorkshopDiagnostics? _diagnostics;
@@ -635,13 +660,52 @@
     private void AddCriterion() =>
         _criteria.Add(new CriterionDraft { Id = NewCriterionId(_criteria) });
 
-    private void AddSize() =>
-        _sizes.Add(new SizeDraft
+    private void AddSize()
+    {
+        var step = new SizeDraft
         {
             Id = NewSizeId(_sizes),
             Description = string.Empty,
             Coefficient = 1m,
-        });
+        };
+        _sizes.Add(step);
+        // The step just added is the one being worked on, so its fields open straight away.
+        _selectedSize = step;
+    }
+
+    /// <summary>The step whose fields are open: the chosen one, or the first of the ladder.</summary>
+    private SizeDraft? SelectedSize => _selectedSize ?? _sizes.FirstOrDefault();
+
+    private void SelectSize(SizeDraft step) => _selectedSize = step;
+
+    /// <summary>Removes the open step and opens whichever step takes its place in the ladder.</summary>
+    private void RemoveSelectedSize()
+    {
+        if (SelectedSize is not { } step)
+        {
+            return;
+        }
+
+        var index = _sizes.IndexOf(step);
+        _sizes.Remove(step);
+        _selectedSize = _sizes.Count == 0 ? null : _sizes[Math.Min(index, _sizes.Count - 1)];
+    }
+
+    /// <summary>A coefficient as the tile prints it, with the two decimals the fields offer.</summary>
+    private static string CoefficientCaption(decimal coefficient) =>
+        coefficient.ToString("0.00", System.Globalization.CultureInfo.CurrentCulture);
+
+    /// <summary>
+    /// Which way a step leans, as a CSS class: above one it rewards a card, below one it penalizes it, and
+    /// exactly one is the neutral middle of the ladder. Derived from the number rather than stored per step,
+    /// so a project that edits a coefficient sees the colour follow it.
+    /// </summary>
+    private static string CoefficientClass(decimal coefficient) => coefficient switch
+    {
+        > 1m => "aiko-size__coefficient--up",
+        < 1m => "aiko-size__coefficient--down",
+        _ => "aiko-size__coefficient--mid"
+    };
 
     /// <summary>
     /// Builds and saves the global document. Both sections travel together: the settings file is

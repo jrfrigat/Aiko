@@ -256,6 +256,7 @@
   <data name="MaximumLabel" xml:space="preserve"><value>To</value></data>
   <data name="AiInstructionLabel" xml:space="preserve"><value>Agent instruction</value></data>
   <data name="AiInstructionHint" xml:space="preserve"><value>What the agent should look at to score this criterion</value></data>
+  <data name="SizeGridPickHint" xml:space="preserve"><value>Select a step to edit its name, coefficient and description.</value></data>
   <data name="SizeGrid" xml:space="preserve"><value>Size grid</value></data>
   <data name="SizeGridHint" xml:space="preserve"><value>The agent assigns a size from these descriptions; the coefficient multiplies the card's score</value></data>
   <data name="AddSize" xml:space="preserve"><value>Add step</value></data>
@@ -277,12 +278,6 @@
   <data name="ProjectSettingsHeading" xml:space="preserve"><value>Project settings</value></data>
   <data name="ProjectSettingsHint" xml:space="preserve"><value>What this project runs with. The values live in .aiko/settings.json and do not move when the installation defaults change.</value></data>
   <data name="ResetToAppDefaults" xml:space="preserve"><value>Reset to app defaults</value></data>
-  <data name="EffectiveConfigurationTitle" xml:space="preserve"><value>Effective configuration</value></data>
-  <data name="EffectiveConfigurationHint" xml:space="preserve"><value>What the daemon resolves for this project, and which level provided each value</value></data>
-  <data name="ResolvingOrder" xml:space="preserve"><value>Project - Global - Built-in</value></data>
-  <data name="ParameterName" xml:space="preserve"><value>Parameter</value></data>
-  <data name="EffectiveValue" xml:space="preserve"><value>Effective value</value></data>
-  <data name="Origin" xml:space="preserve"><value>Origin</value></data>
   <data name="StageRoleInitial" xml:space="preserve"><value>Initial</value></data>
   <data name="StageRoleTerminal" xml:space="preserve"><value>Terminal</value></data>
   <data name="AllowedExecutors" xml:space="preserve"><value>Allowed executors</value></data>

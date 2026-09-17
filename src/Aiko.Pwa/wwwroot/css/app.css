@@ -655,26 +655,60 @@
     flex-wrap: wrap;
 }
 
-/* The effective-configuration matrix: parameter, value, origin. A table, because it is a matrix of facts
-   rather than a list of fields, and the design draws it as one. */
-.aiko-matrix {
-    width: 100%;
-    border-collapse: collapse;
+/* The size ladder: one tile per step, the coefficient under its name, as the design draws the penalty
+   matrix. The tile is a button because choosing a step opens its fields below. */
+.aiko-sizes {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(3.5rem, 1fr));
+    gap: 0.25rem;
 }
 
-.aiko-matrix th {
-    padding: 0.25rem 0.375rem;
-    text-align: start;
+.aiko-size {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.125rem;
+    padding: 0.375rem 0.25rem;
+    border: var(--flare-border-width, 1px) solid transparent;
+    border-radius: var(--flare-shape-small);
+    background: var(--flare-color-background);
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+}
+
+.aiko-size:hover {
+    background: var(--flare-color-surface-container);
+}
+
+/* The step whose fields are open. */
+.aiko-size--on {
+    border-color: var(--flare-color-primary);
+}
+
+.aiko-size__id {
+    font-family: var(--aiko-font-mono, monospace);
     font-size: 0.6875rem;
     font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--flare-color-on-surface-variant2);
+    letter-spacing: 0.02em;
+    color: var(--flare-color-on-surface-variant);
 }
 
-.aiko-matrix td {
-    padding: 0.375rem;
-    border-top: var(--flare-border-width, 1px) solid
-            color-mix(in srgb, var(--flare-color-outline-variant) 40%, transparent);
-    vertical-align: middle;
+.aiko-size__coefficient {
+    font-family: var(--aiko-font-mono, monospace);
+    font-size: 0.8125rem;
+    font-weight: 700;
+}
+
+/* Which way a step leans: above one it rewards a card, below one it penalizes it. */
+.aiko-size__coefficient--up {
+    color: var(--flare-color-tertiary);
+}
+
+.aiko-size__coefficient--mid {
+    color: var(--flare-color-primary);
+}
+
+.aiko-size__coefficient--down {
+    color: var(--flare-color-warning);
 }

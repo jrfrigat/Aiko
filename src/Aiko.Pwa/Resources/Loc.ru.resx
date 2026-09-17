@@ -256,6 +256,7 @@
   <data name="MaximumLabel" xml:space="preserve"><value>До</value></data>
   <data name="AiInstructionLabel" xml:space="preserve"><value>Инструкция агенту</value></data>
   <data name="AiInstructionHint" xml:space="preserve"><value>На что агенту смотреть, чтобы оценить этот критерий</value></data>
+  <data name="SizeGridPickHint" xml:space="preserve"><value>Выберите размер, чтобы изменить его название, коэффициент и описание.</value></data>
   <data name="SizeGrid" xml:space="preserve"><value>Сетка размеров</value></data>
   <data name="SizeGridHint" xml:space="preserve"><value>Агент выставляет размер по этим описаниям, а коэффициент умножает score карточки</value></data>
   <data name="AddSize" xml:space="preserve"><value>Добавить размер</value></data>
@@ -277,12 +278,6 @@
   <data name="ProjectSettingsHeading" xml:space="preserve"><value>Настройки проекта</value></data>
   <data name="ProjectSettingsHint" xml:space="preserve"><value>С чем работает этот проект. Значения лежат в .aiko/settings.json и не меняются вместе с настройками установки.</value></data>
   <data name="ResetToAppDefaults" xml:space="preserve"><value>Сбросить к настройкам приложения</value></data>
-  <data name="EffectiveConfigurationTitle" xml:space="preserve"><value>Действующая конфигурация</value></data>
-  <data name="EffectiveConfigurationHint" xml:space="preserve"><value>Что демон разрешает для этого проекта и какой уровень дал каждое значение</value></data>
-  <data name="ResolvingOrder" xml:space="preserve"><value>Проект - Глобальные - Встроенные</value></data>
-  <data name="ParameterName" xml:space="preserve"><value>Параметр</value></data>
-  <data name="EffectiveValue" xml:space="preserve"><value>Действующее значение</value></data>
-  <data name="Origin" xml:space="preserve"><value>Источник</value></data>
   <data name="StageRoleInitial" xml:space="preserve"><value>Начальный</value></data>
   <data name="StageRoleTerminal" xml:space="preserve"><value>Финальный</value></data>
   <data name="AllowedExecutors" xml:space="preserve"><value>Разрешённые исполнители</value></data>

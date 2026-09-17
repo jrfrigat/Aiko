@@ -13,52 +13,6 @@
 else
 {
     <FlareStack Gap="FlareSpacing.Medium">
-        @* The effective configuration: the values the daemon resolves for this project and the level that
-           provided each one. It states; the editors below are where values change. *@
-        <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
-            <FlareStack Gap="FlareSpacing.Medium">
-                <FlareStack Row="true" Align="FlareAlignItems.Start" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small">
-                    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
-                        <span class="aiko-panel__icon aiko-panel__icon--secondary">
-                            <FlareIconView Value="@MaterialDesign3Icons.Regular.Schema" />
-                        </span>
-                        <FlareStack Gap="FlareSpacing.None">
-                            <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("EffectiveConfigurationTitle")</FlareText>
-                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                                @Loc.Get("EffectiveConfigurationHint")
-                            </FlareText>
-                        </FlareStack>
-                    </FlareStack>
-                    <span class="aiko-tag aiko-tag--quiet">@Loc.Get("ResolvingOrder")</span>
-                </FlareStack>
-
-                <table class="aiko-matrix">
-                    <thead>
-                        <tr>
-                            <th>@Loc.Get("ParameterName")</th>
-                            <th>@Loc.Get("EffectiveValue")</th>
-                            <th>@Loc.Get("Origin")</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var row in EffectiveRows)
-                        {
-                            var line = row;
-                            <tr>
-                                <td>@line.Parameter</td>
-                                <td><span class="aiko-value">@line.Value</span></td>
-                                <td>
-                                    <span class="aiko-tag @(line.IsProjectOwn ? "aiko-tag--accent" : "aiko-tag--quiet")">
-                                        @Loc.Get(line.Source)
-                                    </span>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </FlareStack>
-        </FlarePaper>
-
         @* The pipelines sit in the narrow column under the defaults: they are project content, and the list
            of stages reads fine beside the scoring tables rather than above them. *@
         <SettingsEditor ProjectId="@board.Project.Id">
@@ -71,53 +25,6 @@ else
 
 @code {
     [Parameter] public string ProjectId { get; set; } = string.Empty;
-
-    /// <summary>The source of a row, and whether the project itself provided it.</summary>
-    private sealed record EffectiveRow(string Parameter, string Value, string Source, bool IsProjectOwn);
-
-    /// <summary>
-    /// The effective values of this project with the level that provided each one. Read from the daemon's
-    /// resolved view, so the matrix states what actually runs rather than what any single file says.
-    /// </summary>
-    private IReadOnlyList<EffectiveRow> EffectiveRows
-    {
-        get
-        {
-            if (State.SettingsView is not { } view)
-            {
-                return [];
-            }
-
-            var execution = view.EffectiveExecution;
-            var priority = view.EffectivePriority;
-            var executionOwn = string.Equals(view.ExecutionSource, AppSettingsSources.Project, StringComparison.Ordinal);
-            var priorityOwn = string.Equals(view.PrioritySource, AppSettingsSources.Project, StringComparison.Ordinal);
-
-            return
-            [
-                new(Loc.Get("Workspace"), Loc.Get("WorkspaceOption"), view.ExecutionSource, executionOwn),
-                new(Loc.Get("MaxRunsLabel"), DisplayFormat.Number(execution.MaxConcurrentRuns), view.ExecutionSource, executionOwn),
-                new(Loc.Get("ScopeOverlap"), PolicyCaption(execution.ScopeOverlapPolicy), view.ExecutionSource, executionOwn),
-                new(Loc.Get("CommitPolicy"), PolicyCaption(execution.SharedCheckoutCommitPolicy), view.ExecutionSource, executionOwn),
-                new(Loc.Get("OwnWeightLabel"), WeightCaption(priority.Weights.TaskWeight), view.PrioritySource, priorityOwn),
-                new(Loc.Get("ParentWeightLabel"), WeightCaption(priority.Weights.ParentWeight), view.PrioritySource, priorityOwn),
-                new(Loc.Get("Criteria"), DisplayFormat.Number(priority.Criteria.Count), view.PrioritySource, priorityOwn),
-                new(Loc.Get("SizeGrid"), DisplayFormat.Number(priority.Grid.Count), view.PrioritySource, priorityOwn)
-            ];
-        }
-    }
-
-    /// <summary>An action policy as the matrix names it: the three policies are the design's three cards.</summary>
-    private static string PolicyCaption(ActionPolicy policy) => policy switch
-    {
-        ActionPolicy.Deny => Loc.Get("ScopeStrictTitle"),
-        ActionPolicy.Ask => Loc.Get("ScopeAskTitle"),
-        _ => Loc.Get("ScopeFreeTitle")
-    };
-
-    /// <summary>A weight as the matrix shows it, with the two decimals the sliders offer.</summary>
-    private static string WeightCaption(decimal weight) =>
-        weight.ToString("0.00", System.Globalization.CultureInfo.CurrentCulture);
 
     protected override async Task OnParametersSetAsync() => await State.EnsureProjectAsync(ProjectId);
 }
