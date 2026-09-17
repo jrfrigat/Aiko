@@ -94,7 +94,27 @@ and the default settings. Choose it in the dashboard's *Add project* form, with
 The template is **copied** into the project, and the project owns its configuration from then on. Editing a
 template - in the UI or by editing `templates/<id>/template.json` next to the daemon's database - affects
 the projects created afterwards, never the ones that already exist. `.aiko/project.json` records
-`templateId` and `templateVersion`, so a project can always say which template built it.
+`templateId` and `templateVersion`, so a project can always say which template built it. The git policy is
+part of the template: an init takes it from there unless the request names one.
+
+The **Project templates** screen (`/templates`) lists them and owns everything else:
+
+- **Capture from a project** - a new template out of an existing project: a snapshot of its settings, its
+  pipelines, its projections, its memory and its git policy. It is how an installation pins a project it
+  likes as the starting point of the next ones.
+- **Duplicate** - a copy of a template, and the way to edit the shipped base: the base has no file of its
+  own until it is copied.
+- **Import / Export** - handing a template to another installation: it is written to a JSON file at the path
+  you name and read back under its own identifier or one you give (which is how the same file is imported
+  twice).
+- **Delete** - removes a template from this installation's catalog; projects created from it are untouched.
+- **Apply to a project** - the one action that reaches a project that already exists: the project's
+  pipelines, projections and settings are replaced with the template's, its memory is filled in where the
+  project has none, and it adopts the template's git policy - while its cards, runs and memory stay. The
+  action is **refused** when a card would be left in a stage the template does not have, because work must
+  not silently fall out of its pipeline.
+
+Editing one template is the same defaults screen as before: `/templates/<id>` (and `/settings` for the base).
 
 ## Executions
 

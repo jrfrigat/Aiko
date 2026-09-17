@@ -159,6 +159,114 @@ internal static class ProjectEndpoints
                     cancellationToken);
                 return Results.Ok(await templates.ReadAsync(templateId, cancellationToken));
             });
+        // Authoring a template: an installation captures a project it likes and starts the next ones from it.
+        app.MapPost(
+            "/api/v1/templates/from-project",
+            async (
+                CreateTemplateFromProjectRequest request,
+                IProjectCatalog catalog,
+                IProjectTemplateStore templates,
+                CancellationToken cancellationToken) =>
+            {
+                var project = await catalog.FindAsync(request.ProjectId, cancellationToken);
+                if (project is null)
+                {
+                    return Results.NotFound();
+                }
+
+                try
+                {
+                    return Results.Ok(await templates.CreateFromProjectAsync(
+                        project.RootPath,
+                        request.TemplateId,
+                        request.Name,
+                        cancellationToken));
+                }
+                catch (IOException exception)
+                {
+                    return Results.Conflict(new ErrorResponse(exception.Message));
+                }
+            });
+        // Import is how a starting point travels between installations: the file is the template.
+        app.MapPost(
+            "/api/v1/templates/import",
+            async (
+                ImportTemplateRequest request,
+                IProjectTemplateStore templates,
+                CancellationToken cancellationToken) =>
+            {
+                try
+                {
+                    return Results.Ok(await templates.ImportAsync(
+                        request.Path,
+                        request.TemplateId,
+                        cancellationToken));
+                }
+                catch (FileNotFoundException exception)
+                {
+                    return Results.NotFound(new ErrorResponse(exception.Message));
+                }
+                catch (IOException exception)
+                {
+                    return Results.Conflict(new ErrorResponse(exception.Message));
+                }
+                catch (InvalidDataException exception)
+                {
+                    return Results.BadRequest(new ErrorResponse(exception.Message));
+                }
+            });
+        app.MapPost(
+            "/api/v1/templates/{templateId}/export",
+            async (
+                string templateId,
+                ExportTemplateRequest request,
+                IProjectTemplateStore templates,
+                CancellationToken cancellationToken) =>
+            {
+                try
+                {
+                    await templates.ExportAsync(templateId, request.Path, cancellationToken);
+                    return Results.Ok(new ErrorResponse(request.Path));
+                }
+                catch (FileNotFoundException)
+                {
+                    return Results.NotFound();
+                }
+            });
+        // Deleting a template removes a file this installation owns. The shipped base has no file, so a
+        // delete of it is a no-op that says so rather than a failure.
+        app.MapDelete(
+            "/api/v1/templates/{templateId}",
+            async (
+                string templateId,
+                IProjectTemplateStore templates,
+                CancellationToken cancellationToken) =>
+                await templates.DeleteAsync(templateId, cancellationToken)
+                    ? Results.NoContent()
+                    : Results.NotFound());
+        // Applying a template to a project that already exists: the one explicit exception to "a project is
+        // autonomous after init", and it refuses rather than stranding a card.
+        app.MapPost(
+            "/api/v1/projects/{projectId}/apply-template",
+            async (
+                string projectId,
+                ApplyTemplateRequest request,
+                IProjectTemplateApplier applier,
+                CancellationToken cancellationToken) =>
+            {
+                try
+                {
+                    return Results.Ok(await applier.ApplyAsync(projectId, request.TemplateId, cancellationToken));
+                }
+                catch (FileNotFoundException exception)
+                {
+                    return Results.NotFound(new ErrorResponse(exception.Message));
+                }
+                catch (InvalidOperationException exception)
+                {
+                    return Results.BadRequest(new ErrorResponse(exception.Message));
+                }
+            });
         app.MapPost(
             "/api/v1/projects/{projectId}/reindex",
             async (

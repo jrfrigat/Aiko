@@ -76,7 +76,7 @@ public sealed class ProjectInitializer(
                 Guid.CreateVersion7().ToString("N"),
                 NormalizeProjectName(request.Name, rootPath),
                 rootPath,
-                request.GitPolicy,
+                request.GitPolicy ?? template.GitPolicy,
                 DateTimeOffset.UtcNow,
                 template.Id,
                 template.Version);

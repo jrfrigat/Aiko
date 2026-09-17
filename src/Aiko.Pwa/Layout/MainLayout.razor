@@ -237,6 +237,12 @@
                             }
                         </BadgeContent>
                     </FlareNavLink>
+                    <FlareNavLink Href="/templates">
+                        <ChildContent>@Loc.Get("TemplatesNav")</ChildContent>
+                        <BadgeContent>
+                            <span class="aiko-tag aiko-tag--quiet">@DisplayFormat.Number(State.Templates.Count)</span>
+                        </BadgeContent>
+                    </FlareNavLink>
                     <FlareNavLink Href="@SettingsHref">
                         <ChildContent>@Loc.Get("GlobalSettingsNav")</ChildContent>
                     </FlareNavLink>

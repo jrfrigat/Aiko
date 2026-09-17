@@ -77,9 +77,16 @@ public sealed class PwaJsonSpecs
 
         Assert.Contains("\"rootPath\":\"C:/work/demo\"", json, StringComparison.Ordinal);
         Assert.Contains("\"name\":\"Demo\"", json, StringComparison.Ordinal);
-        // Enum member names, not numbers and not camelCase: the daemon generates its own context with
-        // UseStringEnumConverter, so both sides speak "LocalOnly".
-        Assert.Contains("\"gitPolicy\":\"LocalOnly\"", json, StringComparison.Ordinal);
+        // No policy in the request: null is how "the template's own policy decides" travels, so the
+        // daemon's init takes the policy the chosen template carries.
+        Assert.Contains("\"gitPolicy\":null", json, StringComparison.Ordinal);
+
+        // A caller that does name one sends the enum's member name, not a number and not camelCase: the
+        // daemon generates its own context with UseStringEnumConverter, so both sides speak "LocalOnly".
+        var explicitPolicy = JsonSerializer.Serialize(
+            new InitializeProjectRequest("C:/work/demo", null, ProjectGitPolicy.TrackProjectKnowledge),
+            PwaJson.Options);
+        Assert.Contains("\"gitPolicy\":\"TrackProjectKnowledge\"", explicitPolicy, StringComparison.Ordinal);
 
         var artifact = JsonSerializer.Serialize(
             new UpdateArtifactRequest("spec.md", "# Doc", "v1"),

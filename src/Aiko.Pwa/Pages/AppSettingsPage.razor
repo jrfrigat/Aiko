@@ -1,11 +1,12 @@
 @page "/settings"
+@page "/templates/{TemplateId}"
 @inject HttpClient Http
 @inject WorkspaceState State
 
-@* The daemon's own facts, and the defaults every new project is created from. The defaults are the
-   template's: editing them changes what future projects start with, never a project that already exists.
-   A project's own settings are a different screen at /p/{projectId}/settings. *@
-<PageTitle>@Loc.Get("GlobalSettings")</PageTitle>
+@* The defaults every new project is created from, for one template. A template is the level this screen
+   edits: changing it affects the projects created afterwards, never a project that already exists. The
+   project's own settings are a different screen at /p/{projectId}/settings. *@
+<PageTitle>@(_template?.Name ?? Loc.Get("GlobalSettings"))</PageTitle>
 
 <SettingsEditor>
     <ExtraNarrowContent>
@@ -27,7 +28,14 @@
 </SettingsEditor>
 
 @code {
+    /// <summary>Template to edit, or null for the one an init without a choice uses.</summary>
+    [Parameter] public string? TemplateId { get; set; }
+
     private ProjectTemplate? _template;
+
+    private string EditingTemplateId => string.IsNullOrWhiteSpace(TemplateId)
+        ? ProjectTemplate.DefaultId
+        : TemplateId;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -44,15 +52,15 @@
     }
 
     /// <summary>
-    /// Writes one pipeline of the default template and re-reads it, so the editor's revision and the
-    /// version tag follow. Returns the failure text, or null when it was saved.
+    /// Writes one pipeline of the template and re-reads it, so the editor's revision and the version tag
+    /// follow. Returns the failure text, or null when it was saved.
     /// </summary>
     private async Task<string?> SaveWorkflowAsync(WorkflowDefinition workflow)
     {
         try
         {
             using var response = await Http.PutAsJsonAsync(
-                $"api/v1/templates/{ProjectTemplate.DefaultId}/workflows/{Uri.EscapeDataString(workflow.Id)}",
+                $"api/v1/templates/{Uri.EscapeDataString(EditingTemplateId)}/workflows/{Uri.EscapeDataString(workflow.Id)}",
                 new UpdateWorkflowRequest(workflow.Title, workflow.Stages, workflow.Revision),
                 PwaJson.Options);
             if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
@@ -78,5 +86,5 @@
 
     private async Task ReloadTemplateAsync() =>
         _template = await Http.GetFromJsonAsync<ProjectTemplate>(
-            $"api/v1/templates/{ProjectTemplate.DefaultId}", PwaJson.Options);
+            $"api/v1/templates/{Uri.EscapeDataString(EditingTemplateId)}", PwaJson.Options);
 }

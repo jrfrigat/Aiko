@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 using Aiko.Application.Contracts;
 using Aiko.Infrastructure.Storage;
 
@@ -122,6 +123,216 @@ public sealed class FileProjectTemplateStore(AikoDataPaths paths) : IProjectTemp
         };
         await WriteAsync(copy, cancellationToken);
         return copy;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<ProjectTemplate> CreateFromProjectAsync(
+        string projectRootPath,
+        string templateId,
+        string? name,
+        CancellationToken cancellationToken)
+    {
+        FileSystemSafeIdentifiers.Validate(templateId, "template");
+        if (Directory.Exists(paths.TemplateDirectory(templateId)))
+        {
+            throw new IOException($"A template '{templateId}' already exists.");
+        }
+
+        var dataRoot = AikoProjectPaths.DataRoot(Path.GetFullPath(projectRootPath));
+        if (!Directory.Exists(dataRoot))
+        {
+            throw new DirectoryNotFoundException($"No Aiko project below {projectRootPath}.");
+        }
+
+        // The manifest is what the project records about itself: its name for the template's, and the git
+        // policy it was created with.
+        var manifest = await ReadProjectDocumentAsync(
+            Path.Combine(dataRoot, "project.json"),
+            ProjectJsonContext.Default.ProjectManifest,
+            cancellationToken);
+        var settings = await ReadProjectDocumentAsync(
+            Path.Combine(dataRoot, "settings.json"),
+            ProjectJsonContext.Default.AppSettings,
+            cancellationToken);
+
+        var template = new ProjectTemplate(
+            templateId,
+            string.IsNullOrWhiteSpace(name)
+                ? $"{ProjectNameOf(manifest, projectRootPath)} template"
+                : name.Trim(),
+            $"Copied from project {ProjectNameOf(manifest, projectRootPath)}.",
+            1,
+            settings,
+            await ReadProjectCatalogAsync(
+                Path.Combine(dataRoot, "workflows"),
+                ProjectJsonContext.Default.WorkflowDefinition,
+                cancellationToken),
+            await ReadProjectCatalogAsync(
+                Path.Combine(dataRoot, "projections"),
+                ProjectJsonContext.Default.BoardProjectionDefinition,
+                cancellationToken),
+            await ReadMemoryAsync(Path.Combine(dataRoot, "memory"), cancellationToken),
+            manifest?.GitPolicy ?? ProjectGitPolicy.LocalOnly);
+
+        await WriteAsync(template, cancellationToken);
+        return template;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask ExportAsync(string templateId, string path, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        var template = await ReadAsync(templateId, cancellationToken);
+        var target = Path.GetFullPath(path);
+        Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+        await using var output = new FileStream(
+            target,
+            FileMode.Create,
+            FileAccess.Write,
+            FileShare.None,
+            4096,
+            FileOptions.Asynchronous);
+        await JsonSerializer.SerializeAsync(
+            output,
+            template,
+            ProjectJsonContext.Default.ProjectTemplate,
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<ProjectTemplate> ImportAsync(
+        string path,
+        string? templateId,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        var source = Path.GetFullPath(path);
+        if (!File.Exists(source))
+        {
+            throw new FileNotFoundException($"No template file at {path}.", source);
+        }
+
+        ProjectTemplate? imported;
+        await using (var input = File.OpenRead(source))
+        {
+            imported = await JsonSerializer.DeserializeAsync(
+                input,
+                ProjectJsonContext.Default.ProjectTemplate,
+                cancellationToken);
+        }
+
+        if (imported is null || string.IsNullOrWhiteSpace(imported.Id))
+        {
+            throw new InvalidDataException($"Invalid Aiko project template: {source}");
+        }
+
+        var id = string.IsNullOrWhiteSpace(templateId) ? imported.Id : templateId.Trim();
+        FileSystemSafeIdentifiers.Validate(id, "template");
+        if (Directory.Exists(paths.TemplateDirectory(id)))
+        {
+            throw new IOException($"A template '{id}' already exists.");
+        }
+
+        // An imported template is a new template in this installation: it keeps its content and its version,
+        // and takes the id it is filed under.
+        var stored = imported with
+        {
+            Id = id,
+            Name = string.Equals(id, imported.Id, StringComparison.Ordinal)
+                ? imported.Name
+                : $"{imported.Name} ({id})"
+        };
+        await WriteAsync(stored, cancellationToken);
+        return stored;
+    }
+
+    /// <inheritdoc />
+    public ValueTask<bool> DeleteAsync(string templateId, CancellationToken cancellationToken)
+    {
+        FileSystemSafeIdentifiers.Validate(templateId, "template");
+        var directory = paths.TemplateDirectory(templateId);
+        if (!Directory.Exists(directory))
+        {
+            return ValueTask.FromResult(false);
+        }
+
+        Directory.Delete(directory, recursive: true);
+        return ValueTask.FromResult(true);
+    }
+
+    /// <summary>The name a template built from this project carries: the project's, or its directory's.</summary>
+    private static string ProjectNameOf(ProjectManifest? manifest, string projectRootPath) =>
+        manifest?.Name is { Length: > 0 } name
+            ? name
+            : Path.GetFileName(Path.TrimEndingDirectorySeparator(Path.GetFullPath(projectRootPath)));
+
+    /// <summary>
+    /// Reads one JSON document of a project, or null when the project does not carry it. A project is read
+    /// as it is: a template built from one is a snapshot, and a missing section is a section the project
+    /// never had.
+    /// </summary>
+    private static async ValueTask<T?> ReadProjectDocumentAsync<T>(
+        string path,
+        JsonTypeInfo<T> typeInfo,
+        CancellationToken cancellationToken)
+        where T : class
+    {
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+
+        await using var input = File.OpenRead(path);
+        return await JsonSerializer.DeserializeAsync(input, typeInfo, cancellationToken);
+    }
+
+    /// <summary>Reads one directory of a project's JSON documents, in file-name order.</summary>
+    private static async ValueTask<IReadOnlyList<T>> ReadProjectCatalogAsync<T>(
+        string directory,
+        JsonTypeInfo<T> typeInfo,
+        CancellationToken cancellationToken)
+        where T : class
+    {
+        if (!Directory.Exists(directory))
+        {
+            return [];
+        }
+
+        var documents = new List<T>();
+        foreach (var file in Directory.EnumerateFiles(directory, "*.json")
+                     .OrderBy(path => path, StringComparer.Ordinal))
+        {
+            var document = await ReadProjectDocumentAsync(file, typeInfo, cancellationToken);
+            if (document is not null)
+            {
+                documents.Add(document);
+            }
+        }
+
+        return documents;
+    }
+
+    /// <summary>Reads a project's memory directory as a template's starting documents.</summary>
+    private static async ValueTask<IReadOnlyList<TemplateDocument>> ReadMemoryAsync(
+        string directory,
+        CancellationToken cancellationToken)
+    {
+        if (!Directory.Exists(directory))
+        {
+            return [];
+        }
+
+        var documents = new List<TemplateDocument>();
+        foreach (var file in Directory.EnumerateFiles(directory, "*.md", SearchOption.AllDirectories)
+                     .OrderBy(path => path, StringComparer.Ordinal))
+        {
+            var content = await File.ReadAllTextAsync(file, cancellationToken);
+            documents.Add(new TemplateDocument(
+                Path.GetRelativePath(directory, file).Replace('\\', '/'),
+                content));
+        }
+
+        return documents;
     }
 
     /// <summary>One summary line for a template.</summary>

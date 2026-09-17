@@ -284,5 +284,6 @@
       "relativePath": "memory/lessons.md",
       "content": "# Lessons learned\n\n"
     }
-  ]
+  ],
+  "gitPolicy": "LocalOnly"
 }

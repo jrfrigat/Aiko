@@ -404,7 +404,39 @@
   <data name="ValidationCommandsHelper" xml:space="preserve"><value>По одной команде в строке. Они записываются как definition of done этапа и показываются агенту; Aiko их не исполняет.</value></data>
   <data name="NoSize" xml:space="preserve"><value>Без размера</value></data>
   <data name="Template" xml:space="preserve"><value>Шаблон</value></data>
-  <data name="TemplateHint" xml:space="preserve"><value>Копируется в проект при создании: он задаёт этапы и их артефакты, проекции доски, стартовую память и значения по умолчанию. Изменение шаблона позже действует только на проекты, созданные после.</value></data>
+  <data name="TemplatesNav" xml:space="preserve"><value>Шаблоны проектов</value></data>
+  <data name="TemplatesTitle" xml:space="preserve"><value>Шаблоны</value></data>
+  <data name="TemplatesHeading" xml:space="preserve"><value>Шаблоны проектов</value></data>
+  <data name="TemplatesHint" xml:space="preserve"><value>Из чего создаётся новый проект: этапы и артефакты пайплайнов, проекции доски, стартовая память, значения по умолчанию и git-политика. Init копирует выбранный шаблон и больше его не читает, поэтому проект автономен — а «Применить» это единственное действие, которое доходит до уже существующего проекта.</value></data>
+  <data name="TemplatesCount" xml:space="preserve"><value>шаблонов: {0}</value></data>
+  <data name="TemplateDefault" xml:space="preserve"><value>по умолчанию</value></data>
+  <data name="TemplateBuiltIn" xml:space="preserve"><value>встроенный</value></data>
+  <data name="CaptureFromProject" xml:space="preserve"><value>Снять с проекта</value></data>
+  <data name="CaptureFromProjectHint" xml:space="preserve"><value>Читает настройки проекта, пайплайны, проекции, память и git-политику в новый шаблон</value></data>
+  <data name="CaptureFromProjectMissing" xml:space="preserve"><value>Сначала зарегистрируйте проект: шаблон снимается с него.</value></data>
+  <data name="TemplateIdLabel" xml:space="preserve"><value>Идентификатор</value></data>
+  <data name="TemplateIdHelper" xml:space="preserve"><value>Буквы, цифры, дефисы и подчёркивания, например backend-default</value></data>
+  <data name="TemplateIdRequired" xml:space="preserve"><value>Укажите идентификатор шаблона.</value></data>
+  <data name="TemplateCaptured" xml:space="preserve"><value>Шаблон снят с проекта.</value></data>
+  <data name="TemplateCopied" xml:space="preserve"><value>Шаблон скопирован.</value></data>
+  <data name="TemplateDeleted" xml:space="preserve"><value>Шаблон удалён.</value></data>
+  <data name="DeleteTemplateConfirm" xml:space="preserve"><value>Удалить этот шаблон? Проекты, созданные из него, не затрагиваются.</value></data>
+  <data name="DuplicateTemplate" xml:space="preserve"><value>Дублировать</value></data>
+  <data name="TemplatesUnavailable" xml:space="preserve"><value>Шаблоны недоступны: {0}</value></data>
+  <data name="ImportTemplate" xml:space="preserve"><value>Импортировать шаблон</value></data>
+  <data name="ImportTemplateHint" xml:space="preserve"><value>Читает документ шаблона, экспортированный другой установкой</value></data>
+  <data name="ImportTemplateIdHelper" xml:space="preserve"><value>Оставьте пустым, чтобы сохранить идентификатор из файла</value></data>
+  <data name="TemplateImported" xml:space="preserve"><value>Шаблон импортирован.</value></data>
+  <data name="Import" xml:space="preserve"><value>Импорт</value></data>
+  <data name="Export" xml:space="preserve"><value>Экспорт</value></data>
+  <data name="TemplateExported" xml:space="preserve"><value>Шаблон записан в {0}</value></data>
+  <data name="TemplatePathLabel" xml:space="preserve"><value>Файл</value></data>
+  <data name="TemplatePathHelper" xml:space="preserve"><value>Абсолютный путь, например C:\Aiko\templates\backend.json</value></data>
+  <data name="TemplatePathRequired" xml:space="preserve"><value>Укажите путь к файлу.</value></data>
+  <data name="ApplyToProject" xml:space="preserve"><value>Применить к проекту</value></data>
+  <data name="Apply" xml:space="preserve"><value>Применить</value></data>
+  <data name="ApplyTemplateHint" xml:space="preserve"><value>Заменяет пайплайны, проекции и настройки проекта на шаблонные, дописывает память там, где у проекта её нет, и перенимает git-политику. Карточки, запуски и память остаются; действие отклоняется, если карточка оказалась бы на этапе, которого в шаблоне нет.</value></data>
+  <data name="TemplateApplied" xml:space="preserve"><value>Шаблон применён к {0}.</value></data>
   <data name="TemplateFirstProjectHint" xml:space="preserve"><value>В этой установке шаблонов пока нет; первый проект создаётся из встроенного шаблона по умолчанию, который записывается рядом с базой демона.</value></data>
   <data name="ProjectLabel" xml:space="preserve"><value>Проект</value></data>
   <data name="CoreFallbackConfig" xml:space="preserve"><value>Базовая конфигурация ядра</value></data>

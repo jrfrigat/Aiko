@@ -62,6 +62,21 @@ internal sealed record UpdateWorkflowRequest(
     IReadOnlyList<StageDefinition> Stages,
     long ExpectedRevision);
 
+/// <summary>Creates a template by copying one that exists.</summary>
+internal sealed record CreateTemplateRequest(string SourceId, string TemplateId, string? Name = null);
+
+/// <summary>Creates a template out of a project, which is how an installation captures a project it likes.</summary>
+internal sealed record CreateTemplateFromProjectRequest(string ProjectId, string TemplateId, string? Name = null);
+
+/// <summary>Writes a template's document to a file, so another installation can import it.</summary>
+internal sealed record ExportTemplateRequest(string Path);
+
+/// <summary>Reads a template document from a file, under its own id or one given here.</summary>
+internal sealed record ImportTemplateRequest(string Path, string? TemplateId = null);
+
+/// <summary>Applies a template to a project that already exists.</summary>
+internal sealed record ApplyTemplateRequest(string TemplateId);
+
 /// <summary>
 /// Error body of the daemon API.
 /// </summary>

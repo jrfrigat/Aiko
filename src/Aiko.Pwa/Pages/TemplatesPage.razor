@@ -1,0 +1,483 @@
+@page "/templates"
+@inject HttpClient Http
+@inject WorkspaceState State
+
+@* The project templates: what a new project is created from. A template is an installation's own document -
+   the shipped base has no file until it is copied - so this screen is where a starting point is captured
+   from a project, handed to another machine, or applied to a project that already exists.
+
+   Nothing here reaches a project implicitly: an init copies the template, and "apply" is the one action
+   that touches an existing project, asked for by name and refused when it would strand a card. *@
+<PageTitle>@Loc.Get("TemplatesTitle")</PageTitle>
+
+<FlareStack Gap="FlareSpacing.Medium">
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <FlareAlert Severity="@(_hasError ? AlertSeverity.Error : AlertSeverity.Success)"
+                    Variant="AlertVariant.Outlined">@_message</FlareAlert>
+    }
+
+    <FlareStack Row="true" Align="FlareAlignItems.End" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Medium" Wrap="true">
+        <FlareStack Gap="FlareSpacing.XXSmall">
+            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
+                <span class="aiko-tag aiko-tag--accent">@Loc.Get("TemplatesTitle")</span>
+                <span class="aiko-tag aiko-tag--quiet">@Loc.Format("TemplatesCount", DisplayFormat.Number(_templates.Count))</span>
+            </FlareStack>
+            <FlareText Element="h1" Typo="TypographyScale.HeadlineMedium">@Loc.Get("TemplatesHeading")</FlareText>
+            <FlareText Element="p" Typo="TypographyScale.BodyMedium" Color="FlareColor.OnSurfaceVariant">
+                @Loc.Get("TemplatesHint")
+            </FlareText>
+        </FlareStack>
+        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
+            <FlareButton Variant="ButtonVariant.Outlined" Size="ButtonSize.Sm"
+                         Disabled="@(State.Projects.Count == 0)"
+                         OnClick="() => _captureOpen = !_captureOpen">
+                <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.ContentCopy" /></LeadingIcon>
+                <ChildContent>@Loc.Get("CaptureFromProject")</ChildContent>
+            </FlareButton>
+            <FlareButton Variant="ButtonVariant.Outlined" Size="ButtonSize.Sm" OnClick="() => _importOpen = !_importOpen">
+                <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.Upload" /></LeadingIcon>
+                <ChildContent>@Loc.Get("ImportTemplate")</ChildContent>
+            </FlareButton>
+        </FlareStack>
+    </FlareStack>
+
+    @if (_captureOpen)
+    {
+        <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
+            <FlareStack Gap="FlareSpacing.Medium">
+                <FlareStack Gap="FlareSpacing.None">
+                    <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("CaptureFromProject")</FlareText>
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                        @Loc.Get("CaptureFromProjectHint")
+                    </FlareText>
+                </FlareStack>
+                <div class="aiko-form-row">
+                    <FlareSelect TValue="string" Label="@Loc.Get("TableProject")" @bind-Value="_captureProjectId">
+                        @foreach (var project in State.Projects)
+                        {
+                            var option = project;
+                            <option value="@option.Id">@option.Name</option>
+                        }
+                    </FlareSelect>
+                    <FlareTextField Label="@Loc.Get("TemplateIdLabel")"
+                                    HelperText="@Loc.Get("TemplateIdHelper")"
+                                    Immediate="true"
+                                    @bind-Value="_captureTemplateId" />
+                </div>
+                <FlareTextField Label="@Loc.Get("Name")" Immediate="true" @bind-Value="_captureName" />
+                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                    <FlareButton Variant="ButtonVariant.Filled" Size="ButtonSize.Sm"
+                                 Loading="@_busy" OnClick="CaptureAsync">@Loc.Get("Create")</FlareButton>
+                    <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm"
+                                 OnClick="() => _captureOpen = false">@Loc.Get("Cancel")</FlareButton>
+                </FlareStack>
+            </FlareStack>
+        </FlarePaper>
+    }
+
+    @if (_importOpen)
+    {
+        <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
+            <FlareStack Gap="FlareSpacing.Medium">
+                <FlareStack Gap="FlareSpacing.None">
+                    <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("ImportTemplate")</FlareText>
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                        @Loc.Get("ImportTemplateHint")
+                    </FlareText>
+                </FlareStack>
+                <FlareStack Row="true" Align="FlareAlignItems.End" Gap="FlareSpacing.XSmall" StretchFirst="true">
+                    <FlareTextField Label="@Loc.Get("TemplatePathLabel")"
+                                    HelperText="@Loc.Get("TemplatePathHelper")"
+                                    Immediate="true"
+                                    @bind-Value="_importPath" />
+                </FlareStack>
+                <FlareTextField Label="@Loc.Get("TemplateIdLabel")"
+                                HelperText="@Loc.Get("ImportTemplateIdHelper")"
+                                Immediate="true"
+                                @bind-Value="_importTemplateId" />
+                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                    <FlareButton Variant="ButtonVariant.Filled" Size="ButtonSize.Sm"
+                                 Loading="@_busy" OnClick="ImportAsync">@Loc.Get("Import")</FlareButton>
+                    <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm"
+                                 OnClick="() => _importOpen = false">@Loc.Get("Cancel")</FlareButton>
+                </FlareStack>
+            </FlareStack>
+        </FlarePaper>
+    }
+
+
+    @if (_loading)
+    {
+        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+            <FlareProgressCircular Size="TrackSize.Xs" />
+            <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant">
+                @Loc.Get("LoadingContext")
+            </FlareText>
+        </FlareStack>
+    }
+    else
+    {
+        <FlareStack Gap="FlareSpacing.Small">
+            @foreach (var template in _templates)
+            {
+                var item = template;
+                <FlarePaper Elevation="0" Padding="FlareSpacing.Medium" Square="true" Class="aiko-panel">
+                    <FlareStack Gap="FlareSpacing.Small">
+                        <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small" Wrap="true">
+                            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
+                                <span class="aiko-panel__icon aiko-panel__icon--primary">
+                                    <FlareIconView Value="@MaterialDesign3Icons.Regular.Layers" />
+                                </span>
+                                <FlareText Element="span" Typo="TypographyScale.BodyMedium" Weight="FontWeight.SemiBold">
+                                    @item.Name
+                                </FlareText>
+                                <span class="aiko-tag aiko-tag--quiet">@($"v{item.Version}")</span>
+                                @if (item.IsDefault)
+                                {
+                                    <span class="aiko-tag aiko-tag--accent">@Loc.Get("TemplateDefault")</span>
+                                }
+                                @if (item.IsBuiltIn)
+                                {
+                                    <span class="aiko-tag">@Loc.Get("TemplateBuiltIn")</span>
+                                }
+                            </FlareStack>
+                            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall" Wrap="true">
+                                <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm"
+                                             Href="@EditorHref(item.Id)">@Loc.Get("Edit")</FlareButton>
+                                <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm"
+                                             Disabled="@(_busy || State.Projects.Count == 0)"
+                                             OnClick="() => BeginApply(item.Id)">@Loc.Get("ApplyToProject")</FlareButton>
+                                <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm"
+                                             Disabled="@_busy"
+                                             OnClick="() => BeginExport(item.Id)">@Loc.Get("Export")</FlareButton>
+                                <FlareIconButton Variant="ButtonVariant.Text"
+                                                 Icon="@FlareIcons.ContentCopy"
+                                                 AriaLabel="@Loc.Get("DuplicateTemplate")"
+                                                 Disabled="@_busy"
+                                                 OnClick="() => BeginCopy(item.Id)" />
+                                <FlareIconButton Variant="ButtonVariant.Text"
+                                                 Icon="@FlareIcons.Delete"
+                                                 AriaLabel="@Loc.Get("Delete")"
+                                                 Disabled="@(_busy || item.IsBuiltIn)"
+                                                 OnClick="() => BeginDelete(item.Id)" />
+                            </FlareStack>
+                        </FlareStack>
+
+                        <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant">
+                            @item.Description
+                        </FlareText>
+
+
+                        @* The one destructive action asks twice, and says what it will not touch. *@
+                        @if (_deletingId == item.Id)
+                        {
+                            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.Warning">
+                                    @Loc.Get("DeleteTemplateConfirm")
+                                </FlareText>
+                                <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm"
+                                             Disabled="@_busy" OnClick="() => DeleteAsync(item.Id)">@Loc.Get("Delete")</FlareButton>
+                                <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm"
+                                             OnClick="CancelRowActions">@Loc.Get("Cancel")</FlareButton>
+                            </FlareStack>
+                        }
+
+                        @if (_applyingId == item.Id)
+                        {
+                            <FlareStack Row="true" Align="FlareAlignItems.End" Gap="FlareSpacing.XSmall" Wrap="true">
+                                <FlareSelect TValue="string" Label="@Loc.Get("ApplyToProject")" @bind-Value="_applyProjectId">
+                                    @foreach (var project in State.Projects)
+                                    {
+                                        var option = project;
+                                        <option value="@option.Id">@option.Name</option>
+                                    }
+                                </FlareSelect>
+                                <FlareButton Variant="ButtonVariant.Filled" Size="ButtonSize.Sm"
+                                             Disabled="@_busy" OnClick="ApplyAsync">@Loc.Get("Apply")</FlareButton>
+                                <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm"
+                                             OnClick="CancelRowActions">@Loc.Get("Cancel")</FlareButton>
+                            </FlareStack>
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                @Loc.Get("ApplyTemplateHint")
+                            </FlareText>
+                        }
+
+                        @if (_exportingId == item.Id)
+                        {
+                            <FlareStack Row="true" Align="FlareAlignItems.End" Gap="FlareSpacing.XSmall" Wrap="true" StretchFirst="true">
+                                <FlareTextField Label="@Loc.Get("TemplatePathLabel")"
+                                                HelperText="@Loc.Get("TemplatePathHelper")"
+                                                Immediate="true"
+                                                @bind-Value="_exportPath" />
+                                <FlareButton Variant="ButtonVariant.Filled" Size="ButtonSize.Sm"
+                                             Disabled="@_busy" OnClick="() => ExportAsync(item.Id)">@Loc.Get("Export")</FlareButton>
+                                <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm"
+                                             OnClick="CancelRowActions">@Loc.Get("Cancel")</FlareButton>
+                            </FlareStack>
+                        }
+
+                        @if (_copyingId == item.Id)
+                        {
+                            <FlareStack Row="true" Align="FlareAlignItems.End" Gap="FlareSpacing.XSmall" Wrap="true">
+                                <FlareTextField Label="@Loc.Get("TemplateIdLabel")"
+                                                HelperText="@Loc.Get("TemplateIdHelper")"
+                                                Immediate="true"
+                                                @bind-Value="_copyTemplateId" />
+                                <FlareTextField Label="@Loc.Get("Name")" Immediate="true" @bind-Value="_copyName" />
+                                <FlareButton Variant="ButtonVariant.Filled" Size="ButtonSize.Sm"
+                                             Disabled="@_busy" OnClick="() => CopyAsync(item.Id)">@Loc.Get("DuplicateTemplate")</FlareButton>
+                                <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm"
+                                             OnClick="CancelRowActions">@Loc.Get("Cancel")</FlareButton>
+                            </FlareStack>
+                        }
+                    </FlareStack>
+                </FlarePaper>
+            }
+        </FlareStack>
+    }
+</FlareStack>
+
+
+@code {
+    private IReadOnlyList<ProjectTemplateSummary> _templates = [];
+    private bool _loading = true;
+    private bool _busy;
+    private string? _message;
+    private bool _hasError;
+
+    private bool _captureOpen;
+    private string? _captureProjectId;
+    private string? _captureTemplateId;
+    private string? _captureName;
+
+    private bool _importOpen;
+    private string? _importPath;
+    private string? _importTemplateId;
+
+    private string? _applyingId;
+    private string? _applyProjectId;
+    private string? _exportingId;
+    private string? _exportPath;
+    private string? _copyingId;
+    private string? _copyTemplateId;
+    private string? _copyName;
+    private string? _deletingId;
+
+    private string EditorHref(string templateId) => $"/templates/{Uri.EscapeDataString(templateId)}";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // The templates screen is installation-level: no project is open, so the board and the stream go.
+        await State.ClearProjectAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            _templates = await Http.GetFromJsonAsync<IReadOnlyList<ProjectTemplateSummary>>(
+                "api/v1/templates", PwaJson.Options) ?? [];
+        }
+        catch (Exception exception)
+        {
+            _message = Loc.Format("TemplatesUnavailable", FailureText.Describe(exception));
+            _hasError = true;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    /// <summary>Captures the chosen project as a new template.</summary>
+    private async Task CaptureAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_captureProjectId) || string.IsNullOrWhiteSpace(_captureTemplateId))
+        {
+            await State.ReportErrorAsync(Loc.Get("TemplateIdRequired"));
+            return;
+        }
+
+        await RunAsync(
+            () => Http.PostAsJsonAsync(
+                "api/v1/templates/from-project",
+                new CreateTemplateFromProjectRequest(_captureProjectId!, _captureTemplateId!.Trim(), Null(_captureName)),
+                PwaJson.Options),
+            Loc.Get("TemplateCaptured"),
+            () =>
+            {
+                _captureOpen = false;
+                _captureTemplateId = null;
+                _captureName = null;
+            });
+    }
+
+    /// <summary>Reads a template document from a file.</summary>
+    private async Task ImportAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_importPath))
+        {
+            await State.ReportErrorAsync(Loc.Get("TemplatePathRequired"));
+            return;
+        }
+
+        await RunAsync(
+            () => Http.PostAsJsonAsync(
+                "api/v1/templates/import",
+                new ImportTemplateRequest(_importPath!.Trim(), Null(_importTemplateId)),
+                PwaJson.Options),
+            Loc.Get("TemplateImported"),
+            () =>
+            {
+                _importOpen = false;
+                _importPath = null;
+                _importTemplateId = null;
+            });
+    }
+
+    /// <summary>Writes a template out as a file another installation can import.</summary>
+    private async Task ExportAsync(string templateId)
+    {
+        if (string.IsNullOrWhiteSpace(_exportPath))
+        {
+            await State.ReportErrorAsync(Loc.Get("TemplatePathRequired"));
+            return;
+        }
+
+        await RunAsync(
+            () => Http.PostAsJsonAsync(
+                $"api/v1/templates/{Uri.EscapeDataString(templateId)}/export",
+                new ExportTemplateRequest(_exportPath!.Trim()),
+                PwaJson.Options),
+            Loc.Format("TemplateExported", _exportPath!.Trim()),
+            CancelRowActions);
+    }
+
+    /// <summary>Copies a template: how the shipped base gets edited, since it has no file of its own.</summary>
+    private async Task CopyAsync(string templateId)
+    {
+        if (string.IsNullOrWhiteSpace(_copyTemplateId))
+        {
+            await State.ReportErrorAsync(Loc.Get("TemplateIdRequired"));
+            return;
+        }
+
+        await RunAsync(
+            () => Http.PostAsJsonAsync(
+                "api/v1/templates",
+                new CreateTemplateRequest(templateId, _copyTemplateId!.Trim(), Null(_copyName)),
+                PwaJson.Options),
+            Loc.Get("TemplateCopied"),
+            () =>
+            {
+                CancelRowActions();
+                _copyTemplateId = null;
+                _copyName = null;
+            });
+    }
+
+    private async Task ApplyAsync()
+    {
+        if (_applyingId is not { } templateId || string.IsNullOrWhiteSpace(_applyProjectId))
+        {
+            return;
+        }
+
+        await RunAsync(
+            () => Http.PostAsJsonAsync(
+                $"api/v1/projects/{Uri.EscapeDataString(_applyProjectId!)}/apply-template",
+                new ApplyTemplateRequest(templateId),
+                PwaJson.Options),
+            Loc.Format("TemplateApplied", _applyProjectId!),
+            CancelRowActions);
+        // The open project may be the one that just changed: its board is re-read either way.
+        await State.LoadBoardAsync();
+    }
+
+    private async Task DeleteAsync(string templateId) =>
+        await RunAsync(
+            () => Http.DeleteAsync($"api/v1/templates/{Uri.EscapeDataString(templateId)}"),
+            Loc.Get("TemplateDeleted"),
+            CancelRowActions);
+
+    /// <summary>
+    /// Runs one template action: the spinner, the daemon's own failure text, the success message, and a
+    /// re-read of the list, so every action leaves the screen saying what the daemon now holds.
+    /// </summary>
+    private async Task RunAsync(Func<Task<HttpResponseMessage>> action, string success, Action onSuccess)
+    {
+        if (_busy)
+        {
+            return;
+        }
+
+        _busy = true;
+        _message = null;
+        try
+        {
+            using var response = await action();
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadFromJsonAsync<ErrorResponse>(PwaJson.Options);
+                _message = error?.Message ?? Loc.Format("ServerRejectedChanges", (int)response.StatusCode);
+                _hasError = true;
+                return;
+            }
+
+            onSuccess();
+            _message = success;
+            _hasError = false;
+            await LoadAsync();
+            await State.ReloadProjectsAsync();
+        }
+        catch (Exception exception)
+        {
+            _message = FailureText.Describe(exception);
+            _hasError = true;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void BeginApply(string templateId)
+    {
+        CancelRowActions();
+        _applyingId = templateId;
+        _applyProjectId ??= State.Projects.FirstOrDefault()?.Id;
+    }
+
+    private void BeginExport(string templateId)
+    {
+        CancelRowActions();
+        _exportingId = templateId;
+    }
+
+    private void BeginCopy(string templateId)
+    {
+        CancelRowActions();
+        _copyingId = templateId;
+        _copyTemplateId = $"{templateId}-copy";
+    }
+
+    private void BeginDelete(string templateId)
+    {
+        CancelRowActions();
+        _deletingId = templateId;
+    }
+
+    private void CancelRowActions()
+    {
+        _applyingId = null;
+        _exportingId = null;
+        _copyingId = null;
+        _deletingId = null;
+    }
+
+    private static string? Null(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+}
+

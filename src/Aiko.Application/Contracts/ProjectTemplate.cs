@@ -28,6 +28,11 @@ public sealed record TemplateDocument(string RelativePath, string Content);
 /// <param name="Workflows">The workflows the project starts with.</param>
 /// <param name="Projections">The board projections the project starts with.</param>
 /// <param name="MemoryFiles">The starting memory files.</param>
+/// <param name="GitPolicy">
+/// The gitignore policy a project created from this template gets. Part of the template for the same reason
+/// the settings are: what a project starts as is one decision, not five, and an init that has to be told the
+/// policy separately is an init that can disagree with the template it chose.
+/// </param>
 public sealed record ProjectTemplate(
     string Id,
     string Name,
@@ -36,7 +41,8 @@ public sealed record ProjectTemplate(
     AppSettings? Settings,
     IReadOnlyList<WorkflowDefinition> Workflows,
     IReadOnlyList<BoardProjectionDefinition> Projections,
-    IReadOnlyList<TemplateDocument> MemoryFiles)
+    IReadOnlyList<TemplateDocument> MemoryFiles,
+    ProjectGitPolicy GitPolicy = ProjectGitPolicy.LocalOnly)
 {
     /// <summary>The template every installation has, and the one an init without a choice uses.</summary>
     public const string DefaultId = "default";

@@ -74,4 +74,56 @@ public interface IProjectTemplateStore
     /// <param name="template">The template to write.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     ValueTask WriteAsync(ProjectTemplate template, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Builds a template out of a project: its settings snapshot, its pipelines, its projections, its memory
+    /// and its git policy. This is how an installation captures a project it likes and creates the next ones
+    /// from it.
+    /// </summary>
+    /// <param name="projectRootPath">Root of the project to read, with its <c>.aiko</c> directory.</param>
+    /// <param name="templateId">Identifier for the new template; it must not exist yet.</param>
+    /// <param name="name">Display name for the new template, or null for "&lt;project name&gt; template".</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <exception cref="DirectoryNotFoundException">The project has no <c>.aiko</c> directory.</exception>
+    /// <exception cref="IOException">A template with the new id already exists.</exception>
+    ValueTask<ProjectTemplate> CreateFromProjectAsync(
+        string projectRootPath,
+        string templateId,
+        string? name,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Copies a template's document to a path outside the templates root, so it can be handed to another
+    /// installation. The file is the same JSON the store writes: an export is a template by another name.
+    /// </summary>
+    /// <param name="templateId">Template to write out.</param>
+    /// <param name="path">Absolute path of the file to write; an existing file is overwritten.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    ValueTask ExportAsync(string templateId, string path, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Reads a template document from a path outside the templates root and stores it under its own id, or
+    /// under the id given. Importing is how a team shares a starting point without sharing an installation.
+    /// </summary>
+    /// <param name="path">Absolute path of the template file to read.</param>
+    /// <param name="templateId">
+    /// Identifier to store the imported template under, or null to keep the one the file carries. A different
+    /// id is how the same file is imported twice, or alongside the template it was exported from.
+    /// </param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <exception cref="InvalidDataException">The file is not a template document.</exception>
+    /// <exception cref="IOException">A template with the resulting id already exists.</exception>
+    ValueTask<ProjectTemplate> ImportAsync(
+        string path,
+        string? templateId,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Removes a template that lives in the templates root. The shipped base is not a file, so it cannot be
+    /// deleted; a copy of it can.
+    /// </summary>
+    /// <param name="templateId">Template to remove.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>True when a stored template was removed; false when there was none.</returns>
+    ValueTask<bool> DeleteAsync(string templateId, CancellationToken cancellationToken);
 }

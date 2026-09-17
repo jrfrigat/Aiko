@@ -405,6 +405,39 @@
   <data name="NoSize" xml:space="preserve"><value>No size</value></data>
   <data name="Template" xml:space="preserve"><value>Template</value></data>
   <data name="TemplateHint" xml:space="preserve"><value>Copied into the project at creation: it fixes the stages and their artifacts, the board projections, the starting memory and the default settings. Changing the template later affects only projects created afterwards.</value></data>
+  <data name="TemplatesNav" xml:space="preserve"><value>Project templates</value></data>
+  <data name="TemplatesTitle" xml:space="preserve"><value>Templates</value></data>
+  <data name="TemplatesHeading" xml:space="preserve"><value>Project templates</value></data>
+  <data name="TemplatesHint" xml:space="preserve"><value>What a new project is created from: the stages and artifacts of its pipelines, the board projections, the starting memory, the default settings and the git policy. An init copies the chosen template and never reads it again, so a project is autonomous - and "apply" is the one action that reaches a project that already exists.</value></data>
+  <data name="TemplatesCount" xml:space="preserve"><value>{0} templates</value></data>
+  <data name="TemplateDefault" xml:space="preserve"><value>default</value></data>
+  <data name="TemplateBuiltIn" xml:space="preserve"><value>built-in</value></data>
+  <data name="CaptureFromProject" xml:space="preserve"><value>Capture from a project</value></data>
+  <data name="CaptureFromProjectHint" xml:space="preserve"><value>Reads a project's settings, pipelines, projections, memory and git policy into a new template</value></data>
+  <data name="CaptureFromProjectMissing" xml:space="preserve"><value>Register a project first: a template is captured from one.</value></data>
+  <data name="TemplateIdLabel" xml:space="preserve"><value>Identifier</value></data>
+  <data name="TemplateIdHelper" xml:space="preserve"><value>Letters, digits, dashes and underscores, for example backend-default</value></data>
+  <data name="TemplateIdRequired" xml:space="preserve"><value>Enter a template identifier.</value></data>
+  <data name="TemplateCaptured" xml:space="preserve"><value>Template captured from the project.</value></data>
+  <data name="TemplateCopied" xml:space="preserve"><value>Template copied.</value></data>
+  <data name="TemplateDeleted" xml:space="preserve"><value>Template deleted.</value></data>
+  <data name="DeleteTemplateConfirm" xml:space="preserve"><value>Delete this template? Projects created from it are not touched.</value></data>
+  <data name="DuplicateTemplate" xml:space="preserve"><value>Duplicate</value></data>
+  <data name="TemplatesUnavailable" xml:space="preserve"><value>The templates are unavailable: {0}</value></data>
+  <data name="ImportTemplate" xml:space="preserve"><value>Import a template</value></data>
+  <data name="ImportTemplateHint" xml:space="preserve"><value>Reads a template document another installation exported</value></data>
+  <data name="ImportTemplateIdHelper" xml:space="preserve"><value>Leave empty to keep the identifier the file carries</value></data>
+  <data name="TemplateImported" xml:space="preserve"><value>Template imported.</value></data>
+  <data name="Import" xml:space="preserve"><value>Import</value></data>
+  <data name="Export" xml:space="preserve"><value>Export</value></data>
+  <data name="TemplateExported" xml:space="preserve"><value>Template written to {0}</value></data>
+  <data name="TemplatePathLabel" xml:space="preserve"><value>File</value></data>
+  <data name="TemplatePathHelper" xml:space="preserve"><value>Absolute path, for example C:\Aiko\templates\backend.json</value></data>
+  <data name="TemplatePathRequired" xml:space="preserve"><value>Enter a file path.</value></data>
+  <data name="ApplyToProject" xml:space="preserve"><value>Apply to a project</value></data>
+  <data name="Apply" xml:space="preserve"><value>Apply</value></data>
+  <data name="ApplyTemplateHint" xml:space="preserve"><value>Replaces the project's pipelines, projections and settings with the template's, writes its memory where the project has none, and adopts its git policy. Cards, runs and memory stay; the action is refused when a card would be left in a stage the template does not have.</value></data>
+  <data name="TemplateApplied" xml:space="preserve"><value>Template applied to {0}.</value></data>
   <data name="TemplateFirstProjectHint" xml:space="preserve"><value>This installation has no templates yet; the first project is created from the built-in default template, which is written next to the daemon's database.</value></data>
   <data name="ProjectLabel" xml:space="preserve"><value>Project</value></data>
   <data name="CoreFallbackConfig" xml:space="preserve"><value>Core fallback config</value></data>
