@@ -42,6 +42,8 @@ internal sealed class ProjectContextTools(
             Root: {project.RootPath}
 
             Before changing files, read the selected card and its current stage instruction.
+            A stage's beforeSkills are what to invoke before you read its instruction, and its afterSkills
+            are what to invoke once the instruction is done.
             Treat declaredScopeFiles as guidance. Warn before intentionally changing files outside it,
             and report actualChangedFiles when completing work.
             Use aiko_store_memory for durable decisions, conventions and lessons.

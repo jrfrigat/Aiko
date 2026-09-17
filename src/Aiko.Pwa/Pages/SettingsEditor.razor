@@ -229,6 +229,10 @@
                     </FlareStack>
                 </FlareStack>
             </FlarePaper>
+            @* A screen can add a panel to this column: the project screen puts the pipeline there, under the
+               defaults it belongs with. The column is the narrow one on purpose - the scoring tables below
+               need the room, and a stage list reads fine in a third of the page. *@
+            @ExtraNarrowContent
         </FlareStack>
 
         <FlareStack Class="aiko-settings__wide" Gap="FlareSpacing.Medium">
@@ -515,6 +519,12 @@
         new(nameof(ActionPolicy.Ask), "CommitAskTitle", "CommitAskHint"),
         new(nameof(ActionPolicy.Allow), "CommitAllowTitle", "CommitAllowHint"),
     ];
+
+    /// <summary>
+    /// A panel rendered at the bottom of the narrow column. The project screen puts the pipeline there,
+    /// under the defaults; the global screen passes nothing.
+    /// </summary>
+    [Parameter] public RenderFragment? ExtraNarrowContent { get; set; }
 
     /// <summary>
     /// The project whose settings are edited, or null for the installation's defaults. It is one form at

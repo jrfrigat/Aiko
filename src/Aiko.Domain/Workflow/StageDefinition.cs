@@ -22,6 +22,16 @@ namespace Aiko.Domain.Workflow;
 /// Commands that verify this stage's outcome (ТЗ §11), for example <c>dotnet test --no-build</c>. They are
 /// recorded and shown to the agent as the stage's own definition of done; Aiko does not run them itself.
 /// </param>
+/// <param name="SkillsBeforeInstruction">
+/// Skills the agent should invoke before it reads the instruction, for example a context or search skill
+/// that gathers what the instruction then reasons about. Names only: Aiko records them and hands them to the
+/// agent, it does not resolve or run them.
+/// </param>
+/// <param name="SkillsAfterInstruction">
+/// Skills the agent should invoke once the instruction is done - reporting, verification or handoff. Kept
+/// apart from <paramref name="SkillsBeforeInstruction"/> because the order is the point: a skill that
+/// gathers input and a skill that publishes output are not interchangeable.
+/// </param>
 public sealed record StageDefinition(
     string Id,
     string Title,
@@ -32,13 +42,21 @@ public sealed record StageDefinition(
     IReadOnlyList<ArtifactRequirement> RequiredArtifacts,
     IReadOnlyDictionary<string, ActionPolicy> ActionPolicies,
     IReadOnlyList<string>? AllowedAgentAdapterIds = null,
-    IReadOnlyList<string>? ValidationCommands = null)
+    IReadOnlyList<string>? ValidationCommands = null,
+    IReadOnlyList<string>? SkillsBeforeInstruction = null,
+    IReadOnlyList<string>? SkillsAfterInstruction = null)
 {
     /// <summary>The allowed executors, or an empty list when the stage allows every adapter.</summary>
     public IReadOnlyList<string> AllowedAgents => AllowedAgentAdapterIds ?? [];
 
     /// <summary>The verification commands of the stage, or an empty list.</summary>
     public IReadOnlyList<string> Commands => ValidationCommands ?? [];
+
+    /// <summary>The skills the agent invokes before the instruction, or an empty list.</summary>
+    public IReadOnlyList<string> BeforeSkills => SkillsBeforeInstruction ?? [];
+
+    /// <summary>The skills the agent invokes after the instruction, or an empty list.</summary>
+    public IReadOnlyList<string> AfterSkills => SkillsAfterInstruction ?? [];
 
     /// <summary>
     /// Whether an adapter may run this stage. The default adapter of the stage is always allowed, so a

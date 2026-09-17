@@ -268,6 +268,11 @@
   <data name="InvalidSizeCoefficient" xml:space="preserve"><value>A size coefficient must be greater than zero.</value></data>
   <data name="DuplicateSizeId" xml:space="preserve"><value>The size step "{0}" is listed twice.</value></data>
   <data name="InvalidCriterionRange" xml:space="preserve"><value>A criterion's upper bound must be greater than its lower bound.</value></data>
+  <data name="SkillsBefore" xml:space="preserve"><value>Skills before the instruction</value></data>
+  <data name="SkillsBeforeHelper" xml:space="preserve"><value>One skill per line. The agent invokes them before reading the instruction - context, search, indexing.</value></data>
+  <data name="SkillsAfter" xml:space="preserve"><value>Skills after the instruction</value></data>
+  <data name="SkillsAfterHelper" xml:space="preserve"><value>One skill per line. The agent invokes them once the instruction is done - reporting, verification, handoff.</value></data>
+  <data name="RemoveStage" xml:space="preserve"><value>Remove this stage</value></data>
   <data name="ProjectOverrideScope" xml:space="preserve"><value>Project overrides</value></data>
   <data name="ProjectSettingsHeading" xml:space="preserve"><value>Project settings</value></data>
   <data name="ProjectSettingsHint" xml:space="preserve"><value>What this project runs with. The values live in .aiko/settings.json and do not move when the installation defaults change.</value></data>

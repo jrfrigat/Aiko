@@ -573,26 +573,22 @@
     accent-color: var(--flare-color-primary);
 }
 
-/* The pipeline constructor: one card per stage, as the design draws the state machine. The card is the
-   click target that opens the stage for editing, so it is a button rather than a panel with a listener. */
+/* The pipeline constructor: one card per stage, stacked, as the design draws the state machine. The card
+   body is the click target that opens the stage, and the move controls sit beside it so reordering needs
+   no drawer. */
 .aiko-stages {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+    display: flex;
+    flex-direction: column;
     gap: 0.375rem;
 }
 
 .aiko-stage {
     display: flex;
-    flex-direction: column;
+    align-items: stretch;
     gap: 0.25rem;
-    padding: 0.5rem;
     border: var(--flare-border-width, 1px) solid transparent;
     border-radius: var(--flare-shape-large);
     background: var(--flare-color-background);
-    color: inherit;
-    cursor: pointer;
-    font: inherit;
-    text-align: start;
 }
 
 .aiko-stage:hover {
@@ -602,6 +598,33 @@
 /* The stage being edited is the one the accent outlines. */
 .aiko-stage--on {
     border-color: var(--flare-color-primary);
+}
+
+/* The clickable body of a card: a button, because clicking it is what opens the stage. */
+.aiko-stage__open {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.5rem;
+    border: none;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+    text-align: start;
+}
+
+/* Reordering: the two arrows of one stage, stacked at the card's trailing edge. */
+.aiko-stage__move {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.125rem;
+    padding-inline-end: 0.25rem;
 }
 
 .aiko-stage__head {

@@ -202,7 +202,9 @@ public class DomainSpecs
             [new ArtifactRequirement("implementation.md", "The outcome.", MissingArtifactPolicy.Warn)],
             new Dictionary<string, ActionPolicy>(StringComparer.Ordinal) { ["commit"] = ActionPolicy.Ask },
             ["claude", "codex"],
-            ["dotnet build --no-restore", "dotnet test --no-build"]);
+            ["dotnet build --no-restore", "dotnet test --no-build"],
+            ["aiko-memory"],
+            ["aiko-report"]);
 
         var json = JsonSerializer.Serialize(stage, JsonSerializerOptions.Web);
         var restored = JsonSerializer.Deserialize<StageDefinition>(json, JsonSerializerOptions.Web);
@@ -213,6 +215,8 @@ public class DomainSpecs
         Assert.Equal("claude", restored.DefaultAgentAdapterId);
         Assert.Equal(["claude", "codex"], restored.AllowedAgents);
         Assert.Equal(["dotnet build --no-restore", "dotnet test --no-build"], restored.Commands);
+        Assert.Equal(["aiko-memory"], restored.BeforeSkills);
+        Assert.Equal(["aiko-report"], restored.AfterSkills);
         Assert.Equal(ActionPolicy.Ask, restored.ActionPolicies["commit"]);
         Assert.Equal(MissingArtifactPolicy.Warn, restored.RequiredArtifacts[0].MissingPolicy);
     }

@@ -58,9 +58,8 @@
                 @foreach (var stageItem in _stages)
                 {
                     var card = stageItem;
-                    <button type="button"
-                            class="aiko-stage @(ReferenceEquals(card, SelectedStage) ? "aiko-stage--on" : null)"
-                            @onclick="() => SelectStageCard(card)">
+                    <div class="aiko-stage @(ReferenceEquals(card, SelectedStage) ? "aiko-stage--on" : null)">
+                        <button type="button" class="aiko-stage__open" @onclick="() => OpenStageDrawer(card)">
                         <span class="aiko-stage__head">
                             <span class="aiko-stage__dot"></span>
                             <FlareText Element="span" Typo="TypographyScale.BodySmall" Weight="FontWeight.SemiBold">
@@ -111,34 +110,75 @@
                                 }
                             </span>
                         }
+                            @if (ParseCommands(card.BeforeSkillLines) is { Count: > 0 } beforeSkills)
+                        {
+                            <span class="aiko-stage__facts">
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                    @Loc.Get("SkillsBefore")
+                                </FlareText>
+                                @foreach (var skill in beforeSkills)
+                                {
+                                    <span class="aiko-tag aiko-tag--quiet aiko-tag--clip" title="@skill">@skill</span>
+                                }
+                            </span>
+                        }
+                        @if (ParseCommands(card.AfterSkillLines) is { Count: > 0 } afterSkills)
+                        {
+                            <span class="aiko-stage__facts">
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                    @Loc.Get("SkillsAfter")
+                                </FlareText>
+                                @foreach (var skill in afterSkills)
+                                {
+                                    <span class="aiko-tag aiko-tag--quiet aiko-tag--clip" title="@skill">@skill</span>
+                                }
+                            </span>
+                        }
                     </button>
+                        <span class="aiko-stage__move">
+                            <FlareIconButton Icon="@FlareIcons.ArrowUpward"
+                                             Variant="ButtonVariant.Text"
+                                             AriaLabel="@Loc.Get("MoveUp")"
+                                             OnClick="() => MoveStageTo(card, -1)" />
+                            <FlareIconButton Icon="@FlareIcons.ArrowDownward"
+                                             Variant="ButtonVariant.Text"
+                                             AriaLabel="@Loc.Get("MoveDown")"
+                                             OnClick="() => MoveStageTo(card, 1)" />
+                        </span>
+                    </div>
                 }
             </div>
-            <FlareStack Row="true" Gap="FlareSpacing.XXSmall">
-                <FlareButton Variant="ButtonVariant.Outlined" Size="ButtonSize.Sm" OnClick="AddStage">
-                    <LeadingIcon><FlareIconView Value="@FlareIcons.Add" /></LeadingIcon>
-                    <ChildContent>@Loc.Get("AddStage")</ChildContent>
-                </FlareButton>
-                <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm" OnClick="RemoveStage">@Loc.Get("Remove")</FlareButton>
-            </FlareStack>
+            <FlareButton Variant="ButtonVariant.Outlined" Size="ButtonSize.Sm" OnClick="AddStage">
+                <LeadingIcon><FlareIconView Value="@FlareIcons.Add" /></LeadingIcon>
+                <ChildContent>@Loc.Get("AddStage")</ChildContent>
+            </FlareButton>
         </FlareStack>
 
+    </FlareStack>
+</FlarePaper>
+
+@* Editing one stage happens in a drawer: the panel keeps the pipeline visible while the fields of the stage
+   being edited get the room a form needs. *@
+<FlareDrawer Anchor="DrawerAnchor.Right"
+             Open="_stageDrawerOpen"
+             OpenChanged="SetStageDrawer"
+             Width="30rem"
+             ContentPadding="FlareSpacing.Large"
+             AriaLabel="@Loc.Get("SelectedStage")">
+    <HeaderContent>
+        <FlareStack Gap="FlareSpacing.None">
+            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
+                @Loc.Get("SelectedStage")
+            </FlareText>
+            <FlareText Element="h3" Typo="TypographyScale.TitleMedium">
+                @(SelectedStage is { } head ? StageLabel(head) : string.Empty)
+            </FlareText>
+        </FlareStack>
+    </HeaderContent>
+    <ChildContent>
         @if (SelectedStage is { } stage)
         {
-            <FlareDivider />
-
             <FlareStack Gap="FlareSpacing.Small">
-                <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XSmall">
-                    <FlareText Element="h3" Typo="TypographyScale.TitleSmall">@Loc.Get("SelectedStage")</FlareText>
-                    <FlareStack Row="true" Gap="FlareSpacing.XXSmall">
-                        <FlareIconButton Icon="@FlareIcons.ArrowUpward"
-                                         AriaLabel="@Loc.Get("MoveUp")"
-                                         OnClick="() => MoveStage(-1)" />
-                        <FlareIconButton Icon="@FlareIcons.ArrowDownward"
-                                         AriaLabel="@Loc.Get("MoveDown")"
-                                         OnClick="() => MoveStage(1)" />
-                    </FlareStack>
-                </FlareStack>
                 <FlareTextField Label="@Loc.Get("StableId")"
                                 HelperText="@Loc.Get("StableIdHelper")"
                                 ReadOnly="@(!stage.IsNew)"
@@ -147,6 +187,16 @@
                 <FlareTextArea Label="@Loc.Get("Instruction")"
                                Rows="5"
                                @bind-Value="stage.Instruction" />
+                @* The skills around the instruction: what the agent invokes before it starts, and what it
+                   invokes once the work is done. The order is the point, so they are two fields and not one. *@
+                <FlareTextArea Label="@Loc.Get("SkillsBefore")"
+                               HelperText="@Loc.Get("SkillsBeforeHelper")"
+                               Rows="3"
+                               @bind-Value="stage.BeforeSkillLines" />
+                <FlareTextArea Label="@Loc.Get("SkillsAfter")"
+                               HelperText="@Loc.Get("SkillsAfterHelper")"
+                               Rows="3"
+                               @bind-Value="stage.AfterSkillLines" />
                 @* Executors: the stage's own list of adapters. An empty selection means every discovered
                    adapter may run the stage, which is what the label says. *@
                 <FlareStack Gap="FlareSpacing.XXSmall">
@@ -199,14 +249,20 @@
 
         <FlareDivider />
 
+        @* The fields edit one stage, but the API saves the pipeline: one button therefore writes the whole
+           workflow, and the hint says so. *@
         <FlareStack Gap="FlareSpacing.Small">
             <FlareButton FullWidth="true" Loading="@_saving" OnClick="SaveAsync">@Loc.Get("SaveWorkflow")</FlareButton>
+            <FlareButton FullWidth="true"
+                         Variant="ButtonVariant.Text"
+                         Disabled="@(_stages.Count <= 1)"
+                         OnClick="RemoveStage">@Loc.Get("RemoveStage")</FlareButton>
             <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant">
                 @Loc.Get("WorkflowHint")
             </FlareText>
         </FlareStack>
-    </FlareStack>
-</FlarePaper>
+    </ChildContent>
+</FlareDrawer>
 
 @code {
     [Parameter, EditorRequired] public ProjectBoardSnapshot Board { get; set; } = null!;
@@ -222,6 +278,7 @@
     private string? _message;
     private bool _hasError;
     private bool _saving;
+    private bool _stageDrawerOpen;
 
     private WorkflowDefinition SelectedWorkflow =>
         Board.Workflows.First(workflow => workflow.Id == _workflowId);
@@ -315,27 +372,8 @@
         _stages.RemoveAt(index);
         NormalizeOrder();
         _selectedStage = _stages[Math.Min(index, _stages.Count - 1)];
-    }
-
-    private void MoveStage(int offset)
-    {
-        var stage = SelectedStage;
-        if (stage is null)
-        {
-            return;
-        }
-
-        var current = _stages.IndexOf(stage);
-        var target = current + offset;
-        if (target < 0 || target >= _stages.Count)
-        {
-            return;
-        }
-
-        _stages.RemoveAt(current);
-        _stages.Insert(target, stage);
-        NormalizeOrder();
-        _selectedStage = stage;
+        // The drawer was editing the stage that no longer exists, so it closes with it.
+        _stageDrawerOpen = false;
     }
 
     private async Task SaveAsync()
@@ -451,8 +489,33 @@
         _hasError = true;
     }
 
-    /// <summary>Opens one stage card for editing.</summary>
-    private void SelectStageCard(StageDraft stage) => _selectedStage = stage;
+    /// <summary>Opens one stage in the drawer: the card's click, and where the fields live.</summary>
+    private void OpenStageDrawer(StageDraft stage)
+    {
+        _selectedStage = stage;
+        _stageDrawerOpen = true;
+    }
+
+    private void SetStageDrawer(bool open) => _stageDrawerOpen = open;
+
+    /// <summary>
+    /// Moves one stage in the pipeline. Reordering is the panel's own operation - it needs no drawer,
+    /// because it changes the list rather than the stage.
+    /// </summary>
+    private void MoveStageTo(StageDraft stage, int offset)
+    {
+        var current = _stages.IndexOf(stage);
+        var target = current + offset;
+        if (current < 0 || target < 0 || target >= _stages.Count)
+        {
+            return;
+        }
+
+        _stages.RemoveAt(current);
+        _stages.Insert(target, stage);
+        NormalizeOrder();
+        _selectedStage = stage;
+    }
 
     /// <summary>
     /// A stage's place in the pipeline. Derived from the order rather than stored: the first stage is where
@@ -521,6 +584,8 @@
         public string? DefaultAgentAdapterId { get; set; }
         public string? ArtifactLines { get; set; }
         public string? CommandLines { get; set; }
+        public string? BeforeSkillLines { get; set; }
+        public string? AfterSkillLines { get; set; }
         public List<string> AllowedAgentAdapterIds { get; init; } = [];
         public required IReadOnlyList<CardKind> AllowedCardKinds { get; init; }
         public required IReadOnlyDictionary<string, ActionPolicy> ActionPolicies { get; init; }
@@ -536,6 +601,8 @@
             ArtifactLines = string.Join(Environment.NewLine, stage.RequiredArtifacts.Select(artifact =>
                 $"{artifact.Path} | {artifact.MissingPolicy} | {artifact.Description}")),
             CommandLines = string.Join(Environment.NewLine, stage.Commands),
+            BeforeSkillLines = string.Join(Environment.NewLine, stage.BeforeSkills),
+            AfterSkillLines = string.Join(Environment.NewLine, stage.AfterSkills),
             AllowedAgentAdapterIds = [.. stage.AllowedAgents],
             AllowedCardKinds = stage.AllowedCardKinds,
             ActionPolicies = stage.ActionPolicies
@@ -553,6 +620,8 @@
             // An empty list travels as an empty list, not null: "no executors chosen" means every adapter,
             // and null would say the same thing through a second representation.
             AllowedAgentAdapterIds,
-            ParseCommands(CommandLines));
+            ParseCommands(CommandLines),
+            ParseCommands(BeforeSkillLines),
+            ParseCommands(AfterSkillLines));
     }
 }

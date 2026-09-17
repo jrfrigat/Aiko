@@ -59,12 +59,13 @@ else
             </FlareStack>
         </FlarePaper>
 
-        <SettingsEditor ProjectId="@board.Project.Id" />
-
-        @* The pipelines of this project: statuses, the instruction the agent gets at each one, the executors
-           allowed to run it, the artifacts it must produce and the commands that verify it. The editor dresses
-           itself as a panel, so it is placed here rather than wrapped. *@
-        <WorkflowInspector Board="board" OnSaved="State.LoadBoardAsync" />
+        @* The pipelines sit in the narrow column under the defaults: they are project content, and the list
+           of stages reads fine beside the scoring tables rather than above them. *@
+        <SettingsEditor ProjectId="@board.Project.Id">
+            <ExtraNarrowContent>
+                <WorkflowInspector Board="board" OnSaved="State.LoadBoardAsync" />
+            </ExtraNarrowContent>
+        </SettingsEditor>
     </FlareStack>
 }
 

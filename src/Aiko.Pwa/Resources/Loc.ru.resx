@@ -268,6 +268,11 @@
   <data name="InvalidSizeCoefficient" xml:space="preserve"><value>Коэффициент размера должен быть больше нуля.</value></data>
   <data name="DuplicateSizeId" xml:space="preserve"><value>Размер "{0}" указан дважды.</value></data>
   <data name="InvalidCriterionRange" xml:space="preserve"><value>Верхняя граница критерия должна быть больше нижней.</value></data>
+  <data name="SkillsBefore" xml:space="preserve"><value>Скиллы до инструкции</value></data>
+  <data name="SkillsBeforeHelper" xml:space="preserve"><value>По одному скиллу в строке. Агент вызывает их перед чтением инструкции — контекст, поиск, индексация.</value></data>
+  <data name="SkillsAfter" xml:space="preserve"><value>Скиллы после инструкции</value></data>
+  <data name="SkillsAfterHelper" xml:space="preserve"><value>По одному скиллу в строке. Агент вызывает их, когда инструкция выполнена — отчёт, проверка, передача.</value></data>
+  <data name="RemoveStage" xml:space="preserve"><value>Удалить этот этап</value></data>
   <data name="ProjectOverrideScope" xml:space="preserve"><value>Переопределения проекта</value></data>
   <data name="ProjectSettingsHeading" xml:space="preserve"><value>Настройки проекта</value></data>
   <data name="ProjectSettingsHint" xml:space="preserve"><value>С чем работает этот проект. Значения лежат в .aiko/settings.json и не меняются вместе с настройками установки.</value></data>
