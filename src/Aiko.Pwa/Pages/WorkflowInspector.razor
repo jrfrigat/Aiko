@@ -218,6 +218,12 @@
                               aria-label="@Loc.Get("Instruction")"
                               @bind="stage.Instruction"
                               @bind:event="oninput"></textarea>
+                    @* The design's foot under the prompt: what the block holds. The character count is measured,
+                       the token figure is an estimate and is labelled as one. *@
+                    <div class="aiko-terminal__foot">
+                        <span>@Loc.Format("CharactersCount", stage.Instruction?.Length ?? 0)</span>
+                        <span>@Loc.Format("TokensEstimate", TokenEstimate(stage.Instruction))</span>
+                    </div>
                 </div>
 
                 <div class="aiko-terminal">
@@ -564,6 +570,13 @@
         _message = message;
         _hasError = true;
     }
+
+    /// <summary>
+    /// A rough token count for a prompt, so the editor can show what the model will be handed. It is an
+    /// estimate - four characters per token is the usual rule of thumb - and it is labelled as one; Aiko
+    /// does not call a tokenizer, because nothing it does depends on the exact figure.
+    /// </summary>
+    private static int TokenEstimate(string? text) => (text?.Length ?? 0) / 4;
 
     /// <summary>Opens one stage in the drawer: the card's click, and where the fields live.</summary>
     private void OpenStageDrawer(StageDraft stage)

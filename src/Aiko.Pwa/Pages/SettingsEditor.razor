@@ -374,49 +374,67 @@
                         else
                         {
                             @* The ladder as the design draws it: one tile per step, its coefficient under the
-                               name. The colour is derived from the coefficient - a step that rewards a card
-                               (above 1) reads as an accent, a step that penalizes it (below 1) as a caution -
-                               so the grid shows at a glance which way the ladder leans. *@
+                               name. Every tile carries its step's colour - the direction the coefficient
+                               points - so the ladder reads as a scale at a glance, and the open step is
+                               outlined and lifted on top of that. *@
                             <div class="aiko-sizes">
                                 @foreach (var step in _sizes)
                                 {
                                     var tile = step;
                                     <button type="button"
-                                            class="aiko-size @(ReferenceEquals(tile, SelectedSize) ? "aiko-size--on" : null)"
+                                            class="aiko-size @DirectionClass(tile.Coefficient) @(ReferenceEquals(tile, SelectedSize) ? "aiko-size--on" : null)"
                                             title="@tile.Description"
                                             @onclick="() => SelectSize(tile)">
                                         <span class="aiko-size__id">@tile.Id</span>
-                                        <span class="aiko-size__coefficient @CoefficientClass(tile.Coefficient)">
-                                            @CoefficientCaption(tile.Coefficient)
-                                        </span>
+                                        <span class="aiko-size__coefficient">@CoefficientCaption(tile.Coefficient)</span>
                                     </button>
                                 }
                             </div>
 
-                            @* The fields of the chosen step: its name, what it multiplies the score by, and the
-                               description the agent reads to pick it. *@
+                            @* The fields of the chosen step, in the design's field language: identifiers on a
+                               recessed row with an icon and mono accent text, prose in a prompt block. *@
                             @if (SelectedSize is { } size)
                             {
-                                <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
-                                    <FlareStack Row="true" Align="FlareAlignItems.End" Gap="FlareSpacing.XSmall">
-                                        <FlareTextField Size="FieldSize.Xs"
-                                                        Label="@Loc.Get("SizeIdLabel")"
-                                                        Value="@size.Id"
-                                                        ValueChanged="value => size.Id = value" />
-                                        <FlareNumericField TValue="decimal"
-                                                           Size="FieldSize.Xs"
-                                                           Label="@Loc.Get("SizeCoefficient")"
-                                                           @bind-Value="size.Coefficient" />
-                                        <FlareIconButton Variant="ButtonVariant.Text"
-                                                         Icon="@MaterialDesign3Icons.Regular.Delete"
-                                                         AriaLabel="@Loc.Get("Remove")"
-                                                         OnClick="RemoveSelectedSize" />
-                                    </FlareStack>
-                                    <FlareTextArea Label="@Loc.Get("SizeDescription")"
-                                                   HelperText="@Loc.Get("SizeDescriptionHint")"
-                                                   Rows="3"
-                                                   @bind-Value="size.Description" />
+                                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                                    <div class="aiko-code-pair">
+                                        <div class="aiko-code-row" title="@Loc.Get("SizeIdLabel")">
+                                            <FlareIconView Value="@MaterialDesign3Icons.Regular.Tag" Color="FlareColor.OnSurfaceVariant2" />
+                                            <input type="text"
+                                                   aria-label="@Loc.Get("SizeIdLabel")"
+                                                   placeholder="@Loc.Get("SizeIdLabel")"
+                                                   @bind="size.Id" />
+                                        </div>
+                                        <div class="aiko-code-row" title="@Loc.Get("SizeCoefficient")">
+                                            <FlareIconView Value="@MaterialDesign3Icons.Regular.Calculate" Color="FlareColor.OnSurfaceVariant2" />
+                                            <input type="number"
+                                                   step="0.01"
+                                                   aria-label="@Loc.Get("SizeCoefficient")"
+                                                   @bind="size.Coefficient" />
+                                        </div>
+                                    </div>
+                                    <FlareIconButton Variant="ButtonVariant.Text"
+                                                     Icon="@MaterialDesign3Icons.Regular.Delete"
+                                                     AriaLabel="@Loc.Get("Remove")"
+                                                     OnClick="RemoveSelectedSize" />
                                 </FlareStack>
+
+                                <div class="aiko-terminal">
+                                    <div class="aiko-terminal__bar">
+                                        <span class="aiko-terminal__dots">
+                                            <span class="aiko-terminal__dot" style="background: var(--flare-color-tertiary)"></span>
+                                            <span class="aiko-terminal__name">@($"{size.Id ?? "size"}.description")</span>
+                                        </span>
+                                        <span>@Loc.Get("SizeDescription")</span>
+                                    </div>
+                                    <textarea rows="3"
+                                              aria-label="@Loc.Get("SizeDescription")"
+                                              placeholder="@Loc.Get("SizeDescriptionHint")"
+                                              @bind="size.Description"></textarea>
+                                    <div class="aiko-terminal__foot">
+                                        <span>@Loc.Format("CharactersCount", size.Description?.Length ?? 0)</span>
+                                        <span>@Loc.Get("SizeDescriptionHint")</span>
+                                    </div>
+                                </div>
                             }
 
                             <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
@@ -696,16 +714,23 @@
         coefficient.ToString("0.00", System.Globalization.CultureInfo.CurrentCulture);
 
     /// <summary>
-    /// Which way a step leans, as a CSS class: above one it rewards a card, below one it penalizes it, and
-    /// exactly one is the neutral middle of the ladder. Derived from the number rather than stored per step,
-    /// so a project that edits a coefficient sees the colour follow it.
+    /// Which way a step leans, as a CSS class on the tile itself: above one the step rewards a card, below
+    /// one it penalizes it, and exactly one is the neutral middle of the ladder. Derived from the number
+    /// rather than stored per step, so a project that edits a coefficient sees the colour follow it.
     /// </summary>
-    private static string CoefficientClass(decimal coefficient) => coefficient switch
+    private static string DirectionClass(decimal coefficient) => coefficient switch
     {
-        > 1m => "aiko-size__coefficient--up",
-        < 1m => "aiko-size__coefficient--down",
-        _ => "aiko-size__coefficient--mid"
+        > 1m => "aiko-size--up",
+        < 1m => "aiko-size--down",
+        _ => "aiko-size--mid"
     };
+
+    /// <summary>
+    /// A rough token count for a prompt, so the editor can show what the model will be handed. It is an
+    /// estimate - four characters per token is the usual rule of thumb - and it is labelled as one; Aiko
+    /// does not call a tokenizer, because nothing it does depends on the exact figure.
+    /// </summary>
+    private static int EstimateTokens(string? text) => (text?.Length ?? 0) / 4;
 
     /// <summary>
     /// Builds and saves the global document. Both sections travel together: the settings file is

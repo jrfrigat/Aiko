@@ -256,6 +256,8 @@
   <data name="MaximumLabel" xml:space="preserve"><value>До</value></data>
   <data name="AiInstructionLabel" xml:space="preserve"><value>Инструкция агенту</value></data>
   <data name="AiInstructionHint" xml:space="preserve"><value>На что агенту смотреть, чтобы оценить этот критерий</value></data>
+  <data name="CharactersCount" xml:space="preserve"><value>Символов: {0}</value></data>
+  <data name="TokensEstimate" xml:space="preserve"><value>Токенов ~{0}</value></data>
   <data name="SizeGridPickHint" xml:space="preserve"><value>Выберите размер, чтобы изменить его название, коэффициент и описание.</value></data>
   <data name="SizeGrid" xml:space="preserve"><value>Сетка размеров</value></data>
   <data name="SizeGridHint" xml:space="preserve"><value>Агент выставляет размер по этим описаниям, а коэффициент умножает score карточки</value></data>
