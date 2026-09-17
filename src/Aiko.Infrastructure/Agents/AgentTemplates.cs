@@ -137,6 +137,11 @@ internal static class AgentTemplates
         list of the files you changed. If the work needs files outside the card's declaredScopeFiles, call
         aiko_request_scope_expansion and wait for the user's decision before touching them.
 
+        Before you complete the stage, re-score the card with aiko_estimate_card: the project context lists
+        its criteria, and the one about how complete the card is (complete, or whatever the project named
+        readiness) must describe the card as it is after your change, not as it was before it. Re-score the
+        importance criteria - app-point and user-point - only when the work changed what they measured.
+
         Finish with aiko_complete_stage, recording the files you changed, the artifacts you produced and how
         you verified the result, and keep durable conclusions with aiko_store_memory. If you cannot finish - a
         rate limit, a failure - report the state with aiko_report_agent_state and hand the execution to

@@ -87,6 +87,30 @@ public class DomainSpecs
     }
 
     [Fact]
+    public void The_standard_criteria_are_shares_of_one_score_on_a_0_to_10_scale()
+    {
+        var criteria = PrioritySettings.StandardCriteria;
+
+        Assert.Equal(["app-point", "user-point", "complete"], criteria.Select(item => item.Id).ToArray());
+        Assert.Equal(1m, criteria.Sum(item => item.Weight));
+        Assert.All(criteria, item =>
+        {
+            Assert.Equal(0m, item.Minimum);
+            Assert.Equal(10m, item.Maximum);
+            Assert.False(string.IsNullOrWhiteSpace(item.AiInstruction));
+        });
+
+        // Readiness has to be there by the id the pipelines and /aiko-run name when they ask the agent to
+        // re-score it after every change.
+        Assert.Contains(criteria, item => item.Id == "complete");
+
+        // The safe default stays criteria-less, so an upgrade never quietly hands an existing project a
+        // scoring model it did not opt into.
+        Assert.Empty(PrioritySettings.SafeDefault.Criteria);
+        Assert.NotNull(PrioritySettings.Standard.Sizes);
+    }
+
+    [Fact]
     public void Values_outside_a_criterion_range_are_clamped()
     {
         PriorityCriterion[] criteria = [new("benefit", "Польза", "Польза для продукта", 1m, 0m, 10m)];

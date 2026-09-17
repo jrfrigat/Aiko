@@ -1,5 +1,6 @@
 using Aiko.Application.Contracts;
 using Aiko.Domain.Cards;
+using Aiko.Domain.Execution;
 using Aiko.Domain.Prioritization;
 using Aiko.Domain.Workflow;
 
@@ -18,14 +19,18 @@ namespace Aiko.Infrastructure.Projects;
 /// </remarks>
 internal static class BuiltInProjectTemplate
 {
-    /// <summary>Builds the default template. Settings stay null: the installation defaults fill them.</summary>
+    /// <summary>Builds the default template, fully stated: settings, pipelines, projections and memory.</summary>
     public static ProjectTemplate Create() => new(
         ProjectTemplate.DefaultId,
         "Default",
-        "The set Aiko starts from: story and task pipelines with their artifacts, two board projections "
-        + "and the empty project memory.",
+        "The set Aiko starts from: story and task pipelines with their statuses, artifacts and per-status "
+        + "instructions, the app point / user point / complete scoring criteria, two board projections and "
+        + "the empty project memory.",
         ProjectTemplate.DefaultVersion,
-        Settings: null,
+        Settings: new AppSettings(
+            AppSettings.CurrentSchemaVersion,
+            ExecutionSettings.SafeDefault,
+            PrioritySettings.Standard),
         Workflows: [StoryWorkflow(), TaskWorkflow()],
         Projections: Projections(),
         MemoryFiles: MemoryFiles());
@@ -35,13 +40,13 @@ internal static class BuiltInProjectTemplate
             "story",
             "Stories",
             [
-                Stage("backlog", "Backlog", 10, CardKind.Story, "Clarify the value, the boundaries and the links of this story.", "inbox", "secondary"),
+                Stage("backlog", "Backlog", 10, CardKind.Story, "Clarify the value, the boundaries and the links of this story, and state its requirements on the card. Re-score complete when the picture changes.", "inbox", "secondary"),
                 Stage(
                     "elaboration",
                     "Elaboration",
                     20,
                     CardKind.Story,
-                    "Work out the requirements and the architectural constraints of this story.",
+                    "Work out the requirements and the architectural constraints of this story and record them in analysis.md. When the analysis is done, re-score app-point and complete with what you learned.",
                     "description",
                     "primary",
                     [
@@ -50,12 +55,14 @@ internal static class BuiltInProjectTemplate
                             "The outcome of the story elaboration.",
                             MissingArtifactPolicy.NeedsAttention)
                     ]),
-                Stage("ready", "Ready for decomposition", 30, CardKind.Story, "Check that this story is ready to be decomposed into tasks.", "pending", "tertiary"),
-                Stage("in-progress", "In progress", 40, CardKind.Story, "Coordinate the implementation of the child tasks.", "code", "warning"),
-                Stage("done", "Done", 50, CardKind.Story, "Verify that the story's outcome was reached.", "done-all", "success")
+                Stage("ready", "Ready for decomposition", 30, CardKind.Story, "Check that the requirements are unambiguous and that the story can be split into tasks. Re-score complete before moving it on.", "pending", "tertiary"),
+                Stage("in-progress", "In progress", 40, CardKind.Story, "Coordinate the implementation of the child tasks. After every change, re-score complete so the story's score says what it now does.", "code", "warning"),
+                Stage("done", "Done", 50, CardKind.Story, "Verify that the story's outcome was reached and summarize it. Re-score complete to the top of its range before closing the card.", "done-all", "success")
             ],
             1,
-            "A functional requirement large enough to be decomposed into child tasks.",
+            "A functional requirement or a user-facing capability, large enough to be decomposed into tasks. "
+            + "Its app-point and user-point say why it matters; its complete score is re-scored after every "
+            + "piece of work.",
             "account-tree",
             "primary");
 
@@ -64,13 +71,13 @@ internal static class BuiltInProjectTemplate
             "task",
             "Tasks",
             [
-                Stage("backlog", "Backlog", 10, CardKind.Task, "Clarify the request, the scope and the links of this task.", "inbox", "secondary"),
+                Stage("backlog", "Backlog", 10, CardKind.Task, "Clarify the request, the scope and the links of this task, and state its requirements on the card. Re-score complete when they change.", "inbox", "secondary"),
                 Stage(
                     "analysis",
                     "Analysis",
                     20,
                     CardKind.Task,
-                    "Analyse the task, its risks and the implementation options.",
+                    "Analyse the task, its risks and the implementation options and record them in analysis.md. When the analysis is done, re-score app-point and complete with what you learned.",
                     "description",
                     "primary",
                     [
@@ -84,7 +91,7 @@ internal static class BuiltInProjectTemplate
                     "Implementation",
                     30,
                     CardKind.Task,
-                    "Implement the task and record the files you actually changed.",
+                    "Implement the task and record the files you actually changed. After the change, re-score complete, and re-score app-point when the work altered the technical debt.",
                     "code",
                     "warning",
                     [
@@ -93,11 +100,12 @@ internal static class BuiltInProjectTemplate
                             "The outcome of the implementation and its verification.",
                             MissingArtifactPolicy.Warn)
                     ]),
-                Stage("review", "Review", 40, CardKind.Task, "Check the result, the tests and any deviation from the declared scope.", "check-circle", "info"),
-                Stage("done", "Done", 50, CardKind.Task, "Record the outcome of this task.", "done-all", "success")
+                Stage("review", "Review", 40, CardKind.Task, "Check the result, the tests and any deviation from the declared scope. Re-score complete with what is left to do.", "check-circle", "info"),
+                Stage("done", "Done", 50, CardKind.Task, "Record the outcome of this task and re-score complete to the top of its range before closing the card.", "done-all", "success")
             ],
             1,
-            "An atomic unit of work an agent carries out within a single stage.",
+            "An atomic unit of work an agent carries out within a single stage: one change, one verification. "
+            + "Its complete score is recalculated after each run, so the board shows what is actually done.",
             "check-circle",
             "tertiary");
 

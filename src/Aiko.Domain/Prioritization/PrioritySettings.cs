@@ -57,8 +57,63 @@ public sealed record PrioritySettings(
     /// it is the policy a project starts from when nothing is configured, and a settings file - global or
     /// project - replaces it by stating its own. The descriptions are what an agent reads to decide which
     /// step a card belongs to, so they say what the step means in work rather than in numbers.
+    /// <para>
+    /// No criteria on purpose. A project that never opted into scoring keeps the priority a person types,
+    /// and the standard criteria below belong to the default template, which states them explicitly - so an
+    /// existing project is never quietly handed a scoring model by an upgrade.
+    /// </para>
     /// </remarks>
     public static PrioritySettings SafeDefault { get; } = new(PriorityWeights.Default, [], DefaultGrid);
+
+    /// <summary>
+    /// The criteria the built-in default template scores cards by: two statements of importance and one of
+    /// readiness, each on a 0..10 scale.
+    /// </summary>
+    /// <remarks>
+    /// They answer the three questions the board is ranked by. <c>app-point</c> is what the work means to
+    /// the product itself - correctness, architecture, the cost of not doing it; <c>user-point</c> is what
+    /// it means to the people who use the product; <c>complete</c> is how much of the promised outcome
+    /// already exists. The first two the agent judges once, from the requirements and the scope; the third
+    /// is re-scored after every piece of work, which is what keeps the board honest about what is done.
+    /// </remarks>
+    public static IReadOnlyList<PriorityCriterion> StandardCriteria { get; } =
+    [
+        new(
+            "app-point",
+            "App point",
+            "How much the product itself needs this work.",
+            0.35m,
+            0m,
+            10m,
+            "Judge what this card means to the product itself: correctness, architecture, the cost of not "
+            + "doing it. Score from the requirements and the declared scope, and raise the score when the "
+            + "work explains or removes technical debt."),
+        new(
+            "user-point",
+            "User point",
+            "How much the people using the product need this work.",
+            0.35m,
+            0m,
+            10m,
+            "Judge who feels this card and how much: a visible capability, a blocked workflow or a broken "
+            + "result scores high; an internal tidy-up nobody sees scores low."),
+        new(
+            "complete",
+            "Complete",
+            "How ready the card is: how much of the promised outcome already exists.",
+            0.30m,
+            0m,
+            10m,
+            "How much of the promised outcome exists right now. Set it when the card is estimated, and "
+            + "recalculate it after every agent's change so the value describes the card as it is after that "
+            + "work, not as it was before. A card at its last stage tends toward the top of the range.")
+    ];
+
+    /// <summary>
+    /// The priority model the built-in default template hands to a new project: the standard criteria over
+    /// the standard grid.
+    /// </summary>
+    public static PrioritySettings Standard { get; } = new(PriorityWeights.Default, StandardCriteria, DefaultGrid);
 
     /// <summary>The configured size grid, or an empty one when these settings predate sizes.</summary>
     public IReadOnlyList<SizeDefinition> Grid => Sizes ?? [];

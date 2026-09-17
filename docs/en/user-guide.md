@@ -59,6 +59,14 @@ A card's own score is the weighted average of its normalized criterion values, o
 the project defines no criteria; the size coefficient multiplies either. A task then blends that with the
 highest parent value using the project's weights (ТЗ §10).
 
+A project created from the default template starts with three criteria: `app-point` (how much the product
+itself needs the work - correctness, architecture, the cost of not doing it; weight 0.35), `user-point` (how
+much the people using the product do; 0.35) and `complete` (how ready the card is; 0.30). Each is scored on
+a 0..10 range and carries its own instruction for the agent. `complete` is the one that moves: every stage
+of the default pipelines, and `/aiko-run`, require the agent to re-score it after each change, so the board
+always says what the card actually does now. A project that starts from a template without criteria keeps
+the plain priority a person types.
+
 The card page is laid out in two columns: on the left the stage's scope - the editable stage instruction
 (which belongs to the project's workflow), the card's editable requirements and declared scope, the declared
 and actual files and the acceptance criteria - above one block of tabs: the completed outcomes, the code

@@ -37,6 +37,10 @@ rate limit) hands off to another agent without losing history.
   section and in the backlog; every status column carries its own icon and colour too. The `backlog`
   column is standard and cannot be removed, and a dedicated **Backlog** screen gathers every card that
   has not been taken into work yet
+- **A default template that is already worked out** - a new project starts from story and task pipelines in
+  which every status carries an icon, a colour and an instruction saying what the agent does there, the
+  card types come with their descriptions, and cards are scored by three criteria - `app-point`,
+  `user-point` and `complete` - whose readiness score the agent re-calculates after every change
 - **Cards as folders** - every card is a directory with a `card.json` (optimistic revisions)
   and Markdown artifacts; the whole `.aiko` tree is readable, diffable and Git-friendly
 - **Readable project addresses** - a project gets a short id derived from its folder name (Cyrillic is

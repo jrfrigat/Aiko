@@ -59,6 +59,9 @@ public sealed record ProjectTemplate(
     /// <summary>The template every installation has, and the one an init without a choice uses.</summary>
     public const string DefaultId = "default";
 
-    /// <summary>The version the built-in default template is written with.</summary>
-    public const int DefaultVersion = 1;
+    /// <summary>
+    /// The version the built-in default template is written with. Bumped whenever its content changes, so a
+    /// project's manifest says which revision of the defaults it was created from.
+    /// </summary>
+    public const int DefaultVersion = 2;
 }

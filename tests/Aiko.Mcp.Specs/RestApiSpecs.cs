@@ -190,9 +190,13 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
         Assert.Equal(HttpStatusCode.OK, before.StatusCode);
         var original = await before.Content.ReadFromJsonAsync<JsonElement>();
         var version = original.GetProperty("version").GetInt32();
-        // The built-in template states no settings at all - the installation defaults fill them, and an init
-        // copies the result - but it does ship its pipelines.
-        Assert.Equal(JsonValueKind.Null, original.GetProperty("settings").ValueKind);
+        // The built-in template states its settings, not only its pipelines: a new project starts with the
+        // standard scoring criteria and the size grid, not with an empty formula.
+        var criteria = original.GetProperty("settings").GetProperty("priority").GetProperty("criteria");
+        Assert.Equal(3, criteria.GetArrayLength());
+        Assert.Equal("app-point", criteria[0].GetProperty("id").GetString());
+        Assert.Equal("user-point", criteria[1].GetProperty("id").GetString());
+        Assert.Equal("complete", criteria[2].GetProperty("id").GetString());
         Assert.Equal(2, original.GetProperty("workflows").GetArrayLength());
 
         // Settings and pipelines are written as two slices of the same document, so neither can clobber the

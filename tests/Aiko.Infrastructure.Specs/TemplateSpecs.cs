@@ -59,6 +59,15 @@ public sealed class TemplateSpecs
             Assert.Equal(
                 ProjectTemplate.DefaultVersion,
                 manifest.RootElement.GetProperty("templateVersion").GetInt32());
+
+            // ...and the scoring model is the template's, not an empty formula: the project owns a copy of
+            // the standard criteria and re-scores the readiness one as work lands.
+            using var settings = JsonDocument.Parse(
+                await File.ReadAllTextAsync(Path.Combine(stitchRoot, "settings.json")));
+            var criteria = settings.RootElement.GetProperty("priority").GetProperty("criteria");
+            Assert.Equal(
+                ["app-point", "user-point", "complete"],
+                criteria.EnumerateArray().Select(item => item.GetProperty("id").GetString()!).ToArray());
         }
         finally
         {
