@@ -258,6 +258,7 @@
   <data name="AiInstructionHint" xml:space="preserve"><value>На что агенту смотреть, чтобы оценить этот критерий</value></data>
   <data name="CharactersCount" xml:space="preserve"><value>Символов: {0}</value></data>
   <data name="TokensEstimate" xml:space="preserve"><value>Токенов ~{0}</value></data>
+  <data name="AssignedTo" xml:space="preserve"><value>исполнитель: {0}</value></data>
   <data name="ScopeTitle" xml:space="preserve"><value>Scope и требования</value></data>
   <data name="FilesDeclared" xml:space="preserve"><value>Объявлено</value></data>
   <data name="FilesActual" xml:space="preserve"><value>Реально изменено</value></data>

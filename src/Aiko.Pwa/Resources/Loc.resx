@@ -258,6 +258,7 @@
   <data name="AiInstructionHint" xml:space="preserve"><value>What the agent should look at to score this criterion</value></data>
   <data name="CharactersCount" xml:space="preserve"><value>Characters: {0}</value></data>
   <data name="TokensEstimate" xml:space="preserve"><value>Tokens ~{0}</value></data>
+  <data name="AssignedTo" xml:space="preserve"><value>assigned to {0}</value></data>
   <data name="ScopeTitle" xml:space="preserve"><value>Scope &amp; requirements</value></data>
   <data name="FilesDeclared" xml:space="preserve"><value>Declared</value></data>
   <data name="FilesActual" xml:space="preserve"><value>Actually changed</value></data>
