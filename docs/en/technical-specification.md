@@ -178,42 +178,46 @@ By default the installer adds `/.aiko/` to `.gitignore`. The user can choose ano
   runtime/                 # always local, never committed
 ```
 
-The presence of a specific Markdown file is defined by stage requirements, not by a fixed set.
+The presence of a specific Markdown file is defined by stage requirements, not by a fixed set: `aiko init`
+creates `workflows/`, `projections/`, `stories/`, `tasks/`, `memory/` and `runtime/`, while a card's
+directory (`tasks/<TASK-ID>/` with `card.json` and its artifacts) appears with the first card, and
+`handoffs/` with the first hand-off of a stage to another agent.
 
 ### 7.3 Global SQLite
 
 Recommended Windows path: `%LOCALAPPDATA%/Aiko/aiko.db`. On Linux/macOS the standard platform
 user-data directory is used.
 
-Main tables:
+Main tables of the implemented schema (`AikoDatabase`):
 
-- `Projects`;
-- `Cards`;
-- `Relations`;
-- `CardSearch`;
-- `Workflows` and `Stages`;
-- `StageExecutions`;
-- `AgentAttempts`;
-- `AgentInstallations`;
-- `CardLeases`;
-- `Workspaces`;
-- `Events` and `Logs`;
-- `BrowserSessions` and `Permissions`;
-- `MemoryEntries` and `MemoryEdges`;
-- `SchemaMigrations`.
+- `schema_migrations` - applied schema versions;
+- `projects` - the catalog of registered projects;
+- `cards` - the card projection;
+- `relations` - the relation projection;
+- `executions` - stage runs, with their agent attempts, as one document;
+- `events` - the event journal behind SSE (watermark and replay);
+- `memory_fts` - the FTS5 memory index.
 
-SQLite uses WAL, transactions, foreign keys and indexes over Project, Card, Relation
-type/source/target, execution state and timestamps. FTS is used for full-text search. The graph is
-traversed with recursive CTEs.
+Workflows, Kanban projections and card content live in the `.aiko` files; SQLite holds only the index and
+the runtime state. There are no separate tables for `Workflows`/`Stages`, `AgentInstallations`,
+`CardLeases`, `Workspaces`, `Logs`, `BrowserSessions`, `Permissions`, `MemoryEntries`/`MemoryEdges` or
+`CardSearch`: leases and agent installations are not stored, and full-text search goes through
+`memory_fts`. The per-section status is in §29.
+
+SQLite uses WAL, transactions, foreign keys (projections cascade when a project is removed) and indexes
+over Project, Card and timestamps. FTS is used for memory full-text search. The relation graph is walked
+in memory over the `relations` projection, not with a recursive CTE.
 
 ### 7.4 Synchronization
 
 - The daemon is the only regular writer of structured data.
 - `card.json` carries a `revision`.
 - Writes go through a temporary file and atomic replace.
-- FileSystemWatcher is a signal; the final state is always re-read.
-- Manual JSON editing passes schema validation and optimistic reconciliation.
-- The SQLite projection is rebuilt from `.aiko` by the repair/reindex command.
+- The SQLite projection is rebuilt from `.aiko` by `aiko reindex` (or
+  `POST /api/v1/projects/{projectId}/reindex`).
+- Reacting to external JSON edits immediately (FileSystemWatcher as a signal plus optimistic
+  reconciliation) is not implemented: the projection is refreshed by `reindex`. That is post-MVP
+  (see §29).
 
 ## 8. Card model
 
@@ -652,3 +656,37 @@ Main groups:
 The discussion, alternatives and answers are kept in
 [requirements-discussion.md](requirements-discussion.md). On any discrepancy this document is the
 current normative specification, and the journal explains where the decision came from.
+
+## 29. Implementation status
+
+Sections 1-28 above stay normative: they are requirements, not a report. The table below says which of
+them are verifiable in the code of the current version and which are still a plan, so the document is not
+read as a description of a finished product where it is not one.
+
+| § | Section | Status |
+| :-- | :-- | :-- |
+| 1-6 | Purpose, goals, scope, terms, context, components | Implemented |
+| 7 | Storage | Implemented: `.aiko` files plus the SQLite index and `reindex`. FileSystemWatcher and reconciliation are post-MVP |
+| 8 | Card model | Implemented |
+| 9 | Relation graph | Implemented inside a project; cross-project relations are out of scope (see §3) |
+| 10 | Priority | Implemented, including recursion through parent stories |
+| 11 | Workflows and internal skills | Workflow and its editor are implemented; the base `aiko-*` skills are written by the adapters; the wider skill catalogue is in progress |
+| 12 | Execution and handoff | Implemented; workspace/diff and logs inside the handoff document are partial |
+| 13 | Concurrency and workspaces | Implemented: run limit plus per-card and per-project locks. `WorkspaceMode.Worktree` is declared but not executed - only `Shared` runs |
+| 14 | ScopeFiles | Implemented, including the out-of-scope report |
+| 15 | Agents and adapters | Implemented: Claude Code, Codex, Cursor, ZCode |
+| 16 | MCP | Implemented: project-scoped and daemon-level endpoints, REST parity on stage validation |
+| 17 | REST, SSE and the local UI | Implemented; SSE with watermark, replay and project checking |
+| 18 | Kanban projections | Implemented (Tasks / Stories / Combined) |
+| 19 | Memory | Implemented on FTS5 |
+| 20 | Git | Commit policies implemented; push is post-MVP |
+| 21 | Security | Implemented: loopback binding, access token, browser pairing, `Host`/`Origin` checks |
+| 22 | Installation | Implemented: `install.ps1`, user-scope skills and MCP configuration, binary update and removal. The interactive TUI installer and autostart are post-MVP |
+| 23 | Reliability and audit | Partial: event journal, replay and health exist; log rotation does not |
+| 24 | Configuration | Implemented: global settings as defaults, project overrides, the effective source in the response |
+| 25-27 | MVP, acceptance criteria, assumptions | Met, except for what is marked post-MVP above |
+| 28 | Requirements history | - |
+
+The comparison was made against the code and the tests of the current version: `dotnet test Aiko.slnx`
+(the number of checks is in the README).
+

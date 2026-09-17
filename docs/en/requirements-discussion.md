@@ -742,3 +742,21 @@ commands and plugin formats.
   others.
 - A partial failure is shown per adapter and must not mask the successful installation of the
   rest.
+
+### Product language and localization (decided)
+
+- **UI text lives in resources.** The neutral `src/Aiko.Pwa/Resources/Loc.resx` is English and the
+  `Loc.ru.resx` satellite is Russian. The language is chosen from the browser's preferences at startup
+  (see `Program.cs`, `ApplyBrowserLanguageAsync`) rather than pinned at build time; an untranslated
+  language falls through to the neutral (English) strings. Adding a language is a new
+  `Loc.<culture>.resx` plus `SatelliteResourceLanguages`.
+- Strings and documentation are guarded by tests: `Aiko.Pwa.Specs/LocalizationSpecs` requires every
+  translated key to exist in the neutral resources and the neutral ones to contain no Cyrillic.
+- **Documentation is kept in two versions** (`docs/en`, `docs/ru`), and so is the README (`README.md`,
+  `README.ru.md`).
+- **Data from the previous product name (`StitchFlow`) is not migrated automatically.** The project
+  directory is `.aiko` and the database is `%LOCALAPPDATA%/Aiko/aiko.db`. Compatibility is implemented
+  for agent configurations only: the adapters recognise and replace legacy entries from the old name.
+  Users move project data themselves (rename the directory, or run `aiko init` again on the same path
+  and let `aiko reindex` rebuild the projections).
+
