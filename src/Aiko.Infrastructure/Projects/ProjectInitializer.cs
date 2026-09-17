@@ -302,26 +302,38 @@ public sealed class ProjectInitializer(
             return;
         }
 
-        var ignoreEntry = policy == ProjectGitPolicy.LocalOnly
-            ? $"/{dataDirectory}/"
-            : $"/{dataDirectory}/runtime/";
+        // The agent MCP configurations carry the daemon's access token, so they are secrets by definition
+        // and never belong in a commit - whatever the policy says about the rest of the project.
+        string[] entries =
+        [
+            policy == ProjectGitPolicy.LocalOnly
+                ? $"/{dataDirectory}/"
+                : $"/{dataDirectory}/runtime/",
+            "/.mcp.json",
+            "/.cursor/mcp.json",
+            "/.zcode/config.json"
+        ];
+
         var gitIgnorePath = Path.Combine(rootPath, ".gitignore");
         var existingText = File.Exists(gitIgnorePath)
             ? await File.ReadAllTextAsync(gitIgnorePath, cancellationToken)
             : string.Empty;
-        var existingLines = existingText.Split(
-            ['\r', '\n'],
-            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var existingLines = existingText
+            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToHashSet(StringComparer.Ordinal);
 
-        if (existingLines.Contains(ignoreEntry, StringComparer.Ordinal))
+        var missing = entries.Where(entry => !existingLines.Contains(entry)).ToArray();
+        if (missing.Length == 0)
         {
             return;
         }
 
-        var separator = existingText.Length > 0 && !existingText.EndsWith('\n') ? Environment.NewLine : string.Empty;
+        var separator = existingText.Length > 0 && !existingText.EndsWith('\n')
+            ? Environment.NewLine
+            : string.Empty;
         await File.AppendAllTextAsync(
             gitIgnorePath,
-            $"{separator}{ignoreEntry}{Environment.NewLine}",
+            $"{separator}{string.Join(Environment.NewLine, missing)}{Environment.NewLine}",
             cancellationToken);
     }
 

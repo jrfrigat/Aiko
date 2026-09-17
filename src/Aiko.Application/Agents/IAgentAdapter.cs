@@ -33,10 +33,15 @@ public interface IAgentAdapter
     /// </summary>
     /// <param name="projectRoot">Full path to the project root.</param>
     /// <param name="projectMcpEndpoint">Absolute loopback URL of the project MCP server.</param>
+    /// <param name="accessToken">
+    /// The daemon's access token. The MCP endpoint requires it, so it belongs in the configuration the
+    /// adapter writes; null only when there is no token (an unprotected daemon).
+    /// </param>
     /// <param name="cancellationToken">Cancellation token for the operation.</param>
     ValueTask<InstallationPlan> PlanProjectInstallAsync(
         string projectRoot,
         string projectMcpEndpoint,
+        string? accessToken,
         CancellationToken cancellationToken);
 
     /// <summary>
@@ -46,6 +51,7 @@ public interface IAgentAdapter
     ValueTask<AgentInstallationResult> ApplyProjectInstallAsync(
         string projectRoot,
         string projectMcpEndpoint,
+        string? accessToken,
         CancellationToken cancellationToken);
 
     /// <summary>

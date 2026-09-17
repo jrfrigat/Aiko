@@ -28,12 +28,14 @@ public sealed class CursorAgentAdapter : BuiltInAgentAdapter
     /// <inheritdoc />
     private protected override IReadOnlyList<AgentFileDefinition> CreateFiles(
         string projectRoot,
-        string projectMcpEndpoint) =>
+        string projectMcpEndpoint,
+        string? accessToken) =>
     [
         AgentFileDefinition.JsonMcp(
             Path.Combine(projectRoot, ".cursor", "mcp.json"),
             "Merge the project-scoped Aiko HTTP MCP server.",
-            projectMcpEndpoint),
+            projectMcpEndpoint,
+            accessToken),
         new(
             Path.Combine(projectRoot, ".cursor", "rules", "aiko.mdc"),
             "Install an always-applied Aiko project rule.",

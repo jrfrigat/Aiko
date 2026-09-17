@@ -37,6 +37,25 @@ aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<projectId>
 Tool descriptions instruct agents to fetch the project context first; the installed skills and
 rules reinforce this per agent.
 
+## Authentication
+
+The daemon authenticates its MCP endpoint with the local access token, so **every generated MCP entry
+carries it** - without it the daemon answers `401` and the agent simply never sees Aiko:
+
+- clients whose configuration holds headers (Claude Code, Cursor, ZCode) get
+  `"headers": { "Authorization": "Bearer <token>" }`, written in the same shape the client's own CLI
+  produces (Claude Code also gets its `"type": "http"` tag);
+- Codex cannot hold a literal header, so its entry names the environment variable its own CLI writes:
+  `bearer_token_env_var = "AIKO_TOKEN"`. Export `AIKO_TOKEN` with the value of `aiko token show` in the
+  shell you start Codex from.
+
+Because the token lives in those files, they must not be committed. Project initialization adds them to
+`.gitignore` (`/.mcp.json`, `/.cursor/mcp.json`, `/.zcode/config.json`, plus the `.aiko` entry the git
+policy already covers); for a project initialized earlier, add the lines by hand.
+
+`aiko doctor` reports a configuration whose endpoint is right but which carries no credential, and
+`aiko repair --fix` rewrites it.
+
 ## Skills and commands
 
 Project-scoped skills/commands (installed with `aiko agent install --project <id>`):

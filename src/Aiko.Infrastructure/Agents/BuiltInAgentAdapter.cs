@@ -43,6 +43,7 @@ public abstract class BuiltInAgentAdapter : IAgentAdapter
     public ValueTask<InstallationPlan> PlanProjectInstallAsync(
         string projectRoot,
         string projectMcpEndpoint,
+        string? accessToken,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -57,7 +58,7 @@ public abstract class BuiltInAgentAdapter : IAgentAdapter
 
         return ValueTask.FromResult(new InstallationPlan(
             Id,
-            CreateFiles(Path.GetFullPath(projectRoot), projectMcpEndpoint)
+            CreateFiles(Path.GetFullPath(projectRoot), projectMcpEndpoint, accessToken)
                 .Select(file => new InstallationChange(file.Path, file.Description))
                 .ToArray(),
             CreateWarnings()));
@@ -67,13 +68,14 @@ public abstract class BuiltInAgentAdapter : IAgentAdapter
     public async ValueTask<AgentInstallationResult> ApplyProjectInstallAsync(
         string projectRoot,
         string projectMcpEndpoint,
+        string? accessToken,
         CancellationToken cancellationToken)
     {
-        await PlanProjectInstallAsync(projectRoot, projectMcpEndpoint, cancellationToken);
+        await PlanProjectInstallAsync(projectRoot, projectMcpEndpoint, accessToken, cancellationToken);
         var fullRoot = Path.GetFullPath(projectRoot);
         var files = new List<InstallationFileResult>();
 
-        foreach (var definition in CreateFiles(fullRoot, projectMcpEndpoint))
+        foreach (var definition in CreateFiles(fullRoot, projectMcpEndpoint, accessToken))
         {
             cancellationToken.ThrowIfCancellationRequested();
             try
@@ -106,7 +108,7 @@ public abstract class BuiltInAgentAdapter : IAgentAdapter
         cancellationToken.ThrowIfCancellationRequested();
         ArgumentException.ThrowIfNullOrWhiteSpace(projectRoot);
         var fullRoot = Path.GetFullPath(projectRoot);
-        var files = CreateFiles(fullRoot, "http://127.0.0.1/mcp");
+        var files = CreateFiles(fullRoot, "http://127.0.0.1/mcp", null);
         return ValueTask.FromResult(new InstallationPlan(
             Id,
             files
@@ -128,7 +130,8 @@ public abstract class BuiltInAgentAdapter : IAgentAdapter
         var files = new List<InstallationFileResult>();
         foreach (var definition in CreateFiles(
                      Path.GetFullPath(projectRoot),
-                     "http://127.0.0.1/mcp"))
+                     "http://127.0.0.1/mcp",
+                     null))
         {
             cancellationToken.ThrowIfCancellationRequested();
             try
@@ -257,9 +260,11 @@ public abstract class BuiltInAgentAdapter : IAgentAdapter
     /// </summary>
     /// <param name="projectRoot">Full path to the project root.</param>
     /// <param name="projectMcpEndpoint">Absolute loopback URL of the project MCP server.</param>
+    /// <param name="accessToken">The daemon's access token, written into the MCP entry so the client can authenticate.</param>
     private protected abstract IReadOnlyList<AgentFileDefinition> CreateFiles(
         string projectRoot,
-        string projectMcpEndpoint);
+        string projectMcpEndpoint,
+        string? accessToken);
 
     /// <summary>
     /// Returns descriptions of the user-scoped (global) configuration files the adapter

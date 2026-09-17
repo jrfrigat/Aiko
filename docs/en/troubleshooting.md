@@ -49,6 +49,8 @@ The daemon rejects non-loopback hosts and remote browser origins. Keep everythin
 2. Run `aiko agent install --project <projectId>` (and `aiko agent install --scope user`).
 3. Restart the agent so it loads the new MCP server.
 4. Check the endpoint: `GET http://127.0.0.1:<port>/health` should return `healthy`.
+5. If the agent still gets `401`, run `aiko doctor` and then `aiko repair --fix`: a configuration written
+   before the access token existed carries no credential, so the daemon refuses it.
 
 ## The agent stopped seeing Aiko after the port changed
 

@@ -32,7 +32,8 @@ public sealed class ClaudeCodeAgentAdapter : BuiltInAgentAdapter
     /// <inheritdoc />
     private protected override IReadOnlyList<AgentFileDefinition> CreateFiles(
         string projectRoot,
-        string projectMcpEndpoint)
+        string projectMcpEndpoint,
+        string? accessToken)
     {
         AgentFileDefinition Command(string name, string content) =>
             new(
@@ -46,7 +47,11 @@ public sealed class ClaudeCodeAgentAdapter : BuiltInAgentAdapter
             AgentFileDefinition.JsonMcp(
                 Path.Combine(projectRoot, ".mcp.json"),
                 "Merge the project-scoped Aiko HTTP MCP server.",
-                projectMcpEndpoint),
+                projectMcpEndpoint,
+                accessToken,
+                // Claude Code tags its own streamable HTTP servers with "http"; matching its output keeps
+                // the entry identical to what `claude mcp add` writes.
+                mcpTransport: "http"),
             new(
                 Path.Combine(projectRoot, ".claude", "skills", "aiko", "SKILL.md"),
                 "Install the Aiko workflow skill.",

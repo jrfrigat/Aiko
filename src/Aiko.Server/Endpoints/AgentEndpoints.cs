@@ -1,6 +1,7 @@
 using Aiko.Application.Agents;
 using Aiko.Application.Contracts;
 using Aiko.Server.Contracts;
+using Aiko.Server.Security;
 
 namespace Aiko.Server.Endpoints;
 
@@ -52,6 +53,7 @@ internal static class AgentEndpoints
                 PlanAgentInstallationRequest request,
                 HttpRequest httpRequest,
                 IUnifiedAgentInstaller installer,
+                DaemonAccessToken accessToken,
                 CancellationToken cancellationToken) =>
             {
                 var endpoint =
@@ -59,6 +61,7 @@ internal static class AgentEndpoints
                 return TypedResults.Ok(await installer.PlanAsync(
                     projectId,
                     endpoint,
+                    accessToken.Value,
                     request.SelectedAdapterIds,
                     cancellationToken));
             });
@@ -69,6 +72,7 @@ internal static class AgentEndpoints
                 PlanAgentInstallationRequest request,
                 HttpRequest httpRequest,
                 IUnifiedAgentInstaller installer,
+                DaemonAccessToken accessToken,
                 CancellationToken cancellationToken) =>
             {
                 var endpoint =
@@ -76,6 +80,7 @@ internal static class AgentEndpoints
                 return TypedResults.Ok(await installer.ApplyAsync(
                     projectId,
                     endpoint,
+                    accessToken.Value,
                     request.SelectedAdapterIds,
                     cancellationToken));
             });

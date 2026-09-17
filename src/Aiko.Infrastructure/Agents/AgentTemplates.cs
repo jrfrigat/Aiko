@@ -129,6 +129,13 @@ internal static class AgentTemplates
         """;
 
     /// <summary>
+    /// Name of the environment variable a client can read the daemon's access token from, for clients
+    /// whose MCP configuration cannot hold a literal header (Codex reads exactly this name; the value is
+    /// the shape its own <c>codex mcp add --bearer-token-env-var</c> writes).
+    /// </summary>
+    public const string AccessTokenEnvironmentVariable = "AIKO_TOKEN";
+
+    /// <summary>
     /// Global skill installed at user scope: coordinates Aiko without a project.
     /// </summary>
     public const string GlobalSkill =

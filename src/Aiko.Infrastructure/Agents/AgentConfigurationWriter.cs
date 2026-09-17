@@ -25,8 +25,10 @@ internal static class AgentConfigurationWriter
             : string.Empty;
         var desired = definition.Kind switch
         {
-            AgentFileKind.JsonMcp => MergeMcpJson(current, definition.Content, nested: false, definition.ServerKey),
-            AgentFileKind.NestedJsonMcp => MergeMcpJson(current, definition.Content, nested: true, definition.ServerKey),
+            AgentFileKind.JsonMcp => MergeMcpJson(
+                current, definition, nested: false, definition.ServerKey),
+            AgentFileKind.NestedJsonMcp => MergeMcpJson(
+                current, definition, nested: true, definition.ServerKey),
             AgentFileKind.ManagedBlock => UpsertManagedBlock(
                 current,
                 definition.Content,
@@ -110,8 +112,22 @@ internal static class AgentConfigurationWriter
             null);
     }
 
-    private static string MergeMcpJson(string current, string endpoint, bool nested, string serverKey)
+    /// <summary>
+    /// Merges the Aiko entry into an MCP servers object, preserving everything else in the file.
+    /// </summary>
+    /// <remarks>
+    /// The entry carries the daemon's access token: the MCP endpoint requires it, and without it the
+    /// client gets 401 and never sees Aiko. Clients whose configuration cannot hold a literal header get
+    /// the name of the environment variable to read instead - that is the shape the client's own CLI
+    /// writes, so Aiko stays inside what the client supports.
+    /// </remarks>
+    private static string MergeMcpJson(
+        string current,
+        AgentFileDefinition definition,
+        bool nested,
+        string serverKey)
     {
+        var endpoint = definition.Content;
         JsonObject root;
         if (string.IsNullOrWhiteSpace(current))
         {
@@ -151,10 +167,26 @@ internal static class AgentConfigurationWriter
 
         var servers = parent[serversProperty] as JsonObject ?? new JsonObject();
         parent[serversProperty] = servers;
-        servers[serverKey] = new JsonObject
+        var server = new JsonObject
         {
             ["url"] = endpoint
         };
+        if (!string.IsNullOrWhiteSpace(definition.McpTransport))
+        {
+            // Clients that tag their own transport expect it - Claude Code writes "http" itself - and
+            // staying byte-identical to the client's own output is what keeps this maintainable.
+            server["type"] = definition.McpTransport;
+        }
+
+        if (!string.IsNullOrWhiteSpace(definition.AccessToken))
+        {
+            server["headers"] = new JsonObject
+            {
+                ["Authorization"] = $"Bearer {definition.AccessToken}"
+            };
+        }
+
+        servers[serverKey] = server;
 
         return root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) +
             Environment.NewLine;

@@ -32,6 +32,7 @@ builder.Services.AddHttpContextAccessor();
 var dataPaths = AikoDataPaths.FromEnvironment();
 builder.Services.AddSingleton(dataPaths);
 builder.Services.AddSingleton<AccessTokenStore>();
+builder.Services.AddSingleton<DaemonAccessToken>();
 builder.Services.AddSingleton<PairingService>();
 builder.Services.AddSingleton<DaemonEndpointConfiguration>();
 builder.Services.AddSingleton<AikoDatabase>();
@@ -86,6 +87,9 @@ var insecure = string.Equals(
     StringComparison.OrdinalIgnoreCase);
 var accessToken = builder.Configuration["AIKO_TOKEN"]
     ?? await app.Services.GetRequiredService<AccessTokenStore>().GetOrCreateAsync();
+// Agent configurations have to carry the token the middleware actually checks, and AIKO_TOKEN can differ
+// from what the token file holds, so the resolved value is handed to the writers.
+app.Services.GetRequiredService<DaemonAccessToken>().Value = accessToken;
 var pairingService = app.Services.GetRequiredService<PairingService>();
 if (builder.Configuration["AIKO_PAIR_CODE"] is { } seededPairingCode)
 {

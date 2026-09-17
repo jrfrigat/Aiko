@@ -49,6 +49,8 @@ aiko agent install --project <projectId>
 2. `aiko agent install --project <projectId>` (и `aiko agent install --scope user`).
 3. Перезапустите агента, чтобы он загрузил новый MCP-сервер.
 4. Проверьте эндпоинт: `GET http://127.0.0.1:<port>/health` должен вернуть `healthy`.
+5. Если агент всё равно получает `401`, выполните `aiko doctor`, затем `aiko repair --fix`: конфигурация,
+   записанная до появления токена доступа, не несёт учётных данных, и демон её отклоняет.
 
 ## Агент перестал видеть Aiko после смены порта
 

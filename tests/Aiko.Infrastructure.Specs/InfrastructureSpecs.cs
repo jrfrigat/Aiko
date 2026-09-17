@@ -205,7 +205,8 @@ public class InfrastructureSpecs
                 context.Catalog,
                 new UnifiedAgentInstaller([], context.Catalog),
                 [],
-                new DaemonEndpointConfiguration(dataPaths));
+                new DaemonEndpointConfiguration(dataPaths),
+                new AccessTokenStore(dataPaths));
 
             var report = await doctor.InspectAsync(context.Project.Id, CancellationToken.None);
 
@@ -1335,6 +1336,93 @@ public class InfrastructureSpecs
 
 
     [Fact]
+    public async Task Agent_configuration_carries_the_access_token()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            var installer = new UnifiedAgentInstaller(
+                [new ClaudeCodeAgentAdapter(), new CodexAgentAdapter()],
+                context.Catalog);
+
+            var applied = await installer.ApplyAsync(
+                context.Project.Id,
+                $"http://127.0.0.1:18471/mcp/projects/{context.Project.Id}",
+                "test-token",
+                ["claude-code", "codex"],
+                CancellationToken.None);
+            Assert.All(applied.AdapterResults, result => Assert.True(result.Succeeded));
+
+            // The daemon authenticates /mcp with this header: a configuration without it answers 401, which
+            // is why the token belongs in the file the client reads.
+            var claude = await File.ReadAllTextAsync(
+                Path.Combine(context.Project.RootPath, ".mcp.json"));
+            Assert.Contains("Bearer test-token", claude, StringComparison.Ordinal);
+            Assert.Contains("Authorization", claude, StringComparison.Ordinal);
+            // Claude Code tags its own streamable HTTP entries, so Aiko writes the same shape.
+            Assert.Contains("\"type\": \"http\"", claude, StringComparison.Ordinal);
+
+            // Codex cannot hold a literal header; it gets the variable name its own CLI writes.
+            var codex = await File.ReadAllTextAsync(
+                Path.Combine(context.Project.RootPath, ".codex", "config.toml"));
+            Assert.Contains("bearer_token_env_var = \"AIKO_TOKEN\"", codex, StringComparison.Ordinal);
+
+            Assert.True(WorkshopDoctor.HasEndpoint(claude));
+            Assert.True(WorkshopDoctor.HasCredential(claude));
+            Assert.True(WorkshopDoctor.HasCredential(codex));
+        });
+    }
+
+    [Fact]
+    public async Task Doctor_reports_a_configuration_that_cannot_authenticate()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "Aiko.Specs", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        await File.WriteAllTextAsync(Path.Combine(directory, "claude.cmd"), string.Empty);
+
+        var originalPath = Environment.GetEnvironmentVariable("PATH");
+        try
+        {
+            // A fake claude on PATH: the drift check only looks at adapters that are installed, and a
+            // machine running the tests may have none.
+            Environment.SetEnvironmentVariable("PATH", directory);
+            await WithInitializedProjectAsync(async context =>
+            {
+                var dataPaths = new AikoDataPaths(context.Database.DatabasePath);
+                // The daemon writes its own settings when it starts; here the production writer does it, so
+                // the file has exactly the shape the daemon reads back.
+                var configuration = new DaemonEndpointConfiguration(dataPaths);
+                var settings = await configuration.LoadOrCreateAsync(null, CancellationToken.None);
+
+                // An installation from before the token existed: the endpoint is right, nothing
+                // authenticates, so the daemon answers 401 and the agent never sees Aiko.
+                var mcp = Path.Combine(context.Project.RootPath, ".mcp.json");
+                await File.WriteAllTextAsync(
+                    mcp,
+                    $"{{\"mcpServers\":{{\"aiko\":{{\"url\":\"http://127.0.0.1:{settings.Port}/mcp/projects/{context.Project.Id}\"}}}}}}");
+
+                var doctor = new WorkshopDoctor(
+                    dataPaths,
+                    context.Catalog,
+                    new UnifiedAgentInstaller([new ClaudeCodeAgentAdapter()], context.Catalog),
+                    [new ClaudeCodeAgentAdapter()],
+                    configuration,
+                    new AccessTokenStore(dataPaths));
+
+                var report = await doctor.InspectAsync(context.Project.Id, CancellationToken.None);
+
+                var finding = Assert.Single(report.Findings, item => item.Area == "agent-config");
+                Assert.Contains("no access token", finding.Summary, StringComparison.Ordinal);
+                Assert.Equal(mcp, finding.Detail);
+            });
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("PATH", originalPath);
+            Directory.Delete(directory, true);
+        }
+    }
+
+    [Fact]
     public async Task Unified_installer_groups_selected_plans()
     {
         await WithInitializedProjectAsync(async context =>
@@ -1353,6 +1441,7 @@ public class InfrastructureSpecs
             var plan = await installer.PlanAsync(
                 context.Project.Id,
                 $"http://127.0.0.1:18471/mcp/projects/{context.Project.Id}",
+                "test-token",
                 ["codex", "zcode", "future-agent"],
                 CancellationToken.None);
             Assert.Equal(2, plan.AdapterPlans.Count);
@@ -1407,6 +1496,7 @@ public class InfrastructureSpecs
             var first = await installer.ApplyAsync(
                 context.Project.Id,
                 endpoint,
+                "test-token",
                 ["codex", "cursor", "zcode"],
                 CancellationToken.None);
             Assert.All(first.AdapterResults, result => Assert.True(result.Succeeded));
@@ -1414,6 +1504,7 @@ public class InfrastructureSpecs
             var second = await installer.ApplyAsync(
                 context.Project.Id,
                 endpoint,
+                "test-token",
                 ["codex", "cursor", "zcode"],
                 CancellationToken.None);
             Assert.All(
@@ -1478,6 +1569,7 @@ public class InfrastructureSpecs
             await installer.ApplyAsync(
                 context.Project.Id,
                 "http://127.0.0.1:18471/mcp/projects/test",
+                "test-token",
                 ["codex", "cursor"],
                 CancellationToken.None);
             var preview = await installer.PlanUninstallAsync(

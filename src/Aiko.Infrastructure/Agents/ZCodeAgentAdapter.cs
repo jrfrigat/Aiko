@@ -28,7 +28,8 @@ public sealed class ZCodeAgentAdapter : BuiltInAgentAdapter
     /// <inheritdoc />
     private protected override IReadOnlyList<AgentFileDefinition> CreateFiles(
         string projectRoot,
-        string projectMcpEndpoint)
+        string projectMcpEndpoint,
+        string? accessToken)
     {
         AgentFileDefinition Command(string name, string content) =>
             new(
@@ -42,7 +43,8 @@ public sealed class ZCodeAgentAdapter : BuiltInAgentAdapter
             AgentFileDefinition.NestedJsonMcp(
                 Path.Combine(projectRoot, ".zcode", "config.json"),
                 "Merge the native project-scoped Aiko HTTP MCP server.",
-                projectMcpEndpoint),
+                projectMcpEndpoint,
+                accessToken),
             new(
                 Path.Combine(projectRoot, ".zcode", "skills", "aiko", "SKILL.md"),
                 "Install the Aiko workflow skill.",

@@ -33,16 +33,14 @@ public sealed class CodexAgentAdapter : BuiltInAgentAdapter
     /// <inheritdoc />
     private protected override IReadOnlyList<AgentFileDefinition> CreateFiles(
         string projectRoot,
-        string projectMcpEndpoint) =>
+        string projectMcpEndpoint,
+        string? accessToken) =>
     [
         new(
             Path.Combine(projectRoot, ".codex", "config.toml"),
             "Merge mcp_servers.aiko with the project-scoped HTTP endpoint.",
             AgentFileKind.ManagedBlock,
-            $$"""
-            [mcp_servers.aiko]
-            url = "{{projectMcpEndpoint}}"
-            """),
+            BuildMcpBlock(projectMcpEndpoint, accessToken)),
         new(
             Path.Combine(projectRoot, ".agents", "skills", "aiko", "SKILL.md"),
             "Install the repository-scoped Aiko skill.",
@@ -58,8 +56,29 @@ public sealed class CodexAgentAdapter : BuiltInAgentAdapter
     /// <inheritdoc />
     protected override IReadOnlyList<string> CreateWarnings() =>
     [
-        "Project-scoped .codex configuration is ignored while the project is untrusted."
+        "Project-scoped .codex configuration is ignored while the project is untrusted.",
+        // Codex authenticates a streamable HTTP server from an environment variable, not from a literal
+        // header, so the token has to be present in the environment Codex runs in.
+        $"Codex reads the access token from the {AgentTemplates.AccessTokenEnvironmentVariable} environment variable."
     ];
+
+    /// <summary>
+    /// The TOML block Codex reads, in the exact shape <c>codex mcp add --url ... --bearer-token-env-var</c>
+    /// writes: an HTTP server entry plus the name of the environment variable holding the bearer token.
+    /// Codex has no way to keep a literal header, so an unprotected daemon (no token) leaves the plain
+    /// entry.
+    /// </summary>
+    private static string BuildMcpBlock(string projectMcpEndpoint, string? accessToken) =>
+        accessToken is null
+            ? $$"""
+              [mcp_servers.aiko]
+              url = "{{projectMcpEndpoint}}"
+              """
+            : $$"""
+              [mcp_servers.aiko]
+              url = "{{projectMcpEndpoint}}"
+              bearer_token_env_var = "{{AgentTemplates.AccessTokenEnvironmentVariable}}"
+              """;
 
     private protected override IReadOnlyList<AgentFileDefinition> CreateUserFiles() =>
     [

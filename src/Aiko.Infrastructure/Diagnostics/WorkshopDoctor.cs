@@ -1,5 +1,6 @@
 using Aiko.Application.Agents;
 using Aiko.Application.Contracts;
+using Aiko.Infrastructure.Settings;
 using Aiko.Infrastructure.Storage;
 
 namespace Aiko.Infrastructure.Diagnostics;
@@ -18,7 +19,8 @@ public sealed class WorkshopDoctor(
     IProjectCatalog projects,
     IUnifiedAgentInstaller agents,
     IEnumerable<IAgentAdapter> agentAdapters,
-    DaemonEndpointConfiguration endpoint) : IWorkshopDiagnostics
+    DaemonEndpointConfiguration endpoint,
+    AccessTokenStore tokens) : IWorkshopDiagnostics
 {
     /// <inheritdoc />
     public async ValueTask<WorkshopDiagnostics> InspectAsync(
@@ -163,6 +165,7 @@ public sealed class WorkshopDoctor(
         var plan = await agents.PlanAsync(
             project.Id,
             expectedEndpoint,
+            await tokens.GetOrCreateAsync(cancellationToken),
             installedAdapterIds,
             cancellationToken);
 
@@ -178,17 +181,28 @@ public sealed class WorkshopDoctor(
                 }
 
                 var content = await File.ReadAllTextAsync(change.Path, cancellationToken);
-                if (!IsStaleProjectEndpoint(content, expectedEndpoint))
+                if (IsStaleProjectEndpoint(content, expectedEndpoint))
                 {
+                    findings.Add(new DiagnosticFinding(
+                        "agent-config",
+                        DiagnosticSeverity.Warning,
+                        $"{project.Name}: {adapterPlan.AdapterId} points at a stale endpoint. " +
+                        "Run `aiko repair --fix`.",
+                        change.Path));
                     continue;
                 }
 
-                findings.Add(new DiagnosticFinding(
-                    "agent-config",
-                    DiagnosticSeverity.Warning,
-                    $"{project.Name}: {adapterPlan.AdapterId} points at a stale endpoint. " +
-                    "Run `aiko repair --fix`.",
-                    change.Path));
+                if (HasEndpoint(content) && !HasCredential(content))
+                {
+                    // The endpoint is right but nothing authenticates: the daemon answers 401 and the
+                    // agent never sees Aiko. This is what an installation predating the token looks like.
+                    findings.Add(new DiagnosticFinding(
+                        "agent-config",
+                        DiagnosticSeverity.Warning,
+                        $"{project.Name}: {adapterPlan.AdapterId} has no access token, so the agent gets " +
+                        "401 from the daemon. Run `aiko repair --fix`.",
+                        change.Path));
+                }
             }
         }
 
@@ -231,6 +245,22 @@ public sealed class WorkshopDoctor(
 
         return findings;
     }
+
+    /// <summary>
+    /// Whether a file carries an Aiko MCP endpoint at all. Files without one - skills, commands, rules -
+    /// are never reported as drift.
+    /// </summary>
+    public static bool HasEndpoint(string content) =>
+        content.Contains("/mcp/projects/", StringComparison.Ordinal);
+
+    /// <summary>
+    /// Whether a file carries the credential the daemon requires: an <c>Authorization</c> header, or the
+    /// name of the environment variable a client reads it from (Codex).
+    /// </summary>
+    public static bool HasCredential(string content) =>
+        content.Contains("Authorization", StringComparison.OrdinalIgnoreCase) ||
+        content.Contains("Bearer ", StringComparison.OrdinalIgnoreCase) ||
+        content.Contains("bearer_token_env_var", StringComparison.Ordinal);
 
     /// <summary>
     /// Whether a project-scope file embeds a project MCP endpoint that is not the current one. An

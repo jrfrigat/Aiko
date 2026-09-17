@@ -19,6 +19,11 @@ Aiko runs on your machine and is built to stay there. What that means in practic
   happen to have open cannot read your board.
 - Clients authenticate with an **access token**; a browser is paired once with a one-time code
   (`aiko ui`). `AIKO_INSECURE=1` disables authentication and is for local debugging only.
+- The MCP endpoint requires the same token, so `aiko agent install` writes it into the agent's MCP
+  configuration: Claude Code, Cursor and ZCode get an `Authorization: Bearer …` header, and Codex gets the
+  name of the `AIKO_TOKEN` environment variable it reads instead. **Those files are secrets.** Project
+  initialization adds them to `.gitignore`; never commit them, and rotate the token
+  (`%LOCALAPPDATA%\Aiko\access-token`) if one was committed.
 - Project data lives in `.aiko` inside your project; the daemon's own state lives in
   `%LOCALAPPDATA%\Aiko`. Nothing is uploaded anywhere, and unregistering a project never deletes files
   on disk.

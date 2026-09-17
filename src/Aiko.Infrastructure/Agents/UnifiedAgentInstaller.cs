@@ -79,6 +79,7 @@ public sealed class UnifiedAgentInstaller(
     public async ValueTask<UnifiedInstallationPlan> PlanAsync(
         string projectId,
         string projectMcpEndpoint,
+        string? accessToken,
         IReadOnlyList<string> selectedAdapterIds,
         CancellationToken cancellationToken)
     {
@@ -91,6 +92,7 @@ public sealed class UnifiedAgentInstaller(
             plans.Add(await adaptersById[adapterId].PlanProjectInstallAsync(
                 project.RootPath,
                 projectMcpEndpoint,
+                accessToken,
                 cancellationToken));
         }
 
@@ -105,6 +107,7 @@ public sealed class UnifiedAgentInstaller(
     public async ValueTask<UnifiedInstallationResult> ApplyAsync(
         string projectId,
         string projectMcpEndpoint,
+        string? accessToken,
         IReadOnlyList<string> selectedAdapterIds,
         CancellationToken cancellationToken)
     {
@@ -120,6 +123,7 @@ public sealed class UnifiedAgentInstaller(
                 results.Add(await adaptersById[adapterId].ApplyProjectInstallAsync(
                     project.RootPath,
                     projectMcpEndpoint,
+                    accessToken,
                     cancellationToken));
             }
             catch (Exception exception) when (exception is not OperationCanceledException)

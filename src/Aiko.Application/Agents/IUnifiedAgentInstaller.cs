@@ -34,11 +34,16 @@ public interface IUnifiedAgentInstaller
     /// </summary>
     /// <param name="projectId">Identifier of a registered project.</param>
     /// <param name="projectMcpEndpoint">Absolute loopback URL of the project MCP server.</param>
+    /// <param name="accessToken">
+    /// The daemon's access token, written into every generated MCP entry: the endpoint requires it, and
+    /// without it the agent gets 401.
+    /// </param>
     /// <param name="selectedAdapterIds">Adapter identifiers chosen by the user.</param>
     /// <param name="cancellationToken">Cancellation token for the operation.</param>
     ValueTask<UnifiedInstallationPlan> PlanAsync(
         string projectId,
         string projectMcpEndpoint,
+        string? accessToken,
         IReadOnlyList<string> selectedAdapterIds,
         CancellationToken cancellationToken);
 
@@ -48,6 +53,7 @@ public interface IUnifiedAgentInstaller
     ValueTask<UnifiedInstallationResult> ApplyAsync(
         string projectId,
         string projectMcpEndpoint,
+        string? accessToken,
         IReadOnlyList<string> selectedAdapterIds,
         CancellationToken cancellationToken);
 

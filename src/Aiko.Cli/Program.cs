@@ -357,7 +357,14 @@ static async Task<int> AgentInstallAsync(string[] args, bool uninstall)
     }
 
     var endpoint = $"http://127.0.0.1:{settings.Port}/mcp/projects/{projectId}";
-    var applied = await installer.ApplyAsync(projectId, endpoint, selected, CancellationToken.None);
+    // Without the token in the configuration the daemon answers 401 on /mcp and the agent never sees Aiko.
+    var accessToken = await new AccessTokenStore(dataPaths).GetOrCreateAsync();
+    var applied = await installer.ApplyAsync(
+        projectId,
+        endpoint,
+        accessToken,
+        selected,
+        CancellationToken.None);
     foreach (var item in applied.AdapterResults)
     {
         Console.WriteLine($"{item.AdapterId}: {(item.Succeeded ? "installed" : "failed")}");
@@ -440,6 +447,9 @@ static async Task<int> RepairAsync(string[] args)
     var reindexer = new ProjectReindexer(catalog, database);
     var installer = new UnifiedAgentInstaller(CreateAdapters(), catalog);
     var settings = await new DaemonEndpointConfiguration(dataPaths).TryReadAsync();
+    // Rewriting agent configurations is the point of a repair, so the token has to be at hand: the
+    // configurations carry it, and a repair that dropped it would leave agents at 401.
+    var accessToken = await new AccessTokenStore(dataPaths).GetOrCreateAsync();
 
     var registered = await catalog.ListAsync(CancellationToken.None);
     if (projectId is { Length: > 0 } requested)
@@ -481,6 +491,7 @@ static async Task<int> RepairAsync(string[] args)
         var applied = await installer.ApplyAsync(
             project.Id,
             endpoint,
+            accessToken,
             installedAdapters,
             CancellationToken.None);
         foreach (var item in applied.AdapterResults)
@@ -530,7 +541,8 @@ static async Task<WorkshopDiagnostics> InspectAsync(string? projectId)
         catalog,
         installer,
         CreateAdapters(),
-        new DaemonEndpointConfiguration(dataPaths));
+        new DaemonEndpointConfiguration(dataPaths),
+        new AccessTokenStore(dataPaths));
     return await diagnostics.InspectAsync(projectId, CancellationToken.None);
 }
 
