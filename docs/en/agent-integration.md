@@ -94,7 +94,7 @@ has no path yet, the table says so rather than pretending the sets are already e
 
 | Action | Agent skill | MCP tool | UI |
 | :-- | :-- | :-- | :-- |
-| Register a project from a chosen template | `/aiko-init` | `aiko_list_templates`, `aiko_init_project` | Dashboard - *Add project* (folder browser + template select) |
+| Register a project from a chosen template | `/aiko-init [name] [id]` | `aiko_list_templates`, `aiko_init_project` | Dashboard - *Add project* (folder browser + template select) |
 | List projects | `/aiko-list-projects` | `aiko_list_projects` | Dashboard - project list |
 | Open the board | `/aiko-ui` | `aiko_open_ui` | `aiko ui`, or the URL in the app bar |
 | Create a card of any type the project defines | `/aiko-create <type> <title>`, `/aiko-create-<type>` | `aiko_create_card`, `aiko_create_card_in_project` | Board - *Create card* |

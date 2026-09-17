@@ -94,10 +94,10 @@ UI пока нет, таблица говорит это прямо, а не д�
 
 | Действие | Скилл агента | MCP tool | UI |
 | :-- | :-- | :-- | :-- |
-| Зарегистрировать проект по выбранному шаблону | `/aiko-init` | `aiko_list_templates`, `aiko_init_project` | Дашборд - *Добавить проект* (обзор папок + выбор шаблона) |
+| Зарегистрировать проект по выбранному шаблону | `/aiko-init [имя] [id]` | `aiko_list_templates`, `aiko_init_project` | Дашборд - *Добавить проект* (обзор папок + выбор шаблона) |
 | Список проектов | `/aiko-list-projects` | `aiko_list_projects` | Дашборд - список проектов |
 | Открыть доску | `/aiko-ui` | `aiko_open_ui` | `aiko ui` или адрес в верхней панели |
-| Создать story / task | `/aiko-story-create`, `/aiko-task-create` | `aiko_create_card`, `aiko_create_card_in_project` | Доска - *Создать карточку* |
+| Создать карточку любого типа проекта | `/aiko-create <тип> <заголовок>`, `/aiko-create-<тип>` | `aiko_create_card`, `aiko_create_card_in_project` | Доска - *Создать карточку* |
 | Прочитать доску | `/aiko-status` | `aiko_list_cards`, `aiko_get_card` | Доска, и карточка как отдельная страница |
 | Изменить карточку | — | `aiko_update_card` | Страница карточки - *Сохранить* |
 | Перевести карточку по этапам | `/aiko-next-stage` | `aiko_move_card` | Перетаскивание между колонками |

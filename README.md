@@ -39,6 +39,9 @@ rate limit) hands off to another agent without losing history.
   has not been taken into work yet
 - **Cards as folders** - every card is a directory with a `card.json` (optimistic revisions)
   and Markdown artifacts; the whole `.aiko` tree is readable, diffable and Git-friendly
+- **Readable project addresses** - a project gets a short id derived from its folder name (Cyrillic is
+  transliterated), editable while it is created and used in every URL (`/p/aiko/board`); the generated
+  GUID stays as the immutable key inside card files and agent endpoints, so cross-project links never break
 - **Typed card graph** - `implements`, `parent-child`, `blocks` (cycle-checked) and symmetric
   `relates-to` relations; blocks drive scheduling
 - **Effective priorities** - each card has its own score; task priorities blend in the maximum
@@ -194,7 +197,7 @@ User scope (`--scope user`), available without a project open:
 
 | Skill | Does |
 | :-- | :-- |
-| `/aiko-init` | Register the current directory as a project |
+| `/aiko-init [name] [id]` | Register the current directory as a project; the id is the readable handle its URLs use |
 | `/aiko-list-projects` | List the registered projects |
 | `/aiko-status` | Daemon health, data directory, port |
 | `/aiko-doctor` | Diagnose the installation (changes nothing) |

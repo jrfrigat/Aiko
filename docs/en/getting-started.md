@@ -11,14 +11,21 @@ aiko ui        # in another (opens the browser, pairs it with the daemon)
 
 ## 2. Register your project
 
-In the UI, click **Add project**, enter the path to your project folder and a name, and choose a
-git policy. Aiko creates the `.aiko` directory and registers the project.
+In the UI, click **Add project**, enter the path to your project folder, and choose a git policy. The
+project's name and its id are filled in from the folder - `C:\work\Aiko` becomes **Aiko**, id **aiko** -
+so the project's address reads `/p/aiko/board`. Both fields stay editable before you press *Create*; an
+id that another project already uses is refused. Aiko creates the `.aiko` directory and registers the
+project.
 
 You can also do it from the terminal:
 
 ```powershell
-aiko init C:\path\to\your\project --name "My Project"
+aiko init C:\path\to\your\project --name "My Project" --id my-project
 ```
+
+`--name` and `--id` are optional: the name defaults to the folder name, and the id to a slug derived
+from that name (Cyrillic is transliterated: *Мой проект* becomes `moj-proekt`). A derived id is made
+unique automatically, a typed one is refused when it is taken.
 
 ## 3. Connect an agent
 

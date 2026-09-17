@@ -8,6 +8,12 @@ are doing. It shows the project's path, its workflows and how many stages they h
 and the relations, plus the cards per stage of each pipeline. "Re-index project" rebuilds the daemon's index
 from the `.aiko` files - the one write this screen performs, and one that is safe to repeat.
 
+A project has two identifiers. The readable **id** - `aiko`, as in `/p/aiko/board` - is derived from the
+folder name and can be set while the project is created; it is what every screen's links use. The internal
+project id is a generated GUID: it is written into `card.json`, into the relations and into the MCP endpoint
+of every connected agent, so it never changes. Every route accepts both, so links saved before the readable
+id existed still open.
+
 ## The board
 
 The board shows the project's cards as one section per card type the project declares:
@@ -108,7 +114,7 @@ size grid.
 A project is created from a **template**, and the template decides what it starts with: the stages of each
 pipeline with their agent instructions and required artifacts, the board projections, the starting memory
 and the default settings. Choose it in the dashboard's *Add project* form, with
-`aiko init <path> --template <id>`, or through `aiko_init_project` after listing the options with
+`aiko init <path> --template <id> --id <slug>`, or through `aiko_init_project` after listing the options with
 `aiko_list_templates` (the same list is available as `GET /api/v1/templates`).
 
 The template is **copied** into the project, and the project owns its configuration from then on. Editing a
