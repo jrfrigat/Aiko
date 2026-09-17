@@ -98,6 +98,11 @@ jobs:
           dotnet publish src/Aiko.Server @common -o publish/stage/server
           if ($LASTEXITCODE -ne 0) { throw 'Publishing Aiko.Server failed.' }
 
+          # The packaged archive carries the base project template in the same shape the daemon writes it
+          # into its data directory, so the installer can seed an installation from the release itself.
+          New-Item -ItemType Directory -Path publish/stage/templates -Force | Out-Null
+          Copy-Item -Path assets/templates/* -Destination publish/stage/templates -Recurse -Force
+
       # Fail here rather than after the upload: a release without the daemon or without the PWA
       # inside it is a broken install command for everyone.
       - name: Verify the staged layout
@@ -107,7 +112,8 @@ jobs:
             'publish/stage/aiko.exe',
             'publish/stage/aiko-stdio.exe',
             'publish/stage/server/Aiko.Server.exe',
-            'publish/stage/server/wwwroot/index.html'
+            'publish/stage/server/wwwroot/index.html',
+            'publish/stage/templates/default/template.json'
           )
           foreach ($path in $required) {
             if (-not (Test-Path $path)) { throw "The staged release is missing $path." }

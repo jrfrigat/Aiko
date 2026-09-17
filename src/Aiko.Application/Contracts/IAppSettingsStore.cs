@@ -1,24 +1,14 @@
 namespace Aiko.Application.Contracts;
 
 /// <summary>
-/// Persistence of application settings at both levels: the global file next to the
-/// daemon database and the project-local .aiko/settings.json.
+/// Persistence of a project's settings: the .aiko/settings.json it owns. There is no installation-level
+/// document: a project is created from a template and owns its copy from then on.
 /// </summary>
 public interface IAppSettingsStore
 {
     /// <summary>
-    /// Reads the global application settings or returns null when the file does not exist.
-    /// </summary>
-    ValueTask<AppSettings?> ReadGlobalAsync(CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Atomically saves the global application settings.
-    /// </summary>
-    ValueTask SaveGlobalAsync(AppSettings settings, CancellationToken cancellationToken);
-
-    /// <summary>
     /// Reads the project-local settings or returns null when the project has none
-    /// (every section then inherits from the global level).
+    /// (every section then falls back to the built-in safe defaults).
     /// </summary>
     ValueTask<AppSettings?> ReadProjectAsync(string projectId, CancellationToken cancellationToken);
 

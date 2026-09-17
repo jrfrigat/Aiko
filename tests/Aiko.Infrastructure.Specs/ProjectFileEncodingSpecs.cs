@@ -39,7 +39,7 @@ public sealed class ProjectFileEncodingSpecs
             var project = await new ProjectInitializer(
                     catalog,
                     new ProjectReindexer(catalog, database),
-                    new FileAppSettingsStore(paths, catalog),
+                    new FileAppSettingsStore(catalog),
                     new FileProjectTemplateStore(paths))
                 .InitializeAsync(new InitializeProjectRequest(projectRoot), CancellationToken.None);
 

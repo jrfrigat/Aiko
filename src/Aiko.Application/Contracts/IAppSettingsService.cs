@@ -4,34 +4,30 @@ using Aiko.Domain.Prioritization;
 namespace Aiko.Application.Contracts;
 
 /// <summary>
-/// Reads, merges and saves application settings. Effective values resolve per section:
-/// project-local settings win over global settings, which win over built-in defaults.
+/// Reads and saves the settings of a project. Effective values resolve per section: the project's own
+/// document wins, and a section it does not state falls back to the built-in default.
 /// </summary>
 public interface IAppSettingsService
 {
     /// <summary>
-    /// Resolves the settings view for a project; pass null to inspect the global scope only.
+    /// Resolves the settings view for a project. A null project id answers with the built-in defaults, which
+    /// is what a screen with no project open needs.
     /// </summary>
     ValueTask<AppSettingsView> LoadAsync(string? projectId, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Returns the effective execution settings of a project (project -> global -> safe default).
+    /// Returns the effective execution settings of a project.
     /// </summary>
     ValueTask<ExecutionSettings> GetEffectiveExecutionAsync(
         string projectId,
         CancellationToken cancellationToken);
 
     /// <summary>
-    /// Returns the effective priority settings of a project (project -> global -> default).
+    /// Returns the effective priority settings of a project.
     /// </summary>
     ValueTask<PrioritySettings> GetEffectivePriorityAsync(
         string projectId,
         CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Saves the global application settings.
-    /// </summary>
-    ValueTask SaveGlobalAsync(AppSettings settings, CancellationToken cancellationToken);
 
     /// <summary>
     /// Saves the project-local settings.

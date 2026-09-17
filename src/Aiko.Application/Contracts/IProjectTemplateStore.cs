@@ -8,12 +8,17 @@ namespace Aiko.Application.Contracts;
 /// <param name="Description">What the template is for.</param>
 /// <param name="Version">Content version of the template.</param>
 /// <param name="IsDefault">Whether this is the template an init without a choice uses.</param>
+/// <param name="IsBuiltIn">
+/// Whether this template ships with Aiko rather than living in the templates root. A built-in one has no
+/// file to write, so changing it means copying it.
+/// </param>
 public sealed record ProjectTemplateSummary(
     string Id,
     string Name,
     string Description,
     int Version,
-    bool IsDefault);
+    bool IsDefault,
+    bool IsBuiltIn);
 
 /// <summary>
 /// Reads the project templates available to this installation.
@@ -45,6 +50,22 @@ public interface IProjectTemplateStore
     /// it. Called before an init so a fresh installation has something to create projects from.
     /// </summary>
     ValueTask<ProjectTemplate> EnsureDefaultAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Copies a template into a new one, which is how a shipped base template gets edited: the copy is a
+    /// file, so it can be saved, and the base stays as it shipped.
+    /// </summary>
+    /// <param name="sourceId">Template to copy.</param>
+    /// <param name="templateId">Identifier for the copy; it must not exist yet.</param>
+    /// <param name="name">Display name for the copy, or null for "&lt;source name&gt; copy".</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <exception cref="FileNotFoundException">The source does not exist.</exception>
+    /// <exception cref="IOException">A template with the new id already exists.</exception>
+    ValueTask<ProjectTemplate> CopyAsync(
+        string sourceId,
+        string templateId,
+        string? name,
+        CancellationToken cancellationToken);
 
     /// <summary>
     /// Writes a template over its own file, atomically. The defaults screens save through here, which is

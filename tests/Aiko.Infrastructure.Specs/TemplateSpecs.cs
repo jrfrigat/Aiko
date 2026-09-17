@@ -128,7 +128,7 @@ public sealed class TemplateSpecs
         new(
             catalog,
             new ProjectReindexer(catalog, database),
-            new FileAppSettingsStore(paths, catalog),
+            new FileAppSettingsStore(catalog),
             new FileProjectTemplateStore(paths));
 
     /// <summary>An isolated directory for one spec, below the same specs root the infrastructure specs use.</summary>

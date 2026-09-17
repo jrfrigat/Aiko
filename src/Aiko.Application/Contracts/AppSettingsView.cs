@@ -4,19 +4,14 @@ using Aiko.Domain.Prioritization;
 namespace Aiko.Application.Contracts;
 
 /// <summary>
-/// Well-known sources of an effective settings value, from most to least specific.
+/// Well-known sources of an effective settings value.
 /// </summary>
 public static class AppSettingsSources
 {
     /// <summary>
-    /// The value comes from project-local settings (.aiko/settings.json).
+    /// The value comes from the project's own settings (.aiko/settings.json).
     /// </summary>
     public const string Project = "project";
-
-    /// <summary>
-    /// The value comes from global application settings (app-settings.json next to the database).
-    /// </summary>
-    public const string Global = "global";
 
     /// <summary>
     /// No explicit configuration: the built-in safe default is used.
@@ -25,12 +20,16 @@ public static class AppSettingsSources
 }
 
 /// <summary>
-/// Resolved settings for a scope: the raw global and project snapshots plus the effective
-/// execution settings and priority weights with the name of the level that provided them.
+/// Resolved settings for one level: the document the level states (null when it states nothing) plus the
+/// effective execution settings and priority model with the source that provided each.
 /// </summary>
+/// <param name="Snapshot">The level's own document, or null when it has none and the defaults apply.</param>
+/// <param name="EffectiveExecution">The execution settings in force.</param>
+/// <param name="ExecutionSource">Where those came from: the project, or the built-in defaults.</param>
+/// <param name="EffectivePriority">The priority model in force.</param>
+/// <param name="PrioritySource">Where that came from: the project, or the built-in defaults.</param>
 public sealed record AppSettingsView(
-    AppSettings? Global,
-    AppSettings? Project,
+    AppSettings? Snapshot,
     ExecutionSettings EffectiveExecution,
     string ExecutionSource,
     PrioritySettings EffectivePriority,

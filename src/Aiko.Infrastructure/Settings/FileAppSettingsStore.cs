@@ -6,36 +6,11 @@ using Aiko.Infrastructure.Storage;
 namespace Aiko.Infrastructure.Settings;
 
 /// <summary>
-/// File-based application settings: the global file next to the daemon database and the
-/// project-local .aiko/settings.json, both written atomically with source-generated JSON.
+/// File-based application settings: the project-local .aiko/settings.json, written atomically with
+/// source-generated JSON.
 /// </summary>
-public sealed class FileAppSettingsStore(
-    AikoDataPaths paths,
-    IProjectCatalog projects) : IAppSettingsStore
+public sealed class FileAppSettingsStore(IProjectCatalog projects) : IAppSettingsStore
 {
-    /// <inheritdoc />
-    public async ValueTask<AppSettings?> ReadGlobalAsync(CancellationToken cancellationToken)
-    {
-        var path = paths.ApplicationSettingsPath;
-        if (!File.Exists(path))
-        {
-            return null;
-        }
-
-        await using var input = File.OpenRead(path);
-        return await JsonSerializer.DeserializeAsync(
-            input,
-            SettingsJsonContext.Default.AppSettings,
-            cancellationToken);
-    }
-
-    /// <inheritdoc />
-    public async ValueTask SaveGlobalAsync(AppSettings settings, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(settings);
-        await WriteAtomicallyAsync(paths.ApplicationSettingsPath, settings, cancellationToken);
-    }
-
     /// <inheritdoc />
     public async ValueTask<AppSettings?> ReadProjectAsync(
         string projectId,

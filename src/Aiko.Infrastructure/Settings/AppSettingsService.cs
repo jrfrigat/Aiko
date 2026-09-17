@@ -5,9 +5,10 @@ using Aiko.Domain.Prioritization;
 namespace Aiko.Infrastructure.Settings;
 
 /// <summary>
-/// Merges global and project-local settings snapshots into effective values:
-/// per section, project-local settings win over global settings,
-/// which win over the built-in safe defaults.
+/// Resolves the settings a project runs with: its own document, or the built-in safe defaults for a
+/// section it does not state. There is no level above the project - what a project does not state it does
+/// not inherit from anything, because a project is created as a copy of a template and owns it from then
+/// on.
 /// </summary>
 public sealed class AppSettingsService(IAppSettingsStore store) : IAppSettingsService
 {
@@ -16,41 +17,21 @@ public sealed class AppSettingsService(IAppSettingsStore store) : IAppSettingsSe
         string? projectId,
         CancellationToken cancellationToken)
     {
-        var global = await store.ReadGlobalAsync(cancellationToken);
         var project = projectId is null
             ? null
             : await store.ReadProjectAsync(projectId, cancellationToken);
 
-        var execution = ExecutionSettings.SafeDefault;
-        var executionSource = AppSettingsSources.Default;
-        if (global?.Execution is not null)
-        {
-            execution = global.Execution;
-            executionSource = AppSettingsSources.Global;
-        }
+        var execution = project?.Execution ?? ExecutionSettings.SafeDefault;
+        var executionSource = project?.Execution is null
+            ? AppSettingsSources.Default
+            : AppSettingsSources.Project;
 
-        if (project?.Execution is not null)
-        {
-            execution = project.Execution;
-            executionSource = AppSettingsSources.Project;
-        }
-
-        var priority = PrioritySettings.SafeDefault;
-        var prioritySource = AppSettingsSources.Default;
-        if (global?.Priority is not null)
-        {
-            priority = global.Priority;
-            prioritySource = AppSettingsSources.Global;
-        }
-
-        if (project?.Priority is not null)
-        {
-            priority = project.Priority;
-            prioritySource = AppSettingsSources.Project;
-        }
+        var priority = project?.Priority ?? PrioritySettings.SafeDefault;
+        var prioritySource = project?.Priority is null
+            ? AppSettingsSources.Default
+            : AppSettingsSources.Project;
 
         return new AppSettingsView(
-            global,
             project,
             execution,
             executionSource,
@@ -76,15 +57,6 @@ public sealed class AppSettingsService(IAppSettingsStore store) : IAppSettingsSe
         ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
         var view = await LoadAsync(projectId, cancellationToken);
         return view.EffectivePriority;
-    }
-
-    /// <inheritdoc />
-    public ValueTask SaveGlobalAsync(AppSettings settings, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(settings);
-        return store.SaveGlobalAsync(
-            settings with { SchemaVersion = AppSettings.CurrentSchemaVersion },
-            cancellationToken);
     }
 
     /// <inheritdoc />

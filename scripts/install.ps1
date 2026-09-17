@@ -169,6 +169,21 @@ try {
 
     Copy-Item -Path (Join-Path $staging '*') -Destination $InstallDir -Recurse -Force
 }
+
+# The base project template ships with the release, and the installer is what puts it where the daemon
+# looks for it. An existing file is left alone: it is the installation's own copy by then, and an upgrade
+# must not overwrite defaults a person edited.
+function Install-BaseTemplate([string] $sourceDir, [string] $dataDir) {
+    $source = Join-Path $sourceDir 'templates\default\template.json'
+    $target = Join-Path $dataDir 'templates\default\template.json'
+    if (-not (Test-Path $source) -or (Test-Path $target)) {
+        return
+    }
+
+    New-Item -ItemType Directory -Path (Split-Path -Parent $target) -Force | Out-Null
+    Copy-Item -Path $source -Destination $target -Force
+    Write-Step 'Installed the base project template.'
+}
 finally {
     Remove-Item -Path $temp -Recurse -Force -ErrorAction SilentlyContinue
 }
@@ -182,6 +197,10 @@ $daemon = Join-Path $InstallDir 'server\Aiko.Server.exe'
 if (-not (Test-Path $daemon)) {
     throw "The archive did not contain server\Aiko.Server.exe. Contents: $((Get-ChildItem $InstallDir -Recurse | ForEach-Object Name) -join ', ')"
 }
+
+# The daemon reads project templates from its data directory; seeding the base one here is what makes a
+# fresh installation able to create a project without ever having run the daemon.
+Install-BaseTemplate -sourceDir $InstallDir -dataDir (Join-Path $env:LOCALAPPDATA 'Aiko')
 
 if (-not $NoPathUpdate) {
     $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')

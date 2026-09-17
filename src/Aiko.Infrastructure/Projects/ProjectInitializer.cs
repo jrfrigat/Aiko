@@ -1,6 +1,8 @@
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using Aiko.Application.Contracts;
+using Aiko.Domain.Execution;
+using Aiko.Domain.Prioritization;
 using Aiko.Infrastructure.Storage;
 
 namespace Aiko.Infrastructure.Projects;
@@ -144,8 +146,8 @@ public sealed class ProjectInitializer(
     }
 
     /// <summary>
-    /// Gives the project its settings snapshot: the template's own sections with the installation defaults
-    /// filling the ones the template leaves out.
+    /// Gives the project its settings snapshot: the template's sections over the built-in defaults, so the
+    /// project states every value it runs with and a later release cannot change its behaviour.
     /// </summary>
     private async ValueTask CopyDefaultSettingsAsync(
         RegisteredProject project,
@@ -157,38 +159,13 @@ public sealed class ProjectInitializer(
             return;
         }
 
-        var defaults = Merge(await settings.ReadGlobalAsync(cancellationToken), template.Settings);
-        if (defaults is null)
-        {
-            // Nothing to copy: the project resolves through its own safe defaults instead.
-            return;
-        }
-
-        await settings.SaveProjectAsync(project.Id, defaults, cancellationToken);
-    }
-
-    /// <summary>
-    /// Combines the installation defaults with the template's own settings: the template wins section by
-    /// section, the global document fills what it leaves out. A template states what a project *is* (its
-    /// size grid, and later its workflows), the installation states how this machine runs (workspace mode,
-    /// run limits, policies) - so a project needs both, and neither should silently replace the other.
-    /// </summary>
-    private static AppSettings? Merge(AppSettings? global, AppSettings? template)
-    {
-        if (template is null)
-        {
-            return global;
-        }
-
-        if (global is null)
-        {
-            return template;
-        }
-
-        return new AppSettings(
-            Math.Max(global.SchemaVersion, template.SchemaVersion),
-            template.Execution ?? global.Execution,
-            template.Priority ?? global.Priority);
+        await settings.SaveProjectAsync(
+            project.Id,
+            new AppSettings(
+                AppSettings.CurrentSchemaVersion,
+                template.Settings?.Execution ?? ExecutionSettings.SafeDefault,
+                template.Settings?.Priority ?? PrioritySettings.SafeDefault),
+            cancellationToken);
     }
 
     private static void CreateDirectories(string stitchRoot)

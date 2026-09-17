@@ -34,6 +34,34 @@ internal static class ProjectEndpoints
             "/api/v1/templates",
             async (IProjectTemplateStore templates, CancellationToken cancellationToken) =>
                 TypedResults.Ok(await templates.ListAsync(cancellationToken)));
+        // Copying is how a template is created: the base ships with Aiko and has no file, so an installation
+        // that wants its own defaults copies it and edits the copy.
+        app.MapPost(
+            "/api/v1/templates",
+            async (
+                CreateTemplateRequest request,
+                IProjectTemplateStore templates,
+                CancellationToken cancellationToken) =>
+            {
+                try
+                {
+                    var copy = await templates.CopyAsync(
+                        request.SourceId,
+                        request.TemplateId,
+                        request.Name,
+                        cancellationToken);
+                    return Results.Created($"/api/v1/templates/{copy.Id}", copy);
+                }
+                catch (FileNotFoundException)
+                {
+                    return Results.NotFound(new ErrorResponse(
+                        $"No template '{request.SourceId}' to copy."));
+                }
+                catch (IOException exception)
+                {
+                    return Results.Conflict(new ErrorResponse(exception.Message));
+                }
+            });
         // One template in full: its settings and its pipelines. The defaults screen reads this, edits one
         // slice of it and writes that slice back, so the two writers never clobber each other.
         app.MapGet(

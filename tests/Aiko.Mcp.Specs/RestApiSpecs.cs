@@ -428,30 +428,17 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
     }
 
     [Fact]
-    public async Task Settings_report_which_level_supplied_the_value()
+    public async Task Settings_report_where_the_value_came_from()
     {
         using var http = CreateClient();
         var project = fixture.ProjectId;
 
-        using var global = await http.PutAsJsonAsync("/api/v1/settings", new
-        {
-            schemaVersion = 1,
-            execution = new
-            {
-                workspaceMode = "Shared",
-                maxConcurrentRuns = 3,
-                scopeOverlapPolicy = "Ask",
-                sharedCheckoutCommitPolicy = "Deny"
-            }
-        });
-        Assert.Equal(HttpStatusCode.OK, global.StatusCode);
-
-        // The project has no settings of its own, so it reads the global level.
-        var inherited = await http.GetFromJsonAsync<JsonElement>($"api/v1/projects/{project}/settings");
-        Assert.Equal("global", inherited.GetProperty("executionSource").GetString());
+        // The project was created from the base template, so it states its own settings and the view says so.
+        var stated = await http.GetFromJsonAsync<JsonElement>($"api/v1/projects/{project}/settings");
+        Assert.Equal("project", stated.GetProperty("executionSource").GetString());
         Assert.Equal(
-            3,
-            inherited.GetProperty("effectiveExecution").GetProperty("maxConcurrentRuns").GetInt32());
+            JsonValueKind.Object,
+            stated.GetProperty("snapshot").ValueKind);
 
         using var projectLevel = await http.PutAsJsonAsync($"api/v1/projects/{project}/settings", new
         {

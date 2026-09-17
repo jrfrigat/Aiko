@@ -111,7 +111,7 @@ static async Task<int> InitAsync(string[] args)
     var initializer = new ProjectInitializer(
         catalog,
         reindexer,
-        new FileAppSettingsStore(dataPaths, catalog),
+        new FileAppSettingsStore(catalog),
         new FileProjectTemplateStore(dataPaths));
 
     try

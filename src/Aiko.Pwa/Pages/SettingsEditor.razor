@@ -652,11 +652,10 @@
                 _template = await Http.GetFromJsonAsync<ProjectTemplate>(TemplateUrl, PwaJson.Options);
                 _view = new AppSettingsView(
                     _template?.Settings,
-                    null,
                     _template?.Settings?.Execution ?? ExecutionSettings.SafeDefault,
-                    _template?.Settings?.Execution is null ? AppSettingsSources.Default : AppSettingsSources.Global,
+                    _template?.Settings?.Execution is null ? AppSettingsSources.Default : AppSettingsSources.Project,
                     _template?.Settings?.Priority ?? PrioritySettings.SafeDefault,
-                    _template?.Settings?.Priority is null ? AppSettingsSources.Default : AppSettingsSources.Global);
+                    _template?.Settings?.Priority is null ? AppSettingsSources.Default : AppSettingsSources.Project);
             }
             else
             {
@@ -679,10 +678,10 @@
             return;
         }
 
-        // The level's own sections, or the effective values when the level states none: the project screen
-        // edits .aiko/settings.json, the global screen app-settings.json, and the effective view already
-        // carries what the daemon would really use when a section is missing.
-        var own = ProjectId is null ? view.Global : view.Project;
+        // The level's own document, or the effective values when it states none: a project's file and a
+        // template's settings are read the same way, and the effective view already carries what the daemon
+        // would really use for a section the document leaves out.
+        var own = view.Snapshot;
         var execution = own?.Execution ?? view.EffectiveExecution;
         _workspaceMode = execution.WorkspaceMode;
         _maxRuns = execution.MaxConcurrentRuns;
@@ -874,7 +873,6 @@
         {
             ApplyView(new AppSettingsView(
                 null,
-                null,
                 ExecutionSettings.SafeDefault,
                 AppSettingsSources.Default,
                 PrioritySettings.SafeDefault,
@@ -882,16 +880,15 @@
         }
         else
         {
-            // Reading the global document and putting its sections on the project is the reset: the project
-            // ends up stating what the installation says, instead of overriding it.
-            var global = await Http.GetFromJsonAsync<AppSettingsView>("api/v1/settings", PwaJson.Options);
+            // "App defaults" for a project means the base template: that is what a new project starts from,
+            // and the project record says which template it came from but does not expose it yet.
+            var template = await Http.GetFromJsonAsync<ProjectTemplate>(TemplateUrl, PwaJson.Options);
             ApplyView(new AppSettingsView(
-                null,
-                global?.Global,
-                global?.Global?.Execution ?? ExecutionSettings.SafeDefault,
-                AppSettingsSources.Global,
-                global?.Global?.Priority ?? PrioritySettings.SafeDefault,
-                AppSettingsSources.Global));
+                template?.Settings,
+                template?.Settings?.Execution ?? ExecutionSettings.SafeDefault,
+                template?.Settings?.Execution is null ? AppSettingsSources.Default : AppSettingsSources.Project,
+                template?.Settings?.Priority ?? PrioritySettings.SafeDefault,
+                template?.Settings?.Priority is null ? AppSettingsSources.Default : AppSettingsSources.Project));
         }
 
         await SaveAsync();

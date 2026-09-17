@@ -539,27 +539,19 @@ public class InfrastructureSpecs
     }
 
     [Fact]
-    public async Task Settings_resolve_project_over_global_over_default()
+    public async Task Project_settings_resolve_over_the_built_in_defaults()
     {
         await WithInitializedProjectAsync(async context =>
         {
-            var store = new FileAppSettingsStore(
-                new AikoDataPaths(context.Database.DatabasePath),
-                context.Catalog);
+            var store = new FileAppSettingsStore(context.Catalog);
             var service = new AppSettingsService(store);
 
-            var fallback = await service.LoadAsync(context.Project.Id, CancellationToken.None);
-            Assert.Equal(ExecutionSettings.SafeDefault, fallback.EffectiveExecution);
-            Assert.Equal(AppSettingsSources.Default, fallback.ExecutionSource);
-
-            await service.SaveGlobalAsync(
-                new AppSettings(
-                    AppSettings.CurrentSchemaVersion,
-                    new ExecutionSettings(WorkspaceMode.Shared, 3, ActionPolicy.Ask, ActionPolicy.Deny)),
-                CancellationToken.None);
-            var fromGlobal = await service.LoadAsync(context.Project.Id, CancellationToken.None);
-            Assert.Equal(3, fromGlobal.EffectiveExecution.MaxConcurrentRuns);
-            Assert.Equal(AppSettingsSources.Global, fromGlobal.ExecutionSource);
+            // The project was created from the base template, so it already states its own complete snapshot:
+            // what it runs with is its own document, and there is no level above it to fall back to.
+            var created = await service.LoadAsync(context.Project.Id, CancellationToken.None);
+            Assert.Equal(AppSettingsSources.Project, created.ExecutionSource);
+            Assert.NotNull(created.Snapshot);
+            Assert.True(File.Exists(Path.Combine(context.StitchRoot, "settings.json")));
 
             await service.SaveProjectAsync(
                 context.Project.Id,
@@ -571,9 +563,11 @@ public class InfrastructureSpecs
             Assert.Equal(2, fromProject.EffectiveExecution.MaxConcurrentRuns);
             Assert.Equal(ActionPolicy.Allow, fromProject.EffectiveExecution.ScopeOverlapPolicy);
             Assert.Equal(AppSettingsSources.Project, fromProject.ExecutionSource);
-            Assert.NotNull(fromProject.Global);
-            Assert.Equal(3, fromProject.Global!.Execution!.MaxConcurrentRuns);
-            Assert.True(File.Exists(Path.Combine(context.StitchRoot, "settings.json")));
+
+            // With no project in hand the view answers with the built-in defaults, and says they are built in.
+            var builtIn = await service.LoadAsync(null, CancellationToken.None);
+            Assert.Equal(ExecutionSettings.SafeDefault, builtIn.EffectiveExecution);
+            Assert.Equal(AppSettingsSources.Default, builtIn.ExecutionSource);
 
             await Assert.ThrowsAsync<ArgumentOutOfRangeException>(async () =>
                 await service.SaveProjectAsync(
@@ -823,28 +817,27 @@ public class InfrastructureSpecs
     }
 
     [Fact]
-    public async Task Project_initialization_copies_global_defaults()
+    public async Task Project_initialization_writes_a_complete_settings_snapshot()
     {
         await WithInitializedProjectAsync(async context =>
         {
-            var store = new FileAppSettingsStore(new AikoDataPaths(context.Database.DatabasePath), context.Catalog);
-            var service = new AppSettingsService(store);
-            await service.SaveGlobalAsync(
-                new AppSettings(
-                    AppSettings.CurrentSchemaVersion,
-                    new ExecutionSettings(WorkspaceMode.Shared, 3, ActionPolicy.Ask, ActionPolicy.Deny),
-                    new Aiko.Domain.Prioritization.PrioritySettings(new Aiko.Domain.Prioritization.PriorityWeights(0.5m, 0.5m), [])),
-                CancellationToken.None);
-
+            // The base template states no settings, so a project created from it takes the built-in values -
+            // and states them, which is what keeps a later release from changing this project's behaviour.
             var newRoot = Path.Combine(context.ProjectRoot, "new-project");
             Directory.CreateDirectory(newRoot);
             var newProject = await context.Initializer.InitializeAsync(
                 new InitializeProjectRequest(newRoot),
                 CancellationToken.None);
 
+            var service = new AppSettingsService(new FileAppSettingsStore(context.Catalog));
             var view = await service.LoadAsync(newProject.Id, CancellationToken.None);
-            Assert.Equal(3, view.EffectiveExecution.MaxConcurrentRuns);
-            Assert.Equal(0.5m, view.EffectivePriority.Weights.TaskWeight);
+
+            Assert.Equal(AppSettingsSources.Project, view.ExecutionSource);
+            Assert.Equal(ExecutionSettings.SafeDefault, view.EffectiveExecution);
+            Assert.Equal(
+                Aiko.Domain.Prioritization.PrioritySettings.SafeDefault.Grid.Count,
+                view.EffectivePriority.Grid.Count);
+            Assert.True(File.Exists(Path.Combine(newRoot, ".aiko", "settings.json")));
         });
     }
 
@@ -853,7 +846,7 @@ public class InfrastructureSpecs
     {
         await WithInitializedProjectAsync(async context =>
         {
-            var store = new FileAppSettingsStore(new AikoDataPaths(context.Database.DatabasePath), context.Catalog);
+            var store = new FileAppSettingsStore(context.Catalog);
             var service = new AppSettingsService(store);
 
             var fallback = await service.GetEffectivePriorityAsync(context.Project.Id, CancellationToken.None);
@@ -888,8 +881,7 @@ public class InfrastructureSpecs
     {
         await WithInitializedProjectAsync(async context =>
         {
-            var settings = new AppSettingsService(new FileAppSettingsStore(
-                new AikoDataPaths(context.Database.DatabasePath), context.Catalog));
+            var settings = new AppSettingsService(new FileAppSettingsStore(context.Catalog));
             var executions = new SqliteExecutionCoordinator(
                 context.Catalog, context.Cards, context.Database, settings);
             var card = CreateCard(context.Project.Id, "TASK-COMMIT", 1);
@@ -932,8 +924,7 @@ public class InfrastructureSpecs
     {
         await WithInitializedProjectAsync(async context =>
         {
-            var settings = new AppSettingsService(new FileAppSettingsStore(
-                new AikoDataPaths(context.Database.DatabasePath), context.Catalog));
+            var settings = new AppSettingsService(new FileAppSettingsStore(context.Catalog));
             await settings.SaveProjectAsync(
                 context.Project.Id,
                 new AppSettings(
@@ -965,8 +956,7 @@ public class InfrastructureSpecs
     {
         await WithInitializedProjectAsync(async context =>
         {
-            var settings = new AppSettingsService(new FileAppSettingsStore(
-                new AikoDataPaths(context.Database.DatabasePath), context.Catalog));
+            var settings = new AppSettingsService(new FileAppSettingsStore(context.Catalog));
             var executions = new SqliteExecutionCoordinator(
                 context.Catalog, context.Cards, context.Database, settings);
             var first = CreateCard(context.Project.Id, "TASK-LIMIT-A", 1);
@@ -1716,8 +1706,7 @@ public class InfrastructureSpecs
 
             var catalog = new SqliteProjectCatalog(database);
             var reindexer = new ProjectReindexer(catalog, database);
-            var appSettingsStore = new FileAppSettingsStore(
-                new AikoDataPaths(Path.Combine(testRoot, "data", "aiko.db")), catalog);
+            var appSettingsStore = new FileAppSettingsStore(catalog);
             var initializer = new ProjectInitializer(
                 catalog,
                 reindexer,

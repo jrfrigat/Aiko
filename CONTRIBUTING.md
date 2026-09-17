@@ -60,6 +60,8 @@ both scripts free of analyzer findings and keep the `owner/repo` constant, the r
 aiko.exe                the CLI
 aiko-stdio.exe          the stdio <-> Streamable HTTP MCP proxy
 server/Aiko.Server.exe  the daemon, with the PWA in server/wwwroot
+templates/default/template.json
+                        the base project template the installer seeds the data directory with
 ```
 
 ## What to check before opening a pull request
