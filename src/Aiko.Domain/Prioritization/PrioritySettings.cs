@@ -37,6 +37,18 @@ public sealed record PrioritySettings(
     IReadOnlyList<PriorityCriterion> Criteria,
     IReadOnlyList<SizeDefinition>? Sizes = null)
 {
+    /// <summary>The standard T-shirt ladder: the small steps are worth more, a large card is a plan to split.</summary>
+    // Declared before SafeDefault on purpose: static initializers run in declaration order, and a default
+    // built above this one would capture a null grid.
+    public static IReadOnlyList<SizeDefinition> DefaultGrid { get; } =
+    [
+        new("XS", "XS", "Under an hour: one file, no analysis, no new dependencies.", 1.15m),
+        new("S", "S", "Half a day or less: a small change that a local test can verify.", 1.08m),
+        new("M", "M", "About a day: a normal task with analysis and implementation.", 1.00m),
+        new("L", "L", "Several days: decompose into subtasks and agree the order before starting.", 0.90m),
+        new("XL", "XL", "Over a week: do not start until it is split into S and M tasks.", 0.80m),
+    ];
+
     /// <summary>
     /// Safe default: default blending weights, no criteria and the standard T-shirt grid.
     /// </summary>
@@ -47,16 +59,6 @@ public sealed record PrioritySettings(
     /// step a card belongs to, so they say what the step means in work rather than in numbers.
     /// </remarks>
     public static PrioritySettings SafeDefault { get; } = new(PriorityWeights.Default, [], DefaultGrid);
-
-    /// <summary>The standard T-shirt ladder: the small steps are worth more, a large card is a plan to split.</summary>
-    public static IReadOnlyList<SizeDefinition> DefaultGrid { get; } =
-    [
-        new("XS", "XS", "Under an hour: one file, no analysis, no new dependencies.", 1.15m),
-        new("S", "S", "Half a day or less: a small change that a local test can verify.", 1.08m),
-        new("M", "M", "About a day: a normal task with analysis and implementation.", 1.00m),
-        new("L", "L", "Several days: decompose into subtasks and agree the order before starting.", 0.90m),
-        new("XL", "XL", "Over a week: do not start until it is split into S and M tasks.", 0.80m),
-    ];
 
     /// <summary>The configured size grid, or an empty one when these settings predate sizes.</summary>
     public IReadOnlyList<SizeDefinition> Grid => Sizes ?? [];

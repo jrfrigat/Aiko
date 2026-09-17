@@ -150,6 +150,18 @@ public class DomainSpecs
     }
 
     [Fact]
+    public void The_safe_default_carries_the_standard_size_grid()
+    {
+        // Static initializers run in declaration order, so a default built above the grid would capture a
+        // null one and every card would silently score without a coefficient.
+        Assert.NotEmpty(PrioritySettings.DefaultGrid);
+        Assert.Equal(PrioritySettings.DefaultGrid.Count, PrioritySettings.SafeDefault.Grid.Count);
+        Assert.Equal(1m, PrioritySettings.SafeDefault.SizeFactor("M"));
+        Assert.True(PrioritySettings.SafeDefault.SizeFactor("XL") < 1m);
+        Assert.True(PrioritySettings.SafeDefault.SizeFactor("XS") > 1m);
+    }
+
+    [Fact]
     public void A_size_step_must_carry_an_id_and_a_positive_coefficient()
     {
         Assert.Throws<ArgumentException>(() => new SizeDefinition(" ", "S", "Описание", 1m));
