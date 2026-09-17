@@ -1,12 +1,12 @@
-@page "/settings"
 @page "/templates/{TemplateId}"
 @inject HttpClient Http
 @inject WorkspaceState State
 
-@* The defaults every new project is created from, for one template. A template is the level this screen
-   edits: changing it affects the projects created afterwards, never a project that already exists. The
-   project's own settings are a different screen at /p/{projectId}/settings. *@
-<PageTitle>@(_template?.Name ?? Loc.Get("GlobalSettings"))</PageTitle>
+@* The workflows every new project is created from, for one template. A template is the level this screen
+   edits - its pipelines and its defaults - and changing it affects the projects created afterwards, never a
+   project that already exists. The project's own settings are a different screen at /p/{projectId}/settings.
+   There is no separate "global settings" screen: this one is reached from the Workflow list. *@
+<PageTitle>@($"{Loc.Get("TemplatesHeading")} · {_template?.Name ?? string.Empty}")</PageTitle>
 
 <SettingsEditor>
     <ExtraNarrowContent>

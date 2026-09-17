@@ -173,10 +173,8 @@
   <data name="PolicyDeny" xml:space="preserve"><value>Deny</value></data>
   <data name="ScopePolicy" xml:space="preserve"><value>Scope overlap policy</value></data>
   <data name="SaveProjectSettings" xml:space="preserve"><value>Save project settings</value></data>
-  <data name="GlobalSettings" xml:space="preserve"><value>Application</value></data>
-  <data name="GlobalHint" xml:space="preserve"><value>Applied to every project that has no settings of its own.</value></data>
-  <data name="SaveGlobalSettings" xml:space="preserve"><value>Save global settings</value></data>
-  <data name="SelectProjectForLocalSettings" xml:space="preserve"><value>Project settings become available once a project is selected. The global settings below apply to every project.</value></data>
+    <data name="GlobalHint" xml:space="preserve"><value>Applied to every project that has no settings of its own.</value></data>
+    <data name="SelectProjectForLocalSettings" xml:space="preserve"><value>Project settings become available once a project is selected. The global settings below apply to every project.</value></data>
   <data name="SourceProject" xml:space="preserve"><value>project</value></data>
   <data name="SourceGlobal" xml:space="preserve"><value>global</value></data>
   <data name="SourceDefault" xml:space="preserve"><value>default</value></data>
@@ -363,8 +361,7 @@
   <data name="ProjectOverviewNav" xml:space="preserve"><value>Project overview / stats</value></data>
   <data name="StoriesBacklog" xml:space="preserve"><value>Stories &amp; backlog</value></data>
   <data name="ProjectSettingsNav" xml:space="preserve"><value>Project settings</value></data>
-  <data name="GlobalSettingsNav" xml:space="preserve"><value>Global settings</value></data>
-  <data name="ProjectOverviewHint" xml:space="preserve"><value>What this project is, what it is made of, and how its cards are spread across its pipelines</value></data>
+    <data name="ProjectOverviewHint" xml:space="preserve"><value>What this project is, what it is made of, and how its cards are spread across its pipelines</value></data>
   <data name="ProjectDataTitle" xml:space="preserve"><value>Project data</value></data>
   <data name="ProjectDataHint" xml:space="preserve"><value>Where the project lives, and what the daemon reads from it</value></data>
   <data name="WorkflowsTitle" xml:space="preserve"><value>Workflows</value></data>
@@ -390,8 +387,8 @@
   <data name="ManagedHeap" xml:space="preserve"><value>managed heap {0}</value></data>
   <data name="StageLoadHint" xml:space="preserve"><value>Each bar is a stage's share of the busiest stage of its own pipeline</value></data>
   <data name="GitHubRepository" xml:space="preserve"><value>Aiko on GitHub</value></data>
-  <data name="TemplateScope" xml:space="preserve"><value>Default template</value></data>
-  <data name="TemplateSettingsHeading" xml:space="preserve"><value>Default template settings</value></data>
+  <data name="TemplateScope" xml:space="preserve"><value>Default workflow</value></data>
+  <data name="TemplateSettingsHeading" xml:space="preserve"><value>Default workflow settings</value></data>
   <data name="TemplateSettingsHint" xml:space="preserve"><value>What a new project is created from: the execution defaults, the scoring model and the pipelines. Existing projects keep their own copy and are not affected.</value></data>
   <data name="SaveTemplateSettings" xml:space="preserve"><value>Save template</value></data>
   <data name="SizeGridPickHint" xml:space="preserve"><value>Select a step to edit its name, coefficient and description.</value></data>
@@ -428,11 +425,11 @@
   <data name="SizeHintEmpty" xml:space="preserve"><value>No step: the size factor stays neutral (x1.00)</value></data>
   <data name="Template" xml:space="preserve"><value>Template</value></data>
   <data name="TemplateHint" xml:space="preserve"><value>Copied into the project at creation: it fixes the stages and their artifacts, the board projections, the starting memory and the default settings. Changing the template later affects only projects created afterwards.</value></data>
-  <data name="TemplatesNav" xml:space="preserve"><value>Project templates</value></data>
-  <data name="TemplatesTitle" xml:space="preserve"><value>Templates</value></data>
-  <data name="TemplatesHeading" xml:space="preserve"><value>Project templates</value></data>
-  <data name="TemplatesHint" xml:space="preserve"><value>What a new project is created from: the stages and artifacts of its pipelines, the board projections, the starting memory, the default settings and the git policy. An init copies the chosen template and never reads it again, so a project is autonomous - and "apply" is the one action that reaches a project that already exists.</value></data>
-  <data name="TemplatesCount" xml:space="preserve"><value>{0} templates</value></data>
+  <data name="TemplatesNav" xml:space="preserve"><value>Workflow</value></data>
+  <data name="TemplatesTitle" xml:space="preserve"><value>Workflow</value></data>
+  <data name="TemplatesHeading" xml:space="preserve"><value>Workflow</value></data>
+  <data name="TemplatesHint" xml:space="preserve"><value>The workflows a new project is created from: the stages and artifacts of its pipelines, the board projections, the starting memory, the default settings and the git policy. Each set is copied into a project at init and never read again, so a project is autonomous - and "apply" is the one action that reaches a project that already exists.</value></data>
+  <data name="TemplatesCount" xml:space="preserve"><value>{0} sets</value></data>
   <data name="TemplateDefault" xml:space="preserve"><value>default</value></data>
   <data name="TemplateBuiltIn" xml:space="preserve"><value>built-in</value></data>
   <data name="CaptureFromProject" xml:space="preserve"><value>Capture from a project</value></data>
@@ -465,8 +462,7 @@
   <data name="ProjectLabel" xml:space="preserve"><value>Project</value></data>
   <data name="CoreFallbackConfig" xml:space="preserve"><value>Core fallback config</value></data>
   <data name="ImmutableSync" xml:space="preserve"><value>Immutable sync</value></data>
-  <data name="GlobalSettingsHeading" xml:space="preserve"><value>Global system settings</value></data>
-  <data name="ResetToDefaults" xml:space="preserve"><value>Reset to system defaults</value></data>
+    <data name="ResetToDefaults" xml:space="preserve"><value>Reset to system defaults</value></data>
   <data name="DaemonHostSecurity" xml:space="preserve"><value>Daemon transport &amp; credentials</value></data>
   <data name="DaemonHostSecurityHint" xml:space="preserve"><value>The isolated loopback transport of the core and its handshake keys</value></data>
   <data name="LoopbackSafe" xml:space="preserve"><value>Loopback safe</value></data>

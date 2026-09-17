@@ -207,14 +207,14 @@
                             }
                         </BadgeContent>
                     </FlareNavLink>
+                    @* Workflow is the last item of the overview: it is where the pipelines every project is
+                       created from live, and it replaces a separate "global settings" screen - the same
+                       editor, pointed at a template. *@
                     <FlareNavLink Href="/templates">
                         <ChildContent>@Loc.Get("TemplatesNav")</ChildContent>
                         <BadgeContent>
                             <span class="aiko-tag aiko-tag--quiet">@DisplayFormat.Number(State.Templates.Count)</span>
                         </BadgeContent>
-                    </FlareNavLink>
-                    <FlareNavLink Href="@SettingsHref">
-                        <ChildContent>@Loc.Get("GlobalSettingsNav")</ChildContent>
                     </FlareNavLink>
 
                     @if (State.SelectedProject is { } open)
@@ -365,10 +365,6 @@
     private string ProjectHref => State.SelectedProjectId is { } projectId
         ? $"/p/{Uri.EscapeDataString(projectId)}"
         : "/";
-
-    private string SettingsHref => State.SelectedProjectId is { } projectId
-        ? SectionHref(projectId, "settings")
-        : "/settings";
 
     /// <summary>"Project: name (active)", or the invitation to open one.</summary>
     private string ProjectSwitchCaption => State.SelectedProject is { } project

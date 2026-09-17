@@ -129,26 +129,31 @@
                 <FlarePaper Elevation="0" Padding="FlareSpacing.Medium" Square="true" Class="aiko-panel">
                     <FlareStack Gap="FlareSpacing.Small">
                         <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small" Wrap="true">
-                            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
-                                <span class="aiko-panel__icon aiko-panel__icon--primary">
-                                    <FlareIconView Value="@MaterialDesign3Icons.Regular.Layers" />
-                                </span>
-                                <FlareText Element="span" Typo="TypographyScale.BodyMedium" Weight="FontWeight.SemiBold">
-                                    @item.Name
-                                </FlareText>
-                                <span class="aiko-tag aiko-tag--quiet">@($"v{item.Version}")</span>
-                                @if (item.IsDefault)
-                                {
-                                    <span class="aiko-tag aiko-tag--accent">@Loc.Get("TemplateDefault")</span>
-                                }
-                                @if (item.IsBuiltIn)
-                                {
-                                    <span class="aiko-tag">@Loc.Get("TemplateBuiltIn")</span>
-                                }
-                            </FlareStack>
+                            <FlareNavLink Href="@EditorHref(item.Id)" Class="aiko-card__row-body">
+                                <ChildContent>
+                                    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                                        <span class="aiko-panel__icon aiko-panel__icon--primary">
+                                            <FlareIconView Value="@MaterialDesign3Icons.Regular.Layers" />
+                                        </span>
+                                        <FlareText Element="span" Typo="TypographyScale.BodyMedium" Weight="FontWeight.SemiBold">
+                                            @item.Name
+                                        </FlareText>
+                                        <span class="aiko-tag aiko-tag--quiet">@($"v{item.Version}")</span>
+                                        @if (item.IsDefault)
+                                        {
+                                            <span class="aiko-tag aiko-tag--accent">@Loc.Get("TemplateDefault")</span>
+                                        }
+                                        @if (item.IsBuiltIn)
+                                        {
+                                            <span class="aiko-tag">@Loc.Get("TemplateBuiltIn")</span>
+                                        }
+                                    </FlareStack>
+                                </ChildContent>
+                                <BadgeContent>
+                                    <FlareIconView Value="@MaterialDesign3Icons.Regular.ChevronRight" Color="FlareColor.OnSurfaceVariant2" />
+                                </BadgeContent>
+                            </FlareNavLink>
                             <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall" Wrap="true">
-                                <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm"
-                                             Href="@EditorHref(item.Id)">@Loc.Get("Edit")</FlareButton>
                                 <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm"
                                              Disabled="@(_busy || State.Projects.Count == 0)"
                                              OnClick="() => BeginApply(item.Id)">@Loc.Get("ApplyToProject")</FlareButton>

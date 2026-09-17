@@ -158,10 +158,8 @@
   <data name="PolicyAllow" xml:space="preserve"><value>Разрешать</value></data>
   <data name="PolicyDeny" xml:space="preserve"><value>Запрещать</value></data>
   <data name="SaveProjectSettings" xml:space="preserve"><value>Сохранить настройки проекта</value></data>
-  <data name="GlobalSettings" xml:space="preserve"><value>Приложение</value></data>
-  <data name="GlobalHint" xml:space="preserve"><value>Применяются ко всем проектам без собственных настроек.</value></data>
-  <data name="SaveGlobalSettings" xml:space="preserve"><value>Сохранить глобальные настройки</value></data>
-  <data name="SelectProjectForLocalSettings" xml:space="preserve"><value>Настройки проекта станут доступны после выбора проекта. Глобальные настройки ниже применяются ко всем проектам.</value></data>
+    <data name="GlobalHint" xml:space="preserve"><value>Применяются ко всем проектам без собственных настроек.</value></data>
+    <data name="SelectProjectForLocalSettings" xml:space="preserve"><value>Настройки проекта станут доступны после выбора проекта. Глобальные настройки ниже применяются ко всем проектам.</value></data>
   <data name="SourceProject" xml:space="preserve"><value>проект</value></data>
   <data name="SourceGlobal" xml:space="preserve"><value>глобально</value></data>
   <data name="SourceDefault" xml:space="preserve"><value>по умолчанию</value></data>
@@ -363,8 +361,7 @@
   <data name="ProjectOverviewNav" xml:space="preserve"><value>Обзор и статистика проекта</value></data>
   <data name="StoriesBacklog" xml:space="preserve"><value>Истории и бэклог</value></data>
   <data name="ProjectSettingsNav" xml:space="preserve"><value>Настройки проекта</value></data>
-  <data name="GlobalSettingsNav" xml:space="preserve"><value>Глобальные настройки</value></data>
-  <data name="ProjectOverviewHint" xml:space="preserve"><value>Что это за проект, из чего он состоит и как его карточки распределены по пайплайнам</value></data>
+    <data name="ProjectOverviewHint" xml:space="preserve"><value>Что это за проект, из чего он состоит и как его карточки распределены по пайплайнам</value></data>
   <data name="ProjectDataTitle" xml:space="preserve"><value>Данные проекта</value></data>
   <data name="ProjectDataHint" xml:space="preserve"><value>Где лежит проект и что демон из него читает</value></data>
   <data name="WorkflowsTitle" xml:space="preserve"><value>Workflows</value></data>
@@ -390,8 +387,8 @@
   <data name="ManagedHeap" xml:space="preserve"><value>managed heap {0}</value></data>
   <data name="StageLoadHint" xml:space="preserve"><value>Каждая полоса - доля этапа от самого нагруженного этапа его конвейера</value></data>
   <data name="GitHubRepository" xml:space="preserve"><value>Aiko на GitHub</value></data>
-  <data name="TemplateScope" xml:space="preserve"><value>Шаблон по умолчанию</value></data>
-  <data name="TemplateSettingsHeading" xml:space="preserve"><value>Настройки шаблона по умолчанию</value></data>
+  <data name="TemplateScope" xml:space="preserve"><value>Workflow по умолчанию</value></data>
+  <data name="TemplateSettingsHeading" xml:space="preserve"><value>Настройки workflow по умолчанию</value></data>
   <data name="TemplateSettingsHint" xml:space="preserve"><value>С чем создаётся новый проект: настройки выполнения, модель оценки и конвейеры. Существующие проекты хранят свою копию и не затрагиваются.</value></data>
   <data name="SaveTemplateSettings" xml:space="preserve"><value>Сохранить шаблон</value></data>
   <data name="SizeGridPickHint" xml:space="preserve"><value>Выберите размер, чтобы изменить его название, коэффициент и описание.</value></data>
@@ -427,11 +424,11 @@
   <data name="NoSize" xml:space="preserve"><value>Без размера</value></data>
   <data name="SizeHintEmpty" xml:space="preserve"><value>Без шага: коэффициент размера нейтральный (x1.00)</value></data>
   <data name="Template" xml:space="preserve"><value>Шаблон</value></data>
-  <data name="TemplatesNav" xml:space="preserve"><value>Шаблоны проектов</value></data>
-  <data name="TemplatesTitle" xml:space="preserve"><value>Шаблоны</value></data>
-  <data name="TemplatesHeading" xml:space="preserve"><value>Шаблоны проектов</value></data>
-  <data name="TemplatesHint" xml:space="preserve"><value>Из чего создаётся новый проект: этапы и артефакты пайплайнов, проекции доски, стартовая память, значения по умолчанию и git-политика. Init копирует выбранный шаблон и больше его не читает, поэтому проект автономен — а «Применить» это единственное действие, которое доходит до уже существующего проекта.</value></data>
-  <data name="TemplatesCount" xml:space="preserve"><value>шаблонов: {0}</value></data>
+  <data name="TemplatesNav" xml:space="preserve"><value>Workflow</value></data>
+  <data name="TemplatesTitle" xml:space="preserve"><value>Workflow</value></data>
+  <data name="TemplatesHeading" xml:space="preserve"><value>Workflow</value></data>
+  <data name="TemplatesHint" xml:space="preserve"><value>Из чего создаётся новый проект: этапы и артефакты пайплайнов, проекции доски, стартовая память, значения по умолчанию и git-политика. Набор копируется в проект при init и больше не читается, поэтому проект автономен — а «Применить» это единственное действие, которое доходит до уже существующего проекта.</value></data>
+  <data name="TemplatesCount" xml:space="preserve"><value>наборов: {0}</value></data>
   <data name="TemplateDefault" xml:space="preserve"><value>по умолчанию</value></data>
   <data name="TemplateBuiltIn" xml:space="preserve"><value>встроенный</value></data>
   <data name="CaptureFromProject" xml:space="preserve"><value>Снять с проекта</value></data>
@@ -464,8 +461,7 @@
   <data name="ProjectLabel" xml:space="preserve"><value>Проект</value></data>
   <data name="CoreFallbackConfig" xml:space="preserve"><value>Базовая конфигурация ядра</value></data>
   <data name="ImmutableSync" xml:space="preserve"><value>Неизменяемый источник</value></data>
-  <data name="GlobalSettingsHeading" xml:space="preserve"><value>Глобальные настройки системы</value></data>
-  <data name="ResetToDefaults" xml:space="preserve"><value>Сбросить к системным значениям</value></data>
+    <data name="ResetToDefaults" xml:space="preserve"><value>Сбросить к системным значениям</value></data>
   <data name="DaemonHostSecurity" xml:space="preserve"><value>Транспорт и учётные данные демона</value></data>
   <data name="DaemonHostSecurityHint" xml:space="preserve"><value>Изолированный loopback-транспорт ядра и ключи рукопожатия</value></data>
   <data name="LoopbackSafe" xml:space="preserve"><value>Только loopback</value></data>

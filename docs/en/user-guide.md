@@ -73,7 +73,7 @@ Three levels exist, from widest to narrowest, and the narrower one wins:
 
 - **Template** (`templates/default/template.json` next to the daemon's database) - what a new project is
   created from: the execution defaults, the scoring model (weights, criteria, size grid) and the pipelines
-  with their stages. This is the level the **Global settings** screen edits, and editing it affects the
+  with their stages. This is the level the **Workflow** screen edits, and editing it affects the
   projects created afterwards, never the ones that already exist.
 - **Installation** (`app-settings.json` next to the database) - the daemon-level fallback for the sections a
   template leaves out. Aiko writes it at init; the screen does not edit it.
@@ -98,7 +98,8 @@ the projects created afterwards, never the ones that already exist. `.aiko/proje
 `templateId` and `templateVersion`, so a project can always say which template built it. The git policy is
 part of the template: an init takes it from there unless the request names one.
 
-The **Project templates** screen (`/templates`) lists them and owns everything else:
+The **Workflow** screen (`/templates`) lists them and owns everything else; a set's settings open by clicking
+its name:
 
 - **Capture from a project** - a new template out of an existing project: a snapshot of its settings, its
   pipelines, its projections, its memory and its git policy. It is how an installation pins a project it
