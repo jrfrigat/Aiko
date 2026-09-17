@@ -542,6 +542,7 @@
   <data name="CardTypeIdTitleRequired" xml:space="preserve"><value>A type id and a name are required.</value></data>
   <data name="CardTypeExists" xml:space="preserve"><value>Card type '{0}' already exists.</value></data>
   <data name="CardTypeCreated" xml:space="preserve"><value>Card type '{0}' was created.</value></data>
+  <data name="BacklogStageFirst" xml:space="preserve"><value>The backlog is always the first status: nothing can be placed before it.</value></data>
   <data name="BacklogStageReserved" xml:space="preserve"><value>Backlog is a standard column and cannot be removed.</value></data>
   <data name="StageTitleBacklog" xml:space="preserve"><value>Backlog</value></data>
   <data name="StageTitleInProgress" xml:space="preserve"><value>In progress</value></data>

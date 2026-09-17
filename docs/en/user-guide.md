@@ -99,7 +99,8 @@ and their board section are named after it.
 
 A project owns its own copy of the pipelines, so a change there never reaches another project - or a project
 created later from the template. Removing a stage that still contains cards is rejected, removing a card type
-that still contains cards is rejected too, and the `backlog` column is protected from removal.
+that still contains cards is rejected too, and the `backlog` column is protected twice over: it is not removed
+and it stays first, because a card enters its pipeline there - no other status can be placed before it.
 
 ## Agent bridges
 

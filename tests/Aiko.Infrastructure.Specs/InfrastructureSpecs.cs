@@ -481,6 +481,25 @@ public class InfrastructureSpecs
                     withoutBacklog,
                     workflow.Revision,
                     CancellationToken.None));
+
+            // A pipeline that keeps the backlog but puts another stage ahead of it is refused too: the
+            // backlog is where a card enters its workflow, so nothing may be placed before it.
+            var beforeBacklog = workflow with
+            {
+                Stages = workflow.Stages
+                    .Select(stage => stage.Id == "backlog"
+                        ? stage with { Order = workflow.Stages.Max(item => item.Order) + 10 }
+                        : stage)
+                    .ToArray(),
+                Revision = workflow.Revision + 1
+            };
+
+            await Assert.ThrowsAsync<ArgumentException>(async () =>
+                await store.SaveWorkflowAsync(
+                    context.Project.Id,
+                    beforeBacklog,
+                    workflow.Revision,
+                    CancellationToken.None));
         });
     }
 

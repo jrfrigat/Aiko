@@ -546,6 +546,42 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
             });
         Assert.Equal(HttpStatusCode.BadRequest, withoutBacklog.StatusCode);
 
+        // And so is a pipeline that puts something before it: a card enters its workflow in the backlog, so
+        // no status may be ahead of it.
+        using var beforeBacklog = await http.PutAsJsonAsync(
+            $"api/v1/projects/{project}/workflows/epic",
+            new
+            {
+                title = "Epics",
+                expectedRevision = 1,
+                stages = new object[]
+                {
+                    new
+                    {
+                        id = "in-progress",
+                        title = "In progress",
+                        order = 10,
+                        instruction = "Work the epic.",
+                        allowedCardKinds = new[] { "Epic" },
+                        defaultAgentAdapterId = (string?)null,
+                        requiredArtifacts = Array.Empty<object>(),
+                        actionPolicies = new Dictionary<string, string>()
+                    },
+                    new
+                    {
+                        id = "backlog",
+                        title = "Backlog",
+                        order = 20,
+                        instruction = "Clarify the epic.",
+                        allowedCardKinds = new[] { "Epic" },
+                        defaultAgentAdapterId = (string?)null,
+                        requiredArtifacts = Array.Empty<object>(),
+                        actionPolicies = new Dictionary<string, string>()
+                    }
+                }
+            });
+        Assert.Equal(HttpStatusCode.BadRequest, beforeBacklog.StatusCode);
+
         // A type that still has cards is not removed, so nothing is stranded.
         using var removeWithCards = await http.DeleteAsync($"api/v1/projects/{project}/workflows/epic");
         Assert.Equal(HttpStatusCode.BadRequest, removeWithCards.StatusCode);

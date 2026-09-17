@@ -194,6 +194,9 @@
                     @Loc.Get("StagesTitle")
                 </FlareText>
                 <span class="aiko-tag aiko-tag--quiet">@DisplayFormat.Number(_stages.Count)</span>
+                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                    @Loc.Get("BacklogStageFirst")
+                </FlareText>
             </FlareStack>
             @* The pipeline as the design draws it: one card per stage, saying what the stage is (its role in
                the pipeline), who may run it, what it must produce and how it is verified. Clicking a card
@@ -283,10 +286,12 @@
                             <FlareIconButton Icon="@FlareIcons.ArrowUpward"
                                              Variant="ButtonVariant.Text"
                                              AriaLabel="@Loc.Get("MoveUp")"
+                                             Disabled="@(!CanMoveUp(card))"
                                              OnClick="() => MoveStageTo(card, -1)" />
                             <FlareIconButton Icon="@FlareIcons.ArrowDownward"
                                              Variant="ButtonVariant.Text"
                                              AriaLabel="@Loc.Get("MoveDown")"
+                                             Disabled="@(!CanMoveDown(card))"
                                              OnClick="() => MoveStageTo(card, 1)" />
                         </span>
                     </div>
@@ -767,6 +772,9 @@
             .OrderBy(stage => stage.Order)
             .Select(StageDraft.FromDefinition)
             .ToList();
+        // The pipeline invariant, applied to what was read: a file that put something before the backlog
+        // would otherwise be drawn that way and then refused on save.
+        NormalizeOrder();
         _selectedStage = _stages.FirstOrDefault();
         _message = null;
         _hasError = false;
@@ -1016,8 +1024,20 @@
         return true;
     }
 
+    /// <summary>
+    /// Renumbers the stages by their place in the list - and pins the reserved backlog to the front, which
+    /// is the pipeline invariant rather than a preference: a card enters its workflow there, so nothing may
+    /// be placed before it.
+    /// </summary>
     private void NormalizeOrder()
     {
+        var backlog = _stages.FirstOrDefault(IsBacklogStage);
+        if (backlog is not null && !ReferenceEquals(_stages[0], backlog))
+        {
+            _stages.Remove(backlog);
+            _stages.Insert(0, backlog);
+        }
+
         for (var index = 0; index < _stages.Count; index++)
         {
             _stages[index].Order = (index + 1) * 10;
@@ -1195,13 +1215,15 @@
 
     /// <summary>
     /// Moves one stage in the pipeline. Reordering is the panel's own operation - it needs no drawer,
-    /// because it changes the list rather than the stage.
+    /// because it changes the list rather than the stage. The arrows that would break the pipeline's own
+    /// rule are disabled, and the move is refused here as well so a stray click cannot either.
     /// </summary>
     private void MoveStageTo(StageDraft stage, int offset)
     {
         var current = _stages.IndexOf(stage);
         var target = current + offset;
-        if (current < 0 || target < 0 || target >= _stages.Count)
+        if (current < 0 || target < 0 || target >= _stages.Count ||
+            (offset < 0 ? !CanMoveUp(stage) : !CanMoveDown(stage)))
         {
             return;
         }
@@ -1211,6 +1233,22 @@
         NormalizeOrder();
         _selectedStage = stage;
     }
+
+    /// <summary>The backlog's place in the list, which is where a card enters the pipeline.</summary>
+    private int IndexOfBacklog => _stages.FindIndex(IsBacklogStage);
+
+    /// <summary>
+    /// Whether a stage may move towards the top. The reserved backlog is first by construction, so the
+    /// stage directly below it has nowhere to go.
+    /// </summary>
+    private bool CanMoveUp(StageDraft stage) => _stages.IndexOf(stage) > IndexOfBacklog + 1;
+
+    /// <summary>
+    /// Whether a stage may move towards the bottom. The backlog never moves down - nothing may be placed
+    /// before it - and the last stage has no room left.
+    /// </summary>
+    private bool CanMoveDown(StageDraft stage) =>
+        !IsBacklogStage(stage) && _stages.IndexOf(stage) < _stages.Count - 1;
 
     /// <summary>
     /// A stage's place in the pipeline. Derived from the order rather than stored: the first stage is where

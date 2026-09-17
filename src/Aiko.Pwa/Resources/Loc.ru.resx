@@ -541,6 +541,7 @@
   <data name="CardTypeIdTitleRequired" xml:space="preserve"><value>Укажите ID и название типа.</value></data>
   <data name="CardTypeExists" xml:space="preserve"><value>Тип карточек «{0}» уже существует.</value></data>
   <data name="CardTypeCreated" xml:space="preserve"><value>Тип карточек «{0}» создан.</value></data>
+  <data name="BacklogStageFirst" xml:space="preserve"><value>Бэклог всегда первый статус: поставить что-либо перед ним нельзя.</value></data>
   <data name="BacklogStageReserved" xml:space="preserve"><value>Бэклог — стандартная колонка, её нельзя удалить.</value></data>
   <data name="StageTitleBacklog" xml:space="preserve"><value>Бэклог</value></data>
   <data name="StageTitleInProgress" xml:space="preserve"><value>В работе</value></data>
