@@ -201,4 +201,20 @@
   <data name="InvalidWeights" xml:space="preserve"><value>Веса должны быть неотрицательными, и хотя бы один — больше нуля.</value></data>
   <data name="CriterionTitleRequired" xml:space="preserve"><value>У каждого критерия должно быть название.</value></data>
   <data name="NotPairedHint" xml:space="preserve"><value>Браузер ещё не сопряжён с демоном. Откройте доску командой: aiko ui</value></data>
+  <data name="Dashboard" xml:space="preserve"><value>Дашборд</value></data>
+  <data name="DashboardCaption" xml:space="preserve"><value>Все проекты, все карточки и год активности в одном месте.</value></data>
+  <data name="StatProjects" xml:space="preserve"><value>Проекты</value></data>
+  <data name="StatCards" xml:space="preserve"><value>Карточки</value></data>
+  <data name="StatTasks" xml:space="preserve"><value>Задачи</value></data>
+  <data name="StatStories" xml:space="preserve"><value>Истории</value></data>
+  <data name="StatInProgress" xml:space="preserve"><value>В работе</value></data>
+  <data name="StatOutOfScope" xml:space="preserve"><value>Вне scope</value></data>
+  <data name="ActivityTitle" xml:space="preserve"><value>Активность</value></data>
+  <data name="ActivityCaption" xml:space="preserve"><value>запуски и события · за год</value></data>
+  <data name="ActivityNone" xml:space="preserve"><value>Пока ничего не записано. Запустите демон и выполните этап.</value></data>
+  <data name="ActivityLess" xml:space="preserve"><value>меньше</value></data>
+  <data name="ActivityMore" xml:space="preserve"><value>больше</value></data>
+  <data name="BoardUnavailable" xml:space="preserve"><value>Не удалось загрузить доску. Обновите страницу.</value></data>
+  <data name="WorkflowUnavailable" xml:space="preserve"><value>В этом проекте пока нет workflow.</value></data>
+  <data name="QuickStartTitle" xml:space="preserve"><value>Быстрый старт</value></data>
 </root>

@@ -1,0 +1,328 @@
+@inherits LayoutComponentBase
+@implements IAsyncDisposable
+@inject WorkspaceState State
+@inject NavigationManager Navigation
+
+@* The application shell. Every screen is a page rendered into @Body; the shell owns what all of them
+   share: the brand and telemetry bar, the project rail, the card drawer and the error banner.
+
+   The rail's items are ordinary links (FlareNavLink Href=...) rather than click handlers, so Flare
+   marks the current one active from the navigation string alone - the address bar, the back button and
+   a deep link are all the same source of truth. That is also why the open project and the open card are
+   route segments: the URL says where you are, and nothing has to be kept in step by hand. *@
+<FlareLayout>
+    <FlareLayoutAppBar DrawerToggle="true">
+        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small" StretchFirst="true">
+            @* Brand: an icon tile, the app name, the daemon version and the AOT tag. *@
+            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
+                <FlarePaper Elevation="0" Class="aiko-brand">
+                    <FlareIconView Value="@FlareIcons.GridOn" Color="FlareColor.Primary" />
+                </FlarePaper>
+                <FlareStack Gap="FlareSpacing.None">
+                    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
+                        <FlareText Element="h1" Typo="TypographyScale.HeadlineMedium">Aiko</FlareText>
+                        @if (State.System is not null)
+                        {
+                            <span class="aiko-tag aiko-tag--accent">v@State.System.Version</span>
+                        }
+                        <span class="aiko-tag">@Loc.Get("NativeAot")</span>
+                    </FlareStack>
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant">
+                        @(State.SelectedProject?.Name ?? Loc.Get("BoardCaption"))
+                    </FlareText>
+                </FlareStack>
+            </FlareStack>
+
+            @* Telemetry: daemon state and the local endpoint. *@
+            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Class="aiko-status">
+                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall" Class="aiko-pill">
+                    <FlareBadge Dot="true"
+                                Standalone="true"
+                                Color="@(State.EventsConnected ? FlareColor.Tertiary : FlareColor.Warning)" />
+                    <FlareText Element="span" Mono="true"
+                               Color="@(State.EventsConnected ? FlareColor.Tertiary : FlareColor.Warning)">
+                        @(State.EventsConnected ? "SSE LIVE" : "ONLINE")
+                    </FlareText>
+                </FlareStack>
+                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall" Class="aiko-pill">
+                    <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant2">@Loc.Get("Host")</FlareText>
+                    <FlareText Element="span" Mono="true">@State.HostCaption</FlareText>
+                </FlareStack>
+            </FlareStack>
+
+            @* The card jump list exists only where cards are drawn: on a board route. *@
+            @if (OnBoardRoute && State.Board is { } board)
+            {
+                <FlareSelect TValue="string"
+                             Label="@Loc.Get("CardFilter")"
+                             Placeholder="@Loc.Get("Choose")"
+                             Size="FieldSize.Sm"
+                             Value="@State.SelectedCardId"
+                             ValueChanged="SelectCardAsync">
+                    <option value="">@Loc.Get("Choose")</option>
+                    @foreach (var card in board.Cards.OrderBy(card => card.Reference.CardId, StringComparer.Ordinal))
+                    {
+                        <option value="@card.Reference.CardId">@card.Reference.CardId - @card.Title</option>
+                    }
+                </FlareSelect>
+            }
+
+            <FlareIconButton Variant="ButtonVariant.Text"
+                             Icon="@FlareIcons.Refresh"
+                             AriaLabel="@Loc.Get("Refresh")"
+                             Loading="@State.Loading"
+                             OnClick="State.ReloadAsync" />
+        </FlareStack>
+    </FlareLayoutAppBar>
+
+    <FlareLayoutDrawer @bind-Open="_railOpen"
+                       Variant="DrawerVariant.Persistent"
+                       Width="16rem"
+                       AriaLabel="@Loc.Get("RailAriaLabel")">
+        <FlareNavMenu>
+            <HeaderContent>
+                @* One location at a time. The workspace items exist only while a project is open -
+                   before that the dashboard is the workspace. *@
+                <FlareStack Class="aiko-rail__head" Gap="FlareSpacing.XXSmall">
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
+                        @Loc.Get("WorkspaceFlow")
+                    </FlareText>
+                    <FlareNavLink Href="/" Match="NavMatchMode.Exact">
+                        <IconContent><FlareIconView Value="@FlareIcons.Home" /></IconContent>
+                        <ChildContent>@Loc.Get("Dashboard")</ChildContent>
+                    </FlareNavLink>
+                    @if (State.SelectedProjectId is { } projectId)
+                    {
+                        <FlareNavLink Href="@BoardHref(projectId)">
+                            <IconContent><FlareIconView Value="@FlareIcons.GridOn" /></IconContent>
+                            <ChildContent>@Loc.Get("KanbanBoard")</ChildContent>
+                            <BadgeContent>
+                                <span class="aiko-tag aiko-tag--accent">@DisplayFormat.Number(State.Board?.Cards.Count ?? 0)</span>
+                            </BadgeContent>
+                        </FlareNavLink>
+                        <FlareNavLink Href="@SectionHref(projectId, "stories")">
+                            <IconContent><FlareIconView Value="@FlareIcons.FolderOpen" /></IconContent>
+                            <ChildContent>@Loc.Get("StoriesNav")</ChildContent>
+                            <BadgeContent>
+                                <span class="aiko-tag">@DisplayFormat.Number(BoardMetrics.CountKind(State.Board, CardKind.Story))</span>
+                            </BadgeContent>
+                        </FlareNavLink>
+                        <FlareNavLink Href="@SectionHref(projectId, "tasks")">
+                            <IconContent><FlareIconView Value="@FlareIcons.ViewColumn" /></IconContent>
+                            <ChildContent>@Loc.Get("TasksNav")</ChildContent>
+                            <BadgeContent>
+                                <span class="aiko-tag">@DisplayFormat.Number(BoardMetrics.CountKind(State.Board, CardKind.Task))</span>
+                            </BadgeContent>
+                        </FlareNavLink>
+                        <FlareNavLink Href="@SectionHref(projectId, "workflow")">
+                            <IconContent><FlareIconView Value="@FlareIcons.Tune" /></IconContent>
+                            <ChildContent>@Loc.Get("Workflow")</ChildContent>
+                            <BadgeContent>
+                                <span class="aiko-tag">@DisplayFormat.Number(State.Board?.Workflows.Count ?? 0)</span>
+                            </BadgeContent>
+                        </FlareNavLink>
+                    }
+                    <FlareNavLink Href="@SettingsHref">
+                        <IconContent><FlareIconView Value="@FlareIcons.Settings" /></IconContent>
+                        <ChildContent>@Loc.Get("Settings")</ChildContent>
+                    </FlareNavLink>
+                </FlareStack>
+            </HeaderContent>
+
+            <FooterContent>
+                <FlareStack Class="aiko-rail__foot" Gap="FlareSpacing.XXSmall">
+                    <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XXSmall">
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
+                            @Loc.Get("OrchestrationLoad")
+                        </FlareText>
+                        <FlareText Element="span" Mono="true" Color="FlareColor.Tertiary">@LoadPercent%</FlareText>
+                    </FlareStack>
+                    <FlareProgressLinear Value="@LoadPercent" Size="TrackSize.Xs" Color="FlareColor.Tertiary" />
+                    <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XXSmall">
+                        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
+                            <FlareBadge Dot="true"
+                                        Standalone="true"
+                                        Color="@(State.EventsConnected ? FlareColor.Tertiary : FlareColor.Warning)" />
+                            <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant">
+                                @Loc.Get("ContextEngine")
+                            </FlareText>
+                        </FlareStack>
+                        <FlareText Element="span" Mono="true" Color="FlareColor.Secondary">
+                            @(State.EventsConnected ? "SSE" : "online")
+                        </FlareText>
+                    </FlareStack>
+                </FlareStack>
+            </FooterContent>
+
+            <ChildContent>
+                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow aiko-rail__group">
+                    @Loc.Get("Projects")
+                </FlareText>
+                @foreach (var project in State.Projects)
+                {
+                    var item = project;
+                    <FlareNavLink Href="@BoardHref(item.Id)" Tooltip="@item.RootPath">
+                        <IconContent>
+                            <FlareAvatar Text="@DisplayFormat.Initials(item.Name)"
+                                         Size="AvatarSize.Xs"
+                                         Shape="AvatarShape.Square" />
+                        </IconContent>
+                        <ChildContent>@item.Name</ChildContent>
+                        <BadgeContent>
+                            <span class="aiko-tag aiko-tag--clip" title="@item.RootPath">@DisplayFormat.ProjectTag(item.RootPath)</span>
+                        </BadgeContent>
+                    </FlareNavLink>
+                }
+            </ChildContent>
+        </FlareNavMenu>
+    </FlareLayoutDrawer>
+
+    <FlareLayoutContent>
+        <FlareStack Gap="FlareSpacing.Medium">
+            @if (State.Error is { Length: > 0 } error)
+            {
+                <FlareAlert Severity="AlertSeverity.Error"
+                            Variant="AlertVariant.Outlined"
+                            Title="@Loc.Get("BoardUpdateFailed")">@error</FlareAlert>
+            }
+
+            @if (State.Loading)
+            {
+                <FlareStack Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
+                    <FlareProgressCircular />
+                    <FlareText Element="span" Typo="TypographyScale.BodyMedium" Color="FlareColor.OnSurfaceVariant">
+                        @Loc.Get("LoadingContext")
+                    </FlareText>
+                </FlareStack>
+            }
+            else
+            {
+                @Body
+            }
+        </FlareStack>
+    </FlareLayoutContent>
+
+    @* The card detail is a push drawer rather than a panel in the page, so it narrows the board
+       instead of covering it, and FlareLayout turns it into a modal overlay (scrim and Escape) below the
+       Md breakpoint. It stays mounted while closed so the layout keeps a stable track count. *@
+    <FlareLayoutDrawer Anchor="DrawerAnchor.Right"
+                       Variant="DrawerVariant.Persistent"
+                       Width="26rem"
+                       Open="@(State.SelectedCard is not null)"
+                       OpenChanged="OnInspectorOpenChanged"
+                       AriaLabel="@Loc.Get("InspectorAriaLabel")">
+        @if (State.SelectedCard is { } card && State.Board is { } board)
+        {
+            <CardInspector Card="card"
+                           Board="board"
+                           ExecutionRefreshTick="State.ExecutionPulse"
+                           OnSaved="State.LoadBoardAsync"
+                           OnClose="CloseCard" />
+        }
+    </FlareLayoutDrawer>
+</FlareLayout>
+
+@code {
+    private bool _railOpen = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        State.Changed += OnStateChanged;
+        Navigation.LocationChanged += OnLocationChanged;
+        await State.EnsureInitializedAsync();
+    }
+
+    // The service raises the change from whatever context the SSE callback arrived on; the component
+    // marshals it onto the renderer's.
+    private Task OnStateChanged() => InvokeAsync(StateHasChanged);
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs args) =>
+        InvokeAsync(StateHasChanged);
+
+    /// <summary>Whether the current route draws cards, i.e. whether the card jump list belongs here.</summary>
+    private bool OnBoardRoute => State.SelectedProjectId is not null &&
+        CurrentSection() is "board" or "stories" or "tasks";
+
+    /// <summary>The section of the current route; "board" when the route names no other one.</summary>
+    private string CurrentSection()
+    {
+        var path = new Uri(Navigation.Uri).AbsolutePath;
+        string[] sections = ["stories", "tasks", "workflow", "settings"];
+        return sections.FirstOrDefault(section =>
+            path.Contains($"/{section}/", StringComparison.Ordinal) ||
+            path.EndsWith($"/{section}", StringComparison.Ordinal)) ?? "board";
+    }
+
+    private static string BoardHref(string projectId) =>
+        $"/p/{Uri.EscapeDataString(projectId)}/board";
+
+    private static string SectionHref(string projectId, string section) =>
+        $"/p/{Uri.EscapeDataString(projectId)}/{section}";
+
+    private string SettingsHref => State.SelectedProjectId is { } projectId
+        ? SectionHref(projectId, "settings")
+        : "/settings";
+
+    /// <summary>
+    /// The rail's orchestration load: the share of cards an agent is working right now. A real
+    /// measurement (cards between the first and the last stage), not a decorative number.
+    /// </summary>
+    private double LoadPercent
+    {
+        get
+        {
+            var total = State.Board?.Cards.Count ?? 0;
+            if (total == 0)
+            {
+                return 0;
+            }
+
+            return Math.Round(
+                BoardMetrics.InProgressCount(State.Board) * 100d / total,
+                MidpointRounding.AwayFromZero);
+        }
+    }
+
+    /// <summary>
+    /// The jump list is a navigation, not a local selection: the chosen card becomes a route segment so
+    /// the drawer, the URL and the back button all agree.
+    /// </summary>
+    private async Task SelectCardAsync(string? cardId)
+    {
+        if (State.SelectedProjectId is not { } projectId)
+        {
+            return;
+        }
+
+        var section = CurrentSection();
+        var target = string.IsNullOrWhiteSpace(cardId)
+            ? SectionHref(projectId, section)
+            : $"{SectionHref(projectId, section)}/card/{Uri.EscapeDataString(cardId)}";
+        Navigation.NavigateTo(target);
+        await Task.CompletedTask;
+    }
+
+    /// <summary>A scrim tap, Escape or a route change closed the drawer: leave the card route.</summary>
+    private void OnInspectorOpenChanged(bool open)
+    {
+        if (!open && State.SelectedCardId is not null)
+        {
+            CloseCard();
+        }
+    }
+
+    private void CloseCard()
+    {
+        if (State.SelectedProjectId is { } projectId)
+        {
+            Navigation.NavigateTo(SectionHref(projectId, CurrentSection()));
+        }
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        State.Changed -= OnStateChanged;
+        Navigation.LocationChanged -= OnLocationChanged;
+        return ValueTask.CompletedTask;
+    }
+}

@@ -201,4 +201,20 @@
   <data name="InvalidWeights" xml:space="preserve"><value>Weights must be zero or greater, and at least one of them above zero.</value></data>
   <data name="CriterionTitleRequired" xml:space="preserve"><value>Every criterion needs a title.</value></data>
   <data name="NotPairedHint" xml:space="preserve"><value>This browser is not paired with the daemon yet. Open the board with: aiko ui</value></data>
+  <data name="Dashboard" xml:space="preserve"><value>Dashboard</value></data>
+  <data name="DashboardCaption" xml:space="preserve"><value>Every project, every card, and a year of activity in one place.</value></data>
+  <data name="StatProjects" xml:space="preserve"><value>Projects</value></data>
+  <data name="StatCards" xml:space="preserve"><value>Cards</value></data>
+  <data name="StatTasks" xml:space="preserve"><value>Tasks</value></data>
+  <data name="StatStories" xml:space="preserve"><value>Stories</value></data>
+  <data name="StatInProgress" xml:space="preserve"><value>In progress</value></data>
+  <data name="StatOutOfScope" xml:space="preserve"><value>Out of scope</value></data>
+  <data name="ActivityTitle" xml:space="preserve"><value>Activity</value></data>
+  <data name="ActivityCaption" xml:space="preserve"><value>runs and events · last year</value></data>
+  <data name="ActivityNone" xml:space="preserve"><value>Nothing recorded yet. Start the daemon and run a stage.</value></data>
+  <data name="ActivityLess" xml:space="preserve"><value>less</value></data>
+  <data name="ActivityMore" xml:space="preserve"><value>more</value></data>
+  <data name="BoardUnavailable" xml:space="preserve"><value>The board could not be loaded. Refresh to try again.</value></data>
+  <data name="WorkflowUnavailable" xml:space="preserve"><value>This project has no workflows yet.</value></data>
+  <data name="QuickStartTitle" xml:space="preserve"><value>Quick start</value></data>
 </root>

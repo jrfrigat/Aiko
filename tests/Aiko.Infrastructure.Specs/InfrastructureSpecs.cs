@@ -42,6 +42,44 @@ public class InfrastructureSpecs
     }
 
     [Fact]
+    public async Task Activity_report_counts_the_days_an_execution_happened()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            var report = new SqliteActivityReport(context.Database);
+            // Registering the project already wrote its own event, so the baseline is read rather
+            // than assumed to be zero.
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            var baseline = (await report.GetActivityAsync(30, CancellationToken.None))
+                .Where(day => day.Date == today)
+                .Sum(day => day.Count);
+
+            var card = CreateCard(context.Project.Id, "TASK-ACTIVITY", 1);
+            await context.Cards.SaveAsync(card, 0, CancellationToken.None);
+            await context.Executions.StartAsync(
+                card.Reference,
+                "implementation",
+                "claude-code",
+                CancellationToken.None);
+
+            var days = await report.GetActivityAsync(30, CancellationToken.None);
+
+            // Sparse and ordered: days without activity are omitted rather than sent as zeroes, and
+            // the dashboard fills the calendar in.
+            Assert.NotEmpty(days);
+            Assert.All(days, day => Assert.True(day.Date <= today));
+            Assert.Equal(days.OrderBy(day => day.Date), days);
+
+            var after = days.Where(day => day.Date == today).Sum(day => day.Count);
+            Assert.True(after > baseline, $"expected today's activity to grow from {baseline}, got {after}");
+
+            // The window is clamped in the store: a nonsensical length still answers with today.
+            var clamped = await report.GetActivityAsync(0, CancellationToken.None);
+            Assert.Equal(today, Assert.Single(clamped).Date);
+        });
+    }
+
+    [Fact]
     public async Task Default_project_documents_are_created()
     {
         await WithInitializedProjectAsync(context =>

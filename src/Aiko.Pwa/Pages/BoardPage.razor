@@ -1,0 +1,12 @@
+@page "/p/{ProjectId}/board"
+@page "/p/{ProjectId}/board/card/{CardId}"
+
+@* The full board: stories and tasks, one section each. *@
+<PageTitle>@Loc.Get("KanbanBoard")</PageTitle>
+
+<BoardView Mode="BoardViewMode.Combined" ProjectId="@ProjectId" CardId="@CardId" />
+
+@code {
+    [Parameter] public string ProjectId { get; set; } = string.Empty;
+    [Parameter] public string? CardId { get; set; }
+}

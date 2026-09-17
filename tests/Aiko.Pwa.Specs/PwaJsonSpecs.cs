@@ -46,6 +46,8 @@ public sealed class PwaJsonSpecs
             typeof(UpdateWorkflowRequest),
             typeof(ErrorResponse),
             typeof(SystemInfo),
+            typeof(ActivityDay),
+            typeof(IReadOnlyList<ActivityDay>),
             typeof(AgentAdapterOption),
             typeof(IReadOnlyList<AgentAdapterOption>),
             typeof(AgentInstallation)

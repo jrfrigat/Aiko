@@ -110,6 +110,70 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
     }
 
     [Fact]
+    public async Task Activity_endpoint_reports_the_day_of_a_started_stage()
+    {
+        await using var client = await ConnectAsync();
+        await client.CallToolAsync(
+            "aiko_create_card",
+            new Dictionary<string, object?>
+            {
+                ["cardId"] = "TASK-MCP-ACTIVITY",
+                ["kind"] = "task",
+                ["title"] = "Verify activity",
+                ["workflowId"] = "task",
+                ["stageId"] = "implementation",
+                ["ownPriority"] = 1,
+                ["declaredScopeFiles"] = new[] { "src/**" }
+            },
+            cancellationToken: CancellationToken.None);
+        var start = await client.CallToolAsync(
+            "aiko_start_stage",
+            new Dictionary<string, object?>
+            {
+                ["cardId"] = "TASK-MCP-ACTIVITY",
+                ["stageId"] = "implementation",
+                ["agentAdapterId"] = "claude-code"
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.NotEqual(true, start.IsError);
+        using var startDocument = JsonDocument.Parse(FirstText(start) ?? "{}");
+        var executionId = startDocument.RootElement.GetProperty("id").GetString();
+        Assert.False(string.IsNullOrWhiteSpace(executionId));
+
+        // The dashboard's contribution graph reads this endpoint over HTTP, so the round trip - and in
+        // particular the date serialization of the payload - is what is pinned here.
+        using var http = new HttpClient { BaseAddress = fixture.BaseUrl };
+        using var response = await http.GetAsync("/api/v1/activity?days=7", CancellationToken.None);
+        response.EnsureSuccessStatusCode();
+
+        using var document = await JsonDocument.ParseAsync(
+            await response.Content.ReadAsStreamAsync(), cancellationToken: CancellationToken.None);
+        Assert.Equal(JsonValueKind.Array, document.RootElement.ValueKind);
+        var days = document.RootElement.EnumerateArray().ToArray();
+        Assert.NotEmpty(days);
+
+        var expectedDay = DateTime.UtcNow.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        var today = Assert.Single(
+            days,
+            day => string.Equals(day.GetProperty("date").GetString(), expectedDay, StringComparison.Ordinal));
+        Assert.True(today.GetProperty("count").GetInt32() >= 1);
+
+        // Release the project's run slot. A started execution counts against maxConcurrentRuns, and the
+        // fixture's project is shared by every spec in this class - leaving it active would fail the
+        // next start elsewhere.
+        var complete = await client.CallToolAsync(
+            "aiko_complete_stage",
+            new Dictionary<string, object?>
+            {
+                ["executionId"] = executionId,
+                ["actualChangedFiles"] = new[] { "src/app.cs" },
+                ["artifacts"] = new[] { "implementation.md" }
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.NotEqual(true, complete.IsError);
+    }
+
+    [Fact]
     public async Task Rate_limited_handoff_preserves_attempt_history()
     {
         await using var client = await ConnectAsync();

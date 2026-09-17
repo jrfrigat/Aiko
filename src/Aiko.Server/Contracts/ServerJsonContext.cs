@@ -47,6 +47,8 @@ namespace Aiko.Server.Contracts;
 [JsonSerializable(typeof(IReadOnlyList<CardArtifactSummary>))]
 [JsonSerializable(typeof(CardArtifactDocument))]
 [JsonSerializable(typeof(IReadOnlyList<MemoryDocument>))]
+[JsonSerializable(typeof(ActivityDay))]
+[JsonSerializable(typeof(IReadOnlyList<ActivityDay>))]
 [JsonSerializable(typeof(StageExecution))]
 [JsonSerializable(typeof(IReadOnlyList<StageExecution>))]
 [JsonSerializable(typeof(AgentAdapterOption))]

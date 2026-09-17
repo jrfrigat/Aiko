@@ -48,6 +48,7 @@ builder.Services.AddSingleton<AikoEventBroadcaster>();
 builder.Services.AddSingleton<IAikoEventPublisher, SqliteAikoEventPublisher>();
 builder.Services.AddSingleton<IAikoEventStore, SqliteAikoEventStore>();
 builder.Services.AddSingleton<IExecutionCoordinator, SqliteExecutionCoordinator>();
+builder.Services.AddSingleton<IActivityReport, SqliteActivityReport>();
 builder.Services.AddSingleton<IAgentAdapter, ClaudeCodeAgentAdapter>();
 builder.Services.AddSingleton<IAgentAdapter, CodexAgentAdapter>();
 builder.Services.AddSingleton<IAgentAdapter, CursorAgentAdapter>();
@@ -130,6 +131,7 @@ app.MapArtifactEndpoints();
 app.MapAgentEndpoints();
 app.MapSettingsEndpoints();
 app.MapEventEndpoints();
+app.MapActivityEndpoints();
 
 app.MapPost(
     "/api/v1/auth/pair",

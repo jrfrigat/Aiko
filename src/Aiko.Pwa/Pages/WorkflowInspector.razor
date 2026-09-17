@@ -12,10 +12,13 @@
                 </FlareText>
                 <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@SelectedWorkflow.Title</FlareText>
             </FlareStack>
-            <FlareIconButton Variant="ButtonVariant.Text"
-                             Icon="@FlareIcons.Close"
-                             AriaLabel="@Loc.Get("Close")"
-                             OnClick="() => OnClose.InvokeAsync()" />
+            @if (OnClose.HasDelegate)
+            {
+                <FlareIconButton Variant="ButtonVariant.Text"
+                                 Icon="@FlareIcons.Close"
+                                 AriaLabel="@Loc.Get("Close")"
+                                 OnClick="() => OnClose.InvokeAsync()" />
+            }
         </FlareStack>
 
         @if (!string.IsNullOrWhiteSpace(_message))

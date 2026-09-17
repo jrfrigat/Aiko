@@ -1,0 +1,12 @@
+@page "/p/{ProjectId}/stories"
+@page "/p/{ProjectId}/stories/card/{CardId}"
+
+@* The story projection of the board. *@
+<PageTitle>@Loc.Get("StoriesNav")</PageTitle>
+
+<BoardView Mode="BoardViewMode.Stories" ProjectId="@ProjectId" CardId="@CardId" />
+
+@code {
+    [Parameter] public string ProjectId { get; set; } = string.Empty;
+    [Parameter] public string? CardId { get; set; }
+}

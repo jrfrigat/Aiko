@@ -1,0 +1,391 @@
+@page "/"
+
+@* The dashboard: the workshop at a glance. It is the landing page and the global screen, so it opens
+   no project - the aggregate numbers are read straight from each registered project's board. *@
+@implements IAsyncDisposable
+@inject HttpClient Http
+@inject WorkspaceState State
+@inject NavigationManager Navigation
+
+<PageTitle>@Loc.Get("Dashboard")</PageTitle>
+
+<FlareStack Gap="FlareSpacing.Medium">
+    @if (_error is { Length: > 0 } error)
+    {
+        <FlareAlert Severity="AlertSeverity.Error" Variant="AlertVariant.Outlined">@error</FlareAlert>
+    }
+
+    <FlareStack Gap="FlareSpacing.XXSmall">
+        <FlareText Element="h2" Typo="TypographyScale.HeadlineSmall">@Loc.Get("Dashboard")</FlareText>
+        <FlareText Element="span" Typo="TypographyScale.BodyMedium" Color="FlareColor.OnSurfaceVariant">
+            @Loc.Get("DashboardCaption")
+        </FlareText>
+    </FlareStack>
+
+    @if (_loading)
+    {
+        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+            <FlareProgressCircular Size="TrackSize.Xs" />
+            <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant">
+                @Loc.Get("LoadingContext")
+            </FlareText>
+        </FlareStack>
+    }
+    else
+    {
+        @* The metric strip: the same mono summary line the board uses, at workshop scale. *@
+        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true" Class="aiko-metrics">
+            @foreach (var tile in StatTiles)
+            {
+                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
+                    <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant">@tile.Label</FlareText>
+                    <FlareText Element="span" Mono="true"
+                               Color="@(tile.Warn ? FlareColor.Error : FlareColor.Tertiary)"
+                               Weight="FontWeight.SemiBold">@tile.Value</FlareText>
+                </FlareStack>
+            }
+        </FlareStack>
+
+        <FlareCard Variant="CardVariant.Filled">
+            <FlareStack Gap="FlareSpacing.XSmall">
+                <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XSmall">
+                    <FlareText Element="h3" Typo="TypographyScale.TitleSmall">@Loc.Get("ActivityTitle")</FlareText>
+                    <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant2">@Loc.Get("ActivityCaption")</FlareText>
+                </FlareStack>
+
+                @if (_activityTotal == 0)
+                {
+                    <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant">
+                        @Loc.Get("ActivityNone")
+                    </FlareText>
+                }
+                else
+                {
+                    <div class="aiko-heat">
+                        <div class="aiko-heat__grid" role="img" aria-label="@Loc.Get("ActivityTitle")">
+                            @foreach (var cell in _cells)
+                            {
+                                <span class="aiko-heat__cell aiko-heat__cell--l@(cell.Level)"
+                                      title="@CellTitle(cell)"></span>
+                            }
+                        </div>
+                    </div>
+                    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
+                        <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant2">@Loc.Get("ActivityLess")</FlareText>
+                        <span class="aiko-heat__cell aiko-heat__cell--l0"></span>
+                        <span class="aiko-heat__cell aiko-heat__cell--l1"></span>
+                        <span class="aiko-heat__cell aiko-heat__cell--l2"></span>
+                        <span class="aiko-heat__cell aiko-heat__cell--l3"></span>
+                        <span class="aiko-heat__cell aiko-heat__cell--l4"></span>
+                        <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant2">@Loc.Get("ActivityMore")</FlareText>
+                    </FlareStack>
+                }
+            </FlareStack>
+        </FlareCard>
+    }
+
+    <FlareDivider />
+
+    <FlareGrid Columns="3" Gap="FlareSpacing.XSmall">
+        <FlareCol Span="1">
+            <FlareCard Variant="CardVariant.Filled">
+                <FlareStack Gap="FlareSpacing.XXSmall">
+                    <FlareText Element="h3" Typo="TypographyScale.TitleSmall">@Loc.Get("Daemon")</FlareText>
+                    <FlareList TItem="string" Dense="true">
+                        <FlareListItem Primary="@Loc.Get("Address")">
+                            <Trailing><FlareText Element="span" Mono="true" Typo="TypographyScale.LabelSmall">@(State.System?.BaseUrl ?? "-")</FlareText></Trailing>
+                        </FlareListItem>
+                        <FlareListItem Primary="@Loc.Get("Version")">
+                            <Trailing><FlareText Element="span" Mono="true" Typo="TypographyScale.LabelSmall">@(State.System?.Version ?? "-")</FlareText></Trailing>
+                        </FlareListItem>
+                        <FlareListItem Primary="PID">
+                            <Trailing><FlareText Element="span" Mono="true" Typo="TypographyScale.LabelSmall">@(State.System is null ? "-" : State.System.ProcessId.ToString(CultureInfo.InvariantCulture))</FlareText></Trailing>
+                        </FlareListItem>
+                    </FlareList>
+                </FlareStack>
+            </FlareCard>
+        </FlareCol>
+
+        <FlareCol Span="1">
+            <FlareCard Variant="CardVariant.Filled">
+                <FlareStack Gap="FlareSpacing.XXSmall">
+                    <FlareText Element="h3" Typo="TypographyScale.TitleSmall">@Loc.Get("Agents")</FlareText>
+                    <FlareList TItem="string" Dense="true">
+                        @foreach (var adapter in State.Agents)
+                        {
+                            var installation = adapter.Installations.FirstOrDefault();
+                            <FlareListItem Primary="@adapter.DisplayName">
+                                <Trailing>
+                                    <FlareText Element="span" Mono="true" Typo="TypographyScale.LabelSmall"
+                                               Color="@(installation is null ? FlareColor.OnSurfaceVariant2 : FlareColor.Tertiary)">
+                                        @(installation?.Version ?? Loc.Get("AgentsNotFound"))
+                                    </FlareText>
+                                </Trailing>
+                            </FlareListItem>
+                        }
+                    </FlareList>
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                        @Loc.Get("AgentsHint")
+                    </FlareText>
+                </FlareStack>
+            </FlareCard>
+        </FlareCol>
+
+        <FlareCol Span="1">
+            <FlareCard Variant="CardVariant.Filled">
+                <FlareStack Gap="FlareSpacing.XXSmall">
+                    <FlareText Element="h3" Typo="TypographyScale.TitleSmall">@Loc.Get("QuickStartTitle")</FlareText>
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant">@Loc.Get("QuickStartStep1")</FlareText>
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant">@Loc.Get("QuickStartStep2")</FlareText>
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant">@Loc.Get("QuickStartStep3")</FlareText>
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant">@Loc.Get("QuickStartStep4")</FlareText>
+                </FlareStack>
+            </FlareCard>
+        </FlareCol>
+    </FlareGrid>
+
+    <FlareDivider />
+
+    <FlareStack Gap="FlareSpacing.Small">
+        <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XSmall">
+            <FlareText Element="h3" Typo="TypographyScale.TitleSmall">
+                @Loc.Get("ProjectsRegistered")
+                <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant2">@DisplayFormat.Number(State.Projects.Count)</FlareText>
+            </FlareText>
+            <FlareButton Variant="ButtonVariant.Outlined" Size="ButtonSize.Sm" OnClick="OpenAddProject">
+                <LeadingIcon><FlareIconView Value="@FlareIcons.Add" /></LeadingIcon>
+                <ChildContent>@Loc.Get("AddProject")</ChildContent>
+            </FlareButton>
+        </FlareStack>
+
+        @if (_showAddProject)
+        {
+            <FlareCard Variant="CardVariant.Outlined">
+                <FlareStack Gap="FlareSpacing.Small">
+                    <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("AddProject")</FlareText>
+                    <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant">
+                        @Loc.Get("AddProjectHint")
+                    </FlareText>
+                    <FlareTextField Label="@Loc.Get("ProjectPath")" Immediate="true" @bind-Value="_newProjectPath" />
+                    <FlareTextField Label="@Loc.Get("ProjectName")" @bind-Value="_newProjectName" />
+                    <FlareSelect TValue="string" Label="@Loc.Get("GitPolicy")" @bind-Value="_newGitPolicy">
+                        <option value="LocalOnly">@Loc.Get("GitPolicyLocalOnly")</option>
+                        <option value="TrackProjectKnowledge">@Loc.Get("GitPolicyTrackKnowledge")</option>
+                        <option value="Custom">@Loc.Get("GitPolicyCustom")</option>
+                    </FlareSelect>
+                    <FlareStack Row="true" Gap="FlareSpacing.XSmall">
+                        <FlareButton OnClick="AddProjectAsync">@Loc.Get("Add")</FlareButton>
+                        <FlareButton Variant="ButtonVariant.Text" OnClick="CloseAddProject">@Loc.Get("Cancel")</FlareButton>
+                    </FlareStack>
+                </FlareStack>
+            </FlareCard>
+        }
+
+        @if (State.Projects.Count == 0)
+        {
+            <FlareEmptyState Compact="true"
+                             Title="@Loc.Get("EmptyStateTitle")"
+                             Description="@Loc.Get("EmptyStateHint")">
+                <IconContent><FlareIconView Size="2rem" Value="@FlareIcons.FolderOpen" /></IconContent>
+            </FlareEmptyState>
+        }
+        else
+        {
+            <FlareList TItem="RegisteredProject">
+                @foreach (var project in State.Projects)
+                {
+                    var item = project;
+                    var board = BoardOf(item.Id);
+                    <FlareListItem Primary="@item.Name" Secondary="@item.RootPath">
+                        <Leading>
+                            <FlareAvatar Text="@DisplayFormat.Initials(item.Name)" Size="AvatarSize.Xs" Shape="AvatarShape.Square" />
+                        </Leading>
+                        <Trailing>
+                            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                                <span class="aiko-tag">@Loc.Get("StatCards") @DisplayFormat.Number(board?.Cards.Count ?? 0)</span>
+                                <span class="aiko-tag">@Loc.Get("StatInProgress") @DisplayFormat.Number(BoardMetrics.InProgressCount(board))</span>
+                                <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm"
+                                             OnClick="() => OpenProject(item.Id)">@Loc.Get("OpenProject")</FlareButton>
+                            </FlareStack>
+                        </Trailing>
+                    </FlareListItem>
+                }
+            </FlareList>
+        }
+    </FlareStack>
+</FlareStack>
+
+@code {
+    // A year of squares, aligned to whole weeks.
+    private const int HeatmapDays = 364;
+
+    private sealed record ActivityCell(DateOnly Date, int Count, int Level);
+
+    private IReadOnlyList<ProjectBoardSnapshot> _boards = [];
+    private IReadOnlyList<ActivityDay> _activity = [];
+    private IReadOnlyList<ActivityCell> _cells = [];
+    private int _activityTotal;
+    private bool _loading = true;
+    private string? _error;
+    private bool _showAddProject;
+    private string? _newProjectPath;
+    private string? _newProjectName;
+    private string? _newGitPolicy = "LocalOnly";
+
+    protected override async Task OnInitializedAsync()
+    {
+        State.Changed += OnStateChanged;
+        // The dashboard is the global screen: leaving a project open would put its board in the rail
+        // while this page talks about all of them.
+        await State.ClearProjectAsync();
+        await LoadAsync();
+    }
+
+    private Task OnStateChanged() => InvokeAsync(StateHasChanged);
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+        try
+        {
+            // One board snapshot per project. A handful of loopback requests is the price of counting
+            // cards the daemon does not aggregate anywhere else; the alternative would be another
+            // endpoint duplicating what the board already answers.
+            var boards = await Task.WhenAll(State.Projects.Select(LoadBoardAsync));
+            _boards = boards.Where(board => board is not null).Select(board => board!).ToArray();
+            _activity = await Http.GetFromJsonAsync<IReadOnlyList<ActivityDay>>(
+                $"api/v1/activity?days={HeatmapDays}", PwaJson.Options) ?? [];
+            BuildHeatmap();
+        }
+        catch (Exception exception)
+        {
+            _error = FailureText.Describe(exception);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task<ProjectBoardSnapshot?> LoadBoardAsync(RegisteredProject project)
+    {
+        try
+        {
+            return await Http.GetFromJsonAsync<ProjectBoardSnapshot>(
+                $"api/v1/projects/{Uri.EscapeDataString(project.Id)}/board", PwaJson.Options);
+        }
+        catch
+        {
+            // A project that has gone missing must not blank the whole dashboard.
+            return null;
+        }
+    }
+
+    private ProjectBoardSnapshot? BoardOf(string projectId) =>
+        _boards.FirstOrDefault(board => StringComparer.Ordinal.Equals(board.Project.Id, projectId));
+
+    private IReadOnlyList<(string Label, string Value, bool Warn)> StatTiles
+    {
+        get
+        {
+            var outOfScope = _boards.Sum(BoardMetrics.OutOfScopeCount);
+            return
+            [
+                (Loc.Get("StatProjects"), DisplayFormat.Number(State.Projects.Count), false),
+                (Loc.Get("StatCards"), DisplayFormat.Number(_boards.Sum(board => board.Cards.Count)), false),
+                (Loc.Get("StatTasks"), DisplayFormat.Number(_boards.Sum(board => BoardMetrics.CountKind(board, CardKind.Task))), false),
+                (Loc.Get("StatStories"), DisplayFormat.Number(_boards.Sum(board => BoardMetrics.CountKind(board, CardKind.Story))), false),
+                (Loc.Get("StatInProgress"), DisplayFormat.Number(_boards.Sum(BoardMetrics.InProgressCount)), false),
+                (Loc.Get("StatOutOfScope"), DisplayFormat.Number(outOfScope), outOfScope > 0)
+            ];
+        }
+    }
+
+    /// <summary>
+    /// Turns the sparse series the daemon returns into a rectangular calendar: whole weeks, Monday
+    /// first, one cell per day up to today.
+    /// </summary>
+    private void BuildHeatmap()
+    {
+        var counts = new Dictionary<DateOnly, int>();
+        foreach (var day in _activity)
+        {
+            counts[day.Date] = day.Count;
+        }
+
+        _activityTotal = counts.Values.Sum();
+        var max = counts.Count == 0 ? 0 : counts.Values.Max();
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var start = today.AddDays(-(HeatmapDays - 1));
+        // Step back to the Monday of that week, so every column is a calendar week.
+        start = start.AddDays(-(((int)start.DayOfWeek + 6) % 7));
+
+        var cells = new List<ActivityCell>();
+        for (var date = start; date <= today; date = date.AddDays(1))
+        {
+            var count = counts.TryGetValue(date, out var value) ? value : 0;
+            cells.Add(new ActivityCell(date, count, Level(count, max)));
+        }
+
+        _cells = cells;
+    }
+
+    /// <summary>The cell's shade: 0 is idle, 1-4 grow with the day relative to the busiest one.</summary>
+    private static int Level(int count, int max)
+    {
+        if (count <= 0 || max <= 0)
+        {
+            return 0;
+        }
+
+        if (max <= 4)
+        {
+            return Math.Min(count, 4);
+        }
+
+        return Math.Clamp((int)Math.Ceiling(count * 4d / max), 1, 4);
+    }
+
+    private static string CellTitle(ActivityCell cell) =>
+        $"{cell.Date:yyyy-MM-dd} · {DisplayFormat.Number(cell.Count)}";
+
+    private void OpenAddProject() => _showAddProject = true;
+
+    private void CloseAddProject() => _showAddProject = false;
+
+    private async Task AddProjectAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newProjectPath))
+        {
+            _error = Loc.Get("PathRequired");
+            return;
+        }
+
+        var project = await State.InitializeProjectAsync(
+            _newProjectPath.Trim(),
+            string.IsNullOrWhiteSpace(_newProjectName) ? null : _newProjectName.Trim(),
+            Enum.Parse<ProjectGitPolicy>(_newGitPolicy ?? nameof(ProjectGitPolicy.LocalOnly)));
+        if (project is null)
+        {
+            _error = State.Error;
+            return;
+        }
+
+        _showAddProject = false;
+        _newProjectPath = null;
+        _newProjectName = null;
+        // Land on the new project's board: registering a project is a step towards working in it.
+        OpenProject(project.Id);
+        await Task.CompletedTask;
+    }
+
+    private void OpenProject(string projectId) =>
+        Navigation.NavigateTo($"/p/{Uri.EscapeDataString(projectId)}/board");
+
+    public ValueTask DisposeAsync()
+    {
+        State.Changed -= OnStateChanged;
+        return ValueTask.CompletedTask;
+    }
+}

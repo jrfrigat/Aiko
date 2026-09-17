@@ -49,6 +49,8 @@ namespace Aiko.Pwa.Services;
 [JsonSerializable(typeof(UpdateWorkflowRequest))]
 [JsonSerializable(typeof(ErrorResponse))]
 [JsonSerializable(typeof(SystemInfo))]
+[JsonSerializable(typeof(ActivityDay))]
+[JsonSerializable(typeof(IReadOnlyList<ActivityDay>))]
 [JsonSerializable(typeof(AgentAdapterOption))]
 [JsonSerializable(typeof(IReadOnlyList<AgentAdapterOption>))]
 [JsonSerializable(typeof(AgentInstallation))]

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.JSInterop;
 using Aiko.Pwa;
+using Aiko.Pwa.Services;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -24,6 +25,9 @@ builder.Services.AddFlare(options =>
     options.RegisterAllBuiltInThemes = false;
 });
 builder.Services.AddScoped(_ => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+// The cockpit's shared workspace: one snapshot of projects, board and live events per browser session,
+// read by the shell and by every page.
+builder.Services.AddScoped<WorkspaceState>();
 
 var host = builder.Build();
 // The language has to be settled before the first component renders, so the host is built first and

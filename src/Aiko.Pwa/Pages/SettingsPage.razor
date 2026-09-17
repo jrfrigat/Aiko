@@ -1,0 +1,26 @@
+@page "/settings"
+@page "/p/{ProjectId}/settings"
+@inject WorkspaceState State
+
+@* Settings is a page, not a drawer. The same component serves both scopes: with a project open it edits
+   that project's overrides, and on the bare /settings route the application-wide ones. *@
+<PageTitle>@Loc.Get("SettingsTitle")</PageTitle>
+
+<SettingsInspector Project="@State.Board?.Project" OnSaved="State.LoadBoardAsync" />
+
+@code {
+    [Parameter] public string? ProjectId { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ProjectId is { Length: > 0 } projectId)
+        {
+            await State.EnsureProjectAsync(projectId);
+        }
+        else
+        {
+            // Global settings: no project is open, so the board and the live stream are released.
+            await State.ClearProjectAsync();
+        }
+    }
+}

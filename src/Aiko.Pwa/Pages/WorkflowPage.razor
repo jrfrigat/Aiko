@@ -1,0 +1,30 @@
+@page "/p/{ProjectId}/workflow"
+@inject WorkspaceState State
+
+@* The workflow editor is a page, not a drawer: it is a place you go to change the pipeline, and it
+   needs the whole width to show a stage sequence and a stage's fields side by side. *@
+<PageTitle>@Loc.Get("Workflow")</PageTitle>
+
+@if (State.Board is not { } board)
+{
+    <FlareAlert Severity="AlertSeverity.Info" Variant="AlertVariant.Text">@Loc.Get("BoardUnavailable")</FlareAlert>
+}
+else if (board.Workflows.Count == 0)
+{
+    <FlareAlert Severity="AlertSeverity.Info" Variant="AlertVariant.Text">@Loc.Get("WorkflowUnavailable")</FlareAlert>
+}
+else
+{
+    <WorkflowInspector Board="board"
+                       InitialWorkflowId="@CurrentWorkflowId"
+                       OnSaved="State.LoadBoardAsync" />
+}
+
+@code {
+    [Parameter] public string ProjectId { get; set; } = string.Empty;
+
+    /// <summary>The workflow a fresh visit edits: the task pipeline, the one agents run most.</summary>
+    private string CurrentWorkflowId => "task";
+
+    protected override async Task OnParametersSetAsync() => await State.EnsureProjectAsync(ProjectId);
+}
