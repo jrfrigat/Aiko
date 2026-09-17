@@ -141,6 +141,96 @@ public sealed class FileProjectDefinitionStore(IProjectCatalog projects) : IProj
         }
     }
 
+    /// <inheritdoc />
+    public async ValueTask<WorkflowDefinition> RenameWorkflowAsync(
+        string projectId,
+        string currentId,
+        string newId,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(newId);
+
+        var normalizedId = newId.Trim().ToLowerInvariant();
+        FileSystemSafeIdentifiers.Validate(normalizedId, "workflow");
+
+        var project = await projects.FindAsync(projectId, cancellationToken)
+            ?? throw new KeyNotFoundException($"Unknown Aiko project: {projectId}");
+        var definition = await ReadAsync(projectId, cancellationToken);
+        var workflow = definition.Workflows.FirstOrDefault(candidate =>
+            StringComparer.Ordinal.Equals(candidate.Id, currentId))
+            ?? throw new KeyNotFoundException($"Workflow '{currentId}' does not exist.");
+        if (StringComparer.Ordinal.Equals(workflow.Id, normalizedId))
+        {
+            return workflow;
+        }
+
+        if (definition.Workflows.Any(candidate =>
+                StringComparer.Ordinal.Equals(candidate.Id, normalizedId)))
+        {
+            throw new InvalidOperationException($"Workflow '{normalizedId}' already exists.");
+        }
+
+        // The revision counts the edits made here, and a rename is one of them.
+        var renamed = workflow with { Id = normalizedId, Revision = workflow.Revision + 1 };
+        var currentPath = WorkflowPath(project.RootPath, currentId);
+        var renamedPath = WorkflowPath(project.RootPath, normalizedId);
+        using (await locks.LockAsync($"{projectId}/{currentId}", cancellationToken))
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(renamedPath)!);
+            await WriteAtomicallyAsync(renamedPath, renamed, cancellationToken);
+            if (File.Exists(currentPath))
+            {
+                File.Delete(currentPath);
+            }
+        }
+
+        await RenameProjectionKindAsync(project.RootPath, currentId, normalizedId, cancellationToken);
+        return renamed;
+    }
+
+    /// <summary>
+    /// Points the board projections that showed a card type at its new id.
+    /// </summary>
+    /// <remarks>
+    /// A projection's card kind IS the workflow id, so a rename that left them behind would drop the type's
+    /// cards out of the board section that used to show them - silently, because the projection would still
+    /// look valid.
+    /// </remarks>
+    private static async ValueTask RenameProjectionKindAsync(
+        string projectRoot,
+        string currentId,
+        string newId,
+        CancellationToken cancellationToken)
+    {
+        var directory = Path.Combine(AikoProjectPaths.DataRoot(projectRoot), "projections");
+        if (!Directory.Exists(directory))
+        {
+            return;
+        }
+
+        foreach (var path in Directory.EnumerateFiles(directory, "*.json").Order(StringComparer.Ordinal))
+        {
+            BoardProjectionDefinition projection;
+            await using (var input = File.OpenRead(path))
+            {
+                projection = await JsonSerializer.DeserializeAsync(
+                    input,
+                    ProjectJsonContext.Default.BoardProjectionDefinition,
+                    cancellationToken)
+                    ?? throw new InvalidDataException($"Invalid Aiko document: {path}");
+            }
+
+            if (!StringComparer.Ordinal.Equals(projection.CardKind, currentId))
+            {
+                continue;
+            }
+
+            await WriteAtomicallyAsync(path, projection with { CardKind = newId }, cancellationToken);
+        }
+    }
+
     private static string WorkflowPath(string projectRoot, string workflowId) =>
         Path.Combine(AikoProjectPaths.DataRoot(projectRoot), "workflows", $"{workflowId}.json");
 
@@ -176,9 +266,9 @@ public sealed class FileProjectDefinitionStore(IProjectCatalog projects) : IProj
             ?? throw new InvalidDataException($"Invalid Aiko document: {path}");
     }
 
-    private static async ValueTask WriteAtomicallyAsync(
+    private static async ValueTask WriteAtomicallyAsync<T>(
         string path,
-        WorkflowDefinition workflow,
+        T document,
         CancellationToken cancellationToken)
     {
         var temporaryPath = $"{path}.{Guid.NewGuid():N}.tmp";
@@ -194,7 +284,7 @@ public sealed class FileProjectDefinitionStore(IProjectCatalog projects) : IProj
             {
                 await JsonSerializer.SerializeAsync(
                     output,
-                    workflow,
+                    document,
                     AikoJson.Project,
                     cancellationToken);
             }

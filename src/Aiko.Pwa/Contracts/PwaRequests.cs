@@ -39,6 +39,13 @@ internal sealed record CreateCardRequest(
 internal sealed record EstimateCardRequest(string AgentAdapterId);
 
 /// <summary>
+/// Renames a card type: the workflow's id changes, and with it the folder its cards are filed in and the
+/// board section that shows them.
+/// </summary>
+internal sealed record RenameWorkflowRequest(string NewId);
+
+
+/// <summary>
 /// Moves a card to another workflow stage.
 /// </summary>
 internal sealed record MoveCardRequest(

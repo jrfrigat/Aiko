@@ -41,6 +41,7 @@ public sealed class PwaJsonSpecs
             typeof(AikoEvent),
             typeof(CreateCardRequest),
             typeof(EstimateCardRequest),
+            typeof(RenameWorkflowRequest),
             typeof(MoveCardRequest),
             typeof(UpdateCardRequest),
             typeof(UpdateArtifactRequest),

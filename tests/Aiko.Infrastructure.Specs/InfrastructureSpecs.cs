@@ -1976,6 +1976,70 @@ public class InfrastructureSpecs
         });
     }
 
+    [Fact]
+    public async Task Renaming_a_card_type_moves_its_board_section_with_it()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            var definitions = new FileProjectDefinitionStore(context.Catalog);
+            await definitions.CreateWorkflowAsync(
+                context.Project.Id,
+                new WorkflowDefinition(
+                    "epic",
+                    "Epics",
+                    [
+                        new StageDefinition(
+                            "backlog", "Backlog", 10, "Clarify the epic.", ["Epic"], null, [],
+                            new Dictionary<string, ActionPolicy>(StringComparer.Ordinal)),
+                        new StageDefinition(
+                            "done", "Done", 20, "Record the epic.", ["Epic"], null, [],
+                            new Dictionary<string, ActionPolicy>(StringComparer.Ordinal))
+                    ],
+                    1,
+                    "A global card type that groups several stories."),
+                CancellationToken.None);
+
+            // A board section that shows the type: its card kind IS the workflow id.
+            var projections = Path.Combine(context.StitchRoot, "projections");
+            Directory.CreateDirectory(projections);
+            var projectionPath = Path.Combine(projections, "epics.json");
+            await File.WriteAllTextAsync(
+                projectionPath,
+                """
+                {
+                  "schemaVersion": 1,
+                  "id": "epics",
+                  "title": "Epics",
+                  "view": "kanban",
+                  "cardKind": "epic",
+                  "groupBy": "stage",
+                  "filters": {}
+                }
+                """);
+
+            var renamed = await definitions.RenameWorkflowAsync(
+                context.Project.Id,
+                "epic",
+                "Theme",
+                CancellationToken.None);
+
+            // The id is the type's identity: the file carries the new one and the old one is gone.
+            Assert.Equal("theme", renamed.Id);
+            Assert.Equal(2, renamed.Revision);
+            Assert.True(File.Exists(Path.Combine(context.StitchRoot, "workflows", "theme.json")));
+            Assert.False(File.Exists(Path.Combine(context.StitchRoot, "workflows", "epic.json")));
+
+            // And the board section follows it, or the type's cards would lose the section that showed them.
+            using var projection = JsonDocument.Parse(await File.ReadAllTextAsync(projectionPath));
+            Assert.Equal("theme", projection.RootElement.GetProperty("cardKind").GetString());
+
+            // An id another type already holds is refused rather than merged into it.
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                definitions.RenameWorkflowAsync(
+                    context.Project.Id, "theme", "task", CancellationToken.None).AsTask());
+        });
+    }
+
     private static Card CreateCard(string projectId, string cardId, long revision) =>
         new(
             new CardReference(projectId, cardId),

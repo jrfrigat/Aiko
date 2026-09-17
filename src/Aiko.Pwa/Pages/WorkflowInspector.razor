@@ -41,162 +41,160 @@
                     var tab = type;
                     <FlareTab Label="@tab.Title" LeadingIcon="@TabIcon(tab)" />
                 }
+                @if (_newTypePanelOpen)
+                {
+                    @* The draft is a tab from the moment "+" is pressed. The fields it needs are the ones
+                       the editor already shows, so it is filled in place rather than in a form of its own. *@
+                    <FlareTab Label="@Loc.Get("NewCardTypeTitle")" LeadingIcon="@DraftTabIcon" />
+                }
             </ChildContent>
             <HeaderEnd>
                 @if (Create is not null)
                 {
                     <FlareIconButton Variant="ButtonVariant.Text"
-                                     Icon="@MaterialDesign3Icons.Regular.Add"
+                                     Icon="@(_newTypePanelOpen ? FlareIcons.Close : MaterialDesign3Icons.Regular.Add)"
                                      AriaLabel="@Loc.Get("NewCardTypeTitle")"
-                                     OnClick="() => _newTypePanelOpen = !_newTypePanelOpen" />
+                                     OnClick="ToggleNewType" />
                 }
             </HeaderEnd>
         </FlareTabs>
 
-        @* The pipeline pair, as the design's identifier rows: the type's own id on the narrow side and its
-           display name beside it. Raw markup rather than FlareSelect/FlareTextField: the design draws an
-           unlabelled recessed strip with a mono accent value, and FlareField has no bare variant to ask for
-           (see code-field-variant.md in the Flare issues). *@
-        <div class="aiko-code-pair">
-            <div class="aiko-code-row aiko-code-row--quiet" title="@Loc.Get("Workflow")">
-                <FlareIconView Value="@MaterialDesign3Icons.Regular.AccountTree" Color="FlareColor.OnSurfaceVariant2" />
-                <span class="aiko-value">@_workflowId</span>
+        @if (_newTypePanelOpen)
+        {
+            @* The draft type, in the editor the tab opened: what it is called, what it is for, and how it is
+               drawn. Nothing is written until the type is created. *@
+            <div class="aiko-form-row">
+                <AikoField Label="@Loc.Get("StableId")"
+                           Hint="@Loc.Get("CardTypeIdHelper")"
+                           Placeholder="@Loc.Get("CardTypeIdHelper")"
+                           Value="@_newTypeId"
+                           ValueChanged="value => _newTypeId = value" />
+                <AikoField Label="@Loc.Get("CardTypeName")"
+                           Value="@_newTypeTitle"
+                           ValueChanged="value => _newTypeTitle = value" />
             </div>
-            <div class="aiko-code-row aiko-code-row--quiet" title="@Loc.Get("WorkflowTitle")">
-                <FlareIconView Value="@MaterialDesign3Icons.Regular.Edit" Color="FlareColor.OnSurfaceVariant2" />
-                <input type="text"
-                       aria-label="@Loc.Get("WorkflowTitle")"
-                       placeholder="@Loc.Get("WorkflowTitle")"
-                       @bind="_workflowTitle" />
+            <AikoField Label="@Loc.Get("CardTypeDescription")"
+                       Value="@_newTypeDescription"
+                       ValueChanged="value => _newTypeDescription = value" />
+        }
+        else
+        {
+            @* The type being edited: its id is what every card and board section is filed under, its name is
+               what the board shows, and the icon and the colour are how it is drawn. *@
+            <div class="aiko-form-row">
+                <AikoField Label="@Loc.Get("StableId")"
+                           Hint="@Loc.Get("CardTypeIdHint")"
+                           ReadOnly="@(!CanRenameId)"
+                           Value="@_workflowIdDraft"
+                           ValueChanged="value => _workflowIdDraft = value" />
+                <AikoField Label="@Loc.Get("WorkflowTitle")"
+                           Value="@_workflowTitle"
+                           ValueChanged="value => _workflowTitle = value" />
             </div>
-        </div>
-
-        @* What the card type is, in the project's words. This is where a user who adds an Epic writes what
-           an Epic is for; the icon and the colour are how the type is drawn on the board. *@
-        <div class="aiko-code-pair">
-            <div class="aiko-code-row aiko-code-row--quiet" title="@Loc.Get("CardTypeDescription")">
-                <FlareIconView Value="@MaterialDesign3Icons.Regular.Description" Color="FlareColor.OnSurfaceVariant2" />
-                <input type="text"
-                       aria-label="@Loc.Get("CardTypeDescription")"
-                       placeholder="@Loc.Get("CardTypeDescription")"
-                       @bind="_workflowDescription" />
-            </div>
-        </div>
+            <AikoField Label="@Loc.Get("CardTypeDescription")"
+                       Value="@_workflowDescription"
+                       ValueChanged="value => _workflowDescription = value" />
+        }
 
         <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XSmall" Wrap="true">
             <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
                 @* Each picker draws the icon or the swatch it is offering, so the pair needs no separate
-                   preview beside them. *@
+                   preview beside them. While the draft tab is open the pair edits the draft; otherwise it
+                   edits the type on screen. *@
                 <AikoSelectField Label="@Loc.Get("CardTypeIcon")"
                                  Class="aiko-field--wide"
-                                 Value="@_workflowIcon"
-                                 ValueChanged="value => _workflowIcon = value"
+                                 Value="@PickedIcon"
+                                 ValueChanged="OnIconPicked"
                                  Items="@IconChoices"
                                  NullOption="@Loc.Get("AppearanceDefault")"
                                  ItemTemplate="@IconOption"
-                                 SelectedTemplate="@IconValue(ColorOf(_workflowColor))" />
+                                 SelectedTemplate="@IconValue(ColorOf(PickedColor))" />
                 <AikoSelectField Label="@Loc.Get("CardTypeColor")"
                                  Class="aiko-field--wide"
-                                 Value="@_workflowColor"
-                                 ValueChanged="value => _workflowColor = value"
+                                 Value="@PickedColor"
+                                 ValueChanged="OnColorPicked"
                                  Items="@ColorChoices"
                                  NullOption="@Loc.Get("AppearanceDefault")"
                                  ItemTemplate="@ColorOption"
                                  SelectedTemplate="@ColorOption" />
             </FlareStack>
-            @if (Delete is not null && _deleteTypeConfirm)
+
+            @if (_newTypePanelOpen)
             {
-                @* The one destructive action asks twice, and says what it will not touch. *@
                 <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
-                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.Warning">
-                        @Loc.Get("DeleteCardTypeConfirm")
-                    </FlareText>
-                    <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm" OnClick="DeleteCardTypeAsync">
-                        <ChildContent>@Loc.Get("Delete")</ChildContent>
-                    </FlareButton>
-                    <FlareButton Variant="ButtonVariant.Text"
+                    <FlareButton Variant="ButtonVariant.Filled"
                                  Size="ButtonSize.Sm"
-                                 OnClick="() => _deleteTypeConfirm = false">
+                                 Loading="@_creatingType"
+                                 OnClick="CreateCardTypeAsync">
+                        <LeadingIcon><FlareIconView Value="@FlareIcons.Add" /></LeadingIcon>
+                        <ChildContent>@Loc.Get("AddCardType")</ChildContent>
+                    </FlareButton>
+                    <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm" OnClick="ToggleNewType">
                         <ChildContent>@Loc.Get("Cancel")</ChildContent>
                     </FlareButton>
                 </FlareStack>
             }
-            else if (Delete is not null)
+            else
             {
-                <FlareButton Variant="ButtonVariant.Text"
-                             Size="ButtonSize.Sm"
-                             Disabled="@SelectedTypeHasCards"
-                             OnClick="() => _deleteTypeConfirm = true">
-                    <LeadingIcon><FlareIconView Value="@FlareIcons.Delete" /></LeadingIcon>
-                    <ChildContent>@Loc.Get("RemoveCardType")</ChildContent>
-                </FlareButton>
+                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
+                    @* The fields above edit the type in place, so the type needs its own save: the one in
+                       the stage drawer writes the pipeline, this one writes what the type is. *@
+                    <FlareButton Variant="ButtonVariant.Filled"
+                                 Size="ButtonSize.Sm"
+                                 Loading="@_saving"
+                                 OnClick="SaveTypeAsync">
+                        <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.Check" /></LeadingIcon>
+                        <ChildContent>@Loc.Get("SaveCardType")</ChildContent>
+                    </FlareButton>
+                    @if (Delete is not null && _deleteTypeConfirm)
+                    {
+                        @* The one destructive action asks twice, and says what it will not touch. *@
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.Warning">
+                            @Loc.Get("DeleteCardTypeConfirm")
+                        </FlareText>
+                        <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm" OnClick="DeleteCardTypeAsync">
+                            <ChildContent>@Loc.Get("Delete")</ChildContent>
+                        </FlareButton>
+                        <FlareButton Variant="ButtonVariant.Text"
+                                     Size="ButtonSize.Sm"
+                                     OnClick="() => _deleteTypeConfirm = false">
+                            <ChildContent>@Loc.Get("Cancel")</ChildContent>
+                        </FlareButton>
+                    }
+                    else if (Delete is not null)
+                    {
+                        <FlareButton Variant="ButtonVariant.Text"
+                                     Size="ButtonSize.Sm"
+                                     Disabled="@SelectedTypeHasCards"
+                                     OnClick="() => _deleteTypeConfirm = true">
+                            <LeadingIcon><FlareIconView Value="@FlareIcons.Delete" /></LeadingIcon>
+                            <ChildContent>@Loc.Get("RemoveCardType")</ChildContent>
+                        </FlareButton>
+                    }
+                </FlareStack>
             }
         </FlareStack>
 
-        @if (Delete is not null && SelectedTypeHasCards)
+        @if (!_newTypePanelOpen && Delete is not null && SelectedTypeHasCards)
         {
             <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
                 @Loc.Get("DeleteCardTypeHasCards")
             </FlareText>
         }
 
-        @if (Create is not null && _newTypePanelOpen)
+        @if (!_newTypePanelOpen)
         {
-            <FlarePaper Elevation="0" Padding="FlareSpacing.Medium" Square="true" Class="aiko-panel">
-                <FlareStack Gap="FlareSpacing.Small">
-                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
-                        @Loc.Get("NewCardTypeTitle")
-                    </FlareText>
-                    <div class="aiko-form-row">
-                        <AikoField Label="@Loc.Get("StableId")"
-                                   Icon="@MaterialDesign3Icons.Regular.Tag"
-                                   Value="@_newTypeId"
-                                   Placeholder="@Loc.Get("CardTypeIdHelper")"
-                                   Hint="@Loc.Get("CardTypeIdHelper")"
-                                   ValueChanged="value => _newTypeId = value" />
-                        <AikoField Label="@Loc.Get("CardTypeName")"
-                                   Icon="@MaterialDesign3Icons.Regular.Edit"
-                                   Value="@_newTypeTitle"
-                                   ValueChanged="value => _newTypeTitle = value" />
-                    </div>
-                    <AikoField Label="@Loc.Get("CardTypeDescription")"
-                               Value="@_newTypeDescription"
-                               ValueChanged="value => _newTypeDescription = value" />
-                    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
-                        <AikoSelectField Label="@Loc.Get("CardTypeIcon")"
-                                         Class="aiko-field--wide"
-                                         Value="@_newTypeIcon"
-                                         ValueChanged="value => _newTypeIcon = value"
-                                         Items="@IconChoices"
-                                         NullOption="@Loc.Get("AppearanceDefault")"
-                                         ItemTemplate="@IconOption"
-                                         SelectedTemplate="@IconValue(ColorOf(_newTypeColor))" />
-                        <AikoSelectField Label="@Loc.Get("CardTypeColor")"
-                                         Class="aiko-field--wide"
-                                         Value="@_newTypeColor"
-                                         ValueChanged="value => _newTypeColor = value"
-                                         Items="@ColorChoices"
-                                         NullOption="@Loc.Get("AppearanceDefault")"
-                                         ItemTemplate="@ColorOption"
-                                         SelectedTemplate="@ColorOption" />
-                        <FlareButton Variant="ButtonVariant.Tonal"
-                                     Size="ButtonSize.Sm"
-                                     Loading="@_creatingType"
-                                     OnClick="CreateCardTypeAsync">
-                            <LeadingIcon><FlareIconView Value="@FlareIcons.Add" /></LeadingIcon>
-                            <ChildContent>@Loc.Get("AddCardType")</ChildContent>
-                        </FlareButton>
-                    </FlareStack>
-                </FlareStack>
-            </FlarePaper>
-        }
+            <FlareDivider />
 
-        <FlareDivider />
-
-        <FlareStack Gap="FlareSpacing.Small">
-            <FlareText Element="h3" Typo="TypographyScale.TitleSmall">
-                @Loc.Get("StagesTitle") (@_stages.Count)
-            </FlareText>
+            <FlareStack Gap="FlareSpacing.Small">
+            @* The statuses belong to the type, so they read as its section rather than as a peer of the tab
+               strip: a small mono label and a count, not a heading bigger than the tab it belongs to. *@
+            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
+                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
+                    @Loc.Get("StagesTitle")
+                </FlareText>
+                <span class="aiko-tag aiko-tag--quiet">@DisplayFormat.Number(_stages.Count)</span>
+            </FlareStack>
             @* The pipeline as the design draws it: one card per stage, saying what the stage is (its role in
                the pipeline), who may run it, what it must produce and how it is verified. Clicking a card
                opens it for editing below. *@
@@ -298,7 +296,8 @@
                 <LeadingIcon><FlareIconView Value="@FlareIcons.Add" /></LeadingIcon>
                 <ChildContent>@Loc.Get("AddStage")</ChildContent>
             </FlareButton>
-        </FlareStack>
+            </FlareStack>
+        }
 
     </FlareStack>
 </FlarePaper>
@@ -509,6 +508,13 @@
     /// </summary>
     [Parameter] public Func<WorkflowDefinition, Task<string?>>? Delete { get; set; }
 
+    /// <summary>
+    /// Renames a card type - its id, which is what its cards and board section are filed under - and
+    /// returns the failure text, or null when it was renamed. Optional: a screen that cannot carry the
+    /// change out (a template, or a type that still has cards) omits it, and the id field turns read-only.
+    /// </summary>
+    [Parameter] public Func<string, string, Task<string?>>? Rename { get; set; }
+
     /// <summary>The icon ids a stage or a card type may choose from.</summary>
     private static IReadOnlyList<string> IconChoices => AppearanceCatalog.Icons;
 
@@ -556,6 +562,7 @@
 
     private string? _loadedWorkflowsKey;
     private string _workflowId = string.Empty;
+    private string? _workflowIdDraft;
     private string? _workflowTitle;
     private string? _workflowDescription;
     private string? _workflowIcon;
@@ -588,6 +595,68 @@
 
     private WorkflowDefinition SelectedWorkflow =>
         Workflows.First(workflow => workflow.Id == _workflowId);
+
+    /// <summary>
+    /// Whether the type's id may be edited here. The id names the folder a type's cards are filed in and
+    /// the board section that shows them, so it is only offered where the screen can carry the rename out:
+    /// a project's own pipeline, with no card filed under the type yet.
+    /// </summary>
+    private bool CanRenameId => Rename is not null && !SelectedTypeHasCards;
+
+    /// <summary>The icon the pickers edit: the draft's while the draft tab is open, the type's otherwise.</summary>
+    private string? PickedIcon => _newTypePanelOpen ? _newTypeIcon : _workflowIcon;
+
+    /// <summary>The colour the pickers edit, chosen the same way as <see cref="PickedIcon"/>.</summary>
+    private string? PickedColor => _newTypePanelOpen ? _newTypeColor : _workflowColor;
+
+    private void OnIconPicked(string? value)
+    {
+        if (_newTypePanelOpen)
+        {
+            _newTypeIcon = value;
+        }
+        else
+        {
+            _workflowIcon = value;
+        }
+    }
+
+    private void OnColorPicked(string? value)
+    {
+        if (_newTypePanelOpen)
+        {
+            _newTypeColor = value;
+        }
+        else
+        {
+            _workflowColor = value;
+        }
+    }
+
+    /// <summary>What the draft tab draws: the type does not exist yet, so it wears the add glyph.</summary>
+    private static RenderFragment DraftTabIcon => @<FlareIconView Value="@MaterialDesign3Icons.Regular.Add" />;
+
+    /// <summary>
+    /// Opens a draft type as a tab of its own, or closes it again. Opening starts from empty fields;
+    /// closing throws the draft away and leaves the type that was on screen selected.
+    /// </summary>
+    private void ToggleNewType()
+    {
+        _message = null;
+        _hasError = false;
+        _deleteTypeConfirm = false;
+        if (!_newTypePanelOpen && Create is null)
+        {
+            return;
+        }
+
+        _newTypePanelOpen = !_newTypePanelOpen;
+        _newTypeId = null;
+        _newTypeTitle = null;
+        _newTypeDescription = null;
+        _newTypeIcon = null;
+        _newTypeColor = null;
+    }
 
     private StageDraft? SelectedStage => _selectedStage ?? _stages.FirstOrDefault();
 
@@ -624,6 +693,12 @@
     {
         get
         {
+            // The draft is the last tab, past the types that exist.
+            if (_newTypePanelOpen)
+            {
+                return Workflows.Count;
+            }
+
             for (var index = 0; index < Workflows.Count; index++)
             {
                 if (StringComparer.Ordinal.Equals(Workflows[index].Id, _workflowId))
@@ -654,9 +729,21 @@
     /// <summary>Switching tabs switches the pipeline, so the stages follow the type that was picked.</summary>
     private void OnTypeTabChanged(int index)
     {
+        // The draft is not a workflow yet, so its tab only keeps the draft open.
+        if (_newTypePanelOpen && index == Workflows.Count)
+        {
+            return;
+        }
+
         if (index < 0 || index >= Workflows.Count)
         {
             return;
+        }
+
+        // Picking a real type closes the draft: the fields below are about to be someone else's.
+        if (_newTypePanelOpen)
+        {
+            ToggleNewType();
         }
 
         var picked = Workflows[index];
@@ -671,6 +758,7 @@
     private void LoadWorkflow(WorkflowDefinition workflow)
     {
         _workflowId = workflow.Id;
+        _workflowIdDraft = workflow.Id;
         _workflowTitle = workflow.Title;
         _workflowDescription = workflow.Description;
         _workflowIcon = workflow.Icon;
@@ -741,6 +829,89 @@
         _stageDrawerOpen = false;
     }
 
+    /// <summary>
+    /// Saves the type itself: the name, description, icon and colour the tab and the board draw, and the
+    /// id when it was changed. The pipeline is saved by <see cref="SaveAsync"/>, so each button writes the
+    /// part of the document it stands next to.
+    /// </summary>
+    private async Task SaveTypeAsync()
+    {
+        _message = null;
+        _hasError = false;
+        if (_newTypePanelOpen)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_workflowTitle))
+        {
+            ShowError(Loc.Get("WorkflowTitleRequired"));
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            var failure = await Save(SelectedWorkflow with
+            {
+                Title = _workflowTitle!,
+                Description = TrimOrNull(_workflowDescription),
+                Icon = AppearanceCatalog.NormalizeIcon(_workflowIcon),
+                Color = AppearanceCatalog.NormalizeColor(_workflowColor)
+            });
+            if (failure is not null)
+            {
+                ShowError(failure);
+                return;
+            }
+
+            if (await RenameCardTypeAsync() is { } renameFailure)
+            {
+                ShowError(renameFailure);
+                return;
+            }
+
+            _message = Loc.Get("CardTypeSaved");
+        }
+        catch (Exception exception)
+        {
+            ShowError(Loc.Format("SaveWorkflowFailed", exception.Message));
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    /// <summary>
+    /// Renames the type when its id field was changed, and returns the failure text or null. The daemon
+    /// refuses a rename that would leave a card outside its pipeline, which is why the field is read-only
+    /// once the type has cards.
+    /// </summary>
+    private async Task<string?> RenameCardTypeAsync()
+    {
+        var requested = TrimOrNull(_workflowIdDraft);
+        if (requested is null || StringComparer.Ordinal.Equals(requested, _workflowId))
+        {
+            return null;
+        }
+
+        if (Rename is null)
+        {
+            return Loc.Get("CardTypeIdFixed");
+        }
+
+        var failure = await Rename(_workflowId, requested);
+        if (failure is null)
+        {
+            // The reload carries the new id, so the editor follows the type rather than the old name.
+            _pendingWorkflowId = requested;
+            _workflowIdDraft = requested;
+        }
+
+        return failure;
+    }
+
     private async Task SaveAsync()
     {
         _message = null;
@@ -792,6 +963,14 @@
             if (failure is not null)
             {
                 ShowError(failure);
+                return;
+            }
+
+            // An id changed in the fields at the top is carried out here too, so saving the pipeline
+            // cannot quietly drop the rename.
+            if (await RenameCardTypeAsync() is { } renameFailure)
+            {
+                ShowError(renameFailure);
                 return;
             }
 

@@ -329,6 +329,80 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
     }
 
     [Fact]
+    public async Task A_card_type_is_renamed_only_while_it_has_no_cards()
+    {
+        using var http = CreateClient();
+        var project = fixture.ProjectId;
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var originalId = $"epic{suffix}";
+        var kind = $"Epic{suffix}";
+        var renamedId = $"theme{suffix}";
+
+        using var created = await http.PostAsJsonAsync($"api/v1/projects/{project}/workflows", new
+        {
+            id = originalId,
+            title = "Epics",
+            stages = new object[]
+            {
+                new
+                {
+                    id = "backlog", title = "Backlog", order = 10, instruction = "Clarify the epic.",
+                    allowedCardKinds = new[] { kind }, defaultAgentAdapterId = (string?)null,
+                    requiredArtifacts = Array.Empty<object>(), actionPolicies = new Dictionary<string, string>()
+                },
+                new
+                {
+                    id = "done", title = "Done", order = 20, instruction = "Record the epic.",
+                    allowedCardKinds = new[] { kind }, defaultAgentAdapterId = (string?)null,
+                    requiredArtifacts = Array.Empty<object>(), actionPolicies = new Dictionary<string, string>()
+                }
+            }
+        });
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+
+        // Renaming the type's id, which is its identity, is a deliberate move the daemon carries out.
+        using var renamed = await http.PostAsJsonAsync(
+            $"api/v1/projects/{project}/workflows/{originalId}/rename",
+            new { newId = renamedId });
+        Assert.Equal(HttpStatusCode.OK, renamed.StatusCode);
+        Assert.Equal(
+            renamedId,
+            (await renamed.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString());
+
+        var board = await http.GetFromJsonAsync<JsonElement>($"api/v1/projects/{project}/board");
+        var workflowIds = board.GetProperty("workflows").EnumerateArray()
+            .Select(workflow => workflow.GetProperty("id").GetString())
+            .ToArray();
+        Assert.Contains(renamedId, workflowIds);
+        Assert.DoesNotContain(originalId, workflowIds);
+
+        // An id another type already holds is a conflict, not a merge.
+        using var duplicate = await http.PostAsJsonAsync(
+            $"api/v1/projects/{project}/workflows/{renamedId}/rename",
+            new { newId = "task" });
+        Assert.Equal(HttpStatusCode.Conflict, duplicate.StatusCode);
+
+        // A type that has a card is refused: the card would be left under the old id.
+        var cardId = $"THEME-{Guid.NewGuid():N}"[..12];
+        using var card = await http.PostAsJsonAsync($"api/v1/projects/{project}/cards", new
+        {
+            cardId,
+            kind,
+            title = "First theme",
+            workflowId = renamedId,
+            stageId = "backlog",
+            ownPriority = 1,
+            declaredScopeFiles = Array.Empty<string>()
+        });
+        Assert.Equal(HttpStatusCode.Created, card.StatusCode);
+
+        using var blocked = await http.PostAsJsonAsync(
+            $"api/v1/projects/{project}/workflows/{renamedId}/rename",
+            new { newId = $"other{suffix}" });
+        Assert.Equal(HttpStatusCode.BadRequest, blocked.StatusCode);
+    }
+
+    [Fact]
     public async Task A_project_answers_to_its_readable_handle()
     {
         using var http = CreateClient();

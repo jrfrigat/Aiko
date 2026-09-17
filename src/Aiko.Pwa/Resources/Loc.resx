@@ -534,6 +534,10 @@
   <data name="RemoveCardType" xml:space="preserve"><value>Remove card type</value></data>
   <data name="NewCardTypeTitle" xml:space="preserve"><value>New card type</value></data>
   <data name="CardTypeIdHelper" xml:space="preserve"><value>Type id, for example epic</value></data>
+  <data name="CardTypeIdHint" xml:space="preserve"><value>The id is the type's identity: it names the folder its cards live in and the board section that shows them</value></data>
+  <data name="CardTypeIdFixed" xml:space="preserve"><value>Only a type that has no cards yet can be renamed</value></data>
+  <data name="CardTypeSaved" xml:space="preserve"><value>Card type saved.</value></data>
+  <data name="SaveCardType" xml:space="preserve"><value>Save type</value></data>
   <data name="CardTypeName" xml:space="preserve"><value>Type name</value></data>
   <data name="AddCardType" xml:space="preserve"><value>Add card type</value></data>
   <data name="CardTypeIdInvalid" xml:space="preserve"><value>The type id must be lower-case letters, digits and dashes.</value></data>

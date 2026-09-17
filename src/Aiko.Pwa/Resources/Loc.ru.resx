@@ -533,6 +533,10 @@
   <data name="RemoveCardType" xml:space="preserve"><value>Удалить тип карточек</value></data>
   <data name="NewCardTypeTitle" xml:space="preserve"><value>Новый тип карточек</value></data>
   <data name="CardTypeIdHelper" xml:space="preserve"><value>ID типа, например epic</value></data>
+  <data name="CardTypeIdHint" xml:space="preserve"><value>Id — это идентичность типа: он задаёт папку, в которой лежат его карточки, и секцию доски, которая их показывает</value></data>
+  <data name="CardTypeIdFixed" xml:space="preserve"><value>Переименовать можно только тип, у которого ещё нет карточек</value></data>
+  <data name="CardTypeSaved" xml:space="preserve"><value>Тип карточек сохранён.</value></data>
+  <data name="SaveCardType" xml:space="preserve"><value>Сохранить тип</value></data>
   <data name="CardTypeName" xml:space="preserve"><value>Название типа</value></data>
   <data name="AddCardType" xml:space="preserve"><value>Добавить тип карточек</value></data>
   <data name="CardTypeIdInvalid" xml:space="preserve"><value>ID типа — строчные латинские буквы, цифры и дефисы.</value></data>

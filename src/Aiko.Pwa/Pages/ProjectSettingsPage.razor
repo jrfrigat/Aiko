@@ -23,6 +23,7 @@ else
                                    InitialWorkflowId="task"
                                    Save="SaveWorkflowAsync"
                                    Create="CreateWorkflowAsync"
+                                   Rename="RenameWorkflowAsync"
                                    Delete="DeleteWorkflowAsync" />
             </ExtraNarrowContent>
         </SettingsEditor>
@@ -98,6 +99,38 @@ else
                     workflow.Description,
                     workflow.Icon,
                     workflow.Color),
+                PwaJson.Options);
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadFromJsonAsync<ErrorResponse>(PwaJson.Options);
+                return error?.Message ?? Loc.Format("ServerRejectedChanges", (int)response.StatusCode);
+            }
+
+            await State.LoadBoardAsync();
+            return null;
+        }
+        catch (Exception exception)
+        {
+            return Loc.Format("SaveWorkflowFailed", exception.Message);
+        }
+    }
+
+    /// <summary>
+    /// Renames a card type: the workflow's id changes, and the daemon moves its board sections with it.
+    /// Returns the failure text, or null when it was renamed.
+    /// </summary>
+    private async Task<string?> RenameWorkflowAsync(string currentId, string newId)
+    {
+        if (State.Board is not { } board)
+        {
+            return Loc.Get("BoardUnavailable");
+        }
+
+        try
+        {
+            using var response = await Http.PostAsJsonAsync(
+                $"api/v1/projects/{Uri.EscapeDataString(board.Project.Id)}/workflows/{Uri.EscapeDataString(currentId)}/rename",
+                new RenameWorkflowRequest(newId),
                 PwaJson.Options);
             if (!response.IsSuccessStatusCode)
             {

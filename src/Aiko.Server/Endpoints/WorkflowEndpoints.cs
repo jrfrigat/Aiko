@@ -169,11 +169,73 @@ internal static class WorkflowEndpoints
                 await ReprojectAsync(projectId, httpRequest, agents, accessToken, cancellationToken);
                 return Results.NoContent();
             });
-    }
+        app.MapPost(
+            "/api/v1/projects/{projectId}/workflows/{workflowId}/rename",
+            async (
+                string projectId,
+                string workflowId,
+                RenameWorkflowRequest request,
+                IProjectDefinitionStore definitions,
+                ICardStore cards,
+                IUnifiedAgentInstaller agents,
+                DaemonAccessToken accessToken,
+                HttpRequest httpRequest,
+                CancellationToken cancellationToken) =>
+            {
+                if (string.IsNullOrWhiteSpace(request.NewId))
+                {
+                    return Results.BadRequest(new ErrorResponse("A new workflow id is required."));
+                }
 
-    /// <summary>
-    /// Refreshes the per-type agent commands after the set of card types changed.
-    /// </summary>
+                var newId = request.NewId.Trim().ToLowerInvariant();
+                var definition = await definitions.ReadAsync(projectId, cancellationToken);
+                var existing = definition.Workflows.FirstOrDefault(workflow =>
+                    StringComparer.Ordinal.Equals(workflow.Id, workflowId));
+                if (existing is null)
+                {
+                    return Results.NotFound();
+                }
+
+                if (StringComparer.Ordinal.Equals(workflowId, newId))
+                {
+                    return Results.Ok(existing);
+                }
+
+                // The id is the type's identity, so its cards would be left behind by a rename. Moving them
+                // is a migration of its own, and a half-done one is worse than a refusal.
+                var stranded = (await cards.ListAsync(projectId, cancellationToken)).FirstOrDefault(card =>
+                    StringComparer.Ordinal.Equals(card.WorkflowId, workflowId));
+                if (stranded is not null)
+                {
+                    return Results.BadRequest(new ErrorResponse(
+                        $"Card type still contains card {stranded.Reference.CardId}; "
+                        + "remove its cards before renaming it."));
+                }
+
+                try
+                {
+                    var renamed = await definitions.RenameWorkflowAsync(
+                        projectId,
+                        workflowId,
+                        newId,
+                        cancellationToken);
+                    await ReprojectAsync(projectId, httpRequest, agents, accessToken, cancellationToken);
+                    return Results.Ok(renamed);
+                }
+                catch (InvalidOperationException exception)
+                {
+                    return Results.Conflict(new ErrorResponse(exception.Message));
+                }
+                catch (ArgumentException exception)
+                {
+                    return Results.BadRequest(new ErrorResponse(exception.Message));
+                }
+                catch (KeyNotFoundException)
+                {
+                    return Results.NotFound();
+                }
+            });
+    }
     /// <remarks>
     /// A failure here does not fail the request: the commands are a convenience derived from the pipelines,
     /// the workflow itself is already saved, and the next <c>aiko agent install</c> repairs the files.
