@@ -53,6 +53,7 @@
             {
                 <FlareSelect TValue="string"
                              Label="@Loc.Get("CardFilter")"
+                             Placeholder="@Loc.Get("Choose")"
                              Size="FieldSize.Sm"
                              Value="@_selectedCardId"
                              ValueChanged="SelectCardAsync">
@@ -183,9 +184,7 @@
                         </IconContent>
                         <ChildContent>@project.Name</ChildContent>
                         <BadgeContent>
-                            <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant2">
-                                @ProjectPath(project.RootPath)
-                            </FlareText>
+                            <span class="aiko-tag aiko-tag--clip" title="@project.RootPath">@ProjectTag(project.RootPath)</span>
                         </BadgeContent>
                     </FlareNavLink>
                 }
@@ -969,4 +968,19 @@
 
     private static string ProjectPath(string path) =>
         path.Length <= 34 ? path : $"...{path[^33..]}";
+
+    /// <summary>
+    /// The project's rail tag: the last two path segments. The rail is 16rem wide and the tag shares
+    /// its row with the name, so the full path lives in the tooltip instead.
+    /// </summary>
+    private static string ProjectTag(string path)
+    {
+        var parts = path.Split(['/', '\\'], StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length switch
+        {
+            0 => path,
+            1 => parts[0],
+            _ => $"{parts[^2]}/{parts[^1]}"
+        };
+    }
 }

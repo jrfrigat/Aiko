@@ -103,6 +103,15 @@
     color: var(--flare-color-on-surface-variant);
 }
 
+/* A tag in a narrow slot (the rail): it clips instead of pushing the label out of the row. */
+.aiko-tag--clip {
+    max-width: 7rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: inline-block;
+    vertical-align: bottom;
+}
+
 .aiko-tag--pill {
     border-radius: var(--flare-shape-full);
     background: var(--flare-color-surface-container-highest);
@@ -156,7 +165,20 @@
     background: var(--flare-color-surface-container);
 }
 
-/* The board: columns scroll sideways, each column scrolls its own cards. */
+/* The board: columns scroll sideways, each column scrolls its own cards.
+   The shell must not grow with the board: every link from the layout's content track down to the
+   scroller is allowed to shrink, or a row of fixed-width columns makes the whole grid wider than the
+   window and the open inspector gets clipped. */
+.flare-theme-stitchflow .flare-layout-content,
+.flare-theme-stitchflow .flare-layout__content-frame {
+    min-width: 0;
+}
+
+.aiko-board-section,
+.aiko-board {
+    min-width: 0;
+}
+
 .aiko-board {
     display: flex;
     align-items: flex-start;

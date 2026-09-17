@@ -201,8 +201,14 @@ public static class StitchFlowTheme
             SelectedRadiusXl = "var(--flare-shape-small)",
             SelectedRadiusSquare = "var(--flare-shape-small)",
 
-            // Selected states: the accent plane, or a raised neutral with accent text for the
-            // variants that already rest on a container.
+            // Selected states. A segmented control paints its active segment with the GENERIC pair -
+            // togglebutton.css restates --flare-btn-selected-bg/color for `> .flare-btn--selected`
+            // rather than the variant's pair, so this is where the accent fill has to be for the
+            // design's active segment (and it is the same answer for a selected standalone button).
+            SelectedBg = "var(--flare-color-primary)",
+            SelectedColor = "var(--flare-color-on-primary)",
+            // The per-variant pairs cover a toggle in any OTHER container, where the variant's own
+            // rule wins.
             FilledSelectedBg = "var(--flare-color-primary)",
             FilledSelectedColor = "var(--flare-color-on-primary)",
             ElevatedSelectedBg = "var(--flare-color-surface-container-high)",
@@ -211,8 +217,6 @@ public static class StitchFlowTheme
             TonalSelectedColor = "var(--flare-color-on-primary-container)",
             OutlinedSelectedBg = "var(--flare-color-surface-container-highest)",
             OutlinedSelectedColor = "var(--flare-color-primary)",
-            SelectedBg = "var(--flare-color-surface-container-highest)",
-            SelectedColor = "var(--flare-color-primary)",
 
             // An unselected toggle is a neutral container, never the accent fill.
             FilledUnselectedBg = "var(--flare-color-surface-container)",

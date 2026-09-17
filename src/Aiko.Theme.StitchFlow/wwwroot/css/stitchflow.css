@@ -62,3 +62,28 @@
 .flare-theme-stitchflow .flare-badge__indicator {
     box-shadow: 0 0 8px color-mix(in srgb, var(--fc-main, var(--flare-color-primary)) 55%, transparent);
 }
+
+/*
+ * (7) The nav badge slot is painted as a NOTIFICATION badge in core - an error-coloured capsule - so a
+ * neutral trailing tag (a count, a path, a state) cannot live there as it comes. The theme paints the
+ * slot instead of the app avoiding it.                  -> nav-badge-slot-paint.md
+ */
+.flare-theme-stitchflow .flare-nav-link__badge,
+.flare-theme-stitchflow .flare-nav-group__badge {
+    background: none;
+    color: inherit;
+    border-radius: var(--flare-shape-extra-small);
+    padding: 0;
+    min-width: 0;
+    font-size: inherit;
+    font-weight: var(--flare-nav-badge-weight);
+}
+
+/*
+ * (8) An active item's text colour is hardcoded to on-secondary-container in core, which is the pair
+ * of the second accent - not of whatever a theme put in --flare-nav-active-indicator. This theme
+ * points the indicator at primary-container, so it names on-primary-container.  -> nav-active-color.md
+ */
+.flare-theme-stitchflow .flare-nav-link--active {
+    color: var(--flare-color-on-primary-container);
+}

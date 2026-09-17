@@ -31,7 +31,10 @@
                    ActiveIndexChanged="OnActiveIndexChangedAsync">
             @foreach (var path in AvailablePaths)
             {
-                <FlareTab Label="@path" Badge="@ArtifactState(path)" Tooltip="@path">
+                <FlareTab Label="@path"
+                          Badge="@ArtifactState(path)"
+                          BadgeColor="@ArtifactStateColor(path)"
+                          Tooltip="@path">
                     <FlareStack Gap="FlareSpacing.Small">
                         <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XSmall">
                             <FlareStack Gap="FlareSpacing.None">
@@ -289,6 +292,24 @@
         return RequiredArtifactPaths.Contains(path, StringComparer.OrdinalIgnoreCase)
             ? Loc.Get("ArtifactRequired")
             : Loc.Get("ArtifactNew");
+    }
+
+    /// <summary>
+    /// The tab badge's colour. A tab badge defaults to the error role - it is a notification count in
+    /// Flare's model - so each state names its own tone: a required-but-missing document is the
+    /// warning, a saved one is fine, a new one is merely informational.
+    /// </summary>
+    private FlareColor ArtifactStateColor(string path)
+    {
+        if (_savedArtifacts.Any(item =>
+                StringComparer.OrdinalIgnoreCase.Equals(item.Path, path)))
+        {
+            return FlareColor.Success;
+        }
+
+        return RequiredArtifactPaths.Contains(path, StringComparer.OrdinalIgnoreCase)
+            ? FlareColor.Warning
+            : FlareColor.Info;
     }
 
     private static bool IsMarkdownPath(string? path) =>
