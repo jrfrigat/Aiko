@@ -111,16 +111,19 @@ configured, in which case the button completes it. An agent that is not on `PATH
 
 ## Settings
 
-Three levels exist, from widest to narrowest, and the narrower one wins:
+Two levels exist, and the narrower one wins:
 
 - **Template** (`templates/default/template.json` next to the daemon's database) - what a new project is
   created from: the execution defaults, the scoring model (weights, criteria, size grid) and the pipelines
   with their stages. This is the level the **Workflow** screen edits, and editing it affects the
   projects created afterwards, never the ones that already exist.
-- **Installation** (`app-settings.json` next to the database) - the daemon-level fallback for the sections a
-  template leaves out. Aiko writes it at init; the screen does not edit it.
 - **Project** (`.aiko/settings.json`) - the values this project actually runs with, copied in at creation.
   The **Project settings** screen edits this one, and only this one.
+
+There is no installation-wide level: what a project does not state it does not inherit from anything, so the
+Project settings screen has no "reset to app defaults" to offer. What it offers instead is **Change
+workflow** - point the project at another workflow set - and **Create template** - capture the project as a
+set other projects can start from.
 
 Currently configured: execution (workspace mode, max concurrent runs, scope-overlap and commit policies),
 and the priority model - blending weights, the criteria with their ranges and agent instructions, and the
@@ -153,7 +156,8 @@ its name:
 
 - **Capture from a project** - a new template out of an existing project: a snapshot of its settings, its
   pipelines, its projections, its memory and its git policy. It is how an installation pins a project it
-  likes as the starting point of the next ones.
+  likes as the starting point of the next ones. The same action is on the **Project settings** screen as
+  *Create template*.
 - **Duplicate** - a copy of a template, and the way to edit the shipped base: the base has no file of its
   own until it is copied.
 - **Import / Export** - handing a template to another installation: it is written to a JSON file at the path
@@ -164,7 +168,8 @@ its name:
   pipelines, projections and settings are replaced with the template's, its memory is filled in where the
   project has none, and it adopts the template's git policy - while its cards, runs and memory stay. The
   action is **refused** when a card would be left in a stage the template does not have, because work must
-  not silently fall out of its pipeline.
+  not silently fall out of its pipeline. The same action is on the **Project settings** screen as
+  *Change workflow*.
 
 Editing one template is the same defaults screen as before: `/templates/<id>` (and `/settings` for the base).
 

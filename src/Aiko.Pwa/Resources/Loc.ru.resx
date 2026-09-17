@@ -421,7 +421,12 @@
   <data name="ProjectOverrideScope" xml:space="preserve"><value>Переопределения проекта</value></data>
   <data name="ProjectSettingsHeading" xml:space="preserve"><value>Настройки проекта</value></data>
   <data name="ProjectSettingsHint" xml:space="preserve"><value>С чем работает этот проект. Значения лежат в .aiko/settings.json и не меняются вместе с настройками установки.</value></data>
-  <data name="ResetToAppDefaults" xml:space="preserve"><value>Сбросить к настройкам приложения</value></data>
+  <data name="ChangeWorkflow" xml:space="preserve"><value>Сменить workflow</value></data>
+  <data name="ChangeWorkflowHint" xml:space="preserve"><value>Заменяет workflow, проекции доски и настройки проекта на выбранный набор. Карточки, запуски и память остаются; набор, из-за которого карточка окажется вне своего конвейера, будет отклонён.</value></data>
+  <data name="ChangeWorkflowApply" xml:space="preserve"><value>Сменить</value></data>
+  <data name="ChangeWorkflowEmpty" xml:space="preserve"><value>Нет наборов workflow, на которые можно переключиться.</value></data>
+  <data name="CreateTemplateFromProject" xml:space="preserve"><value>Создать шаблон</value></data>
+  <data name="CreateTemplateFromProjectHint" xml:space="preserve"><value>Сохраняет workflow, проекции, настройки и память проекта как шаблон, из которого можно создавать другие проекты.</value></data>
   <data name="StageRoleInitial" xml:space="preserve"><value>Начальный</value></data>
   <data name="StageRoleTerminal" xml:space="preserve"><value>Финальный</value></data>
   <data name="AllowedExecutors" xml:space="preserve"><value>Разрешённые исполнители</value></data>

@@ -421,7 +421,12 @@
   <data name="ProjectOverrideScope" xml:space="preserve"><value>Project overrides</value></data>
   <data name="ProjectSettingsHeading" xml:space="preserve"><value>Project settings</value></data>
   <data name="ProjectSettingsHint" xml:space="preserve"><value>What this project runs with. The values live in .aiko/settings.json and do not move when the installation defaults change.</value></data>
-  <data name="ResetToAppDefaults" xml:space="preserve"><value>Reset to app defaults</value></data>
+  <data name="ChangeWorkflow" xml:space="preserve"><value>Change workflow</value></data>
+  <data name="ChangeWorkflowHint" xml:space="preserve"><value>Replaces this project's workflows, board projections and settings with the chosen set. Its cards, runs and memory stay; a set that would leave a card outside its pipeline is refused.</value></data>
+  <data name="ChangeWorkflowApply" xml:space="preserve"><value>Change</value></data>
+  <data name="ChangeWorkflowEmpty" xml:space="preserve"><value>No workflow sets are available to switch to.</value></data>
+  <data name="CreateTemplateFromProject" xml:space="preserve"><value>Create template</value></data>
+  <data name="CreateTemplateFromProjectHint" xml:space="preserve"><value>Saves this project's workflows, projections, settings and memory as a template other projects can be created from.</value></data>
   <data name="StageRoleInitial" xml:space="preserve"><value>Initial</value></data>
   <data name="StageRoleTerminal" xml:space="preserve"><value>Terminal</value></data>
   <data name="AllowedExecutors" xml:space="preserve"><value>Allowed executors</value></data>

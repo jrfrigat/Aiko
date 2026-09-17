@@ -292,6 +292,43 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
     }
 
     [Fact]
+    public async Task A_project_captures_a_template_and_switches_to_one()
+    {
+        using var http = CreateClient();
+        var project = fixture.ProjectId;
+        var templateId = $"rest-capture-{Guid.NewGuid():N}";
+
+        // Capturing the project is what the project settings screen's "create template" button does: the
+        // project's workflows, projections and settings become a set other projects can start from.
+        using var captured = await http.PostAsJsonAsync(
+            "api/v1/templates/from-project",
+            new { projectId = project, templateId, name = "Rest capture" });
+        Assert.Equal(HttpStatusCode.OK, captured.StatusCode);
+        var template = await captured.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(templateId, template.GetProperty("id").GetString());
+        Assert.NotEmpty(template.GetProperty("workflows").EnumerateArray());
+
+        // Capturing onto an id that is taken is a conflict, not a silent overwrite.
+        using var duplicate = await http.PostAsJsonAsync(
+            "api/v1/templates/from-project",
+            new { projectId = project, templateId, name = "Rest capture" });
+        Assert.Equal(HttpStatusCode.Conflict, duplicate.StatusCode);
+
+        // Switching the project to that set rewrites its workflow files and keeps its cards - which is
+        // what the "change workflow" button does.
+        using var applied = await http.PostAsJsonAsync(
+            $"api/v1/projects/{project}/apply-template",
+            new { templateId });
+        Assert.Equal(HttpStatusCode.OK, applied.StatusCode);
+
+        // A set that does not exist is a 404, not a silent no-op.
+        using var missing = await http.PostAsJsonAsync(
+            $"api/v1/projects/{project}/apply-template",
+            new { templateId = "nope" });
+        Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
+    }
+
+    [Fact]
     public async Task A_project_answers_to_its_readable_handle()
     {
         using var http = CreateClient();

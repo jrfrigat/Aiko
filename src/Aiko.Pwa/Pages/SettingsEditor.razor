@@ -37,14 +37,36 @@
                 @HintCaption
             </FlareText>
         </FlareStack>
-        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
-            <FlareButton Variant="ButtonVariant.Tonal"
-                         Size="ButtonSize.Sm"
-                         Disabled="@_saving"
-                         OnClick="ResetToDefaultsAsync">
-                <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.History" /></LeadingIcon>
-                <ChildContent>@Loc.Get(ProjectId is null ? "ResetToDefaults" : "ResetToAppDefaults")</ChildContent>
-            </FlareButton>
+        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
+            @if (ProjectId is null)
+            {
+                @* A template's defaults are the built-in ones, so there is a level to reset to. *@
+                <FlareButton Variant="ButtonVariant.Tonal"
+                             Size="ButtonSize.Sm"
+                             Disabled="@_saving"
+                             OnClick="ResetToDefaultsAsync">
+                    <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.History" /></LeadingIcon>
+                    <ChildContent>@Loc.Get("ResetToDefaults")</ChildContent>
+                </FlareButton>
+            }
+            else
+            {
+                @* A project has no level above it - there are no installation-wide settings to fall back
+                   to - so the two actions that do make sense here are choosing which workflow set the
+                   project runs and capturing the project as a template. *@
+                <FlareButton Variant="ButtonVariant.Tonal"
+                             Size="ButtonSize.Sm"
+                             OnClick="ToggleChangeWorkflowAsync">
+                    <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.Layers" /></LeadingIcon>
+                    <ChildContent>@Loc.Get("ChangeWorkflow")</ChildContent>
+                </FlareButton>
+                <FlareButton Variant="ButtonVariant.Tonal"
+                             Size="ButtonSize.Sm"
+                             OnClick="ToggleCreateTemplateAsync">
+                    <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.ContentCopy" /></LeadingIcon>
+                    <ChildContent>@Loc.Get("CreateTemplateFromProject")</ChildContent>
+                </FlareButton>
+            }
             <FlareButton Variant="ButtonVariant.Filled"
                          Size="ButtonSize.Sm"
                          Loading="@_saving"
@@ -54,6 +76,86 @@
             </FlareButton>
         </FlareStack>
     </FlareStack>
+
+    @if (ProjectId is not null && _changeWorkflowOpen)
+    {
+        <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
+            <FlareStack Gap="FlareSpacing.Medium">
+                <FlareStack Gap="FlareSpacing.None">
+                    <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("ChangeWorkflow")</FlareText>
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                        @Loc.Get("ChangeWorkflowHint")
+                    </FlareText>
+                </FlareStack>
+                @if (_templates.Count == 0)
+                {
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                        @Loc.Get("ChangeWorkflowEmpty")
+                    </FlareText>
+                }
+                else
+                {
+                    <AikoSelectField Label="@Loc.Get("TemplatesTitle")"
+                                     Value="@_applyTemplateId"
+                                     ValueChanged="value => _applyTemplateId = value">
+                        @foreach (var template in _templates)
+                        {
+                            var option = template;
+                            <option value="@option.Id">@option.Name</option>
+                        }
+                    </AikoSelectField>
+                    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
+                        <FlareButton Variant="ButtonVariant.Filled"
+                                     Size="ButtonSize.Sm"
+                                     Disabled="@(string.IsNullOrWhiteSpace(_applyTemplateId))"
+                                     Loading="@_applyingTemplate"
+                                     OnClick="ApplyWorkflowAsync">@Loc.Get("ChangeWorkflowApply")</FlareButton>
+                        <FlareButton Variant="ButtonVariant.Text"
+                                     Size="ButtonSize.Sm"
+                                     OnClick="() => _changeWorkflowOpen = false">@Loc.Get("Cancel")</FlareButton>
+                    </FlareStack>
+                }
+            </FlareStack>
+        </FlarePaper>
+    }
+
+    @if (ProjectId is not null && _createTemplateOpen)
+    {
+        <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
+            <FlareStack Gap="FlareSpacing.Medium">
+                <FlareStack Gap="FlareSpacing.None">
+                    <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("CreateTemplateFromProject")</FlareText>
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                        @Loc.Get("CreateTemplateFromProjectHint")
+                    </FlareText>
+                </FlareStack>
+                <div class="aiko-form-row">
+                    <AikoField Label="@Loc.Get("TemplateIdLabel")"
+                               Hint="@Loc.Get("TemplateIdHelper")"
+                               Value="@_newTemplateId"
+                               ValueChanged="value => _newTemplateId = value" />
+                    <AikoField Label="@Loc.Get("Name")"
+                               Value="@_newTemplateName"
+                               ValueChanged="value => _newTemplateName = value" />
+                </div>
+                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
+                    <FlareButton Variant="ButtonVariant.Filled"
+                                 Size="ButtonSize.Sm"
+                                 Loading="@_creatingTemplate"
+                                 OnClick="CreateTemplateAsync">@Loc.Get("Create")</FlareButton>
+                    <FlareButton Variant="ButtonVariant.Text"
+                                 Size="ButtonSize.Sm"
+                                 OnClick="() => _createTemplateOpen = false">@Loc.Get("Cancel")</FlareButton>
+                </FlareStack>
+            </FlareStack>
+        </FlarePaper>
+    }
+
+    @if (_projectActionMessage is { Length: > 0 } actionMessage)
+    {
+        <FlareAlert Severity="@(_projectActionError ? AlertSeverity.Error : AlertSeverity.Success)"
+                    Variant="AlertVariant.Outlined">@actionMessage</FlareAlert>
+    }
 
     @if (!string.IsNullOrWhiteSpace(_message))
     {
@@ -625,6 +727,16 @@
     private bool _saving;
     private bool _pairing;
     private bool _diagnosing;
+    private bool _changeWorkflowOpen;
+    private bool _createTemplateOpen;
+    private IReadOnlyList<ProjectTemplateSummary> _templates = [];
+    private string? _applyTemplateId;
+    private string? _newTemplateId;
+    private string? _newTemplateName;
+    private bool _applyingTemplate;
+    private bool _creatingTemplate;
+    private string? _projectActionMessage;
+    private bool _projectActionError;
 
     /// <summary>The port the daemon reports, taken from the endpoint it is actually listening on.</summary>
     private string LocalPort => State.System is { BaseUrl: { Length: > 0 } baseUrl } &&
@@ -869,32 +981,157 @@
     }
 
     /// <summary>
-    /// Writes the defaults back into this level: the built-in values for a template, and the installation's
-    /// own values for a project - which is what "reset to app defaults" means.
+    /// Opens the workflow chooser and reads the templates it offers, once.
+    /// </summary>
+    private async Task ToggleChangeWorkflowAsync()
+    {
+        _createTemplateOpen = false;
+        _changeWorkflowOpen = !_changeWorkflowOpen;
+        _projectActionMessage = null;
+        if (!_changeWorkflowOpen || _templates.Count > 0)
+        {
+            return;
+        }
+
+        try
+        {
+            _templates = await Http.GetFromJsonAsync<IReadOnlyList<ProjectTemplateSummary>>(
+                "api/v1/templates", PwaJson.Options) ?? [];
+            _applyTemplateId ??= _templates.FirstOrDefault()?.Id;
+        }
+        catch (Exception exception)
+        {
+            _projectActionMessage = Loc.Format("TemplatesUnavailable", FailureText.Describe(exception));
+            _projectActionError = true;
+        }
+    }
+
+    /// <summary>Opens the capture panel, with an identifier derived from the project's own handle.</summary>
+    private Task ToggleCreateTemplateAsync()
+    {
+        _changeWorkflowOpen = false;
+        _createTemplateOpen = !_createTemplateOpen;
+        _projectActionMessage = null;
+        _newTemplateId ??= $"{State.Board?.Project.Handle ?? ProjectId}-template";
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Points this project at another workflow set: the template's workflows, projections and settings
+    /// replace the project's files, while its cards, runs and memory stay. The daemon refuses a set that
+    /// would leave a card outside its pipeline, and that refusal is what this reports.
+    /// </summary>
+    private async Task ApplyWorkflowAsync()
+    {
+        if (_applyingTemplate || string.IsNullOrWhiteSpace(_applyTemplateId) ||
+            ProjectId is not { Length: > 0 } projectId)
+        {
+            return;
+        }
+
+        _applyingTemplate = true;
+        _projectActionMessage = null;
+        try
+        {
+            using var response = await Http.PostAsJsonAsync(
+                $"api/v1/projects/{Uri.EscapeDataString(projectId)}/apply-template",
+                new ApplyTemplateRequest(_applyTemplateId),
+                PwaJson.Options);
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadFromJsonAsync<ErrorResponse>(PwaJson.Options);
+                _projectActionMessage = error?.Message ??
+                    Loc.Format("ServerRejectedChanges", (int)response.StatusCode);
+                _projectActionError = true;
+                return;
+            }
+
+            _projectActionMessage = Loc.Format("TemplateApplied", State.Board?.Project.Name ?? projectId);
+            _projectActionError = false;
+            _changeWorkflowOpen = false;
+            await State.LoadBoardAsync();
+            // The applied set carries settings, so the form follows the files it just changed.
+            await LoadAsync();
+        }
+        catch (Exception exception)
+        {
+            _projectActionMessage = FailureText.Describe(exception);
+            _projectActionError = true;
+        }
+        finally
+        {
+            _applyingTemplate = false;
+        }
+    }
+
+    /// <summary>
+    /// Captures this project as a template: its workflows, projections, settings and memory become the
+    /// starting point of other projects - and, through the export on the workflow screen, of another
+    /// installation.
+    /// </summary>
+    private async Task CreateTemplateAsync()
+    {
+        if (_creatingTemplate || ProjectId is not { Length: > 0 } projectId)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_newTemplateId))
+        {
+            _projectActionMessage = Loc.Get("TemplateIdRequired");
+            _projectActionError = true;
+            return;
+        }
+
+        _creatingTemplate = true;
+        _projectActionMessage = null;
+        try
+        {
+            using var response = await Http.PostAsJsonAsync(
+                "api/v1/templates/from-project",
+                new CreateTemplateFromProjectRequest(
+                    projectId,
+                    _newTemplateId.Trim(),
+                    string.IsNullOrWhiteSpace(_newTemplateName) ? null : _newTemplateName.Trim()),
+                PwaJson.Options);
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadFromJsonAsync<ErrorResponse>(PwaJson.Options);
+                _projectActionMessage = error?.Message ??
+                    Loc.Format("ServerRejectedChanges", (int)response.StatusCode);
+                _projectActionError = true;
+                return;
+            }
+
+            _projectActionMessage = Loc.Get("TemplateCaptured");
+            _projectActionError = false;
+            _createTemplateOpen = false;
+            // A capture makes the template list stale: the chooser must see what was just written.
+            _templates = [];
+        }
+        catch (Exception exception)
+        {
+            _projectActionMessage = FailureText.Describe(exception);
+            _projectActionError = true;
+        }
+        finally
+        {
+            _creatingTemplate = false;
+        }
+    }
+
+    /// <summary>
+    /// Writes the built-in values back into a template, which is what "reset to defaults" means for the
+    /// one level that has defaults above it. A project has no such level, so it is not offered there.
     /// </summary>
     private async Task ResetToDefaultsAsync()
     {
-        if (ProjectId is null)
-        {
-            ApplyView(new AppSettingsView(
-                null,
-                ExecutionSettings.SafeDefault,
-                AppSettingsSources.Default,
-                PrioritySettings.SafeDefault,
-                AppSettingsSources.Default));
-        }
-        else
-        {
-            // "App defaults" for a project means the base template: that is what a new project starts from,
-            // and the project record says which template it came from but does not expose it yet.
-            var template = await Http.GetFromJsonAsync<ProjectTemplate>(TemplateUrl, PwaJson.Options);
-            ApplyView(new AppSettingsView(
-                template?.Settings,
-                template?.Settings?.Execution ?? ExecutionSettings.SafeDefault,
-                template?.Settings?.Execution is null ? AppSettingsSources.Default : AppSettingsSources.Project,
-                template?.Settings?.Priority ?? PrioritySettings.SafeDefault,
-                template?.Settings?.Priority is null ? AppSettingsSources.Default : AppSettingsSources.Project));
-        }
+        ApplyView(new AppSettingsView(
+            null,
+            ExecutionSettings.SafeDefault,
+            AppSettingsSources.Default,
+            PrioritySettings.SafeDefault,
+            AppSettingsSources.Default));
 
         await SaveAsync();
     }
