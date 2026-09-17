@@ -58,14 +58,20 @@
                     }
                 </FlareStack>
 
-                @* What the stage asks for. The instruction belongs to the workflow rather than to the card,
-                   so it is saved on its own and the hint says what that means. *@
+                @* What the stage asks for, and what the card declares it will touch. Both are long text, so
+                   both wear the design's prompt block - the same one the stage editor uses in its drawer -
+                   and each is saved on its own: the instruction belongs to the workflow, the scope to the
+                   card. *@
                 <FlareStack Gap="FlareSpacing.XSmall">
-                    <FlareTextArea Label="@Loc.Get("Instruction")"
-                                   HelperText="@Loc.Get("WorkflowHint")"
-                                   Rows="3"
-                                   @bind-Value="_instruction" />
-                    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                    <PromptField Name="@($"{Card.StageId}.instruction")"
+                                 Title="@Loc.Get("Instruction")"
+                                 Rows="4"
+                                 Value="@_instruction"
+                                 ValueChanged="value => _instruction = value" />
+                    <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small" Wrap="true">
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Get("WorkflowHint")
+                        </FlareText>
                         <FlareButton Variant="ButtonVariant.Tonal"
                                      Size="ButtonSize.Sm"
                                      Loading="@_savingInstruction"
@@ -76,14 +82,18 @@
                     </FlareStack>
                 </FlareStack>
 
-                @* What the card declares it will touch: the half of the scope the card owns, and the one
-                   piece of it a person edits here. *@
                 <FlareStack Gap="FlareSpacing.XSmall">
-                    <FlareTextArea Label="@Loc.Get("DeclaredScope")"
-                                   HelperText="@Loc.Get("ScopeHelper")"
-                                   Rows="3"
-                                   @bind-Value="_scope" />
-                    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                    <PromptField Name="@($"{Card.Reference.CardId}.scope")"
+                                 Title="@Loc.Get("DeclaredScope")"
+                                 Rows="4"
+                                 ShowMetrics="false"
+                                 Placeholder="@Loc.Get("ScopeHelper")"
+                                 Value="@_scope"
+                                 ValueChanged="value => _scope = value" />
+                    <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small" Wrap="true">
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Get("ScopeHelper")
+                        </FlareText>
                         <FlareButton Variant="ButtonVariant.Tonal"
                                      Size="ButtonSize.Sm"
                                      Loading="@_saving"
@@ -380,8 +390,10 @@
             </FlareStack>
         </FlarePaper>
 
-        @* What the daemon computed for this card: the effective priority, the rank it earns among the
-           board's own cards, and the pieces the number is made of. *@
+        @* What the daemon computed for this card, and what a person can change about it: the effective
+           priority, the rank it earns among the board's cards, the size step from the project's grid and
+           the values behind the score. The size and the criteria live here rather than in a panel of their
+           own, because this is the block that reads the number they produce. *@
         <FlarePaper Elevation="0" Padding="FlareSpacing.Medium" Square="true" Class="aiko-panel">
             <FlareStack Gap="FlareSpacing.Medium">
                 <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small">
@@ -416,21 +428,63 @@
                     </FlareStack>
                     <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
                         <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                            @Loc.Get("SizeIdLabel")
+                            @Loc.Get("FilesActual")
                         </FlareText>
-                        <span class="aiko-value">@SizeCaption</span>
+                        <span class="aiko-value">@DisplayFormat.Number(Card.ActualChangedFiles.Count)</span>
                     </FlareStack>
-                    @foreach (var criterion in CriterionValues)
-                    {
-                        var item = criterion;
-                        <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
-                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                                @item.Label
-                            </FlareText>
-                            <span class="aiko-value">@item.Value</span>
-                        </FlareStack>
-                    }
                 </div>
+
+                @* The size step the agent assigns from the project's grid, and what it does to the score. *@
+                <FlareStack Gap="FlareSpacing.None">
+                    <FlareSelect TValue="string" Label="@Loc.Get("SizeIdLabel")" @bind-Value="_size">
+                        <option value="">@Loc.Get("NoSize")</option>
+                        @foreach (var step in SizeGrid)
+                        {
+                            var option = step;
+                            <option value="@option.Id">@SizeOption(option)</option>
+                        }
+                    </FlareSelect>
+                    @if (SelectedSize is { } selected)
+                    {
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @($"x{selected.Coefficient} · {selected.Description}")
+                        </FlareText>
+                    }
+                </FlareStack>
+
+                @* Every criterion the project scores by, in the project's order: a card with no value for one
+                   is scored as if that criterion did not exist, so the person editing the card sees them all,
+                   each with the band its value is read against. *@
+                <FlareStack Gap="FlareSpacing.XSmall">
+                    <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small">
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
+                            @Loc.Get("ScoringCriteria")
+                        </FlareText>
+                        <span class="aiko-tag aiko-tag--quiet">@DisplayFormat.Number(Criteria.Count)</span>
+                    </FlareStack>
+                    @if (Criteria.Count == 0)
+                    {
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Get("NoCriteria")
+                        </FlareText>
+                    }
+                    else
+                    {
+                        @foreach (var criterion in Criteria)
+                        {
+                            var item = criterion;
+                            <FlareNumericField TValue="decimal?"
+                                               Label="@item.Title"
+                                               HelperText="@CriterionRange(item)"
+                                               Value="@CriterionValue(item.Id)"
+                                               ValueChanged="value => SetCriterion(item.Id, value)" />
+                        }
+                    }
+                </FlareStack>
+
+                <FlareButton FullWidth="true"
+                             Loading="@_saving"
+                             OnClick="SaveAsync">@Loc.Get("SaveCard")</FlareButton>
             </FlareStack>
         </FlarePaper>
 
@@ -548,76 +602,41 @@
             </FlarePaper>
         }
 
-        @* The card's own parameters, which is what the design's "Edit card" action opens. The declared
-           scope lives in the scope panel, beside the files it produces. *@
-        <FlarePaper Elevation="0" Padding="FlareSpacing.Medium" Square="true" Class="aiko-panel">
-            <FlareStack Gap="FlareSpacing.Small">
-                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
-                    @Loc.Get("Parameters")
-                </FlareText>
-                <FlareTextField Label="@Loc.Get("Title")"
-                                Required="true"
-                                Immediate="true"
-                                @bind-Value="_title" />
-                <FlareNumericField TValue="decimal?"
-                                   Label="@Loc.Get("PriorityLabel")"
-                                   ErrorText="@_priorityError"
-                                   @bind-Value="_priority" />
-                @* The size step the agent assigns from the project's grid, and what it does to the score. *@
-                <FlareStack Gap="FlareSpacing.None">
-                    <FlareSelect TValue="string" Label="@Loc.Get("SizeIdLabel")" @bind-Value="_size">
-                        <option value="">@Loc.Get("NoSize")</option>
-                        @foreach (var step in SizeGrid)
-                        {
-                            var option = step;
-                            <option value="@option.Id">@SizeOption(option)</option>
-                        }
-                    </FlareSelect>
-                    @if (SelectedSize is { } selected)
-                    {
-                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                            @($"x{selected.Coefficient} · {selected.Description}")
-                        </FlareText>
-                    }
-                </FlareStack>
-
-                @* Every criterion the project scores by, in the project's order: a card with no value for one
-                   is scored as if that criterion did not exist, so the person editing the card sees them all,
-                   each with the band its value is read against. *@
-                <FlareStack Gap="FlareSpacing.XSmall">
-                    <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small">
-                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
-                            @Loc.Get("ScoringCriteria")
-                        </FlareText>
-                        <span class="aiko-tag aiko-tag--quiet">@DisplayFormat.Number(Criteria.Count)</span>
-                    </FlareStack>
-                    @if (Criteria.Count == 0)
-                    {
-                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                            @Loc.Get("NoCriteria")
-                        </FlareText>
-                    }
-                    else
-                    {
-                        @foreach (var criterion in Criteria)
-                        {
-                            var item = criterion;
-                            <FlareNumericField TValue="decimal?"
-                                               Label="@item.Title"
-                                               HelperText="@CriterionRange(item)"
-                                               Value="@CriterionValue(item.Id)"
-                                               ValueChanged="value => SetCriterion(item.Id, value)" />
-                        }
-                    }
-                </FlareStack>
-
-                <FlareButton FullWidth="true"
-                             Loading="@_saving"
-                             OnClick="SaveAsync">@Loc.Get("SaveCard")</FlareButton>
-            </FlareStack>
-        </FlarePaper>
     </FlareStack>
 </div>
+
+@* Editing the card's identity. The title is the one field that belongs in the banner rather than in a
+   panel - the banner already prints it - so the design's "Edit card" action opens this drawer instead of
+   a form living permanently in the sidebar. *@
+<FlareDrawer Anchor="DrawerAnchor.Right"
+             Open="EditOpen"
+             OpenChanged="OnEditOpenChanged"
+             Width="28rem"
+             ContentPadding="FlareSpacing.Large"
+             AriaLabel="@Loc.Get("EditCard")">
+    <HeaderContent>
+        <FlareStack Gap="FlareSpacing.None">
+            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
+                @Loc.Get("EditCard")
+            </FlareText>
+            <FlareText Element="h3" Mono="true" Typo="TypographyScale.TitleMedium">@($"#{Card.Reference.CardId}")</FlareText>
+        </FlareStack>
+    </HeaderContent>
+    <ChildContent>
+        <FlareStack Gap="FlareSpacing.Small">
+            <FlareTextField Label="@Loc.Get("Title")"
+                            Required="true"
+                            Immediate="true"
+                            @bind-Value="_title" />
+            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                @Loc.Get("EditCardHint")
+            </FlareText>
+            <FlareButton FullWidth="true"
+                         Loading="@_saving"
+                         OnClick="SaveAsync">@Loc.Get("SaveCard")</FlareButton>
+        </FlareStack>
+    </ChildContent>
+</FlareDrawer>
 
 @code {
     [Parameter, EditorRequired] public Card Card { get; set; } = null!;
@@ -625,6 +644,17 @@
     [Parameter] public int ExecutionRefreshTick { get; set; }
     [Parameter] public EventCallback OnSaved { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
+
+    /// <summary>
+    /// Whether the identity editor is open. The card page owns the toolbar button that opens it, so the
+    /// flag travels down as a parameter rather than a second copy of the card's form living here.
+    /// </summary>
+    [Parameter] public bool EditOpen { get; set; }
+
+    /// <summary>Raised when the identity editor opens or closes.</summary>
+    [Parameter] public EventCallback<bool> EditOpenChanged { get; set; }
+
+    private Task OnEditOpenChanged(bool open) => EditOpenChanged.InvokeAsync(open);
 
     private string? _loadedCardKey;
     private int _lastRefreshTick;
@@ -763,26 +793,6 @@
         }
     }
 
-    /// <summary>The criterion values the card carries, titled by the project's criteria.</summary>
-    private IReadOnlyList<(string Label, string Value)> CriterionValues
-    {
-        get
-        {
-            if (Card.CriterionValues is not { Count: > 0 } values)
-            {
-                return [];
-            }
-
-            var criteria = State.SettingsView?.EffectivePriority.Criteria ?? [];
-            return values
-                .Select(pair => (
-                    criteria.FirstOrDefault(criterion =>
-                        StringComparer.Ordinal.Equals(criterion.Id, pair.Key))?.Title ?? pair.Key,
-                    Number(pair.Value)))
-                .ToArray();
-        }
-    }
-
     /// <summary>A link to another card of the same project, for the related-cards graph.</summary>
     private string CardHref(string otherCardId) =>
         $"/p/{Uri.EscapeDataString(Card.Reference.ProjectId)}/cards/{Uri.EscapeDataString(otherCardId)}";
@@ -835,24 +845,6 @@
 
     /// <summary>A step as the select shows it.</summary>
     private static string SizeOption(SizeDefinition step) => $"{step.Id} (x{step.Coefficient})";
-
-    /// <summary>
-    /// The card's size step with the coefficient it applies. A step the project's grid no longer carries
-    /// still reads as the id the card stores, because that is what the score was computed from.
-    /// </summary>
-    private string SizeCaption
-    {
-        get
-        {
-            if (Card.Size is not { Length: > 0 } size)
-            {
-                return Loc.Get("NoSize");
-            }
-
-            var step = SizeGrid.FirstOrDefault(item => StringComparer.Ordinal.Equals(item.Id, size));
-            return step is null ? size : SizeOption(step);
-        }
-    }
 
     /// <summary>Every relation this card is an end of, in either direction.</summary>
     private IReadOnlyList<CardRelation> Relations => Board.Relations
@@ -1012,6 +1004,12 @@
             response.EnsureSuccessStatusCode();
             _message = Loc.Get("ChangesSaved");
             _hasError = false;
+            // The identity editor is done with this card: a successful save closes it.
+            if (EditOpen)
+            {
+                await EditOpenChanged.InvokeAsync(false);
+            }
+
             await OnSaved.InvokeAsync();
         }
         catch (Exception exception)

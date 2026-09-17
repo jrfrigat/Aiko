@@ -1,0 +1,80 @@
+@* The design's prompt block: a dark plane with a header bar (three dots, a file-like name, what the block
+   holds) over a borderless text area, and a foot that measures what is in it.
+
+   It is the mock's shape for every long text a person writes - the stage editor's instruction, skills,
+   artifacts and commands, the card's instruction and its declared scope - so it lives in one component
+   rather than as the same twelve lines of markup in three screens. *@
+<div class="aiko-terminal">
+    <div class="aiko-terminal__bar">
+        <span class="aiko-terminal__dots">
+            @if (AccentDot is { } accent)
+            {
+                <span class="aiko-terminal__dot" style="@($"background: var(--flare-color-{accent})")"></span>
+            }
+            else
+            {
+                <span class="aiko-terminal__dot" style="background: var(--flare-color-error)"></span>
+                <span class="aiko-terminal__dot" style="background: var(--flare-color-secondary)"></span>
+                <span class="aiko-terminal__dot" style="background: var(--flare-color-tertiary)"></span>
+            }
+            @if (Name is { Length: > 0 } file)
+            {
+                <span class="aiko-terminal__name">@file</span>
+            }
+        </span>
+        <span>@Title</span>
+    </div>
+    <textarea rows="@Rows"
+              aria-label="@Title"
+              placeholder="@Placeholder"
+              readonly="@ReadOnly"
+              value="@Value"
+              @oninput="OnInput"></textarea>
+    @if (ShowMetrics)
+    {
+        <div class="aiko-terminal__foot">
+            <span>@Loc.Format("CharactersCount", Value?.Length ?? 0)</span>
+            <span>@Loc.Format("TokensEstimate", TokenEstimate(Value))</span>
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>What the header bar names the block, as a file would be named.</summary>
+    [Parameter] public string? Name { get; set; }
+
+    /// <summary>The block's label, printed at the other end of the header bar.</summary>
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+
+    /// <summary>The text in the block.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>Raised on every keystroke, so a form's state follows the field.</summary>
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>How many lines the area shows before it scrolls.</summary>
+    [Parameter] public int Rows { get; set; } = 4;
+
+    /// <summary>What an empty block invites the reader to write.</summary>
+    [Parameter] public string? Placeholder { get; set; }
+
+    /// <summary>Whether the text is read-only.</summary>
+    [Parameter] public bool ReadOnly { get; set; }
+
+    /// <summary>
+    /// The single accent dot, when the block is one of several kinds (the stage editor colours its blocks
+    /// apart). Unset draws the design's three window dots.
+    /// </summary>
+    [Parameter] public string? AccentDot { get; set; }
+
+    /// <summary>Whether the foot measures the text. A path list is not prose, so it can say no.</summary>
+    [Parameter] public bool ShowMetrics { get; set; } = true;
+
+    private Task OnInput(ChangeEventArgs args) => ValueChanged.InvokeAsync(args.Value?.ToString());
+
+    /// <summary>
+    /// A rough token count: four characters per token is the rule of thumb the daemon's own prompts are
+    /// estimated by, and the label says it is an estimate.
+    /// </summary>
+    private static int TokenEstimate(string? text) => (text?.Length ?? 0) / 4;
+}

@@ -312,6 +312,8 @@
   <data name="AssignedTo" xml:space="preserve"><value>assigned to {0}</value></data>
   <data name="ScopeTitle" xml:space="preserve"><value>Scope &amp; requirements</value></data>
   <data name="DeclaredScope" xml:space="preserve"><value>Declared scope</value></data>
+  <data name="EditCard" xml:space="preserve"><value>Edit card</value></data>
+  <data name="EditCardHint" xml:space="preserve"><value>What the card is called on the board. Everything else about it sits in the panels around this one.</value></data>
   <data name="ScopePanelHint" xml:space="preserve"><value>What the stage asks for and what the card declared</value></data>
   <data name="ArtifactPresent" xml:space="preserve"><value>present</value></data>
   <data name="ArtifactMissing" xml:space="preserve"><value>missing</value></data>

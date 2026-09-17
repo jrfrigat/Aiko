@@ -910,6 +910,39 @@
     }
 }
 
+/* The card's breadcrumb, as the design draws it: the project in mono accent, quiet separators, the trail
+   through the board, and the card's own id in a chip. */
+.aiko-crumb {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    flex-wrap: wrap;
+    font-family: var(--aiko-font-mono, monospace);
+    font-size: 0.75rem;
+    line-height: 1.25rem;
+}
+
+.aiko-crumb__project {
+    color: var(--flare-color-secondary);
+}
+
+.aiko-crumb__sep {
+    color: var(--flare-color-outline-variant);
+}
+
+/* The view the reader came from: dimmer than the trail, and not a link. */
+.aiko-crumb__here {
+    color: var(--flare-color-outline);
+}
+
+.aiko-crumb__id {
+    padding: 0.0625rem 0.375rem;
+    border-radius: var(--flare-shape-extra-small);
+    background: var(--flare-color-surface-container-high);
+    color: var(--flare-color-primary);
+    font-weight: 600;
+}
+
 .aiko-code-row input,
 .aiko-code-row select {
     flex: 1 1 auto;

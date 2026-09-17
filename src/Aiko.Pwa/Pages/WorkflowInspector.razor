@@ -202,61 +202,34 @@
                     </div>
                     <FlareTextField Label="@Loc.Get("Title")" @bind-Value="stage.Title" />
                 </div>
-                @* The instruction and the two skill lists as the design's prompt editor: a dark plane with a
-                   header bar (the window dots, the file-like name, what it holds) over a borderless code
-                   area. One block per list, because what goes before the instruction is not what goes after. *@
-                <div class="aiko-terminal">
-                    <div class="aiko-terminal__bar">
-                        <span class="aiko-terminal__dots">
-                            <span class="aiko-terminal__dot" style="background: var(--flare-color-error)"></span>
-                            <span class="aiko-terminal__dot" style="background: var(--flare-color-secondary)"></span>
-                            <span class="aiko-terminal__dot" style="background: var(--flare-color-tertiary)"></span>
-                            <span class="aiko-terminal__name">@($"{stage.Id}.instruction")</span>
-                        </span>
-                        <span>@Loc.Get("Instruction")</span>
-                    </div>
-                    <textarea rows="7"
-                              aria-label="@Loc.Get("Instruction")"
-                              @bind="stage.Instruction"
-                              @bind:event="oninput"></textarea>
-                    @* The design's foot under the prompt: what the block holds. The character count is measured,
-                       the token figure is an estimate and is labelled as one. *@
-                    <div class="aiko-terminal__foot">
-                        <span>@Loc.Format("CharactersCount", stage.Instruction?.Length ?? 0)</span>
-                        <span>@Loc.Format("TokensEstimate", TokenEstimate(stage.Instruction))</span>
-                    </div>
-                </div>
+                @* The instruction and the two skill lists as the design's prompt block - the same component
+                   the card page uses for the same text - with the character and token foot the mock draws. *@
+                <PromptField Name="@($"{stage.Id}.instruction")"
+                             Title="@Loc.Get("Instruction")"
+                             Rows="7"
+                             Value="@stage.Instruction"
+                             ValueChanged="value => stage.Instruction = value" />
 
                 @* The two skill lists side by side: the wide drawer has the room, and the pair is read
                    together - what the agent reads before the instruction and what it reports after it. *@
                 <div class="aiko-form-row">
-                    <div class="aiko-terminal">
-                        <div class="aiko-terminal__bar">
-                            <span class="aiko-terminal__dots">
-                                <span class="aiko-terminal__dot" style="background: var(--flare-color-tertiary)"></span>
-                                <span class="aiko-terminal__name">@($"{stage.Id}.skills-before")</span>
-                            </span>
-                            <span>@Loc.Get("SkillsBefore")</span>
-                        </div>
-                        <textarea rows="3"
-                                  aria-label="@Loc.Get("SkillsBefore")"
-                                  placeholder="@Loc.Get("SkillsBeforeHelper")"
-                                  @bind="stage.BeforeSkillLines"></textarea>
-                    </div>
+                    <PromptField Name="@($"{stage.Id}.skills-before")"
+                                 Title="@Loc.Get("SkillsBefore")"
+                                 Rows="3"
+                                 AccentDot="tertiary"
+                                 ShowMetrics="false"
+                                 Placeholder="@Loc.Get("SkillsBeforeHelper")"
+                                 Value="@stage.BeforeSkillLines"
+                                 ValueChanged="value => stage.BeforeSkillLines = value" />
 
-                    <div class="aiko-terminal">
-                        <div class="aiko-terminal__bar">
-                            <span class="aiko-terminal__dots">
-                                <span class="aiko-terminal__dot" style="background: var(--flare-color-primary)"></span>
-                                <span class="aiko-terminal__name">@($"{stage.Id}.skills-after")</span>
-                            </span>
-                            <span>@Loc.Get("SkillsAfter")</span>
-                        </div>
-                        <textarea rows="3"
-                                  aria-label="@Loc.Get("SkillsAfter")"
-                                  placeholder="@Loc.Get("SkillsAfterHelper")"
-                                  @bind="stage.AfterSkillLines"></textarea>
-                    </div>
+                    <PromptField Name="@($"{stage.Id}.skills-after")"
+                                 Title="@Loc.Get("SkillsAfter")"
+                                 Rows="3"
+                                 AccentDot="primary"
+                                 ShowMetrics="false"
+                                 Placeholder="@Loc.Get("SkillsAfterHelper")"
+                                 Value="@stage.AfterSkillLines"
+                                 ValueChanged="value => stage.AfterSkillLines = value" />
                 </div>
                 @* Who may run the stage, and who it starts with: the two belong together, so the select
                    sits beside the chip list rather than under it. *@
@@ -302,33 +275,23 @@
                 @* What the stage must produce and the commands that verify it, side by side: on the wide
                    drawer the two read as one contract. *@
                 <div class="aiko-form-row">
-                    <div class="aiko-terminal">
-                        <div class="aiko-terminal__bar">
-                            <span class="aiko-terminal__dots">
-                                <span class="aiko-terminal__dot" style="background: var(--flare-color-secondary)"></span>
-                                <span class="aiko-terminal__name">@($"{stage.Id}.artifacts")</span>
-                            </span>
-                            <span>@Loc.Get("RequiredArtifacts")</span>
-                        </div>
-                        <textarea rows="4"
-                                  aria-label="@Loc.Get("RequiredArtifacts")"
-                                  placeholder="@Loc.Get("ArtifactsHelper")"
-                                  @bind="stage.ArtifactLines"></textarea>
-                    </div>
+                    <PromptField Name="@($"{stage.Id}.artifacts")"
+                                 Title="@Loc.Get("RequiredArtifacts")"
+                                 Rows="4"
+                                 AccentDot="secondary"
+                                 ShowMetrics="false"
+                                 Placeholder="@Loc.Get("ArtifactsHelper")"
+                                 Value="@stage.ArtifactLines"
+                                 ValueChanged="value => stage.ArtifactLines = value" />
 
-                    <div class="aiko-terminal">
-                        <div class="aiko-terminal__bar">
-                            <span class="aiko-terminal__dots">
-                                <span class="aiko-terminal__dot" style="background: var(--flare-color-warning)"></span>
-                                <span class="aiko-terminal__name">@($"{stage.Id}.validate")</span>
-                            </span>
-                            <span>@Loc.Get("ValidationCommands")</span>
-                        </div>
-                        <textarea rows="4"
-                                  aria-label="@Loc.Get("ValidationCommands")"
-                                  placeholder="@Loc.Get("ValidationCommandsHelper")"
-                                  @bind="stage.CommandLines"></textarea>
-                    </div>
+                    <PromptField Name="@($"{stage.Id}.validate")"
+                                 Title="@Loc.Get("ValidationCommands")"
+                                 Rows="4"
+                                 AccentDot="warning"
+                                 ShowMetrics="false"
+                                 Placeholder="@Loc.Get("ValidationCommandsHelper")"
+                                 Value="@stage.CommandLines"
+                                 ValueChanged="value => stage.CommandLines = value" />
                 </div>
             </FlareStack>
         }
@@ -594,13 +557,6 @@
         _message = message;
         _hasError = true;
     }
-
-    /// <summary>
-    /// A rough token count for a prompt, so the editor can show what the model will be handed. It is an
-    /// estimate - four characters per token is the usual rule of thumb - and it is labelled as one; Aiko
-    /// does not call a tokenizer, because nothing it does depends on the exact figure.
-    /// </summary>
-    private static int TokenEstimate(string? text) => (text?.Length ?? 0) / 4;
 
     /// <summary>Opens one stage in the drawer: the card's click, and where the fields live.</summary>
     private void OpenStageDrawer(StageDraft stage)

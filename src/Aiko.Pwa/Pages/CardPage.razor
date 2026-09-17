@@ -20,30 +20,38 @@
 else
 {
     <FlareStack Gap="FlareSpacing.Medium">
-        @* The breadcrumb strip the design opens a card with: where the card sits, and the one action that
-           moves it on - closing it means sending it to the last stage of its own pipeline. *@
+        @* The breadcrumb the design opens a card with: where the card sits, and the two actions that
+           belong to a card - editing its identity, and sending it to the last stage of its own pipeline. *@
         <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small" Wrap="true">
-            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall" Wrap="true">
-                <span class="aiko-value">@board.Project.Name</span>
-                <span class="aiko-tag aiko-tag--quiet">/</span>
+            <nav class="aiko-crumb" aria-label="@Loc.Get("KanbanBoard")">
+                <span class="aiko-value aiko-crumb__project">@board.Project.Name</span>
+                <span class="aiko-crumb__sep">/</span>
                 <FlareNavLink Href="@BoardHref">
                     <ChildContent>@Loc.Get("KanbanBoard")</ChildContent>
                 </FlareNavLink>
-                <span class="aiko-tag aiko-tag--quiet">/</span>
-                <FlareNavLink Href="@SectionHref(Card.Kind)"><ChildContent>@Card.Kind</ChildContent></FlareNavLink>
-                <span class="aiko-tag aiko-tag--quiet">/</span>
-                <span class="aiko-tag aiko-tag--accent">@Card.Reference.CardId</span>
-            </FlareStack>
-            @if (LastStage is { } last && !string.Equals(last.Id, Card.StageId, StringComparison.Ordinal))
-            {
+                <span class="aiko-crumb__sep">/</span>
+                <span class="aiko-crumb__here">@ProjectionCaption</span>
+                <span class="aiko-crumb__sep">/</span>
+                <span class="aiko-crumb__id">@($"#{Card.Reference.CardId}")</span>
+            </nav>
+            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
                 <FlareButton Variant="ButtonVariant.Tonal"
                              Size="ButtonSize.Sm"
-                             Loading="@_closing"
-                             OnClick="CloseCardAsync">
-                    <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.TaskAlt" /></LeadingIcon>
-                    <ChildContent>@Loc.Get("CloseTask")</ChildContent>
+                             OnClick="() => _editOpen = true">
+                    <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.Edit" /></LeadingIcon>
+                    <ChildContent>@Loc.Get("EditCard")</ChildContent>
                 </FlareButton>
-            }
+                @if (LastStage is { } last && !string.Equals(last.Id, Card.StageId, StringComparison.Ordinal))
+                {
+                    <FlareButton Variant="ButtonVariant.Filled"
+                                 Size="ButtonSize.Sm"
+                                 Loading="@_closing"
+                                 OnClick="CloseCardAsync">
+                        <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.TaskAlt" /></LeadingIcon>
+                        <ChildContent>@Loc.Get("CloseTask")</ChildContent>
+                    </FlareButton>
+                }
+            </FlareStack>
         </FlareStack>
         @* The card's own banner, as the design leads every card page with it: what the card is, where it is
            in the pipeline, who is on it, and the counts that matter before any detail. *@
@@ -51,7 +59,7 @@ else
             <FlareStack Row="true" Align="FlareAlignItems.Start" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Medium" Wrap="true">
                 <FlareStack Gap="FlareSpacing.XXSmall">
                     <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small" Wrap="true">
-                        <span class="aiko-tag aiko-tag--accent">@Card.Reference.CardId</span>
+                        <span class="aiko-tag aiko-tag--accent">@($"#{Card.Reference.CardId}")</span>
                         <FlareText Element="h1" Typo="TypographyScale.HeadlineLarge">@Card.Title</FlareText>
                     </FlareStack>
                     <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small" Wrap="true">
@@ -95,6 +103,8 @@ else
         <CardInspector Card="Card"
                        Board="board"
                        ExecutionRefreshTick="State.ExecutionPulse"
+                       EditOpen="_editOpen"
+                       EditOpenChanged="open => _editOpen = open"
                        OnSaved="State.LoadBoardAsync" />
     </FlareStack>
 }
@@ -105,9 +115,13 @@ else
 
     private string BoardHref => $"/p/{Uri.EscapeDataString(ProjectId)}/board";
 
-    /// <summary>The projection route for a card kind, so the breadcrumb links to the board's view of it.</summary>
-    private string SectionHref(CardKind kind) =>
-        $"/p/{Uri.EscapeDataString(ProjectId)}/{(kind == CardKind.Story ? "stories" : "tasks")}";
+    /// <summary>
+    /// The projection this card belongs to, named as the board's own views are: the trail says where the
+    /// reader came from - a story card lives under Stories - rather than repeating the card's kind.
+    /// </summary>
+    private string ProjectionCaption => Card?.Kind == CardKind.Story
+        ? Loc.Get("StoriesNav")
+        : Loc.Get("TasksNav");
 
     /// <summary>The last stage of the card's own workflow: where closing a card sends it.</summary>
     private StageDefinition? LastStage => State.Board?.Workflows
@@ -214,6 +228,7 @@ else
     }
 
     private bool _closing;
+    private bool _editOpen;
 
     protected override async Task OnParametersSetAsync() => await State.EnsureProjectAsync(ProjectId);
 }
