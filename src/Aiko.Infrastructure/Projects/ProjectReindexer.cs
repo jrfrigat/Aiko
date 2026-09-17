@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using Aiko.Application.Contracts;
 using Aiko.Domain.Cards;
+using Aiko.Infrastructure.Cards;
 using Aiko.Infrastructure.Memory;
 using Aiko.Infrastructure.Storage;
 
@@ -64,11 +65,14 @@ public sealed class ProjectReindexer(
     {
         var cards = new List<Card>();
         var seenIds = new HashSet<string>(StringComparer.Ordinal);
-        await ReadCollectionAsync("stories", CardKind.Story);
-        await ReadCollectionAsync("tasks", CardKind.Task);
+        foreach (var collection in FileCardStore.Collections(project.RootPath))
+        {
+            await ReadCollectionAsync(collection);
+        }
+
         return cards;
 
-        async ValueTask ReadCollectionAsync(string collection, CardKind expectedKind)
+        async ValueTask ReadCollectionAsync(string collection)
         {
             var collectionPath = Path.Combine(
                 AikoProjectPaths.DataRoot(project.RootPath),
@@ -93,11 +97,16 @@ public sealed class ProjectReindexer(
                     ProjectJsonContext.Default.Card,
                     cancellationToken)
                     ?? throw new InvalidDataException($"Invalid card document: {cardPath}");
+                // The folder is derived from the type, so a card whose type and location disagree is a
+                // corrupted project rather than a type Aiko does not know. Comparing against the derived
+                // name - instead of a fixed list of collections - is what lets a project add types.
                 if (!StringComparer.Ordinal.Equals(card.Reference.ProjectId, project.Id) ||
                     !StringComparer.Ordinal.Equals(
                         card.Reference.CardId,
                         Path.GetFileName(directory)) ||
-                    card.Kind != expectedKind)
+                    !StringComparer.Ordinal.Equals(
+                        FileCardStore.CollectionFor(card.Kind),
+                        collection))
                 {
                     throw new InvalidDataException(
                         $"Card identity does not match its location: {cardPath}");

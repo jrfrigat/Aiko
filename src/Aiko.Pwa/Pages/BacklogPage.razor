@@ -1,0 +1,184 @@
+@page "/p/{ProjectId}/backlog"
+@inject HttpClient Http
+@inject WorkspaceState State
+@inject NavigationManager Navigation
+
+@* The backlog is not a column: it is every card that has not been taken into work yet, gathered from the
+   reserved backlog stage of each workflow. One list, grouped by card type, ordered by priority - the answer
+   to "what can I pick up next" without reading every board. *@
+<PageTitle>@Loc.Get("BacklogTitle")</PageTitle>
+
+@if (State.Board is not { } board)
+{
+    <FlareAlert Severity="AlertSeverity.Info" Variant="AlertVariant.Text">@Loc.Get("BoardUnavailable")</FlareAlert>
+}
+else
+{
+    <FlareStack Gap="FlareSpacing.Medium">
+        <FlareStack Gap="FlareSpacing.XXSmall">
+            <FlareText Element="h1" Typo="TypographyScale.HeadlineMedium">@Loc.Get("BacklogTitle")</FlareText>
+            <FlareText Element="p" Typo="TypographyScale.BodyMedium" Color="FlareColor.OnSurfaceVariant">
+                @Loc.Get("BacklogCaption")
+            </FlareText>
+        </FlareStack>
+
+        @if (!string.IsNullOrWhiteSpace(_message))
+        {
+            <FlareAlert Severity="@(_hasError ? AlertSeverity.Error : AlertSeverity.Success)"
+                        Variant="AlertVariant.Outlined">@_message</FlareAlert>
+        }
+
+        @if (Sections.Count == 0)
+        {
+            <FlareAlert Severity="AlertSeverity.Info" Variant="AlertVariant.Text">@Loc.Get("BacklogEmpty")</FlareAlert>
+        }
+        else
+        {
+            <FlareStack Gap="FlareSpacing.Medium">
+                @foreach (var section in Sections)
+                {
+                    var group = section;
+                    <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
+                        <FlareStack Gap="FlareSpacing.Small">
+                            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
+                                <FlareIconView Value="@CardAppearance.Icon(group.Icon, FlareIcons.Inbox)"
+                                               Color="@CardAppearance.Color(group.Color, FlareColor.Secondary)" />
+                                <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@group.Title</FlareText>
+                                <span class="aiko-tag aiko-tag--pill">@group.Cards.Count</span>
+                            </FlareStack>
+                            @if (group.Description is { Length: > 0 } description)
+                            {
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                    @description
+                                </FlareText>
+                            }
+
+                            <FlareStack Gap="FlareSpacing.XXSmall">
+                                @foreach (var card in group.Cards)
+                                {
+                                    var item = card;
+                                    <FlareStack Row="true"
+                                                Align="FlareAlignItems.Center"
+                                                Justify="FlareJustifyContent.SpaceBetween"
+                                                Gap="FlareSpacing.XSmall"
+                                                Wrap="true">
+                                        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
+                                            <span class="aiko-tag aiko-tag--quiet">@item.Reference.CardId</span>
+                                            <FlareText Element="span" Typo="TypographyScale.BodyMedium">@item.Title</FlareText>
+                                            <span class="aiko-tag" title="@Loc.Get("Priority")">★ @item.OwnPriority.ToString("0.##", CultureInfo.InvariantCulture)</span>
+                                        </FlareStack>
+                                        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
+                                            <FlareButton Variant="ButtonVariant.Text"
+                                                         Size="ButtonSize.Sm"
+                                                         OnClick="() => OpenCard(item.Reference.CardId)">
+                                                <ChildContent>@Loc.Get("Open")</ChildContent>
+                                            </FlareButton>
+                                            @if (group.NextStageId is { Length: > 0 } nextStageId)
+                                            {
+                                                var target = nextStageId;
+                                                <FlareButton Variant="ButtonVariant.Tonal"
+                                                             Size="ButtonSize.Sm"
+                                                             OnClick="() => TakeIntoWorkAsync(item, target)">
+                                                    <LeadingIcon><FlareIconView Value="@FlareIcons.PlayArrow" /></LeadingIcon>
+                                                    <ChildContent>@Loc.Get("BacklogTakeIntoWork")</ChildContent>
+                                                </FlareButton>
+                                            }
+                                        </FlareStack>
+                                    </FlareStack>
+                                }
+
+@code {
+    [Parameter] public string ProjectId { get; set; } = string.Empty;
+
+    private string? _message;
+    private bool _hasError;
+    private bool _moving;
+
+    /// <summary>One card type's backlog: what is waiting, and where a card goes when it is picked up.</summary>
+    private sealed record BacklogSection(
+        string Title,
+        string? Description,
+        string? Icon,
+        string? Color,
+        string? NextStageId,
+        IReadOnlyList<Card> Cards);
+
+    /// <summary>
+    /// Every card waiting in the reserved backlog stage of its own workflow, gathered by card type and
+    /// ordered by priority. A type with nothing waiting is left out rather than drawn as an empty row.
+    /// </summary>
+    private IReadOnlyList<BacklogSection> Sections =>
+        State.Board is not { } board
+            ? []
+            : board.Workflows
+                .OrderBy(workflow => workflow.Title, StringComparer.Ordinal)
+                .Select(workflow =>
+                {
+                    var ordered = workflow.Stages.OrderBy(stage => stage.Order).ToArray();
+                    var cards = board.Cards
+                        .Where(card =>
+                            StringComparer.OrdinalIgnoreCase.Equals(card.Kind, workflow.CardType) &&
+                            StringComparer.Ordinal.Equals(card.StageId, WorkflowDefinition.BacklogStageId))
+                        .OrderByDescending(card => card.OwnPriority)
+                        .ToArray();
+                    return new BacklogSection(
+                        workflow.Title,
+                        workflow.Description,
+                        workflow.Icon,
+                        workflow.Color,
+                        ordered.Skip(1).Select(stage => stage.Id).FirstOrDefault(),
+                        cards);
+                })
+                .Where(section => section.Cards.Count > 0)
+                .ToArray();
+
+    protected override async Task OnParametersSetAsync() => await State.EnsureProjectAsync(ProjectId);
+
+    private void OpenCard(string cardId) =>
+        Navigation.NavigateTo($"/p/{Uri.EscapeDataString(ProjectId)}/cards/{Uri.EscapeDataString(cardId)}");
+
+    /// <summary>
+    /// Moves one card out of the backlog and into the next stage of its workflow - the one action this page
+    /// offers, and the reason it exists.
+    /// </summary>
+    private async Task TakeIntoWorkAsync(Card card, string stageId)
+    {
+        if (State.Board is not { } board || _moving)
+        {
+            return;
+        }
+
+        _moving = true;
+        _message = null;
+        try
+        {
+            using var response = await Http.PutAsJsonAsync(
+                $"api/v1/projects/{Uri.EscapeDataString(board.Project.Id)}/cards/{Uri.EscapeDataString(card.Reference.CardId)}/stage",
+                new MoveCardRequest(stageId, card.Revision),
+                PwaJson.Options);
+            response.EnsureSuccessStatusCode();
+            await State.LoadBoardAsync();
+            _hasError = false;
+            _message = Loc.Format("BacklogTaken", card.Reference.CardId);
+        }
+        catch (Exception exception)
+        {
+            _hasError = true;
+            _message = Loc.Format("MoveFailed", card.Reference.CardId, FailureText.Describe(exception));
+            await State.LoadBoardAsync();
+        }
+        finally
+        {
+            _moving = false;
+        }
+    }
+}
+
+                            </FlareStack>
+                        </FlareStack>
+                    </FlarePaper>
+                }
+            </FlareStack>
+        }
+    </FlareStack>
+}

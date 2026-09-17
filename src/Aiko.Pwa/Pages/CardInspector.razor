@@ -1322,7 +1322,13 @@
                 .ToArray();
             using var response = await Http.PutAsJsonAsync(
                 $"api/v1/projects/{Uri.EscapeDataString(Card.Reference.ProjectId)}/workflows/{Uri.EscapeDataString(workflow.Id)}",
-                new UpdateWorkflowRequest(workflow.Title, stages, workflow.Revision),
+                new UpdateWorkflowRequest(
+                    workflow.Title,
+                    stages,
+                    workflow.Revision,
+                    workflow.Description,
+                    workflow.Icon,
+                    workflow.Color),
                 PwaJson.Options);
             if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
             {

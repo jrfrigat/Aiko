@@ -28,7 +28,7 @@
                 {
                     var stage = stageItem;
                     var stageCards = CardsIn(stage.Id);
-                    var accent = StageAccent(stage.Order);
+                    var accent = StageAccent(stage);
                     <FlareDropZone Target="@stage.Id"
                                    Placement="DropPlacement.Between"
                                    Class="aiko-col">
@@ -115,7 +115,7 @@
     [Inject] private IJSRuntime Js { get; set; } = null!;
 
     [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
-    [Parameter] public CardKind Kind { get; set; }
+    [Parameter] public string Kind { get; set; } = CardKind.Task;
     [Parameter, EditorRequired] public ProjectBoardSnapshot Board { get; set; } = null!;
 
     /// <summary>Raised when a card lands in another stage; the page turns it into one request.</summary>
@@ -130,20 +130,36 @@
 
     private string _dragGroup => $"aiko-board-{Kind}";
 
-    private FlareIcon KindIcon => Kind == CardKind.Story ? FlareIcons.FolderOpen : FlareIcons.ViewColumn;
+    /// <summary>
+    /// The type's own icon and colour when the workflow states them, otherwise the built-in pair, so a
+    /// project that never touched the appearance keeps the look it had before the choice existed.
+    /// </summary>
+    private FlareIcon KindIcon => CardAppearance.Icon(_workflow?.Icon, KindDefaultIcon);
 
-    private FlareColor KindAccent => Kind == CardKind.Story ? FlareColor.Primary : FlareColor.Tertiary;
+    private FlareColor KindAccent => CardAppearance.Color(_workflow?.Color, KindDefaultColor);
+
+    private FlareIcon KindDefaultIcon =>
+        StringComparer.OrdinalIgnoreCase.Equals(Kind, CardKind.Story)
+            ? FlareIcons.FolderOpen
+            : FlareIcons.ViewColumn;
+
+    private FlareColor KindDefaultColor =>
+        StringComparer.OrdinalIgnoreCase.Equals(Kind, CardKind.Story)
+            ? FlareColor.Primary
+            : FlareColor.Tertiary;
 
     private string SummaryLine => Loc.Format("CardsStagesCount", _cards.Count, _stages.Count);
 
     protected override void OnParametersSet()
     {
-        var workflowId = Kind == CardKind.Story ? "story" : "task";
+        // A card type is the workflow of the same name, so the lookup is the type id lower-cased rather
+        // than a mapping table: a project that adds an Epic type gets a board section for free.
+        var workflowId = CardKind.ToWorkflowId(Kind);
         _workflow = Board.Workflows.FirstOrDefault(workflow =>
             StringComparer.Ordinal.Equals(workflow.Id, workflowId));
         _stages = _workflow?.Stages.OrderBy(stage => stage.Order).ToArray() ?? [];
         _cards = Board.Cards
-            .Where(card => card.Kind == Kind)
+            .Where(card => StringComparer.OrdinalIgnoreCase.Equals(card.Kind, Kind))
             .OrderByDescending(card => card.OwnPriority)
             .ToArray();
     }
@@ -188,9 +204,13 @@
         await OnCardMoved.InvokeAsync(new BoardCardMove(payload.CardId, e.TargetId));
     }
 
-    // A stage's icon and tint follow its position in the pipeline, because the stages themselves are
-    // project data: the design's five-step state machine is the default workflow, not a contract.
-    private FlareIcon StageIcon(StageDefinition stage) => StageIndex(stage) switch
+    // A stage's icon and tint follow its own appearance when it states one, and its position in the pipeline
+    // otherwise, because the stages themselves are project data: the design's five-step state machine is the
+    // default workflow, not a contract.
+    private FlareIcon StageIcon(StageDefinition stage) =>
+        CardAppearance.Icon(stage.Icon, StageDefaultIcon(stage));
+
+    private FlareIcon StageDefaultIcon(StageDefinition stage) => StageIndex(stage) switch
     {
         0 => FlareIcons.Inbox,
         1 => FlareIcons.Description,
@@ -200,7 +220,10 @@
         _ => FlareIcons.PlayArrow
     };
 
-    private FlareColor StageAccent(int order) => StageIndex(order) switch
+    private FlareColor StageAccent(StageDefinition stage) =>
+        CardAppearance.Color(stage.Color, StageDefaultAccent(stage));
+
+    private FlareColor StageDefaultAccent(StageDefinition stage) => StageIndex(stage) switch
     {
         0 => FlareColor.Secondary,
         1 => FlareColor.Primary,
@@ -223,19 +246,6 @@
         return _stages.Count;
     }
 
-    private int StageIndex(int order)
-    {
-        for (var index = 0; index < _stages.Count; index++)
-        {
-            if (_stages[index].Order == order)
-            {
-                return index;
-            }
-        }
-
-        return _stages.Count;
-    }
-
     private static string Agents(StageDefinition stage) =>
         string.IsNullOrWhiteSpace(stage.DefaultAgentAdapterId)
             ? Loc.Get("Unassigned")
@@ -246,8 +256,10 @@
             ? "—"
             : string.Join(", ", stage.RequiredArtifacts.Select(artifact => artifact.Path));
 
-    private static string KindLabel(CardKind kind) =>
-        Loc.Get(kind == CardKind.Story ? "StoryKind" : "TaskKind");
+    private static string KindLabel(string kind) =>
+        StringComparer.OrdinalIgnoreCase.Equals(kind, CardKind.Story) ? Loc.Get("StoryKind")
+        : StringComparer.OrdinalIgnoreCase.Equals(kind, CardKind.Task) ? Loc.Get("TaskKind")
+        : kind;
 
     private static string Score(Card card) =>
         card.OwnPriority.ToString("0.##", CultureInfo.InvariantCulture);

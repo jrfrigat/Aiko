@@ -87,6 +87,63 @@ public sealed class FileProjectDefinitionStore(IProjectCatalog projects) : IProj
         }
     }
 
+    /// <inheritdoc />
+    public async ValueTask CreateWorkflowAsync(
+        string projectId,
+        WorkflowDefinition workflow,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
+        ArgumentNullException.ThrowIfNull(workflow);
+        ValidateWorkflow(workflow);
+        if (workflow.Revision != 1)
+        {
+            throw new ArgumentException("A created workflow starts at revision 1.", nameof(workflow));
+        }
+
+        var project = await projects.FindAsync(projectId, cancellationToken)
+            ?? throw new KeyNotFoundException($"Unknown Aiko project: {projectId}");
+        var workflowPath = WorkflowPath(project.RootPath, workflow.Id);
+
+        using (await locks.LockAsync($"{projectId}/{workflow.Id}", cancellationToken))
+        {
+            if (File.Exists(workflowPath))
+            {
+                throw new InvalidOperationException($"Workflow '{workflow.Id}' already exists.");
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(workflowPath)!);
+            await WriteAtomicallyAsync(workflowPath, workflow, cancellationToken);
+        }
+    }
+
+    /// <inheritdoc />
+    public async ValueTask DeleteWorkflowAsync(
+        string projectId,
+        string workflowId,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(workflowId);
+
+        var project = await projects.FindAsync(projectId, cancellationToken)
+            ?? throw new KeyNotFoundException($"Unknown Aiko project: {projectId}");
+        var workflowPath = WorkflowPath(project.RootPath, workflowId);
+
+        using (await locks.LockAsync($"{projectId}/{workflowId}", cancellationToken))
+        {
+            if (!File.Exists(workflowPath))
+            {
+                throw new KeyNotFoundException($"Workflow '{workflowId}' does not exist.");
+            }
+
+            File.Delete(workflowPath);
+        }
+    }
+
+    private static string WorkflowPath(string projectRoot, string workflowId) =>
+        Path.Combine(AikoProjectPaths.DataRoot(projectRoot), "workflows", $"{workflowId}.json");
+
     private static async ValueTask<IReadOnlyList<T>> ReadDocumentsAsync<T>(
         string directory,
         System.Text.Json.Serialization.Metadata.JsonTypeInfo<T> typeInfo,
@@ -162,6 +219,13 @@ public sealed class FileProjectDefinitionStore(IProjectCatalog projects) : IProj
             throw new ArgumentException("A workflow must contain at least one stage.", nameof(workflow));
         }
 
+        if (!AppearanceCatalog.IsValidIcon(workflow.Icon) || !AppearanceCatalog.IsValidColor(workflow.Color))
+        {
+            throw new ArgumentException(
+                "Workflow icon and color must come from the appearance catalog.",
+                nameof(workflow));
+        }
+
         var stageIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (var stage in workflow.Stages)
         {
@@ -176,6 +240,22 @@ public sealed class FileProjectDefinitionStore(IProjectCatalog projects) : IProj
             {
                 throw new ArgumentException(
                     $"Workflow stage {stage.Id} must allow at least one card kind.",
+                    nameof(workflow));
+            }
+
+            // The workflow defines one card type, so every one of its stages has to accept it - otherwise a
+            // card of that type could be created and then be unable to move at all.
+            if (!stage.AllowedCardKinds.Contains(workflow.CardType, StringComparer.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException(
+                    $"Workflow stage {stage.Id} must allow the card type {workflow.CardType}.",
+                    nameof(workflow));
+            }
+
+            if (!AppearanceCatalog.IsValidIcon(stage.Icon) || !AppearanceCatalog.IsValidColor(stage.Color))
+            {
+                throw new ArgumentException(
+                    $"Workflow stage {stage.Id} icon and color must come from the appearance catalog.",
                     nameof(workflow));
             }
 
@@ -197,6 +277,20 @@ public sealed class FileProjectDefinitionStore(IProjectCatalog projects) : IProj
                         nameof(workflow));
                 }
             }
+        }
+
+        // Backlog is the list of cards not taken into work yet, so it is not a column a user may remove: it
+        // has to exist and it has to be where a card enters the pipeline.
+        var backlog = workflow.Stages.FirstOrDefault(WorkflowDefinition.IsBacklog)
+            ?? throw new ArgumentException(
+                $"A workflow must keep its {WorkflowDefinition.BacklogStageId} stage.",
+                nameof(workflow));
+        var firstOrder = workflow.Stages.Min(stage => stage.Order);
+        if (backlog.Order != firstOrder)
+        {
+            throw new ArgumentException(
+                $"The {WorkflowDefinition.BacklogStageId} stage must be the first stage of the workflow.",
+                nameof(workflow));
         }
     }
 }

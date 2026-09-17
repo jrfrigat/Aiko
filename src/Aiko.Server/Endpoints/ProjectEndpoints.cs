@@ -114,10 +114,9 @@ internal static class ProjectEndpoints
                 IProjectTemplateStore templates,
                 CancellationToken cancellationToken) =>
             {
-                if (string.IsNullOrWhiteSpace(request.Title) || request.Stages is null || request.Stages.Count == 0)
+                if (WorkflowEndpoints.Validate(workflowId, request.Title, request.Stages) is { } invalid)
                 {
-                    return Results.BadRequest(new ErrorResponse(
-                        "Workflow title and at least one stage are required."));
+                    return invalid;
                 }
 
                 ProjectTemplate template;
@@ -147,7 +146,10 @@ internal static class ProjectEndpoints
                     existing.Id,
                     request.Title.Trim(),
                     request.Stages.OrderBy(stage => stage.Order).ToArray(),
-                    existing.Revision + 1);
+                    existing.Revision + 1,
+                    string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
+                    AppearanceCatalog.NormalizeIcon(request.Icon),
+                    AppearanceCatalog.NormalizeColor(request.Color));
                 // A template has no cards, so the "stage still contains cards" rule of the project endpoint
                 // has nothing to check here: a template's pipeline is a starting point, not a live board.
                 var workflows = template.Workflows
@@ -159,6 +161,92 @@ internal static class ProjectEndpoints
                     cancellationToken);
                 return Results.Ok(await templates.ReadAsync(templateId, cancellationToken));
             });
+        // A template's pipelines are card types too: a project created from this template starts with the
+        // types its author defined here.
+        app.MapPost(
+            "/api/v1/templates/{templateId}/workflows",
+            async (
+                string templateId,
+                CreateWorkflowRequest request,
+                IProjectTemplateStore templates,
+                CancellationToken cancellationToken) =>
+            {
+                if (WorkflowEndpoints.Validate(request.Id, request.Title, request.Stages) is { } invalid)
+                {
+                    return invalid;
+                }
+
+                ProjectTemplate template;
+                try
+                {
+                    template = await templates.ReadAsync(templateId, cancellationToken);
+                }
+                catch (FileNotFoundException)
+                {
+                    return Results.NotFound();
+                }
+
+                var id = request.Id.Trim().ToLowerInvariant();
+                if (template.Workflows.Any(workflow => StringComparer.Ordinal.Equals(workflow.Id, id)))
+                {
+                    return Results.Conflict(new ErrorResponse($"Workflow '{id}' already exists."));
+                }
+
+                var created = new WorkflowDefinition(
+                    id,
+                    request.Title.Trim(),
+                    request.Stages.OrderBy(stage => stage.Order).ToArray(),
+                    1,
+                    string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
+                    AppearanceCatalog.NormalizeIcon(request.Icon),
+                    AppearanceCatalog.NormalizeColor(request.Color));
+
+                await templates.WriteAsync(
+                    template with
+                    {
+                        Workflows = [.. template.Workflows, created],
+                        Version = template.Version + 1
+                    },
+                    cancellationToken);
+                return Results.Ok(await templates.ReadAsync(templateId, cancellationToken));
+            });
+
+        app.MapDelete(
+            "/api/v1/templates/{templateId}/workflows/{workflowId}",
+            async (
+                string templateId,
+                string workflowId,
+                IProjectTemplateStore templates,
+                CancellationToken cancellationToken) =>
+            {
+                ProjectTemplate template;
+                try
+                {
+                    template = await templates.ReadAsync(templateId, cancellationToken);
+                }
+                catch (FileNotFoundException)
+                {
+                    return Results.NotFound();
+                }
+
+                if (!template.Workflows.Any(workflow =>
+                        StringComparer.Ordinal.Equals(workflow.Id, workflowId)))
+                {
+                    return Results.NotFound();
+                }
+
+                await templates.WriteAsync(
+                    template with
+                    {
+                        Workflows = template.Workflows
+                            .Where(workflow => !StringComparer.Ordinal.Equals(workflow.Id, workflowId))
+                            .ToArray(),
+                        Version = template.Version + 1
+                    },
+                    cancellationToken);
+                return Results.Ok(await templates.ReadAsync(templateId, cancellationToken));
+            });
+
         // Authoring a template: an installation captures a project it likes and starts the next ones from it.
         app.MapPost(
             "/api/v1/templates/from-project",

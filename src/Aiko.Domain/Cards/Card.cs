@@ -4,7 +4,10 @@ namespace Aiko.Domain.Cards;
 /// A card is the durable source of task or story state on the project board.
 /// </summary>
 /// <param name="Reference">Project-qualified identifier.</param>
-/// <param name="Kind">Story or task.</param>
+/// <param name="Kind">
+/// Card type id, for example <c>Story</c> or <c>Epic</c>. The type is defined by the workflow of the same
+/// name (<see cref="WorkflowId"/>), so a project can add its own types without a code change.
+/// </param>
 /// <param name="Title">Human-readable title.</param>
 /// <param name="WorkflowId">Workflow the card moves through.</param>
 /// <param name="StageId">Current stage.</param>
@@ -22,7 +25,7 @@ namespace Aiko.Domain.Cards;
 /// </param>
 public sealed record Card(
     CardReference Reference,
-    CardKind Kind,
+    string Kind,
     string Title,
     string WorkflowId,
     string StageId,

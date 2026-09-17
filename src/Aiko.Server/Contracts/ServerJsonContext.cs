@@ -44,6 +44,7 @@ namespace Aiko.Server.Contracts;
 [JsonSerializable(typeof(IReadOnlyList<AikoEvent>))]
 [JsonSerializable(typeof(MoveCardRequest))]
 [JsonSerializable(typeof(UpdateWorkflowRequest))]
+[JsonSerializable(typeof(CreateWorkflowRequest))]
 [JsonSerializable(typeof(UpdateCardRequest))]
 [JsonSerializable(typeof(CreateCardRequest))]
 [JsonSerializable(typeof(PairRequest))]

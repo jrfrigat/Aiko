@@ -42,17 +42,13 @@ internal abstract class ProjectToolBase(
     }
 
     /// <summary>
-    /// Parses the card kind argument ("story" or "task").
+    /// Parses the card type argument. Any type the project defines is accepted - a project may add its own
+    /// types in the workflow editor - so the value is only canonicalised, not checked against a fixed list.
     /// </summary>
-    protected static CardKind ParseCardKind(string value) =>
-        value.Trim().ToLowerInvariant() switch
-        {
-            "story" => CardKind.Story,
-            "task" => CardKind.Task,
-            _ => throw new ArgumentException(
-                "Card kind must be 'story' or 'task'.",
-                nameof(value))
-        };
+    protected static string ParseCardKind(string value) =>
+        string.IsNullOrWhiteSpace(value)
+            ? throw new ArgumentException("Card kind is required.", nameof(value))
+            : CardKind.Canonical(value);
 
     /// <summary>
     /// Parses an agent attempt state argument, for example "rate-limited".

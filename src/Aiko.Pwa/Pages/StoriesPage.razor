@@ -3,7 +3,7 @@
 @* The story projection of the board. A card opens as its own page. *@
 <PageTitle>@Loc.Get("StoriesNav")</PageTitle>
 
-<BoardView Mode="BoardViewMode.Stories" ProjectId="@ProjectId" />
+<BoardView KindFilter="@CardKind.Story" ProjectId="@ProjectId" />
 
 @code {
     [Parameter] public string ProjectId { get; set; } = string.Empty;

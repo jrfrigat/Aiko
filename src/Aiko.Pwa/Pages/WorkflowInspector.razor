@@ -56,6 +56,134 @@
             </div>
         </div>
 
+        @* What the card type is, in the project's words. This is where a user who adds an Epic writes what
+           an Epic is for; the icon and the colour are how the type is drawn on the board. *@
+        <div class="aiko-code-pair">
+            <div class="aiko-code-row aiko-code-row--quiet" title="@Loc.Get("CardTypeDescription")">
+                <FlareIconView Value="@MaterialDesign3Icons.Regular.Description" Color="FlareColor.OnSurfaceVariant2" />
+                <input type="text"
+                       aria-label="@Loc.Get("CardTypeDescription")"
+                       placeholder="@Loc.Get("CardTypeDescription")"
+                       @bind="_workflowDescription" />
+            </div>
+        </div>
+
+        <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XSmall" Wrap="true">
+            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
+                <FlareIconView Value="@IconOf(_workflowIcon)" Color="@ColorOf(_workflowColor)" />
+                <select aria-label="@Loc.Get("CardTypeIcon")"
+                        value="@_workflowIcon"
+                        @onchange="OnWorkflowIconPicked">
+                    <option value="">@Loc.Get("AppearanceDefault")</option>
+                    @foreach (var choice in IconChoices)
+                    {
+                        var icon = choice;
+                        <option value="@icon">@icon</option>
+                    }
+                </select>
+                <select aria-label="@Loc.Get("CardTypeColor")"
+                        value="@_workflowColor"
+                        @onchange="OnWorkflowColorPicked">
+                    <option value="">@Loc.Get("AppearanceDefault")</option>
+                    @foreach (var choice in ColorChoices)
+                    {
+                        var color = choice;
+                        <option value="@color">@color</option>
+                    }
+                </select>
+            </FlareStack>
+            @if (Delete is not null && _deleteTypeConfirm)
+            {
+                @* The one destructive action asks twice, and says what it will not touch. *@
+                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.Warning">
+                        @Loc.Get("DeleteCardTypeConfirm")
+                    </FlareText>
+                    <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm" OnClick="DeleteCardTypeAsync">
+                        <ChildContent>@Loc.Get("Delete")</ChildContent>
+                    </FlareButton>
+                    <FlareButton Variant="ButtonVariant.Text"
+                                 Size="ButtonSize.Sm"
+                                 OnClick="() => _deleteTypeConfirm = false">
+                        <ChildContent>@Loc.Get("Cancel")</ChildContent>
+                    </FlareButton>
+                </FlareStack>
+            }
+            else if (Delete is not null)
+            {
+                <FlareButton Variant="ButtonVariant.Text"
+                             Size="ButtonSize.Sm"
+                             Disabled="@SelectedTypeHasCards"
+                             OnClick="() => _deleteTypeConfirm = true">
+                    <LeadingIcon><FlareIconView Value="@FlareIcons.Delete" /></LeadingIcon>
+                    <ChildContent>@Loc.Get("RemoveCardType")</ChildContent>
+                </FlareButton>
+            }
+        </FlareStack>
+
+        @if (Delete is not null && SelectedTypeHasCards)
+        {
+            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                @Loc.Get("DeleteCardTypeHasCards")
+            </FlareText>
+        }
+
+        @if (Create is not null)
+        {
+            <FlarePaper Elevation="0" Padding="FlareSpacing.Medium" Square="true" Class="aiko-panel">
+                <FlareStack Gap="FlareSpacing.Small">
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
+                        @Loc.Get("NewCardTypeTitle")
+                    </FlareText>
+                    <div class="aiko-form-row">
+                        <AikoField Label="@Loc.Get("StableId")"
+                                   Icon="@MaterialDesign3Icons.Regular.Tag"
+                                   Value="@_newTypeId"
+                                   Placeholder="@Loc.Get("CardTypeIdHelper")"
+                                   Hint="@Loc.Get("CardTypeIdHelper")"
+                                   ValueChanged="value => _newTypeId = value" />
+                        <AikoField Label="@Loc.Get("CardTypeName")"
+                                   Icon="@MaterialDesign3Icons.Regular.Edit"
+                                   Value="@_newTypeTitle"
+                                   ValueChanged="value => _newTypeTitle = value" />
+                    </div>
+                    <AikoField Label="@Loc.Get("CardTypeDescription")"
+                               Value="@_newTypeDescription"
+                               ValueChanged="value => _newTypeDescription = value" />
+                    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
+                        <FlareIconView Value="@IconOf(_newTypeIcon)" Color="@ColorOf(_newTypeColor)" />
+                        <select aria-label="@Loc.Get("CardTypeIcon")"
+                                value="@_newTypeIcon"
+                                @onchange="OnNewTypeIconPicked">
+                            <option value="">@Loc.Get("AppearanceDefault")</option>
+                            @foreach (var choice in IconChoices)
+                            {
+                                var icon = choice;
+                                <option value="@icon">@icon</option>
+                            }
+                        </select>
+                        <select aria-label="@Loc.Get("CardTypeColor")"
+                                value="@_newTypeColor"
+                                @onchange="OnNewTypeColorPicked">
+                            <option value="">@Loc.Get("AppearanceDefault")</option>
+                            @foreach (var choice in ColorChoices)
+                            {
+                                var color = choice;
+                                <option value="@color">@color</option>
+                            }
+                        </select>
+                        <FlareButton Variant="ButtonVariant.Tonal"
+                                     Size="ButtonSize.Sm"
+                                     Loading="@_creatingType"
+                                     OnClick="CreateCardTypeAsync">
+                            <LeadingIcon><FlareIconView Value="@FlareIcons.Add" /></LeadingIcon>
+                            <ChildContent>@Loc.Get("AddCardType")</ChildContent>
+                        </FlareButton>
+                    </FlareStack>
+                </FlareStack>
+            </FlarePaper>
+        }
+
         <FlareDivider />
 
         <FlareStack Gap="FlareSpacing.Small">
@@ -72,7 +200,7 @@
                     <div class="aiko-stage @(ReferenceEquals(card, SelectedStage) ? "aiko-stage--on" : null)">
                         <button type="button" class="aiko-stage__open" @onclick="() => OpenStageDrawer(card)">
                         <span class="aiko-stage__head">
-                            <span class="aiko-stage__dot"></span>
+                            <FlareIconView Value="@IconOf(card.Icon)" Color="@ColorOf(card.Color)" />
                             <FlareText Element="span" Typo="TypographyScale.BodySmall" Weight="FontWeight.SemiBold">
                                 @StageLabel(card)
                             </FlareText>
@@ -276,6 +404,32 @@
                         }
                     </AikoSelectField>
                 </div>
+                @* How the column is drawn: the icon and the colour the board paints on this stage. Both are
+                   optional - an unset stage keeps the positional default - so a project that never touches
+                   them looks exactly as it did before the choice existed. *@
+                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small" Wrap="true">
+                    <FlareIconView Value="@IconOf(stage.Icon)" Color="@ColorOf(stage.Color)" />
+                    <select aria-label="@Loc.Get("StageIcon")"
+                            value="@stage.Icon"
+                            @onchange="args => OnStageIconPicked(stage, args)">
+                        <option value="">@Loc.Get("AppearanceDefault")</option>
+                        @foreach (var choice in IconChoices)
+                        {
+                            var icon = choice;
+                            <option value="@icon">@icon</option>
+                        }
+                    </select>
+                    <select aria-label="@Loc.Get("StageColor")"
+                            value="@stage.Color"
+                            @onchange="args => OnStageColorPicked(stage, args)">
+                        <option value="">@Loc.Get("AppearanceDefault")</option>
+                        @foreach (var choice in ColorChoices)
+                        {
+                            var color = choice;
+                            <option value="@color">@color</option>
+                        }
+                    </select>
+                </FlareStack>
                 @* What the stage must produce and the commands that verify it, side by side: on the wide
                    drawer the two read as one contract. *@
                 <div class="aiko-form-row">
@@ -308,7 +462,7 @@
             <FlareButton FullWidth="true" Loading="@_saving" OnClick="SaveAsync">@Loc.Get("SaveWorkflow")</FlareButton>
             <FlareButton FullWidth="true"
                          Variant="ButtonVariant.Text"
-                         Disabled="@(_stages.Count <= 1)"
+                         Disabled="@(_stages.Count <= 1 || IsBacklogStage(SelectedStage))"
                          OnClick="RemoveStage">@Loc.Get("RemoveStage")</FlareButton>
             <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant">
                 @Loc.Get("WorkflowHint")
@@ -341,9 +495,53 @@
     /// <summary>Raised when the screen should close the editor, if it was opened as a drawer.</summary>
     [Parameter] public EventCallback OnClose { get; set; }
 
+    /// <summary>
+    /// Creates a card type - a workflow the project does not have yet - and returns the failure text, or null
+    /// when it was created. Optional: a screen that only edits existing pipelines omits it.
+    /// </summary>
+    [Parameter] public Func<WorkflowDefinition, Task<string?>>? Create { get; set; }
+
+    /// <summary>
+    /// Removes a card type and returns the failure text, or null when it was removed. Optional, like
+    /// <see cref="Create"/>.
+    /// </summary>
+    [Parameter] public Func<WorkflowDefinition, Task<string?>>? Delete { get; set; }
+
+    /// <summary>The icon ids a stage or a card type may choose from.</summary>
+    private static IReadOnlyList<string> IconChoices => AppearanceCatalog.Icons;
+
+    /// <summary>The colour ids a stage or a card type may choose from.</summary>
+    private static IReadOnlyList<string> ColorChoices => AppearanceCatalog.Colors;
+
+    /// <summary>The icon a choice draws, so a picker can show what it is choosing.</summary>
+    private static FlareIcon IconOf(string? icon) =>
+        CardAppearance.Icon(icon, MaterialDesign3Icons.Regular.Pending);
+
+    /// <summary>The colour a choice draws, so a picker can show what it is choosing.</summary>
+    private static FlareColor ColorOf(string? color) => CardAppearance.Color(color, FlareColor.OnSurfaceVariant);
+
+    private static string? TrimOrNull(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
     private string? _loadedWorkflowsKey;
     private string _workflowId = string.Empty;
     private string? _workflowTitle;
+    private string? _workflowDescription;
+    private string? _workflowIcon;
+    private string? _workflowColor;
+    private string? _newTypeId;
+    private string? _newTypeTitle;
+    private string? _newTypeDescription;
+    private string? _newTypeIcon;
+    private string? _newTypeColor;
+    private bool _creatingType;
+    private bool _deleteTypeConfirm;
+
+    /// <summary>
+    /// The pipeline to open after the next reload. Creating a type rebuilds the list, and without this the
+    /// editor would jump back to the first pipeline instead of following the type that was just added.
+    /// </summary>
+    private string? _pendingWorkflowId;
     private StageDraft? _selectedStage;
     private List<StageDraft> _stages = [];
     private string? _message;
@@ -371,9 +569,13 @@
             return;
         }
 
-        var requested = InitialWorkflowId is not null
-            ? Workflows.FirstOrDefault(workflow => workflow.Id == InitialWorkflowId)
+        // A freshly created type wins over the screen's initial choice: the reload happens because of the
+        // creation, so the editor should land on what was created.
+        var preferredId = _pendingWorkflowId ?? InitialWorkflowId;
+        var requested = preferredId is not null
+            ? Workflows.FirstOrDefault(workflow => workflow.Id == preferredId)
             : null;
+        _pendingWorkflowId = null;
         LoadWorkflow(requested ?? Workflows[0]);
     }
 
@@ -401,6 +603,9 @@
     {
         _workflowId = workflow.Id;
         _workflowTitle = workflow.Title;
+        _workflowDescription = workflow.Description;
+        _workflowIcon = workflow.Icon;
+        _workflowColor = workflow.Color;
         _stages = workflow.Stages
             .OrderBy(stage => stage.Order)
             .Select(StageDraft.FromDefinition)
@@ -408,6 +613,8 @@
         _selectedStage = _stages.FirstOrDefault();
         _message = null;
         _hasError = false;
+        // The confirmation belongs to the type that was on screen, not to the one that replaces it.
+        _deleteTypeConfirm = false;
     }
 
     private void AddStage()
@@ -420,7 +627,7 @@
             id = $"{stem}-{suffix++}";
         }
 
-        var kinds = SelectedWorkflow.Stages.FirstOrDefault()?.AllowedCardKinds ?? [];
+        var kinds = SelectedWorkflow.Stages.FirstOrDefault()?.AllowedCardKinds ?? [SelectedWorkflow.CardType];
         _stages.Add(new StageDraft
         {
             Id = id,
@@ -440,6 +647,12 @@
         if (stage is null || _stages.Count == 1)
         {
             ShowError(Loc.Get("OneStageRequired"));
+            return;
+        }
+
+        if (StringComparer.Ordinal.Equals(stage.Id, WorkflowDefinition.BacklogStageId))
+        {
+            ShowError(Loc.Get("BacklogStageReserved"));
             return;
         }
 
@@ -499,7 +712,14 @@
         {
             // The screen owns the call, so the editor never has to know whether it is editing a project's
             // file or the template those files came from.
-            var failure = await Save(workflow with { Title = _workflowTitle!, Stages = stages });
+            var failure = await Save(workflow with
+            {
+                Title = _workflowTitle!,
+                Stages = stages,
+                Description = TrimOrNull(_workflowDescription),
+                Icon = AppearanceCatalog.NormalizeIcon(_workflowIcon),
+                Color = AppearanceCatalog.NormalizeColor(_workflowColor)
+            });
             if (failure is not null)
             {
                 ShowError(failure);
@@ -555,6 +775,171 @@
             _stages[index].Order = (index + 1) * 10;
         }
     }
+
+    /// <summary>
+    /// Adds a card type: a workflow of its own, starting with the reserved backlog stage and two working
+    /// stages, so the type is usable the moment it is created and the pipeline can be shaped afterwards.
+    /// </summary>
+    private async Task CreateCardTypeAsync()
+    {
+        _message = null;
+        _hasError = false;
+        if (Create is null)
+        {
+            return;
+        }
+
+        var id = _newTypeId?.Trim().ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(id) || !System.Text.RegularExpressions.Regex.IsMatch(
+                id, "^[a-z0-9][a-z0-9-]*$"))
+        {
+            ShowError(Loc.Get("CardTypeIdInvalid"));
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_newTypeTitle))
+        {
+            ShowError(Loc.Get("CardTypeIdTitleRequired"));
+            return;
+        }
+
+        if (Workflows.Any(workflow => StringComparer.Ordinal.Equals(workflow.Id, id)))
+        {
+            ShowError(Loc.Format("CardTypeExists", id));
+            return;
+        }
+
+        var cardType = CardKind.FromWorkflowId(id);
+        var policies = new Dictionary<string, ActionPolicy>(StringComparer.Ordinal);
+        var workflow = new WorkflowDefinition(
+            id,
+            _newTypeTitle.Trim(),
+            [
+                new StageDefinition(
+                    WorkflowDefinition.BacklogStageId,
+                    Loc.Get("StageTitleBacklog"),
+                    10,
+                    Loc.Get("NewTypeBacklogInstruction"),
+                    [cardType],
+                    null,
+                    [],
+                    policies,
+                    Icon: "inbox",
+                    Color: "secondary"),
+                new StageDefinition(
+                    "in-progress",
+                    Loc.Get("StageTitleInProgress"),
+                    20,
+                    Loc.Get("NewTypeWorkInstruction"),
+                    [cardType],
+                    null,
+                    [],
+                    policies,
+                    Icon: "code",
+                    Color: "warning"),
+                new StageDefinition(
+                    "done",
+                    Loc.Get("StageTitleDone"),
+                    30,
+                    Loc.Get("NewTypeDoneInstruction"),
+                    [cardType],
+                    null,
+                    [],
+                    policies,
+                    Icon: "done-all",
+                    Color: "success")
+            ],
+            1,
+            TrimOrNull(_newTypeDescription),
+            AppearanceCatalog.NormalizeIcon(_newTypeIcon),
+            AppearanceCatalog.NormalizeColor(_newTypeColor));
+
+        _creatingType = true;
+        try
+        {
+            var failure = await Create(workflow);
+            if (failure is not null)
+            {
+                ShowError(failure);
+                return;
+            }
+
+            _message = Loc.Format("CardTypeCreated", workflow.Title);
+            _pendingWorkflowId = workflow.Id;
+            _newTypeId = null;
+            _newTypeTitle = null;
+            _newTypeDescription = null;
+            _newTypeIcon = null;
+            _newTypeColor = null;
+        }
+        catch (Exception exception)
+        {
+            ShowError(Loc.Format("SaveWorkflowFailed", exception.Message));
+        }
+        finally
+        {
+            _creatingType = false;
+        }
+    }
+
+    /// <summary>
+    /// Removes the card type being edited. The daemon refuses while cards of that type exist, and the screen
+    /// says so rather than stranding them.
+    /// </summary>
+    private async Task DeleteCardTypeAsync()
+    {
+        _message = null;
+        _hasError = false;
+        if (Delete is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var failure = await Delete(SelectedWorkflow);
+            if (failure is not null)
+            {
+                ShowError(failure);
+            }
+        }
+        catch (Exception exception)
+        {
+            ShowError(Loc.Format("SaveWorkflowFailed", exception.Message));
+        }
+    }
+
+    /// <summary>
+    /// Whether the type being edited still holds cards. Removing it would strand them, so the action is not
+    /// offered; the daemon refuses it as well, and this is the screen saying so before the request.
+    /// </summary>
+    private bool SelectedTypeHasCards => Cards.Any(card =>
+        StringComparer.Ordinal.Equals(card.WorkflowId, _workflowId));
+
+    private void OnWorkflowIconPicked(ChangeEventArgs args) =>
+        _workflowIcon = TrimOrNull(args.Value?.ToString());
+
+    private void OnWorkflowColorPicked(ChangeEventArgs args) =>
+        _workflowColor = TrimOrNull(args.Value?.ToString());
+
+    private void OnNewTypeIconPicked(ChangeEventArgs args) =>
+        _newTypeIcon = TrimOrNull(args.Value?.ToString());
+
+    private void OnNewTypeColorPicked(ChangeEventArgs args) =>
+        _newTypeColor = TrimOrNull(args.Value?.ToString());
+
+    private static void OnStageIconPicked(StageDraft stage, ChangeEventArgs args) =>
+        stage.Icon = TrimOrNull(args.Value?.ToString());
+
+    private static void OnStageColorPicked(StageDraft stage, ChangeEventArgs args) =>
+        stage.Color = TrimOrNull(args.Value?.ToString());
+
+    /// <summary>
+    /// Whether the stage is the reserved backlog column. It is the list of cards not taken into work yet,
+    /// so it is not a column the editor may remove or reorder away.
+    /// </summary>
+    private static bool IsBacklogStage(StageDraft? stage) =>
+        stage is not null && StringComparer.Ordinal.Equals(stage.Id, WorkflowDefinition.BacklogStageId);
 
     private void ShowError(string message)
     {
@@ -655,12 +1040,14 @@
         public int Order { get; set; }
         public required string Instruction { get; set; }
         public string? DefaultAgentAdapterId { get; set; }
+        public string? Icon { get; set; }
+        public string? Color { get; set; }
         public string? ArtifactLines { get; set; }
         public string? CommandLines { get; set; }
         public string? BeforeSkillLines { get; set; }
         public string? AfterSkillLines { get; set; }
         public List<string> AllowedAgentAdapterIds { get; init; } = [];
-        public required IReadOnlyList<CardKind> AllowedCardKinds { get; init; }
+        public required IReadOnlyList<string> AllowedCardKinds { get; init; }
         public required IReadOnlyDictionary<string, ActionPolicy> ActionPolicies { get; init; }
         public bool IsNew { get; init; }
 
@@ -671,6 +1058,8 @@
             Order = stage.Order,
             Instruction = stage.Instruction,
             DefaultAgentAdapterId = stage.DefaultAgentAdapterId,
+            Icon = stage.Icon,
+            Color = stage.Color,
             ArtifactLines = string.Join(Environment.NewLine, stage.RequiredArtifacts.Select(artifact =>
                 $"{artifact.Path} | {artifact.MissingPolicy} | {artifact.Description}")),
             CommandLines = string.Join(Environment.NewLine, stage.Commands),
@@ -695,6 +1084,8 @@
             AllowedAgentAdapterIds,
             ParseCommands(CommandLines),
             ParseCommands(BeforeSkillLines),
-            ParseCommands(AfterSkillLines));
+            ParseCommands(AfterSkillLines),
+            AppearanceCatalog.NormalizeIcon(Icon),
+            AppearanceCatalog.NormalizeColor(Color));
     }
 }

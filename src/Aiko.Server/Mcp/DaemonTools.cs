@@ -65,17 +65,17 @@ internal sealed class DaemonTools(
 
     [McpServerTool(Name = "aiko_create_card_in_project", Title = "Create Aiko card in a project")]
     [Description(
-        "Creates a story or task in the given project, validating the stage against that project's workflow. Pass originProjectId when reporting from another project.")]
+        "Creates a card of any type the project defines in the given project, validating the stage against that project's workflow. Pass originProjectId when reporting from another project.")]
     public async Task<string> CreateCardAsync(
         [Description("Target project id.")]
         string projectId,
         [Description("File-safe card id, for example TASK-001.")]
         string cardId,
-        [Description("Card kind: story or task.")]
+        [Description("Card type: story, task, or any type the project added in its workflow editor.")]
         string kind,
         [Description("Human-readable title.")]
         string title,
-        [Description("Workflow id, normally story or task.")]
+        [Description("Workflow id that defines the type, for example story or task.")]
         string workflowId,
         [Description("Initial stage id.")]
         string stageId,
@@ -120,13 +120,10 @@ internal sealed class DaemonTools(
         return JsonSerializer.Serialize(card, ServerJsonContext.Default.Card);
     }
 
-    private static CardKind ParseKind(string value) =>
-        value.Trim().ToLowerInvariant() switch
-        {
-            "story" => CardKind.Story,
-            "task" => CardKind.Task,
-            _ => throw new ArgumentException("Card kind must be 'story' or 'task'.", nameof(value))
-        };
+    private static string ParseKind(string value) =>
+        string.IsNullOrWhiteSpace(value)
+            ? throw new ArgumentException("Card kind is required.", nameof(value))
+            : CardKind.Canonical(value);
 
     private static ProjectGitPolicy ParseGitPolicy(string? value) =>
         string.IsNullOrWhiteSpace(value)

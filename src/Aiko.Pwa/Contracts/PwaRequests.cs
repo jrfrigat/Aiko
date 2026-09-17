@@ -9,9 +9,10 @@ namespace Aiko.Pwa.Contracts;
 /// <see cref="Services.PwaJsonContext"/>, and a source-generated serializer needs the types to be
 /// reachable from the generated code (a private type nested in a component is not).
 /// </summary>
+/// <summary>Creates a card of any type the project defines.</summary>
 internal sealed record CreateCardRequest(
     string CardId,
-    CardKind Kind,
+    string Kind,
     string Title,
     string WorkflowId,
     string StageId,
@@ -56,12 +57,25 @@ internal sealed record UpdateArtifactRequest(
     string? ExpectedVersion);
 
 /// <summary>
-/// Replaces the stages of a workflow.
+/// Replaces the stages of a workflow, and its own presentation - the card type's name, description,
+/// icon and colour.
 /// </summary>
 internal sealed record UpdateWorkflowRequest(
     string Title,
     IReadOnlyList<StageDefinition> Stages,
-    long ExpectedRevision);
+    long ExpectedRevision,
+    string? Description = null,
+    string? Icon = null,
+    string? Color = null);
+
+/// <summary>Creates a workflow the project does not have yet: one new card type with its own pipeline.</summary>
+internal sealed record CreateWorkflowRequest(
+    string Id,
+    string Title,
+    IReadOnlyList<StageDefinition> Stages,
+    string? Description = null,
+    string? Icon = null,
+    string? Color = null);
 
 /// <summary>Creates a template by copying one that exists.</summary>
 internal sealed record CreateTemplateRequest(string SourceId, string TemplateId, string? Name = null);

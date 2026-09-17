@@ -35,37 +35,44 @@ internal static class BuiltInProjectTemplate
             "story",
             "Stories",
             [
-                Stage("backlog", "Backlog", 10, CardKind.Story, "Clarify the value, the boundaries and the links of this story."),
+                Stage("backlog", "Backlog", 10, CardKind.Story, "Clarify the value, the boundaries and the links of this story.", "inbox", "secondary"),
                 Stage(
                     "elaboration",
                     "Elaboration",
                     20,
                     CardKind.Story,
                     "Work out the requirements and the architectural constraints of this story.",
+                    "description",
+                    "primary",
                     [
                         new ArtifactRequirement(
                             "analysis.md",
                             "The outcome of the story elaboration.",
                             MissingArtifactPolicy.NeedsAttention)
                     ]),
-                Stage("ready", "Ready for decomposition", 30, CardKind.Story, "Check that this story is ready to be decomposed into tasks."),
-                Stage("in-progress", "In progress", 40, CardKind.Story, "Coordinate the implementation of the child tasks."),
-                Stage("done", "Done", 50, CardKind.Story, "Verify that the story's outcome was reached.")
+                Stage("ready", "Ready for decomposition", 30, CardKind.Story, "Check that this story is ready to be decomposed into tasks.", "pending", "tertiary"),
+                Stage("in-progress", "In progress", 40, CardKind.Story, "Coordinate the implementation of the child tasks.", "code", "warning"),
+                Stage("done", "Done", 50, CardKind.Story, "Verify that the story's outcome was reached.", "done-all", "success")
             ],
-            1);
+            1,
+            "A functional requirement large enough to be decomposed into child tasks.",
+            "account-tree",
+            "primary");
 
     private static WorkflowDefinition TaskWorkflow() =>
         new(
             "task",
             "Tasks",
             [
-                Stage("backlog", "Backlog", 10, CardKind.Task, "Clarify the request, the scope and the links of this task."),
+                Stage("backlog", "Backlog", 10, CardKind.Task, "Clarify the request, the scope and the links of this task.", "inbox", "secondary"),
                 Stage(
                     "analysis",
                     "Analysis",
                     20,
                     CardKind.Task,
                     "Analyse the task, its risks and the implementation options.",
+                    "description",
+                    "primary",
                     [
                         new ArtifactRequirement(
                             "analysis.md",
@@ -78,23 +85,30 @@ internal static class BuiltInProjectTemplate
                     30,
                     CardKind.Task,
                     "Implement the task and record the files you actually changed.",
+                    "code",
+                    "warning",
                     [
                         new ArtifactRequirement(
                             "implementation.md",
                             "The outcome of the implementation and its verification.",
                             MissingArtifactPolicy.Warn)
                     ]),
-                Stage("review", "Review", 40, CardKind.Task, "Check the result, the tests and any deviation from the declared scope."),
-                Stage("done", "Done", 50, CardKind.Task, "Record the outcome of this task.")
+                Stage("review", "Review", 40, CardKind.Task, "Check the result, the tests and any deviation from the declared scope.", "check-circle", "info"),
+                Stage("done", "Done", 50, CardKind.Task, "Record the outcome of this task.", "done-all", "success")
             ],
-            1);
+            1,
+            "An atomic unit of work an agent carries out within a single stage.",
+            "check-circle",
+            "tertiary");
 
     private static StageDefinition Stage(
         string id,
         string title,
         int order,
-        CardKind kind,
+        string kind,
         string instruction,
+        string icon,
+        string color,
         IReadOnlyList<ArtifactRequirement>? artifacts = null) =>
         new(
             id,
@@ -104,7 +118,9 @@ internal static class BuiltInProjectTemplate
             [kind],
             null,
             artifacts ?? [],
-            new Dictionary<string, ActionPolicy>(StringComparer.Ordinal));
+            new Dictionary<string, ActionPolicy>(StringComparer.Ordinal),
+            Icon: icon,
+            Color: color);
 
     private static IReadOnlyList<BoardProjectionDefinition> Projections() =>
     [

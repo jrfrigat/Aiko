@@ -232,14 +232,51 @@ public class DomainSpecs
     [Fact]
     public void Domain_enums_round_trip_with_web_json_defaults()
     {
+        // A card type is a plain string now - the type is the workflow a card moves through, and a project
+        // may add its own - so what matters is that the id survives JSON unchanged, not the casing rule of a
+        // converter. MissingArtifactPolicy is still an enum and still goes through the string converter.
         var kindJson = JsonSerializer.Serialize(CardKind.Task, JsonSerializerOptions.Web);
         Assert.Equal("\"Task\"", kindJson);
-        Assert.Equal(CardKind.Task, JsonSerializer.Deserialize<CardKind>(kindJson, JsonSerializerOptions.Web));
+        Assert.Equal(CardKind.Task, JsonSerializer.Deserialize<string>(kindJson, JsonSerializerOptions.Web));
 
         var policyJson = JsonSerializer.Serialize(MissingArtifactPolicy.Warn, JsonSerializerOptions.Web);
         Assert.Equal("\"Warn\"", policyJson);
         Assert.Equal(
             MissingArtifactPolicy.Warn,
             JsonSerializer.Deserialize<MissingArtifactPolicy>(policyJson, JsonSerializerOptions.Web));
+    }
+
+    [Fact]
+    public void A_card_type_is_named_after_the_workflow_that_defines_it()
+    {
+        Assert.Equal("Story", CardKind.FromWorkflowId("story"));
+        Assert.Equal("Task", CardKind.FromWorkflowId("task"));
+        Assert.Equal("Epic", CardKind.FromWorkflowId("epic"));
+        Assert.Equal("story", CardKind.ToWorkflowId("Story"));
+        Assert.Equal("epic", CardKind.ToWorkflowId("Epic"));
+
+        // A document may spell a built-in type either way; the canonical form is the one the template uses,
+        // and any other id is title-cased so one type never compares unequal to itself within a project.
+        Assert.Equal(CardKind.Story, CardKind.Canonical("story"));
+        Assert.Equal(CardKind.Task, CardKind.Canonical("TASK"));
+        Assert.Equal("Epic", CardKind.Canonical("epic"));
+    }
+
+    [Fact]
+    public void The_appearance_catalog_rejects_names_it_does_not_know()
+    {
+        Assert.Equal(10, AppearanceCatalog.Icons.Count);
+
+        Assert.True(AppearanceCatalog.IsValidIcon("inbox"));
+        // No choice is a valid state: every stage and type written before the option existed has none.
+        Assert.True(AppearanceCatalog.IsValidIcon(null));
+        Assert.False(AppearanceCatalog.IsValidIcon("rocket"));
+
+        Assert.True(AppearanceCatalog.IsValidColor("secondary"));
+        Assert.True(AppearanceCatalog.IsValidColor(null));
+        Assert.False(AppearanceCatalog.IsValidColor("chartreuse"));
+
+        Assert.Null(AppearanceCatalog.NormalizeIcon(" "));
+        Assert.Equal("target", AppearanceCatalog.NormalizeIcon(" target "));
     }
 }

@@ -53,6 +53,7 @@ namespace Aiko.Pwa.Services;
 [JsonSerializable(typeof(UpdateCardRequest))]
 [JsonSerializable(typeof(UpdateArtifactRequest))]
 [JsonSerializable(typeof(UpdateWorkflowRequest))]
+[JsonSerializable(typeof(CreateWorkflowRequest))]
 [JsonSerializable(typeof(ErrorResponse))]
 [JsonSerializable(typeof(SystemInfo))]
 [JsonSerializable(typeof(PairCodeResponse))]

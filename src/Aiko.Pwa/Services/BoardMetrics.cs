@@ -1,6 +1,7 @@
 using Aiko.Application.Contracts;
 using Aiko.Domain.Cards;
 using Aiko.Domain.Execution;
+using Aiko.Domain.Workflow;
 
 namespace Aiko.Pwa.Services;
 
@@ -70,7 +71,16 @@ public static class BoardMetrics
             .ToArray();
     }
 
-    /// <summary>Counts the cards of a board by kind.</summary>
-    public static int CountKind(ProjectBoardSnapshot? board, CardKind kind) =>
-        board?.Cards.Count(card => card.Kind == kind) ?? 0;
+    /// <summary>Counts the cards of a board by type.</summary>
+    public static int CountKind(ProjectBoardSnapshot? board, string kind) =>
+        board?.Cards.Count(card =>
+            StringComparer.OrdinalIgnoreCase.Equals(card.Kind, kind)) ?? 0;
+
+    /// <summary>
+    /// The cards waiting in the reserved backlog stage of their workflow: the ones the backlog screen lists
+    /// and nobody has taken into work yet.
+    /// </summary>
+    public static int BacklogCount(ProjectBoardSnapshot? board) =>
+        board?.Cards.Count(card =>
+            StringComparer.Ordinal.Equals(card.StageId, WorkflowDefinition.BacklogStageId)) ?? 0;
 }

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Aiko.Application.Contracts;
 using Aiko.Domain.Cards;
+using Aiko.Infrastructure.Cards;
 using Aiko.Infrastructure.Projects;
 using Aiko.Infrastructure.Storage;
 
@@ -118,7 +119,9 @@ public sealed class FileCardDiscussionStore(IProjectCatalog projects, ICardStore
     {
         var project = await FindProjectAsync(card.ProjectId, cancellationToken);
         var existing = await cards.FindAsync(card, cancellationToken);
-        var collection = existing?.Kind == CardKind.Story ? "stories" : "tasks";
+        var collection = existing is null
+            ? "tasks"
+            : FileCardStore.CollectionFor(existing.Kind);
         var directory = Path.Combine(AikoProjectPaths.DataRoot(project.RootPath), collection, card.CardId);
         Directory.CreateDirectory(directory);
         return Path.Combine(directory, FileName);

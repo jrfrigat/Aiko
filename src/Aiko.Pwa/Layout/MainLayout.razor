@@ -233,6 +233,14 @@
                                 <span class="aiko-tag aiko-tag--accent">@DisplayFormat.Number(State.Board?.Cards.Count ?? 0)</span>
                             </BadgeContent>
                         </FlareNavLink>
+                        @* The backlog is the list of cards nobody has taken into work yet, so it sits right
+                           next to the board: it is the same cards, read as a queue instead of as columns. *@
+                        <FlareNavLink Href="@SectionHref(open.Id, "backlog")">
+                            <ChildContent>@Loc.Get("BacklogNav")</ChildContent>
+                            <BadgeContent>
+                                <span class="aiko-tag">@DisplayFormat.Number(BoardMetrics.BacklogCount(State.Board))</span>
+                            </BadgeContent>
+                        </FlareNavLink>
                         <FlareNavLink Href="@SectionHref(open.Id, "stories")">
                             <ChildContent>@Loc.Get("StoriesBacklog")</ChildContent>
                             <BadgeContent>

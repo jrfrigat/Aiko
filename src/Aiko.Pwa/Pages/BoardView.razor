@@ -1,5 +1,6 @@
-@* One board screen, shared by the three board routes: the projection switch, the metric strip, the
-   create form and one section per card kind the mode asks for. The routes differ only by Mode. *@
+@* One board screen, shared by every card-type route: the projection switch, the metric strip, the create
+   form and one section per card type in scope. The routes differ only by KindFilter, and the sections are
+   derived from the project's workflows, so a type the user adds appears here without a code change. *@
 @inject HttpClient Http
 @inject WorkspaceState State
 @inject NavigationManager Navigation
@@ -11,18 +12,20 @@
 else
 {
     <FlareStack Gap="FlareSpacing.Medium">
-        @* Which cards the board shows, as the design's filter row does it: one control, three projections,
-           and the route follows the choice so the rail, the back button and the address bar agree. *@
+        @* Which cards the board shows, as the design's filter row does it: one control, a projection per
+           card type, and the route follows the choice so the rail, the back button and the address bar
+           agree. *@
         <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
-            <FlareToggleGroup TValue="BoardViewMode"
+            <FlareToggleGroup TValue="string"
                               Size="ButtonSize.Sm"
-                              Value="Mode"
-                              ValueChanged="ChangeModeAsync">
-                @* Value is object-typed, so the enum member must be an expression - a bare literal would
-                   arrive at the group as the string "BoardViewMode.Combined". *@
-                <FlareToggleButton Variant="ButtonVariant.Filled" Value="@BoardViewMode.Combined">@Loc.Get("CombinedNav")</FlareToggleButton>
-                <FlareToggleButton Variant="ButtonVariant.Filled" Value="@BoardViewMode.Stories">@Loc.Get("StoriesNav")</FlareToggleButton>
-                <FlareToggleButton Variant="ButtonVariant.Filled" Value="@BoardViewMode.Tasks">@Loc.Get("TasksNav")</FlareToggleButton>
+                              Value="@ProjectionKey"
+                              ValueChanged="ChangeProjectionAsync">
+                <FlareToggleButton Variant="ButtonVariant.Filled" Value="@string.Empty">@Loc.Get("CombinedNav")</FlareToggleButton>
+                @foreach (var workflow in board.Workflows.OrderBy(item => item.Title, StringComparer.Ordinal))
+                {
+                    var option = workflow;
+                    <FlareToggleButton Variant="ButtonVariant.Filled" Value="@option.Id">@option.Title</FlareToggleButton>
+                }
             </FlareToggleGroup>
             <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant2">@ProjectionCaption</FlareText>
         </FlareStack>
@@ -56,34 +59,47 @@ else
 
         <FlareDivider />
 
-        @if (Mode is BoardViewMode.Stories or BoardViewMode.Combined)
+        @{
+            var rendered = false;
+        }
+        @foreach (var section in Sections)
         {
-            <BoardSection Title="@Loc.Get("StoryFlow")"
-                          Kind="CardKind.Story"
+            var current = section;
+            if (rendered)
+            {
+                <FlareDivider />
+            }
+            rendered = true;
+            <BoardSection Title="@current.Title"
+                          Kind="@current.CardType"
                           Board="board"
                           OnCardSelected="OpenCard"
-                          OnCardMoved="move => MoveCardAsync(CardKind.Story, move)" />
-        }
-
-        @if (Mode == BoardViewMode.Combined)
-        {
-            <FlareDivider Text="@Loc.Get("Implementation")" />
-        }
-
-        @if (Mode is BoardViewMode.Tasks or BoardViewMode.Combined)
-        {
-            <BoardSection Title="@Loc.Get("TaskFlow")"
-                          Kind="CardKind.Task"
-                          Board="board"
-                          OnCardSelected="OpenCard"
-                          OnCardMoved="move => MoveCardAsync(CardKind.Task, move)" />
+                          OnCardMoved="move => MoveCardAsync(current.CardType, move)" />
         }
     </FlareStack>
 }
 
 @code {
-    /// <summary>Which card kinds this board draws.</summary>
-    [Parameter] public BoardViewMode Mode { get; set; } = BoardViewMode.Combined;
+    /// <summary>
+    /// The card type this board draws, or null for every type the project defines.
+    /// </summary>
+    [Parameter] public string? KindFilter { get; set; }
+
+    /// <summary>
+    /// The card types in scope, taken from the project's own workflows: a section exists because a workflow
+    /// exists, so a type the user adds is drawn here without the board knowing its name.
+    /// </summary>
+    private IReadOnlyList<WorkflowDefinition> Sections =>
+        State.Board is not { } board
+            ? []
+            : board.Workflows
+                .Where(workflow => KindFilter is null ||
+                    StringComparer.OrdinalIgnoreCase.Equals(workflow.CardType, KindFilter))
+                .OrderBy(workflow => workflow.Title, StringComparer.Ordinal)
+                .ToArray();
+
+    /// <summary>The workflow id the projection switch highlights: empty is "every type".</summary>
+    private string ProjectionKey => KindFilter is null ? string.Empty : CardKind.ToWorkflowId(KindFilter);
 
     /// <summary>The project id from the route.</summary>
     [Parameter, EditorRequired] public string ProjectId { get; set; } = string.Empty;
@@ -102,30 +118,31 @@ else
 
     /// <summary>
     /// The projection switch is a navigation, not local state: the choice becomes the route, so the rail,
-    /// the address bar and the back button all agree on which projection is showing.
+    /// the address bar and the back button all agree on which projection is showing. The two built-in types
+    /// keep their historical routes; any other type is addressed by its workflow id.
     /// </summary>
-    private void ChangeModeAsync(BoardViewMode mode)
+    private void ChangeProjectionAsync(string workflowId)
     {
-        if (mode == Mode)
+        if (string.IsNullOrEmpty(workflowId))
         {
+            Navigation.NavigateTo($"{ProjectHref}/board");
             return;
         }
 
-        var section = mode switch
+        var section = workflowId switch
         {
-            BoardViewMode.Stories => "stories",
-            BoardViewMode.Tasks => "tasks",
-            _ => "board"
+            "story" => "stories",
+            "task" => "tasks",
+            _ => $"boards/{Uri.EscapeDataString(workflowId)}"
         };
         Navigation.NavigateTo($"{ProjectHref}/{section}");
     }
 
-    private IReadOnlyList<Card> VisibleCards => Mode switch
-    {
-        BoardViewMode.Stories => State.Board?.Cards.Where(card => card.Kind == CardKind.Story).ToArray() ?? [],
-        BoardViewMode.Tasks => State.Board?.Cards.Where(card => card.Kind == CardKind.Task).ToArray() ?? [],
-        _ => State.Board?.Cards ?? []
-    };
+    private IReadOnlyList<Card> VisibleCards => KindFilter is null
+        ? State.Board?.Cards ?? []
+        : State.Board?.Cards
+            .Where(card => StringComparer.OrdinalIgnoreCase.Equals(card.Kind, KindFilter))
+            .ToArray() ?? [];
 
     /// <summary>The four board metrics, as the design's mono summary line.</summary>
     private IReadOnlyList<(string Label, string Value, bool Warn)> SummaryTiles
@@ -144,18 +161,40 @@ else
         }
     }
 
-    private string ProjectionCaption => Mode switch
+    /// <summary>
+    /// The caption beside the switch: the built-in projections keep their own caption, and any other type
+    /// says in the project's words what it is for - which is the description the user wrote when they added it.
+    /// </summary>
+    private string ProjectionCaption
     {
-        BoardViewMode.Stories => Loc.Get("StoriesCaption"),
-        BoardViewMode.Tasks => Loc.Get("TasksCaption"),
-        _ => Loc.Get("CombinedCaption")
-    };
+        get
+        {
+            if (KindFilter is null)
+            {
+                return Loc.Get("CombinedCaption");
+            }
+
+            if (StringComparer.OrdinalIgnoreCase.Equals(KindFilter, CardKind.Story))
+            {
+                return Loc.Get("StoriesCaption");
+            }
+
+            if (StringComparer.OrdinalIgnoreCase.Equals(KindFilter, CardKind.Task))
+            {
+                return Loc.Get("TasksCaption");
+            }
+
+            var workflow = State.Board?.Workflows.FirstOrDefault(item =>
+                StringComparer.OrdinalIgnoreCase.Equals(item.CardType, KindFilter));
+            return workflow is { Description.Length: > 0 } ? workflow.Description : workflow?.Title ?? KindFilter;
+        }
+    }
 
     /// <summary>
     /// Applies one board drop: the board reports the card and the stage it landed in, so exactly one
     /// request goes out and the optimistic revision comes from the current snapshot.
     /// </summary>
-    private async Task MoveCardAsync(CardKind kind, BoardCardMove move)
+    private async Task MoveCardAsync(string kind, BoardCardMove move)
     {
         if (State.Board is not { } board)
         {
@@ -163,7 +202,8 @@ else
         }
 
         var card = board.Cards.FirstOrDefault(item =>
-            item.Kind == kind && StringComparer.Ordinal.Equals(item.Reference.CardId, move.CardId));
+            StringComparer.OrdinalIgnoreCase.Equals(item.Kind, kind) &&
+            StringComparer.Ordinal.Equals(item.Reference.CardId, move.CardId));
         if (card is null)
         {
             return;

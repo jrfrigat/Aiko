@@ -10,7 +10,7 @@ namespace Aiko.Domain.Workflow;
 /// <param name="Title">Display name of the stage.</param>
 /// <param name="Order">Position in the pipeline; lower runs earlier.</param>
 /// <param name="Instruction">What the agent is asked to do at this stage.</param>
-/// <param name="AllowedCardKinds">Card kinds this stage accepts.</param>
+/// <param name="AllowedCardKinds">Card type ids this stage accepts.</param>
 /// <param name="DefaultAgentAdapterId">Adapter the stage starts with, or null to leave the choice open.</param>
 /// <param name="RequiredArtifacts">Artifacts the pipeline expects from this stage.</param>
 /// <param name="ActionPolicies">Policies for dangerous actions at this stage, keyed by action name.</param>
@@ -32,19 +32,30 @@ namespace Aiko.Domain.Workflow;
 /// apart from <paramref name="SkillsBeforeInstruction"/> because the order is the point: a skill that
 /// gathers input and a skill that publishes output are not interchangeable.
 /// </param>
+/// <param name="Icon">
+/// Which icon the status column draws, as an id from <see cref="AppearanceCatalog.Icons"/>, or null to keep
+/// the positional default the board falls back to. Null keeps every workflow written before the choice
+/// existed readable, which is why it is optional.
+/// </param>
+/// <param name="Color">
+/// Which accent colour the status column draws, as an id from <see cref="AppearanceCatalog.Colors"/>, or
+/// null for the positional default.
+/// </param>
 public sealed record StageDefinition(
     string Id,
     string Title,
     int Order,
     string Instruction,
-    IReadOnlyList<CardKind> AllowedCardKinds,
+    IReadOnlyList<string> AllowedCardKinds,
     string? DefaultAgentAdapterId,
     IReadOnlyList<ArtifactRequirement> RequiredArtifacts,
     IReadOnlyDictionary<string, ActionPolicy> ActionPolicies,
     IReadOnlyList<string>? AllowedAgentAdapterIds = null,
     IReadOnlyList<string>? ValidationCommands = null,
     IReadOnlyList<string>? SkillsBeforeInstruction = null,
-    IReadOnlyList<string>? SkillsAfterInstruction = null)
+    IReadOnlyList<string>? SkillsAfterInstruction = null,
+    string? Icon = null,
+    string? Color = null)
 {
     /// <summary>The allowed executors, or an empty list when the stage allows every adapter.</summary>
     public IReadOnlyList<string> AllowedAgents => AllowedAgentAdapterIds ?? [];

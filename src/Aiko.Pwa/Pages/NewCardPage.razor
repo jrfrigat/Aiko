@@ -107,8 +107,11 @@
                         <AikoSelectField Label="@Loc.Get("CardKind")"
                                          Value="@_newCardKind"
                                          ValueChanged="OnKindChangedAsync">
-                            <option value="Task">@Loc.Get("TaskKind")</option>
-                            <option value="Story">@Loc.Get("StoryKind")</option>
+                            @foreach (var type in CardTypes)
+                            {
+                                var option = type;
+                                <option value="@option.CardType">@option.Title</option>
+                            }
                         </AikoSelectField>
                         @* The stage list is the chosen kind's own workflow: a task cannot join a story stage,
                            which is why the field is a select rather than free text. *@
@@ -194,7 +197,7 @@
     [Parameter] public string ProjectId { get; set; } = string.Empty;
 
     private string? _newCardId;
-    private string? _newCardKind = "Task";
+    private string? _newCardKind;
     private string? _newCardTitle;
     private string? _newCardStage;
     private string? _newCardSize;
@@ -206,21 +209,32 @@
 
     private string BoardHref => $"/p/{Uri.EscapeDataString(ProjectId)}/board";
 
-    /// <summary>The kind the form is currently creating, which is what the stage list follows.</summary>
-    private CardKind SelectedKind => _newCardKind == nameof(CardKind.Story) ? CardKind.Story : CardKind.Task;
+    /// <summary>The type the form is currently creating, which is what the stage list follows.</summary>
+    private string SelectedKind =>
+        string.IsNullOrWhiteSpace(_newCardKind) ? DefaultCardType : _newCardKind;
 
     /// <summary>
-    /// The stages a card of this kind can start in: the stages of its own workflow. A task cannot join a
-    /// story stage, so the form offers the workflow's stages rather than a free-text id.
+    /// The card types the project defines, taken from its workflows. A type is a workflow, so a project that
+    /// added an Epic can create Epics here without a code change.
     /// </summary>
-    private IReadOnlyList<StageDefinition> StagesFor(CardKind kind)
-    {
-        var workflowId = kind == CardKind.Story ? "story" : "task";
-        return State.Board?.Workflows
-            .FirstOrDefault(workflow => StringComparer.Ordinal.Equals(workflow.Id, workflowId))
+    private IReadOnlyList<WorkflowDefinition> CardTypes =>
+        State.Board?.Workflows.OrderBy(workflow => workflow.Title, StringComparer.Ordinal).ToArray() ?? [];
+
+    /// <summary>The type the form starts on: the task pipeline, or whatever the project actually has.</summary>
+    private string DefaultCardType =>
+        CardTypes.FirstOrDefault(workflow => StringComparer.Ordinal.Equals(workflow.Id, "task"))?.CardType
+        ?? CardTypes.FirstOrDefault()?.CardType
+        ?? CardKind.Task;
+
+    /// <summary>
+    /// The stages a card of this type can start in: the stages of the workflow that defines it. A task cannot
+    /// join a story stage, so the form offers the workflow's stages rather than a free-text id.
+    /// </summary>
+    private IReadOnlyList<StageDefinition> StagesFor(string kind) =>
+        State.Board?.Workflows
+            .FirstOrDefault(workflow => StringComparer.OrdinalIgnoreCase.Equals(workflow.CardType, kind))
             ?.Stages.OrderBy(stage => stage.Order)
             .ToArray() ?? [];
-    }
 
     /// <summary>The project's size grid, the same ladder the agent assigns a card from.</summary>
     private IReadOnlyList<SizeDefinition> SizeGrid => State.Board is null ? [] : _sizeGrid;
@@ -252,7 +266,7 @@
         .Distinct(StringComparer.OrdinalIgnoreCase)
         .ToArray();
 
-    /// <summary>Switching the kind switches the pipeline, so the stage follows it.</summary>
+    /// <summary>Switching the type switches the pipeline, so the stage follows it.</summary>
     private Task OnKindChangedAsync(string? kind)
     {
         _newCardKind = kind;
@@ -264,6 +278,10 @@
     {
         await State.EnsureProjectAsync(ProjectId);
         await LoadCriteriaAsync();
+        if (string.IsNullOrWhiteSpace(_newCardKind))
+        {
+            _newCardKind = DefaultCardType;
+        }
         if (string.IsNullOrWhiteSpace(_newCardStage))
         {
             _newCardStage = DefaultStage(SelectedKind);
@@ -294,15 +312,10 @@
         }
     }
 
-    /// <summary>The first stage of the workflow a new card of this kind joins.</summary>
-    private string DefaultStage(CardKind kind)
-    {
-        var workflowId = kind == CardKind.Story ? "story" : "task";
-        return State.Board?.Workflows
-            .FirstOrDefault(workflow => StringComparer.Ordinal.Equals(workflow.Id, workflowId))
-            ?.Stages.OrderBy(stage => stage.Order).Select(stage => stage.Id).FirstOrDefault()
-            ?? "backlog";
-    }
+    /// <summary>The first stage of the workflow that defines this type.</summary>
+    private string DefaultStage(string kind) =>
+        StagesFor(kind).Select(stage => stage.Id).FirstOrDefault()
+        ?? WorkflowDefinition.BacklogStageId;
 
     private decimal? GetCriterionValue(string id) =>
         _criterionValues.TryGetValue(id, out var value) ? value : null;
@@ -346,7 +359,7 @@
                 _newCardId.Trim(),
                 kind,
                 _newCardTitle.Trim(),
-                kind == CardKind.Story ? "story" : "task",
+                CardKind.ToWorkflowId(kind),
                 string.IsNullOrWhiteSpace(_newCardStage) ? DefaultStage(kind) : _newCardStage.Trim(),
                 ownPriority,
                 ScopePreview.ToArray(),

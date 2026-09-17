@@ -24,7 +24,7 @@ internal sealed class CardTools(
     [McpServerTool(Name = "aiko_list_cards", Title = "List Aiko cards")]
     [Description("Lists cards in the current project. Get project context before taking action.")]
     public async Task<string> ListCardsAsync(
-        [Description("Optional card kind: story or task. Pass null for both.")]
+        [Description("Optional card kind: story, task, or any type the project defines. Pass null for all.")]
         string? kind,
         [Description("Optional stage id. Pass null for all stages.")]
         string? stageId,
@@ -35,7 +35,8 @@ internal sealed class CardTools(
         if (!string.IsNullOrWhiteSpace(kind))
         {
             var parsedKind = ParseCardKind(kind);
-            result = result.Where(card => card.Kind == parsedKind).ToArray();
+            result = result.Where(card =>
+                StringComparer.OrdinalIgnoreCase.Equals(card.Kind, parsedKind)).ToArray();
         }
 
         if (!string.IsNullOrWhiteSpace(stageId))

@@ -257,6 +257,113 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
     }
 
     [Fact]
+    public async Task A_project_can_add_its_own_card_type()
+    {
+        using var http = CreateClient();
+        var project = fixture.ProjectId;
+
+        // A new type is a workflow of its own: the reserved backlog stage plus at least one working stage,
+        // with its own description, icon and colour.
+        using var created = await http.PostAsJsonAsync($"api/v1/projects/{project}/workflows", new
+        {
+            id = "epic",
+            title = "Epics",
+            description = "A global card type that groups several stories.",
+            icon = "account-tree",
+            color = "primary",
+            stages = new object[]
+            {
+                new
+                {
+                    id = "backlog",
+                    title = "Backlog",
+                    order = 10,
+                    instruction = "Clarify the epic.",
+                    allowedCardKinds = new[] { "Epic" },
+                    defaultAgentAdapterId = (string?)null,
+                    requiredArtifacts = Array.Empty<object>(),
+                    actionPolicies = new Dictionary<string, string>(),
+                    icon = "inbox",
+                    color = "secondary"
+                },
+                new
+                {
+                    id = "in-progress",
+                    title = "In progress",
+                    order = 20,
+                    instruction = "Work the epic.",
+                    allowedCardKinds = new[] { "Epic" },
+                    defaultAgentAdapterId = (string?)null,
+                    requiredArtifacts = Array.Empty<object>(),
+                    actionPolicies = new Dictionary<string, string>(),
+                    icon = "code",
+                    color = "warning"
+                }
+            }
+        });
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+
+        // The board reports the type with its own words and appearance, and its own pipeline.
+        var board = await http.GetFromJsonAsync<JsonElement>($"api/v1/projects/{project}/board");
+        var epic = board.GetProperty("workflows").EnumerateArray()
+            .Single(workflow => workflow.GetProperty("id").GetString() == "epic");
+        Assert.Equal(
+            "A global card type that groups several stories.",
+            epic.GetProperty("description").GetString());
+        Assert.Equal("account-tree", epic.GetProperty("icon").GetString());
+        Assert.Equal("primary", epic.GetProperty("color").GetString());
+        Assert.Equal("inbox", epic.GetProperty("stages")[0].GetProperty("icon").GetString());
+
+        // A card of the new type is created and moved like any built-in one.
+        var cardId = $"EPIC-{Guid.NewGuid():N}"[..12];
+        using var card = await http.PostAsJsonAsync($"api/v1/projects/{project}/cards", new
+        {
+            cardId,
+            kind = "Epic",
+            title = "First epic",
+            workflowId = "epic",
+            stageId = "backlog",
+            ownPriority = 3,
+            declaredScopeFiles = Array.Empty<string>()
+        });
+        Assert.Equal(HttpStatusCode.Created, card.StatusCode);
+
+        using var moved = await http.PutAsJsonAsync(
+            $"api/v1/projects/{project}/cards/{cardId}/stage",
+            new { stageId = "in-progress", expectedRevision = 1 });
+        Assert.Equal(HttpStatusCode.OK, moved.StatusCode);
+
+        // Backlog is reserved: a pipeline that drops it is refused rather than saved.
+        using var withoutBacklog = await http.PutAsJsonAsync(
+            $"api/v1/projects/{project}/workflows/epic",
+            new
+            {
+                title = "Epics",
+                expectedRevision = 1,
+                stages = new object[]
+                {
+                    new
+                    {
+                        id = "in-progress",
+                        title = "In progress",
+                        order = 10,
+                        instruction = "Work the epic.",
+                        allowedCardKinds = new[] { "Epic" },
+                        defaultAgentAdapterId = (string?)null,
+                        requiredArtifacts = Array.Empty<object>(),
+                        actionPolicies = new Dictionary<string, string>()
+                    }
+                }
+            });
+        Assert.Equal(HttpStatusCode.BadRequest, withoutBacklog.StatusCode);
+
+        // A type that still has cards is not removed, so nothing is stranded.
+        using var removeWithCards = await http.DeleteAsync($"api/v1/projects/{project}/workflows/epic");
+        Assert.Equal(HttpStatusCode.BadRequest, removeWithCards.StatusCode);
+    }
+
+
+    [Fact]
     public async Task A_card_keeps_its_size_step_and_can_be_cleared()
     {
         using var http = CreateClient();

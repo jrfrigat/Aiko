@@ -141,17 +141,19 @@ public sealed class FileCardStore(
     private static string? GetCardPath(
         string projectRoot,
         string cardId,
-        CardKind? expectedKind)
+        string? expectedKind)
     {
         ValidateCardId(cardId);
         var kinds = expectedKind is null
-            ? new[] { CardKind.Story, CardKind.Task }
-            : new[] { expectedKind.Value };
+            ? Collections(projectRoot)
+            : [CollectionFor(expectedKind)];
 
-        foreach (var kind in kinds)
+        foreach (var collection in kinds)
         {
             var candidate = Path.Combine(
-                GetCardDirectory(projectRoot, cardId, kind),
+                AikoProjectPaths.DataRoot(projectRoot),
+                collection,
+                cardId,
                 "card.json");
             if (File.Exists(candidate))
             {
@@ -163,17 +165,55 @@ public sealed class FileCardStore(
     }
 
     /// <summary>
-    /// Returns the card directory inside the stories or tasks collection.
+    /// Returns the card directory inside the collection of its type.
     /// </summary>
     internal static string GetCardDirectory(
         string projectRoot,
         string cardId,
-        CardKind kind)
+        string kind)
     {
         ValidateCardId(cardId);
-        var collection = kind == CardKind.Story ? "stories" : "tasks";
-        return Path.Combine(AikoProjectPaths.DataRoot(projectRoot), collection, cardId);
+        return Path.Combine(
+            AikoProjectPaths.DataRoot(projectRoot),
+            CollectionFor(kind),
+            cardId);
     }
+
+    /// <summary>
+    /// The collection a card type is filed under. The two built-in types keep the folder names projects
+    /// already have on disk; a type the user adds gets the plural of its own id, so <c>Epic</c> lives under
+    /// <c>epics</c> without anyone having to name the folder.
+    /// </summary>
+    /// <param name="kind">Card type id, for example <c>Story</c>.</param>
+    internal static string CollectionFor(string kind) =>
+        string.Equals(kind?.Trim(), CardKind.Story, StringComparison.OrdinalIgnoreCase)
+            ? "stories"
+            : $"{kind?.Trim().ToLowerInvariant()}s";
+
+    /// <summary>
+    /// The card collections a project actually has: every directory below <c>.aiko</c> that is not one of the
+    /// reserved ones. Derived from disk rather than from a fixed list, because the set of card types is
+    /// project data.
+    /// </summary>
+    /// <param name="projectRoot">Root directory of the project.</param>
+    internal static IReadOnlyList<string> Collections(string projectRoot)
+    {
+        var root = AikoProjectPaths.DataRoot(projectRoot);
+        if (!Directory.Exists(root))
+        {
+            return [];
+        }
+
+        return Directory.EnumerateDirectories(root)
+            .Select(Path.GetFileName)
+            .Where(name => name is { Length: > 0 } &&
+                           !ReservedDirectories.Contains(name, StringComparer.OrdinalIgnoreCase))
+            .Select(name => name!)
+            .ToArray();
+    }
+
+    /// <summary>Directories below <c>.aiko</c> that hold definitions rather than cards.</summary>
+    private static readonly string[] ReservedDirectories = ["workflows", "projections", "memory", "handoffs"];
 
     /// <summary>
     /// Verifies that a card identifier is safe as a directory/file name on every
@@ -264,7 +304,7 @@ public sealed class FileCardStore(
                     card.Reference.CardId,
                     fromStageId: null,
                     card.StageId,
-                    card.Kind.ToString(),
+                    card.Kind,
                     cancellationToken);
             }
             else if (!string.Equals(previous, card.StageId, StringComparison.Ordinal))
@@ -274,7 +314,7 @@ public sealed class FileCardStore(
                     card.Reference.CardId,
                     previous,
                     card.StageId,
-                    card.Kind.ToString(),
+                    card.Kind,
                     cancellationToken);
             }
         }
@@ -310,7 +350,7 @@ public sealed class FileCardStore(
             """;
         command.Parameters.AddWithValue("$projectId", card.Reference.ProjectId);
         command.Parameters.AddWithValue("$cardId", card.Reference.CardId);
-        command.Parameters.AddWithValue("$kind", card.Kind.ToString());
+        command.Parameters.AddWithValue("$kind", card.Kind);
         command.Parameters.AddWithValue("$title", card.Title);
         command.Parameters.AddWithValue("$stageId", card.StageId);
         command.Parameters.AddWithValue("$revision", card.Revision);

@@ -506,4 +506,39 @@
   <data name="DoctorChecklist" xml:space="preserve"><value>Doctor telemetry</value></data>
   <data name="PriorityFormulaExpression" xml:space="preserve"><value>effective = (own weight x own value + parent weight x highest parent value) / (own weight + parent weight)</value></data>
   <data name="DiagnosticsFailed" xml:space="preserve"><value>Could not read diagnostics: {0}</value></data>
+  <data name="BacklogNav" xml:space="preserve"><value>Backlog</value></data>
+  <data name="BacklogTitle" xml:space="preserve"><value>Backlog</value></data>
+  <data name="BacklogCaption" xml:space="preserve"><value>Every card that has not been taken into work yet, gathered from the backlog column of each card type.</value></data>
+  <data name="BacklogEmpty" xml:space="preserve"><value>Nothing is waiting in the backlog.</value></data>
+  <data name="BacklogTakeIntoWork" xml:space="preserve"><value>Take into work</value></data>
+  <data name="BacklogTaken" xml:space="preserve"><value>Card {0} was taken into work.</value></data>
+  <data name="CardTypeDescription" xml:space="preserve"><value>Description</value></data>
+  <data name="CardTypeIcon" xml:space="preserve"><value>Icon</value></data>
+  <data name="CardTypeColor" xml:space="preserve"><value>Colour</value></data>
+  <data name="StageIcon" xml:space="preserve"><value>Column icon</value></data>
+  <data name="StageColor" xml:space="preserve"><value>Column colour</value></data>
+  <data name="AppearanceDefault" xml:space="preserve"><value>Default</value></data>
+  <data name="RemoveCardType" xml:space="preserve"><value>Remove card type</value></data>
+  <data name="NewCardTypeTitle" xml:space="preserve"><value>New card type</value></data>
+  <data name="CardTypeIdHelper" xml:space="preserve"><value>Type id, for example epic</value></data>
+  <data name="CardTypeName" xml:space="preserve"><value>Type name</value></data>
+  <data name="AddCardType" xml:space="preserve"><value>Add card type</value></data>
+  <data name="CardTypeIdInvalid" xml:space="preserve"><value>The type id must be lower-case letters, digits and dashes.</value></data>
+  <data name="CardTypeIdTitleRequired" xml:space="preserve"><value>A type id and a name are required.</value></data>
+  <data name="CardTypeExists" xml:space="preserve"><value>Card type '{0}' already exists.</value></data>
+  <data name="CardTypeCreated" xml:space="preserve"><value>Card type '{0}' was created.</value></data>
+  <data name="BacklogStageReserved" xml:space="preserve"><value>Backlog is a standard column and cannot be removed.</value></data>
+  <data name="StageTitleBacklog" xml:space="preserve"><value>Backlog</value></data>
+  <data name="StageTitleInProgress" xml:space="preserve"><value>In progress</value></data>
+  <data name="StageTitleDone" xml:space="preserve"><value>Done</value></data>
+  <data name="NewTypeBacklogInstruction" xml:space="preserve"><value>Clarify the request, the scope and the links.</value></data>
+  <data name="NewTypeWorkInstruction" xml:space="preserve"><value>Carry out the work and record what actually changed.</value></data>
+  <data name="NewTypeDoneInstruction" xml:space="preserve"><value>Record the outcome.</value></data>
+
+  <data name="Name" xml:space="preserve"><value>Name (optional)</value></data>
+  <data name="Delete" xml:space="preserve"><value>Delete</value></data>
+
+  <data name="DeleteCardTypeConfirm" xml:space="preserve"><value>Remove this card type? Its pipeline goes with it; cards already created are not touched.</value></data>
+  <data name="DeleteCardTypeHasCards" xml:space="preserve"><value>The type still holds cards, so it cannot be removed yet.</value></data>
+
 </root>

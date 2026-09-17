@@ -172,7 +172,7 @@ internal static class CardEndpoints
 
                 var card = new Card(
                     reference,
-                    request.Kind,
+                    CardKind.Canonical(request.Kind),
                     request.Title.Trim(),
                     request.WorkflowId,
                     request.StageId,

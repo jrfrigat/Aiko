@@ -505,4 +505,40 @@
   <data name="DoctorChecklist" xml:space="preserve"><value>Телеметрия Doctor</value></data>
   <data name="PriorityFormulaExpression" xml:space="preserve"><value>эффективный = (вес своей оценки x своя оценка + вес родительской x максимальная родительская) / (сумма весов)</value></data>
   <data name="DiagnosticsFailed" xml:space="preserve"><value>Не удалось получить диагностику: {0}</value></data>
+  <data name="BacklogNav" xml:space="preserve"><value>Бэклог</value></data>
+  <data name="BacklogTitle" xml:space="preserve"><value>Бэклог</value></data>
+  <data name="BacklogCaption" xml:space="preserve"><value>Все карточки, ещё не взятые в работу, собранные из бэклог-колонки каждого типа карточек.</value></data>
+  <data name="BacklogEmpty" xml:space="preserve"><value>В бэклоге ничего не ждёт.</value></data>
+  <data name="BacklogTakeIntoWork" xml:space="preserve"><value>Взять в работу</value></data>
+  <data name="BacklogTaken" xml:space="preserve"><value>Карточка {0} взята в работу.</value></data>
+  <data name="CardTypeDescription" xml:space="preserve"><value>Описание</value></data>
+  <data name="CardTypeIcon" xml:space="preserve"><value>Иконка</value></data>
+  <data name="CardTypeColor" xml:space="preserve"><value>Цвет</value></data>
+  <data name="StageIcon" xml:space="preserve"><value>Иконка колонки</value></data>
+  <data name="StageColor" xml:space="preserve"><value>Цвет колонки</value></data>
+  <data name="AppearanceDefault" xml:space="preserve"><value>По умолчанию</value></data>
+  <data name="RemoveCardType" xml:space="preserve"><value>Удалить тип карточек</value></data>
+  <data name="NewCardTypeTitle" xml:space="preserve"><value>Новый тип карточек</value></data>
+  <data name="CardTypeIdHelper" xml:space="preserve"><value>ID типа, например epic</value></data>
+  <data name="CardTypeName" xml:space="preserve"><value>Название типа</value></data>
+  <data name="AddCardType" xml:space="preserve"><value>Добавить тип карточек</value></data>
+  <data name="CardTypeIdInvalid" xml:space="preserve"><value>ID типа — строчные латинские буквы, цифры и дефисы.</value></data>
+  <data name="CardTypeIdTitleRequired" xml:space="preserve"><value>Укажите ID и название типа.</value></data>
+  <data name="CardTypeExists" xml:space="preserve"><value>Тип карточек «{0}» уже существует.</value></data>
+  <data name="CardTypeCreated" xml:space="preserve"><value>Тип карточек «{0}» создан.</value></data>
+  <data name="BacklogStageReserved" xml:space="preserve"><value>Бэклог — стандартная колонка, её нельзя удалить.</value></data>
+  <data name="StageTitleBacklog" xml:space="preserve"><value>Бэклог</value></data>
+  <data name="StageTitleInProgress" xml:space="preserve"><value>В работе</value></data>
+  <data name="StageTitleDone" xml:space="preserve"><value>Готово</value></data>
+  <data name="NewTypeBacklogInstruction" xml:space="preserve"><value>Уточните запрос, объём и связи.</value></data>
+  <data name="NewTypeWorkInstruction" xml:space="preserve"><value>Выполните работу и зафиксируйте фактические изменения.</value></data>
+  <data name="NewTypeDoneInstruction" xml:space="preserve"><value>Зафиксируйте результат.</value></data>
+
+  <data name="Name" xml:space="preserve"><value>Имя (необязательно)</value></data>
+  <data name="Delete" xml:space="preserve"><value>Удалить</value></data>
+  <data name="TemplateHint" xml:space="preserve"><value>Копируется в проект при создании: фиксирует этапы и их артефакты, проекции доски, стартовую память и значения по умолчанию. Изменение шаблона позже влияет только на проекты, созданные после этого.</value></data>
+
+  <data name="DeleteCardTypeConfirm" xml:space="preserve"><value>Удалить этот тип карточек? Его конвейер будет удалён; уже созданные карточки не затрагиваются.</value></data>
+  <data name="DeleteCardTypeHasCards" xml:space="preserve"><value>В типе ещё есть карточки, поэтому удалить его пока нельзя.</value></data>
+
 </root>

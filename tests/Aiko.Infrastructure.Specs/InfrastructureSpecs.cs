@@ -319,6 +319,67 @@ public class InfrastructureSpecs
     }
 
     [Fact]
+    public async Task A_card_type_carries_its_description_and_appearance()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            var store = new FileProjectDefinitionStore(context.Catalog);
+            var story = (await store.ReadAsync(context.Project.Id, CancellationToken.None))
+                .Workflows.Single(item => item.Id == "story");
+
+            // The type is the workflow, so what the project says about the type lives on the workflow, and
+            // the icon and colour of a status column live on the stage.
+            Assert.False(string.IsNullOrWhiteSpace(story.Description));
+            Assert.Equal("account-tree", story.Icon);
+            Assert.Equal("primary", story.Color);
+            Assert.Equal("Story", story.CardType);
+            Assert.All(story.Stages, stage => Assert.False(string.IsNullOrWhiteSpace(stage.Icon)));
+
+            // A document written before the choice existed still loads: both fields are optional.
+            var path = Path.Combine(context.StitchRoot, "workflows", "story.json");
+            var document = System.Text.Json.Nodes.JsonNode.Parse(
+                await File.ReadAllTextAsync(path))!.AsObject();
+            document.Remove("icon");
+            document.Remove("color");
+            var stages = (System.Text.Json.Nodes.JsonArray)document["stages"]!;
+            ((System.Text.Json.Nodes.JsonObject)stages[0]!).Remove("icon");
+            await File.WriteAllTextAsync(path, document.ToJsonString());
+
+            var legacy = (await store.ReadAsync(context.Project.Id, CancellationToken.None))
+                .Workflows.Single(item => item.Id == "story");
+            Assert.Null(legacy.Icon);
+            Assert.Null(legacy.Stages[0].Icon);
+        });
+    }
+
+    [Fact]
+    public async Task Backlog_is_a_reserved_stage()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            var store = new FileProjectDefinitionStore(context.Catalog);
+            var workflow = (await store.ReadAsync(context.Project.Id, CancellationToken.None))
+                .Workflows.Single(item => item.Id == "task");
+
+            // Backlog is where a card enters the pipeline, so a workflow that drops it is refused rather
+            // than saved into a state where a new card has nowhere to go.
+            var withoutBacklog = workflow with
+            {
+                Stages = workflow.Stages.Where(stage => stage.Id != "backlog").ToArray(),
+                Revision = workflow.Revision + 1
+            };
+
+            await Assert.ThrowsAsync<ArgumentException>(async () =>
+                await store.SaveWorkflowAsync(
+                    context.Project.Id,
+                    withoutBacklog,
+                    workflow.Revision,
+                    CancellationToken.None));
+        });
+    }
+
+
+    [Fact]
     public async Task Workflow_changes_persist_with_optimistic_revisions()
     {
         await WithInitializedProjectAsync(async context =>

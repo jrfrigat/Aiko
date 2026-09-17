@@ -22,7 +22,9 @@
                starting point of every project created from it. *@
             <WorkflowInspector Workflows="template.Workflows"
                                InitialWorkflowId="task"
-                               Save="SaveWorkflowAsync" />
+                               Save="SaveWorkflowAsync"
+                               Create="CreateWorkflowAsync"
+                               Delete="DeleteWorkflowAsync" />
         }
     </ExtraNarrowContent>
 </SettingsEditor>
@@ -61,7 +63,13 @@
         {
             using var response = await Http.PutAsJsonAsync(
                 $"api/v1/templates/{Uri.EscapeDataString(EditingTemplateId)}/workflows/{Uri.EscapeDataString(workflow.Id)}",
-                new UpdateWorkflowRequest(workflow.Title, workflow.Stages, workflow.Revision),
+                new UpdateWorkflowRequest(
+                    workflow.Title,
+                    workflow.Stages,
+                    workflow.Revision,
+                    workflow.Description,
+                    workflow.Icon,
+                    workflow.Color),
                 PwaJson.Options);
             if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
             {
@@ -69,6 +77,61 @@
                 return Loc.Get("WorkflowConflict");
             }
 
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadFromJsonAsync<ErrorResponse>(PwaJson.Options);
+                return error?.Message ?? Loc.Format("ServerRejectedChanges", (int)response.StatusCode);
+            }
+
+            await ReloadTemplateAsync();
+            return null;
+        }
+        catch (Exception exception)
+        {
+            return Loc.Format("SaveWorkflowFailed", exception.Message);
+        }
+    }
+
+    /// <summary>
+    /// Creates one more card type in the template - a workflow every project created from it starts with.
+    /// Returns the failure text, or null when it was created.
+    /// </summary>
+    private async Task<string?> CreateWorkflowAsync(WorkflowDefinition workflow)
+    {
+        try
+        {
+            using var response = await Http.PostAsJsonAsync(
+                $"api/v1/templates/{Uri.EscapeDataString(EditingTemplateId)}/workflows",
+                new CreateWorkflowRequest(
+                    workflow.Id,
+                    workflow.Title,
+                    workflow.Stages,
+                    workflow.Description,
+                    workflow.Icon,
+                    workflow.Color),
+                PwaJson.Options);
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadFromJsonAsync<ErrorResponse>(PwaJson.Options);
+                return error?.Message ?? Loc.Format("ServerRejectedChanges", (int)response.StatusCode);
+            }
+
+            await ReloadTemplateAsync();
+            return null;
+        }
+        catch (Exception exception)
+        {
+            return Loc.Format("SaveWorkflowFailed", exception.Message);
+        }
+    }
+
+    /// <summary>Removes a card type from the template. Returns the failure text, or null when it was removed.</summary>
+    private async Task<string?> DeleteWorkflowAsync(WorkflowDefinition workflow)
+    {
+        try
+        {
+            using var response = await Http.DeleteAsync(
+                $"api/v1/templates/{Uri.EscapeDataString(EditingTemplateId)}/workflows/{Uri.EscapeDataString(workflow.Id)}");
             if (!response.IsSuccessStatusCode)
             {
                 var error = await response.Content.ReadFromJsonAsync<ErrorResponse>(PwaJson.Options);
