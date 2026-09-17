@@ -655,6 +655,34 @@
     flex-wrap: wrap;
 }
 
+/* The card's two columns: the work on the left, its state on the right, as the design lays a card out. */
+.aiko-card__main {
+    grid-column: span 8;
+    min-width: 0;
+}
+
+.aiko-card__side {
+    grid-column: span 4;
+    min-width: 0;
+}
+
+/* The diff block's placeholder: the design's viewer is a tabbed panel, and Aiko has nothing to put in it
+   until the git integration lands. Drawing where it will sit beats leaving the screen looking finished. */
+.aiko-placeholder {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem;
+    border: var(--flare-border-width, 1px) dashed
+            color-mix(in srgb, var(--flare-color-outline-variant) 60%, transparent);
+    border-radius: var(--flare-shape-large);
+    background: var(--flare-color-surface-container-lowest);
+    color: var(--flare-color-on-surface-variant2);
+    font-family: var(--aiko-font-mono, monospace);
+    font-size: 0.75rem;
+    line-height: 1.25rem;
+}
+
 /* The card's banner: the panel that says what a card is before its detail. The design draws an ambient
    accent glow in one corner rather than a shadow, and the quick counters as one recessed strip. */
 .aiko-banner {

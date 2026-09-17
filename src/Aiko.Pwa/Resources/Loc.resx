@@ -258,6 +258,10 @@
   <data name="AiInstructionHint" xml:space="preserve"><value>What the agent should look at to score this criterion</value></data>
   <data name="CharactersCount" xml:space="preserve"><value>Characters: {0}</value></data>
   <data name="TokensEstimate" xml:space="preserve"><value>Tokens ~{0}</value></data>
+  <data name="CodeChanges" xml:space="preserve"><value>Code changes</value></data>
+  <data name="CodeChangesPending" xml:space="preserve"><value>A diff of this card's commits appears here.</value></data>
+  <data name="CodeChangesPlan" xml:space="preserve"><value>It waits for the git integration: the block will list the commits reported for this card - sha, message, the files they touched - and the diff of each, hunk by hunk.</value></data>
+  <data name="AttemptsLabel" xml:space="preserve"><value>Agent attempts</value></data>
   <data name="AssignedTo" xml:space="preserve"><value>assigned to {0}</value></data>
   <data name="ScopeTitle" xml:space="preserve"><value>Scope &amp; requirements</value></data>
   <data name="FilesDeclared" xml:space="preserve"><value>Declared</value></data>

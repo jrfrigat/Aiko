@@ -27,7 +27,10 @@
                         Variant="AlertVariant.Outlined">@_message</FlareAlert>
         }
 
-        <FlareDivider />
+        @* The design's card is two columns: the work itself on the left, the card's state and its editable
+           parameters on the right. The order in the markup is the sidebar first, and the grid places it. *@
+        <div class="aiko-settings">
+            <FlareStack Class="aiko-card__side" Gap="FlareSpacing.Medium">
 
         <FlareStack Gap="FlareSpacing.Small">
             <FlareText Element="h3" Typo="TypographyScale.TitleSmall">@Loc.Get("Parameters")</FlareText>
@@ -65,9 +68,10 @@
                          OnClick="SaveAsync">@Loc.Get("SaveCard")</FlareButton>
         </FlareStack>
 
-        <FlareDivider />
+            </FlareStack>
 
-        @* What the stage asks for, and what the card declared: together they are the card's scope, and the
+            <FlareStack Class="aiko-card__main" Gap="FlareSpacing.Medium">
+                @* What the stage asks for, and what the card declared: together they are the card's scope, and the
            out-of-scope list is the part an agent changed without saying so. *@
         <FlareStack Gap="FlareSpacing.Small">
             <FlareText Element="h3" Typo="TypographyScale.TitleSmall">@Loc.Get("ScopeTitle")</FlareText>
@@ -166,6 +170,29 @@
                 {
                     <span class="aiko-tile">@summary</span>
                 }
+                @* The run's own numbers, as the design's KPI tiles: what it took, what it touched, what it left. *@
+                <div class="aiko-tiles">
+                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
+                            @Loc.Get("AttemptsLabel")
+                        </FlareText>
+                        <span class="aiko-value">@DisplayFormat.Number(run.Attempts.Count)</span>
+                    </FlareStack>
+                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
+                            @Loc.Get("ArtifactsLabel")
+                        </FlareText>
+                        <span class="aiko-value">@DisplayFormat.Number(_artifacts.Count)</span>
+                    </FlareStack>
+                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
+                            @Loc.Get("OutOfScope")
+                        </FlareText>
+                        <span class="aiko-value @(OutOfScopeCount > 0 ? "aiko-value--warn" : null)">
+                            @DisplayFormat.Number(OutOfScopeCount)
+                        </span>
+                    </FlareStack>
+                </div>
                 @foreach (var step in run.CompletedSteps)
                 {
                     <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
@@ -196,6 +223,18 @@
                 }
             </FlareStack>
         }
+
+        <FlareDivider />
+
+        @* Where the design puts its code-diff viewer. Aiko has no diff yet - the commits will come from git
+           once that integration lands - so the block states what will fill it rather than pretending. *@
+        <FlareStack Gap="FlareSpacing.Small">
+            <FlareText Element="h3" Typo="TypographyScale.TitleSmall">@Loc.Get("CodeChanges")</FlareText>
+            <div class="aiko-placeholder">
+                <span>@Loc.Get("CodeChangesPending")</span>
+                <span>@Loc.Get("CodeChangesPlan")</span>
+            </div>
+        </FlareStack>
 
         <FlareDivider />
 
@@ -254,7 +293,9 @@
                     }
                 </FlareTimeline>
             }
-        </FlareStack>
+            </FlareStack>
+            </FlareStack>
+        </div>
     </FlareStack>
 </FlarePaper>
 
@@ -295,6 +336,9 @@
     /// <summary>Whether the card already carries an artifact the stage asked for.</summary>
     private bool HasArtifact(string path) => _artifacts.Any(artifact =>
         string.Equals(artifact.Path, path, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>How many of the card's changed files fall outside its declared scope.</summary>
+    private int OutOfScopeCount => BoardSection.FindOutOfScopeFiles(Card).Count;
 
     /// <summary>The project's size grid: what the human may choose from, same ladder the agent reads.</summary>
     private IReadOnlyList<SizeDefinition> SizeGrid => State.SettingsView?.EffectivePriority.Grid ?? [];
