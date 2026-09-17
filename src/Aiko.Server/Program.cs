@@ -4,6 +4,7 @@ using Aiko.Application.Contracts;
 using Aiko.Infrastructure.Agents;
 using Aiko.Infrastructure.Cards;
 using Aiko.Infrastructure.Diagnostics;
+using Aiko.Infrastructure.Discussion;
 using Aiko.Infrastructure.Execution;
 using Aiko.Infrastructure.Events;
 using Aiko.Infrastructure.Git;
@@ -46,6 +47,7 @@ builder.Services.AddSingleton<IProjectTemplateApplier, ProjectTemplateApplier>()
 builder.Services.AddSingleton<IGitClient, GitClient>();
 builder.Services.AddSingleton<IProjectAnalytics, SqliteProjectAnalytics>();
 builder.Services.AddSingleton<IDaemonTelemetry, SqliteDaemonTelemetry>();
+builder.Services.AddSingleton<ICardDiscussionStore, FileCardDiscussionStore>();
 builder.Services.AddSingleton<IProjectDefinitionStore, FileProjectDefinitionStore>();
 builder.Services.AddSingleton<ICardStore, FileCardStore>();
 builder.Services.AddSingleton<ICardArtifactStore, FileCardArtifactStore>();

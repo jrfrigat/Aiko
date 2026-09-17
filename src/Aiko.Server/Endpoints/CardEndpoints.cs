@@ -105,6 +105,38 @@ internal static class CardEndpoints
 
                 return Results.Ok(updated);
             });
+        // The card's discussion: the notes a person leaves, and the reports an agent posts through MCP.
+        // Both are authored content and live in the card's own folder.
+        app.MapGet(
+            "/api/v1/projects/{projectId}/cards/{cardId}/discussion",
+            async (
+                string projectId,
+                string cardId,
+                ICardDiscussionStore discussion,
+                CancellationToken cancellationToken) =>
+                Results.Ok(await discussion.ListAsync(
+                    new CardReference(projectId, cardId),
+                    cancellationToken)));
+        app.MapPost(
+            "/api/v1/projects/{projectId}/cards/{cardId}/discussion",
+            async (
+                string projectId,
+                string cardId,
+                AddCommentRequest request,
+                ICardDiscussionStore discussion,
+                CancellationToken cancellationToken) =>
+            {
+                if (string.IsNullOrWhiteSpace(request.Body))
+                {
+                    return Results.BadRequest(new ErrorResponse("A note needs a body."));
+                }
+
+                return Results.Ok(await discussion.AppendAsync(
+                    new CardReference(projectId, cardId),
+                    request.Author ?? "you",
+                    request.Body,
+                    cancellationToken));
+            });
         app.MapGet(
             "/api/v1/projects/{projectId}/cards/{cardId}/executions",
             async (

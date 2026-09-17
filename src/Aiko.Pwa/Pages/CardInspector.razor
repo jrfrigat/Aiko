@@ -322,6 +322,91 @@
                     </ChildContent>
                 </FlareTab>
 
+                @* The card's discussion: what people and agents said about this card, and the box to add to
+                   it. A note is authored content, so it is stored in the card's own folder - see the
+                   discussion store - and it survives anything happening to the daemon. *@
+                <FlareTab Label="@DiscussionTabLabel">
+                    <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.Forum" /></LeadingIcon>
+                    <ChildContent>
+                        <FlareStack Gap="FlareSpacing.Medium">
+                            @if (_loadingDiscussion)
+                            {
+                                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                                    <FlareProgressCircular Size="TrackSize.Xs" />
+                                    <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant">
+                                        @Loc.Get("LoadingDiscussion")
+                                    </FlareText>
+                                </FlareStack>
+                            }
+                            else if (_discussion.Count == 0)
+                            {
+                                <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant">
+                                    @Loc.Get("DiscussionNone")
+                                </FlareText>
+                            }
+                            else
+                            {
+                                @foreach (var comment in _discussion.OrderByDescending(entry => entry.CreatedAtUtc))
+                                {
+                                    var note = comment;
+                                    <FlarePaper Elevation="0" Padding="FlareSpacing.Medium" Square="true" Class="aiko-panel">
+                                        <FlareStack Gap="FlareSpacing.XSmall">
+                                            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
+                                                <span class="aiko-panel__icon aiko-panel__icon--primary">
+                                                    <FlareIconView Value="@(IsAgent(note.Author) ? MaterialDesign3Icons.Regular.SmartToy : MaterialDesign3Icons.Regular.Person)" />
+                                                </span>
+                                                <FlareText Element="span" Typo="TypographyScale.BodySmall" Weight="FontWeight.SemiBold">
+                                                    @note.Author
+                                                </FlareText>
+                                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                                    @RelativeTime(note.CreatedAtUtc)
+                                                </FlareText>
+                                            </FlareStack>
+                                            <span class="aiko-tile">@note.Body</span>
+                                        </FlareStack>
+                                    </FlarePaper>
+                                }
+                            }
+
+                            @* The console: a note, and the commands an agent understands. Nothing is launched
+                               from here - the daemon records work and the agent runs in the user's terminal -
+                               so the chips fill the box instead of pretending to run something. *@
+                            <FlareStack Class="aiko-tile" Gap="FlareSpacing.XSmall">
+                                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                                    <FlareIconView Value="@MaterialDesign3Icons.Regular.Terminal" Color="FlareColor.Primary" />
+                                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                                        @Loc.Get("LeaveTaskNote")
+                                    </FlareText>
+                                </FlareStack>
+                                <FlareTextArea Label="@Loc.Get("TaskNote")"
+                                               HelperText="@Loc.Get("TaskNoteHint")"
+                                               Rows="3"
+                                               @bind-Value="_commentBody" />
+                                <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small" Wrap="true">
+                                    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall" Wrap="true">
+                                        @foreach (var command in PromptShortcuts)
+                                        {
+                                            var shortcut = command;
+                                            <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm"
+                                                         OnClick="() => _commentBody = AppendPrompt(_commentBody, shortcut)">
+                                                <ChildContent>@shortcut</ChildContent>
+                                            </FlareButton>
+                                        }
+                                    </FlareStack>
+                                    <FlareButton Variant="ButtonVariant.Filled"
+                                                 Size="ButtonSize.Sm"
+                                                 Disabled="@(string.IsNullOrWhiteSpace(_commentBody))"
+                                                 Loading="@_postingComment"
+                                                 OnClick="PostCommentAsync">
+                                        <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.Send" /></LeadingIcon>
+                                        <ChildContent>@Loc.Get("Comment")</ChildContent>
+                                    </FlareButton>
+                                </FlareStack>
+                            </FlareStack>
+                        </FlareStack>
+                    </ChildContent>
+                </FlareTab>
+
                 @* Every run of this card, newest first. *@
                 <FlareTab Label="@RunsTabLabel">
                     <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.History" /></LeadingIcon>
@@ -727,6 +812,13 @@
     private IReadOnlyList<CardArtifactSummary> _artifacts = [];
     private GitCardDiff? _diff;
     private bool _loadingDiff;
+    private IReadOnlyList<CardComment> _discussion = [];
+    private bool _loadingDiscussion;
+    private bool _postingComment;
+    private string? _commentBody;
+
+    /// <summary>The commands the console offers: the ones this product's agents answer to.</summary>
+    private static readonly string[] PromptShortcuts = ["/benchmark", "/leak-check"];
     private readonly Dictionary<string, decimal?> _criterionValues = new(StringComparer.Ordinal);
 
     /// <summary>
@@ -828,6 +920,87 @@
         ['-', ..] => "remove",
         _ => "context"
     };
+
+    /// <summary>The discussion tab's caption, with how much has been said.</summary>
+    private string DiscussionTabLabel => _discussion.Count == 0
+        ? Loc.Get("DiscussionTitle")
+        : $"{Loc.Get("DiscussionTitle")} ({_discussion.Count})";
+
+    /// <summary>Whether a note came from an agent rather than a person, for its own icon.</summary>
+    private static bool IsAgent(string author) =>
+        author.Contains("agent", StringComparison.OrdinalIgnoreCase) ||
+        author.Contains("code", StringComparison.OrdinalIgnoreCase) ||
+        author.Contains("claude", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>A note's age, in the words the design's comment header uses.</summary>
+    private static string RelativeTime(DateTimeOffset moment)
+    {
+        var age = DateTimeOffset.UtcNow - moment.ToUniversalTime();
+        return age switch
+        {
+            { TotalMinutes: < 1 } => "just now",
+            { TotalHours: < 1 } => $"{(int)age.TotalMinutes} min ago",
+            { TotalDays: < 1 } => $"{(int)age.TotalHours} h ago",
+            _ => $"{(int)age.TotalDays} d ago"
+        };
+    }
+
+    /// <summary>Adds a command to the note being written, on its own line.</summary>
+    private static string? AppendPrompt(string? body, string command) =>
+        string.IsNullOrWhiteSpace(body) ? command : $"{body.TrimEnd()}\n{command}";
+
+    /// <summary>
+    /// Posts the note and re-reads the discussion, so the feed shows exactly what was stored in the card's
+    /// own file - not the copy the browser sent.
+    /// </summary>
+    private async Task PostCommentAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_commentBody) || _postingComment)
+        {
+            return;
+        }
+
+        _postingComment = true;
+        _message = null;
+        try
+        {
+            using var response = await Http.PostAsJsonAsync(
+                $"api/v1/projects/{Uri.EscapeDataString(Card.Reference.ProjectId)}/cards/{Uri.EscapeDataString(Card.Reference.CardId)}/discussion",
+                new AddCommentRequest(null, _commentBody!),
+                PwaJson.Options);
+            response.EnsureSuccessStatusCode();
+            _commentBody = null;
+            await LoadDiscussionAsync();
+        }
+        catch (Exception exception)
+        {
+            _message = FailureText.Describe(exception);
+            _hasError = true;
+        }
+        finally
+        {
+            _postingComment = false;
+        }
+    }
+
+    private async Task LoadDiscussionAsync()
+    {
+        _loadingDiscussion = true;
+        try
+        {
+            _discussion = await Http.GetFromJsonAsync<IReadOnlyList<CardComment>>(
+                $"api/v1/projects/{Uri.EscapeDataString(Card.Reference.ProjectId)}/cards/{Uri.EscapeDataString(Card.Reference.CardId)}/discussion",
+                PwaJson.Options) ?? [];
+        }
+        catch
+        {
+            _discussion = [];
+        }
+        finally
+        {
+            _loadingDiscussion = false;
+        }
+    }
 
     /// <summary>Whether the card already carries an artifact the stage asked for.</summary>
     private bool HasArtifact(string path) => _artifacts.Any(artifact =>
@@ -1051,6 +1224,7 @@
                 $"api/v1/projects/{Uri.EscapeDataString(Card.Reference.ProjectId)}/cards/{Uri.EscapeDataString(Card.Reference.CardId)}/diff",
                 PwaJson.Options);
             _loadingDiff = false;
+            await LoadDiscussionAsync();
         }
         catch (Exception exception)
         {

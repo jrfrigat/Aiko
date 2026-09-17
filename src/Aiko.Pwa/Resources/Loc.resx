@@ -307,6 +307,13 @@
   <data name="GitClientUnavailable" xml:space="preserve"><value>Git client unavailable</value></data>
   <data name="GitNoRepository" xml:space="preserve"><value>not a repository</value></data>
   <data name="GitBranch" xml:space="preserve"><value>Git branch</value></data>
+  <data name="DiscussionTitle" xml:space="preserve"><value>Discussion &amp; commands</value></data>
+  <data name="LoadingDiscussion" xml:space="preserve"><value>Reading the discussion...</value></data>
+  <data name="DiscussionNone" xml:space="preserve"><value>Nothing has been said about this card yet. Leave the first note below.</value></data>
+  <data name="LeaveTaskNote" xml:space="preserve"><value>Leave a task note</value></data>
+  <data name="TaskNote" xml:space="preserve"><value>Note or command</value></data>
+  <data name="TaskNoteHint" xml:space="preserve"><value>A note is stored with the card, in its own folder; a command waits for the agent that runs this stage</value></data>
+  <data name="Comment" xml:space="preserve"><value>Comment</value></data>
   <data name="CodeChangesHint" xml:space="preserve"><value>Where the diff of this card's commits will appear</value></data>
   <data name="CodeChangesPending" xml:space="preserve"><value>A diff of this card's commits appears here.</value></data>
   <data name="CodeChangesPlan" xml:space="preserve"><value>It waits for the git integration: the block will list the commits reported for this card - sha, message, the files they touched - and the diff of each, hunk by hunk.</value></data>
