@@ -45,14 +45,20 @@ project created later from the template. Removing a stage that still contains ca
 
 ## Settings
 
-Two levels of settings exist:
+Three levels exist, from widest to narrowest, and the narrower one wins:
 
-- **Global** (`app-settings.json` next to the database) - defaults and daemon-level choices.
-- **Project** (`.aiko/settings.json`) - the effective values for one project.
+- **Template** (`templates/default/template.json` next to the daemon's database) - what a new project is
+  created from: the execution defaults, the scoring model (weights, criteria, size grid) and the pipelines
+  with their stages. This is the level the **Global settings** screen edits, and editing it affects the
+  projects created afterwards, never the ones that already exist.
+- **Installation** (`app-settings.json` next to the database) - the daemon-level fallback for the sections a
+  template leaves out. Aiko writes it at init; the screen does not edit it.
+- **Project** (`.aiko/settings.json`) - the values this project actually runs with, copied in at creation.
+  The **Project settings** screen edits this one, and only this one.
 
-Per section, project settings override global settings, which override the safe defaults.
-Currently configured: execution (workspace mode, max concurrent runs, scope-overlap and commit
-policies) and priority weights.
+Currently configured: execution (workspace mode, max concurrent runs, scope-overlap and commit policies),
+and the priority model - blending weights, the criteria with their ranges and agent instructions, and the
+size grid.
 
 ## Project templates
 

@@ -1,16 +1,82 @@
 @page "/settings"
+@inject HttpClient Http
 @inject WorkspaceState State
 
-@* Application settings: the daemon, and the defaults every new project starts from. A project's own
-   settings are a different screen at /p/{projectId}/settings, not another section of this one. *@
+@* The daemon's own facts, and the defaults every new project is created from. The defaults are the
+   template's: editing them changes what future projects start with, never a project that already exists.
+   A project's own settings are a different screen at /p/{projectId}/settings. *@
 <PageTitle>@Loc.Get("GlobalSettings")</PageTitle>
 
-<SettingsEditor />
+<SettingsEditor>
+    <ExtraNarrowContent>
+        @if (_template is not { } template || template.Workflows.Count == 0)
+        {
+            <FlareAlert Severity="AlertSeverity.Info" Variant="AlertVariant.Text">
+                @Loc.Get("WorkflowUnavailable")
+            </FlareAlert>
+        }
+        else
+        {
+            @* The same editor the project screen uses, pointed at the template's pipelines: they are the
+               starting point of every project created from it. *@
+            <WorkflowInspector Workflows="template.Workflows"
+                               InitialWorkflowId="task"
+                               Save="SaveWorkflowAsync" />
+        }
+    </ExtraNarrowContent>
+</SettingsEditor>
 
 @code {
+    private ProjectTemplate? _template;
+
     protected override async Task OnParametersSetAsync()
     {
         // The application scope has no project, so the board and the live stream are released.
         await State.ClearProjectAsync();
+        try
+        {
+            await ReloadTemplateAsync();
+        }
+        catch (Exception exception)
+        {
+            await State.ReportErrorAsync(FailureText.Describe(exception));
+        }
     }
+
+    /// <summary>
+    /// Writes one pipeline of the default template and re-reads it, so the editor's revision and the
+    /// version tag follow. Returns the failure text, or null when it was saved.
+    /// </summary>
+    private async Task<string?> SaveWorkflowAsync(WorkflowDefinition workflow)
+    {
+        try
+        {
+            using var response = await Http.PutAsJsonAsync(
+                $"api/v1/templates/{ProjectTemplate.DefaultId}/workflows/{Uri.EscapeDataString(workflow.Id)}",
+                new UpdateWorkflowRequest(workflow.Title, workflow.Stages, workflow.Revision),
+                PwaJson.Options);
+            if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+            {
+                await ReloadTemplateAsync();
+                return Loc.Get("WorkflowConflict");
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadFromJsonAsync<ErrorResponse>(PwaJson.Options);
+                return error?.Message ?? Loc.Format("ServerRejectedChanges", (int)response.StatusCode);
+            }
+
+            await ReloadTemplateAsync();
+            return null;
+        }
+        catch (Exception exception)
+        {
+            return Loc.Format("SaveWorkflowFailed", exception.Message);
+        }
+    }
+
+    private async Task ReloadTemplateAsync() =>
+        _template = await Http.GetFromJsonAsync<ProjectTemplate>(
+            $"api/v1/templates/{ProjectTemplate.DefaultId}", PwaJson.Options);
 }

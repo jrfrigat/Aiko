@@ -45,4 +45,12 @@ public interface IProjectTemplateStore
     /// it. Called before an init so a fresh installation has something to create projects from.
     /// </summary>
     ValueTask<ProjectTemplate> EnsureDefaultAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Writes a template over its own file, atomically. The defaults screens save through here, which is
+    /// why the write is one document: a template read by an init is either the old one or the new one.
+    /// </summary>
+    /// <param name="template">The template to write.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    ValueTask WriteAsync(ProjectTemplate template, CancellationToken cancellationToken);
 }

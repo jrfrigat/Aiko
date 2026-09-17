@@ -258,6 +258,10 @@
   <data name="AiInstructionHint" xml:space="preserve"><value>What the agent should look at to score this criterion</value></data>
   <data name="CharactersCount" xml:space="preserve"><value>Characters: {0}</value></data>
   <data name="TokensEstimate" xml:space="preserve"><value>Tokens ~{0}</value></data>
+  <data name="TemplateScope" xml:space="preserve"><value>Default template</value></data>
+  <data name="TemplateSettingsHeading" xml:space="preserve"><value>Default template settings</value></data>
+  <data name="TemplateSettingsHint" xml:space="preserve"><value>What a new project is created from: the execution defaults, the scoring model and the pipelines. Existing projects keep their own copy and are not affected.</value></data>
+  <data name="SaveTemplateSettings" xml:space="preserve"><value>Save template</value></data>
   <data name="SizeGridPickHint" xml:space="preserve"><value>Select a step to edit its name, coefficient and description.</value></data>
   <data name="SizeGrid" xml:space="preserve"><value>Size grid</value></data>
   <data name="SizeGridHint" xml:space="preserve"><value>The agent assigns a size from these descriptions; the coefficient multiplies the card's score</value></data>

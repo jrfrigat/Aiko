@@ -18,8 +18,9 @@
                 <span class="aiko-tag aiko-tag--quiet">@SettingsFileCaption</span>
                 @if (ProjectId is null)
                 {
+                    @* A template is versioned, and a project records the version it was created from. *@
                     <span class="aiko-tag aiko-tag--live">
-                        <span class="aiko-dot"></span>@Loc.Get("ImmutableSync")
+                        <span class="aiko-dot"></span>@($"v{_template?.Version ?? 0}")
                     </span>
                 }
                 else
@@ -49,7 +50,7 @@
                          Loading="@_saving"
                          OnClick="SaveAsync">
                 <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.Check" /></LeadingIcon>
-                <ChildContent>@Loc.Get(ProjectId is null ? "SaveGlobalSettings" : "SaveProjectSettings")</ChildContent>
+                <ChildContent>@Loc.Get(ProjectId is null ? "SaveTemplateSettings" : "SaveProjectSettings")</ChildContent>
             </FlareButton>
         </FlareStack>
     </FlareStack>
@@ -569,30 +570,39 @@
     [Parameter] public RenderFragment? ExtraNarrowContent { get; set; }
 
     /// <summary>
-    /// The project whose settings are edited, or null for the installation's defaults. It is one form at
-    /// both levels: what differs is the file it reads and writes, and what the reset button restores.
+    /// The project whose settings are edited, or null for the installation's default template. It is one
+    /// form at both levels: what differs is the file it reads and writes, and what the reset restores.
     /// </summary>
     [Parameter] public string? ProjectId { get; set; }
 
-    /// <summary>The endpoint the form reads and writes: the project's own file, or the global one.</summary>
+    /// <summary>The template whose defaults are edited when no project is open.</summary>
+    [Parameter] public string TemplateId { get; set; } = ProjectTemplate.DefaultId;
+
+    /// <summary>The endpoint the form reads and writes: a project's own file, or a template's.</summary>
     private string SettingsUrl => ProjectId is null
-        ? "api/v1/settings"
+        ? $"api/v1/templates/{Uri.EscapeDataString(TemplateId)}/settings"
         : $"api/v1/projects/{Uri.EscapeDataString(ProjectId)}/settings";
 
+    /// <summary>The endpoint the template itself is read from, defaults included.</summary>
+    private string TemplateUrl => $"api/v1/templates/{Uri.EscapeDataString(TemplateId)}";
+
     /// <summary>What this level is, as the header's first tag.</summary>
-    private string ScopeCaption => Loc.Get(ProjectId is null ? "CoreFallbackConfig" : "ProjectOverrideScope");
+    private string ScopeCaption => Loc.Get(ProjectId is null ? "TemplateScope" : "ProjectOverrideScope");
 
     /// <summary>The file this level lives in, shown beside the tag.</summary>
-    private string SettingsFileCaption => ProjectId is null ? "app-settings.json" : ".aiko/settings.json";
+    private string SettingsFileCaption => ProjectId is null
+        ? $"templates/{TemplateId}/template.json"
+        : ".aiko/settings.json";
 
     /// <summary>The page heading of this level.</summary>
     private string HeadingCaption =>
-        Loc.Get(ProjectId is null ? "GlobalSettingsHeading" : "ProjectSettingsHeading");
+        Loc.Get(ProjectId is null ? "TemplateSettingsHeading" : "ProjectSettingsHeading");
 
     /// <summary>What this level is for, under the heading.</summary>
-    private string HintCaption => Loc.Get(ProjectId is null ? "GlobalHint" : "ProjectSettingsHint");
+    private string HintCaption => Loc.Get(ProjectId is null ? "TemplateSettingsHint" : "ProjectSettingsHint");
 
     private AppSettingsView? _view;
+    private ProjectTemplate? _template;
     private WorkspaceMode _workspaceMode = WorkspaceMode.Shared;
     private int _maxRuns = 1;
     private ActionPolicy _scopePolicy = ActionPolicy.Ask;
@@ -635,7 +645,24 @@
     {
         try
         {
-            _view = await Http.GetFromJsonAsync<AppSettingsView>(SettingsUrl, PwaJson.Options);
+            if (ProjectId is null)
+            {
+                // A template states its own defaults; whatever it leaves out is the built-in one, and the form
+                // shows what a project created from this template would start with.
+                _template = await Http.GetFromJsonAsync<ProjectTemplate>(TemplateUrl, PwaJson.Options);
+                _view = new AppSettingsView(
+                    _template?.Settings,
+                    null,
+                    _template?.Settings?.Execution ?? ExecutionSettings.SafeDefault,
+                    _template?.Settings?.Execution is null ? AppSettingsSources.Default : AppSettingsSources.Global,
+                    _template?.Settings?.Priority ?? PrioritySettings.SafeDefault,
+                    _template?.Settings?.Priority is null ? AppSettingsSources.Default : AppSettingsSources.Global);
+            }
+            else
+            {
+                _view = await Http.GetFromJsonAsync<AppSettingsView>(SettingsUrl, PwaJson.Options);
+            }
+
             ApplyView(_view);
         }
         catch (Exception exception)
@@ -838,8 +865,8 @@
     }
 
     /// <summary>
-    /// Writes the defaults back into this level: the safe defaults for the installation, and the
-    /// installation's own values for a project - which is what "reset to app defaults" means.
+    /// Writes the defaults back into this level: the built-in values for a template, and the installation's
+    /// own values for a project - which is what "reset to app defaults" means.
     /// </summary>
     private async Task ResetToDefaultsAsync()
     {

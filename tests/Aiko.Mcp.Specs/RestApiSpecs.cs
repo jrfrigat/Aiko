@@ -182,6 +182,81 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
     }
 
     [Fact]
+    public async Task Template_defaults_are_edited_through_the_api_and_bump_the_version()
+    {
+        using var http = CreateClient();
+
+        using var before = await http.GetAsync("api/v1/templates/default");
+        Assert.Equal(HttpStatusCode.OK, before.StatusCode);
+        var original = await before.Content.ReadFromJsonAsync<JsonElement>();
+        var version = original.GetProperty("version").GetInt32();
+        // The built-in template states no settings at all - the installation defaults fill them, and an init
+        // copies the result - but it does ship its pipelines.
+        Assert.Equal(JsonValueKind.Null, original.GetProperty("settings").ValueKind);
+        Assert.Equal(2, original.GetProperty("workflows").GetArrayLength());
+
+        // Settings and pipelines are written as two slices of the same document, so neither can clobber the
+        // other: the version moves once per save, and the pipelines survive a settings write.
+        using var saved = await http.PutAsJsonAsync("api/v1/templates/default/settings", new
+        {
+            schemaVersion = 1,
+            priority = new
+            {
+                weights = new { taskWeight = 0.6m, parentWeight = 0.4m },
+                criteria = Array.Empty<object>(),
+                sizes = new[]
+                {
+                    new { id = "M", title = "M", description = "About a day.", coefficient = 1.0m }
+                }
+            }
+        });
+        Assert.Equal(HttpStatusCode.OK, saved.StatusCode);
+        var afterSettings = await saved.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(version + 1, afterSettings.GetProperty("version").GetInt32());
+        Assert.Equal(2, afterSettings.GetProperty("workflows").GetArrayLength());
+        Assert.Equal(1, afterSettings.GetProperty("settings").GetProperty("priority")
+            .GetProperty("sizes").GetArrayLength());
+
+        var taskWorkflow = afterSettings.GetProperty("workflows")[1];
+        var workflowId = taskWorkflow.GetProperty("id").GetString();
+        var revision = taskWorkflow.GetProperty("revision").GetInt64();
+        using var workflowSaved = await http.PutAsJsonAsync(
+            $"api/v1/templates/default/workflows/{workflowId}",
+            new
+            {
+                title = "Tasks",
+                expectedRevision = revision,
+                stages = new[]
+                {
+                    new
+                    {
+                        id = "backlog",
+                        title = "Backlog",
+                        order = 10,
+                        instruction = "Clarify the request.",
+                        allowedCardKinds = new[] { "Task" },
+                        defaultAgentAdapterId = (string?)null,
+                        requiredArtifacts = Array.Empty<object>(),
+                        actionPolicies = new Dictionary<string, string>(),
+                        validationCommands = new[] { "dotnet test --no-build" },
+                        skillsBeforeInstruction = new[] { "aiko-memory" },
+                        skillsAfterInstruction = new[] { "aiko-report" }
+                    }
+                }
+            });
+        Assert.Equal(HttpStatusCode.OK, workflowSaved.StatusCode);
+        var afterWorkflow = await workflowSaved.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(version + 2, afterWorkflow.GetProperty("version").GetInt32());
+        // The settings written a moment ago are still there: one version, two slices.
+        Assert.Equal(0.6m, afterWorkflow.GetProperty("settings").GetProperty("priority")
+            .GetProperty("weights").GetProperty("taskWeight").GetDecimal());
+
+        // A template that does not exist is a 404 rather than a created one.
+        using var missing = await http.PutAsJsonAsync("api/v1/templates/nope/settings", new { schemaVersion = 1 });
+        Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
+    }
+
+    [Fact]
     public async Task A_card_keeps_its_size_step_and_can_be_cleared()
     {
         using var http = CreateClient();

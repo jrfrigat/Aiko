@@ -1,4 +1,3 @@
-@inject HttpClient Http
 @inject WorkspaceState State
 
 @* Workflow editor body. The pipeline is a grid of stage cards - each one naming its role, its executors,
@@ -42,7 +41,7 @@
                 <select aria-label="@Loc.Get("Workflow")"
                         value="@_workflowId"
                         @onchange="OnWorkflowPicked">
-                    @foreach (var workflow in Board.Workflows)
+                    @foreach (var workflow in Workflows)
                     {
                         <option value="@workflow.Id">@workflow.Id</option>
                     }
@@ -340,12 +339,30 @@
 </FlareDrawer>
 
 @code {
-    [Parameter, EditorRequired] public ProjectBoardSnapshot Board { get; set; } = null!;
+    /// <summary>The pipelines to edit: a project's own copy, or the ones a template ships.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<WorkflowDefinition> Workflows { get; set; } = [];
+
+    /// <summary>
+    /// The cards of the board, or an empty list for a template. They are what stops a stage that still
+    /// holds work from being removed; a template has no work on it.
+    /// </summary>
+    [Parameter] public IReadOnlyList<Card> Cards { get; set; } = [];
+
+    /// <summary>Which pipeline to open first.</summary>
     [Parameter] public string? InitialWorkflowId { get; set; }
-    [Parameter] public EventCallback OnSaved { get; set; }
+
+    /// <summary>
+    /// Writes the pipeline the form built and returns the failure text, or null when it was saved. The
+    /// editor does not know where a pipeline lives - a project's own file or the template it came from -
+    /// so the screen owns the call.
+    /// </summary>
+    [Parameter, EditorRequired] public Func<WorkflowDefinition, Task<string?>> Save { get; set; } =
+        _ => Task.FromResult<string?>(null);
+
+    /// <summary>Raised when the screen should close the editor, if it was opened as a drawer.</summary>
     [Parameter] public EventCallback OnClose { get; set; }
 
-    private string? _loadedBoardKey;
+    private string? _loadedWorkflowsKey;
     private string _workflowId = string.Empty;
     private string? _workflowTitle;
     private StageDraft? _selectedStage;
@@ -356,24 +373,29 @@
     private bool _stageDrawerOpen;
 
     private WorkflowDefinition SelectedWorkflow =>
-        Board.Workflows.First(workflow => workflow.Id == _workflowId);
+        Workflows.First(workflow => workflow.Id == _workflowId);
 
     private StageDraft? SelectedStage => _selectedStage ?? _stages.FirstOrDefault();
 
     protected override void OnParametersSet()
     {
-        var boardKey = $"{InitialWorkflowId}|{string.Join('|', Board.Workflows.Select(workflow =>
+        var workflowsKey = $"{InitialWorkflowId}|{string.Join('|', Workflows.Select(workflow =>
             $"{workflow.Id}:{workflow.Revision}"))}";
-        if (_loadedBoardKey == boardKey)
+        if (_loadedWorkflowsKey == workflowsKey)
         {
             return;
         }
 
-        _loadedBoardKey = boardKey;
+        _loadedWorkflowsKey = workflowsKey;
+        if (Workflows.Count == 0)
+        {
+            return;
+        }
+
         var requested = InitialWorkflowId is not null
-            ? Board.Workflows.FirstOrDefault(workflow => workflow.Id == InitialWorkflowId)
+            ? Workflows.FirstOrDefault(workflow => workflow.Id == InitialWorkflowId)
             : null;
-        LoadWorkflow(requested ?? Board.Workflows.First());
+        LoadWorkflow(requested ?? Workflows[0]);
     }
 
     /// <summary>
@@ -385,7 +407,7 @@
 
     private Task SelectWorkflowAsync(string? id)
     {
-        var workflow = Board.Workflows.FirstOrDefault(item => item.Id == id);
+        var workflow = Workflows.FirstOrDefault(item => item.Id == id);
         if (workflow is not null)
         {
             LoadWorkflow(workflow);
@@ -442,7 +464,7 @@
             return;
         }
 
-        var occupied = Board.Cards.FirstOrDefault(card =>
+        var occupied = Cards.FirstOrDefault(card =>
             card.WorkflowId == _workflowId && card.StageId == stage.Id);
         if (occupied is not null)
         {
@@ -496,26 +518,16 @@
         _saving = true;
         try
         {
-            using var response = await Http.PutAsJsonAsync(
-                $"api/v1/projects/{Uri.EscapeDataString(Board.Project.Id)}/workflows/{Uri.EscapeDataString(workflow.Id)}",
-                new UpdateWorkflowRequest(_workflowTitle, stages, workflow.Revision),
-                PwaJson.Options);
-            if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+            // The screen owns the call, so the editor never has to know whether it is editing a project's
+            // file or the template those files came from.
+            var failure = await Save(workflow with { Title = _workflowTitle!, Stages = stages });
+            if (failure is not null)
             {
-                ShowError(Loc.Get("WorkflowConflict"));
-                await OnSaved.InvokeAsync();
-                return;
-            }
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var error = await response.Content.ReadFromJsonAsync<ErrorResponse>(PwaJson.Options);
-                ShowError(error?.Message ?? Loc.Format("ServerRejectedChanges", (int)response.StatusCode));
+                ShowError(failure);
                 return;
             }
 
             _message = Loc.Get("WorkflowSaved");
-            await OnSaved.InvokeAsync();
         }
         catch (Exception exception)
         {

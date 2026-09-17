@@ -1,4 +1,5 @@
 @page "/p/{ProjectId}/workflow"
+@inject HttpClient Http
 @inject WorkspaceState State
 
 @* The workflow editor is a page, not a drawer: it is a place you go to change the pipeline, and it
@@ -15,9 +16,10 @@ else if (board.Workflows.Count == 0)
 }
 else
 {
-    <WorkflowInspector Board="board"
+    <WorkflowInspector Workflows="board.Workflows"
+                       Cards="board.Cards"
                        InitialWorkflowId="@CurrentWorkflowId"
-                       OnSaved="State.LoadBoardAsync" />
+                       Save="SaveWorkflowAsync" />
 }
 
 @code {
@@ -25,6 +27,44 @@ else
 
     /// <summary>The workflow a fresh visit edits: the task pipeline, the one agents run most.</summary>
     private string CurrentWorkflowId => "task";
+
+    /// <summary>
+    /// Writes one pipeline of this project and reloads the board, so the editor's revision follows. Returns
+    /// the failure text, or null when it was saved.
+    /// </summary>
+    private async Task<string?> SaveWorkflowAsync(WorkflowDefinition workflow)
+    {
+        if (State.Board is not { } board)
+        {
+            return Loc.Get("BoardUnavailable");
+        }
+
+        try
+        {
+            using var response = await Http.PutAsJsonAsync(
+                $"api/v1/projects/{Uri.EscapeDataString(board.Project.Id)}/workflows/{Uri.EscapeDataString(workflow.Id)}",
+                new UpdateWorkflowRequest(workflow.Title, workflow.Stages, workflow.Revision),
+                PwaJson.Options);
+            if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+            {
+                await State.LoadBoardAsync();
+                return Loc.Get("WorkflowConflict");
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadFromJsonAsync<ErrorResponse>(PwaJson.Options);
+                return error?.Message ?? Loc.Format("ServerRejectedChanges", (int)response.StatusCode);
+            }
+
+            await State.LoadBoardAsync();
+            return null;
+        }
+        catch (Exception exception)
+        {
+            return Loc.Format("SaveWorkflowFailed", exception.Message);
+        }
+    }
 
     protected override async Task OnParametersSetAsync() => await State.EnsureProjectAsync(ProjectId);
 }
