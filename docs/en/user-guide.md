@@ -39,7 +39,11 @@ Every card is a folder in `.aiko` with a `card.json` and Markdown artifacts. A c
 
 - `kind` - the card type id (`Story`, `Task`, or any type the project declares). The type is defined by the
   project's workflow, so a project can add its own type without a code change;
-- `title`, `workflowId`, `stageId`;
+- `title`, `workflowId`, `stageId`. The id and the starting stage are Aiko's, not the caller's: a card is
+  named by the daemon (the type id plus the lowest free number, for example `TASK-3`) and is always created
+  in that type's `backlog` stage, because a card nobody has worked out should not start anywhere else;
+- `requirements` - what the card is asked to do, in the words of whoever wrote it, kept in the card's
+  metadata;
 - `revision` - the optimistic revision;
 - `ownPriority` and the computed effective priority (the task blends its own value with the
   maximum parent value using the project's priority weights);
@@ -47,19 +51,22 @@ Every card is a folder in `.aiko` with a `card.json` and Markdown artifacts. A c
   changed). Files outside the declared scope are flagged as out-of-scope.
 - `size` - the step of the project's size grid the card was given, for example `M`. The agent assigns
   it from the grid's descriptions, and the step's coefficient multiplies the card's score.
-- `criterionValues` - the card's scores per criterion, when the project defines criteria.
+- `criterionValues` - the card's scores per criterion, when the project defines criteria. A card created
+  without a size or scores is one the agent is expected to estimate: the card page's *Ask to estimate*
+  action records which agent was asked, and that agent runs `/aiko-estimate <cardId>`.
 
 A card's own score is the weighted average of its normalized criterion values, or its own priority when
 the project defines no criteria; the size coefficient multiplies either. A task then blends that with the
 highest parent value using the project's weights (ТЗ §10).
 
 The card page is laid out in two columns: on the left the stage's scope - the editable stage instruction
-(which belongs to the project's workflow), the editable declared scope, the declared and actual files and
-the acceptance criteria - above one block of tabs: the completed outcomes, the code changes, the artifacts
-and the runs; on the right the execution state with its assignees, the triage and score with the card's
-rank on the board, the related cards (parents, children and plain relations - each links to its own page),
-the progress of the stage's acceptance criteria, the stage's skills and the card's parameters (title,
-priority, size and every scoring criterion of the project).
+(which belongs to the project's workflow), the card's editable requirements and declared scope, the declared
+and actual files and the acceptance criteria - above one block of tabs: the completed outcomes, the code
+changes, the artifacts and the runs; on the right the execution state with its assignees, the triage and
+score with the card's rank on the board (and the *Ask to estimate* action below the criteria), the related
+cards (parents, children and plain relations - each links to its own page), the progress of the stage's
+acceptance criteria, the stage's skills and the card's parameters (title, priority, size and every scoring
+criterion of the project).
 
 ## Workflows
 

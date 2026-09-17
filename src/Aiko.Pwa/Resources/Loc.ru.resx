@@ -19,10 +19,21 @@
   <data name="CreateCard" xml:space="preserve"><value>Карточка</value></data>
   <data name="CreateCardTitle" xml:space="preserve"><value>Создать карточку</value></data>
   <data name="CardIdentityTitle" xml:space="preserve"><value>Карточка</value></data>
-  <data name="CardIdentityHint" xml:space="preserve"><value>Её id на доске и заголовок, по которому её читают</value></data>
-  <data name="CardIdHelper" xml:space="preserve"><value>Устойчивый id, например FL-201</value></data>
+  <data name="CardIdentityHint" xml:space="preserve"><value>Id придумывает Aiko, вы задаёте заголовок, по которому её читают</value></data>
+  <data name="CardIdAutoHint" xml:space="preserve"><value>Id придумывает Aiko, например TASK-3</value></data>
+  <data name="Requirements" xml:space="preserve"><value>Требования</value></data>
+  <data name="ScopeAndRequirementsHint" xml:space="preserve"><value>Что должна сделать карточка и какие файлы она может тронуть</value></data>
+  <data name="RequirementsHelper" xml:space="preserve"><value>Что должна сделать эта карточка, вашими словами</value></data>
+  <data name="BacklogStageNote" xml:space="preserve"><value>Карточка создаётся в бэклоге и уходит оттуда.</value></data>
+  <data name="EstimateAfterCreateHint" xml:space="preserve"><value>Если оставить пустым, размер и оценки посчитает агент — после создания запустите /aiko-estimate.</value></data>
+  <data name="EstimateTitle" xml:space="preserve"><value>Оценка</value></data>
+  <data name="EstimateHint" xml:space="preserve"><value>Размер и оценки критериев, которые вы не задали, определяет агент.</value></data>
+  <data name="EstimateAgent" xml:space="preserve"><value>Кто оценивает</value></data>
+  <data name="EstimateCard" xml:space="preserve"><value>Попросить оценить</value></data>
+  <data name="EstimateCommandHint" xml:space="preserve"><value>Запустите {0} в терминале этого агента.</value></data>
+  <data name="EstimateRequested" xml:space="preserve"><value>Запрос оценки отправлен агенту {0}.</value></data>
+  <data name="EstimateRequestFailed" xml:space="preserve"><value>Не удалось запросить оценку: {0}</value></data>
   <data name="CardPlaceTitle" xml:space="preserve"><value>Где она начинается</value></data>
-  <data name="WorkflowStagesHint" xml:space="preserve"><value>этапов в этом workflow: {0}</value></data>
   <data name="ScoringHint" xml:space="preserve"><value>Агент может уточнить их позже; собственный score карточки считается из них</value></data>
   <data name="CreateCardHint" xml:space="preserve"><value>Карточка откроется сразу после создания — там собираются её артефакты и запуски</value></data>
   <data name="Add" xml:space="preserve"><value>Добавить</value></data>
@@ -35,7 +46,6 @@
   <data name="Title" xml:space="preserve"><value>Название</value></data>
   <data name="ProjectPath" xml:space="preserve"><value>Путь к проекту</value></data>
   <data name="ProjectName" xml:space="preserve"><value>Имя (необязательно)</value></data>
-  <data name="CardId" xml:space="preserve"><value>ID (например FL-201)</value></data>
   <data name="Stage" xml:space="preserve"><value>Этап (например backlog)</value></data>
   <data name="Priority" xml:space="preserve"><value>Приоритет (число)</value></data>
   <data name="Scope" xml:space="preserve"><value>Scope (через запятую)</value></data>
@@ -58,7 +68,6 @@
   <data name="TaskKind" xml:space="preserve"><value>Task</value></data>
   <data name="StoryKind" xml:space="preserve"><value>Story</value></data>
   <data name="PathRequired" xml:space="preserve"><value>Укажите путь к проекту.</value></data>
-  <data name="IdTitleRequired" xml:space="preserve"><value>Укажите ID и название карточки.</value></data>
   <data name="AddProjectFailed" xml:space="preserve"><value>Не удалось добавить проект: {0}</value></data>
   <data name="CreateCardFailed" xml:space="preserve"><value>Не удалось создать карточку: {0}</value></data>
   <data name="MoveFailed" xml:space="preserve"><value>Переход {0} не сохранён: {1}</value></data>

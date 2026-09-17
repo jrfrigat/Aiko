@@ -40,6 +40,7 @@ public sealed class PwaJsonSpecs
             typeof(CardArtifactDocument),
             typeof(AikoEvent),
             typeof(CreateCardRequest),
+            typeof(EstimateCardRequest),
             typeof(MoveCardRequest),
             typeof(UpdateCardRequest),
             typeof(UpdateArtifactRequest),

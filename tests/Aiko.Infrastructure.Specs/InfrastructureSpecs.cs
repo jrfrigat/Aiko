@@ -1466,13 +1466,18 @@ public class InfrastructureSpecs
             await installer.ApplyAsync(
                 context.Project.Id, endpoint, "test-token", ["claude-code"], CancellationToken.None);
 
-            // One type-agnostic command plus one command per type the project declares.
+            // One type-agnostic command plus one command per type the project declares, and one command
+            // that estimates a card the person left unsized.
             Assert.True(File.Exists(Path.Combine(commands, "aiko-create.md")));
             Assert.True(File.Exists(Path.Combine(commands, "aiko-create-story.md")));
             Assert.True(File.Exists(Path.Combine(commands, "aiko-create-task.md")));
+            Assert.True(File.Exists(Path.Combine(commands, "aiko-estimate.md")));
             var story = await File.ReadAllTextAsync(Path.Combine(commands, "aiko-create-story.md"));
             Assert.Contains("kind=Story", story, StringComparison.Ordinal);
-            Assert.Contains("workflowId=story", story, StringComparison.Ordinal);
+            // A created card is named and staged by Aiko, so the command must not send an id or a stage.
+            Assert.Contains("backlog", story, StringComparison.Ordinal);
+            Assert.DoesNotContain("workflowId=", story, StringComparison.Ordinal);
+            Assert.DoesNotContain("stageId=", story, StringComparison.Ordinal);
 
             // Commands an older Aiko wrote are no longer part of the plan, so the next install sweeps them
             // instead of leaving two ways to do the same thing.
@@ -1515,7 +1520,7 @@ public class InfrastructureSpecs
             var bug = Path.Combine(commands, "aiko-create-bug.md");
             Assert.True(File.Exists(bug));
             var bugCommand = await File.ReadAllTextAsync(bug);
-            Assert.Contains("BUG-001", bugCommand, StringComparison.Ordinal);
+            Assert.Contains("kind=Bug", bugCommand, StringComparison.Ordinal);
             Assert.Contains("Something that does not work.", bugCommand, StringComparison.Ordinal);
 
             // Removing the type removes its command, and leaves the other types alone.

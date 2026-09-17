@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Aiko.Domain.Cards;
 
 /// <summary>
@@ -36,4 +38,24 @@ public sealed record Card(
     IReadOnlyDictionary<string, string> Metadata,
     CardOrigin? Origin = null,
     IReadOnlyDictionary<string, decimal>? CriterionValues = null,
-    string? Size = null);
+    string? Size = null)
+{
+    /// <summary>
+    /// The key a card's requirements are stored under in <see cref="Metadata"/>.
+    /// </summary>
+    /// <remarks>
+    /// Requirements are the free-form answer to "what must this card do?" - the text a person types when
+    /// the title alone is not enough. They are prose rather than structure, so they live in the card's own
+    /// metadata instead of widening every card document with a field most of them leave empty.
+    /// </remarks>
+    public const string RequirementsMetadataKey = "requirements";
+
+    /// <summary>
+    /// What the card is asked to do, in the words of whoever wrote it, or null when nobody wrote any.
+    /// </summary>
+    [JsonIgnore]
+    public string? Requirements =>
+        Metadata.TryGetValue(RequirementsMetadataKey, out var value) && !string.IsNullOrWhiteSpace(value)
+            ? value
+            : null;
+}

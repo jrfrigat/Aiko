@@ -22,3 +22,6 @@ TestResults/
 
 # Local release staging (the release workflow publishes here).
 /publish/
+/.mcp.json
+/.cursor/mcp.json
+/.zcode/config.json

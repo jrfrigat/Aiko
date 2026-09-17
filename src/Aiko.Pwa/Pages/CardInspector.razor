@@ -83,6 +83,14 @@
                 </FlareStack>
 
                 <FlareStack Gap="FlareSpacing.XSmall">
+                    @* What the card must do, in the words of whoever wrote it. It wears the same prompt
+                       block as the scope below, because both are long prose about this one card. *@
+                    <PromptField Name="@($"{Card.Reference.CardId}.requirements")"
+                                 Title="@Loc.Get("Requirements")"
+                                 Rows="4"
+                                 Placeholder="@Loc.Get("RequirementsHelper")"
+                                 Value="@_requirements"
+                                 ValueChanged="value => _requirements = value" />
                     <PromptField Name="@($"{Card.Reference.CardId}.scope")"
                                  Title="@Loc.Get("DeclaredScope")"
                                  Rows="4"
@@ -615,6 +623,54 @@
                     }
                 </FlareStack>
 
+                @* The estimate the person left to the machine: pick the agent, and Aiko records the request
+                   and shows the command to run. Nothing is launched from here - the daemon cannot start an
+                   agent yet - so the block says exactly what to run in that agent's terminal. *@
+                <FlareStack Gap="FlareSpacing.XSmall">
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
+                        @Loc.Get("EstimateTitle")
+                    </FlareText>
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                        @Loc.Get("EstimateHint")
+                    </FlareText>
+                    @if (Agents.Count == 0)
+                    {
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Get("NoAgentsDiscovered")
+                        </FlareText>
+                    }
+                    else
+                    {
+                        <AikoSelectField Label="@Loc.Get("EstimateAgent")"
+                                         Value="@_estimateAgent"
+                                         ValueChanged="value => _estimateAgent = value">
+                            @foreach (var agent in Agents)
+                            {
+                                var option = agent;
+                                <option value="@option.Id">@option.DisplayName</option>
+                            }
+                        </AikoSelectField>
+                        <FlareButton Variant="ButtonVariant.Tonal"
+                                     FullWidth="true"
+                                     Disabled="@(string.IsNullOrWhiteSpace(_estimateAgent))"
+                                     Loading="@_sendingEstimate"
+                                     OnClick="RequestEstimateAsync">
+                            <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.SmartToy" /></LeadingIcon>
+                            <ChildContent>@Loc.Get("EstimateCard")</ChildContent>
+                        </FlareButton>
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Format("EstimateCommandHint", EstimateCommand)
+                        </FlareText>
+                    }
+                    @if (_estimateMessage is { Length: > 0 } estimateMessage)
+                    {
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall"
+                                   Color="@(_estimateError ? FlareColor.Error : FlareColor.Tertiary)">
+                            @estimateMessage
+                        </FlareText>
+                    }
+                </FlareStack>
+
                 <FlareButton FullWidth="true"
                              Loading="@_saving"
                              OnClick="SaveAsync">@Loc.Get("SaveCard")</FlareButton>
@@ -795,7 +851,12 @@
     private decimal? _priority;
     private string? _size;
     private string? _scope;
+    private string? _requirements;
     private string? _instruction;
+    private string? _estimateAgent;
+    private string? _estimateMessage;
+    private bool _estimateError;
+    private bool _sendingEstimate;
     private string? _priorityError;
     private string? _message;
     private bool _hasError;
@@ -815,6 +876,12 @@
     /// <summary>The commands the console offers: the ones this product's agents answer to.</summary>
     private static readonly string[] PromptShortcuts = ["/benchmark", "/leak-check"];
     private readonly Dictionary<string, decimal?> _criterionValues = new(StringComparer.Ordinal);
+
+    /// <summary>The agent adapters the daemon found, for the estimate picker.</summary>
+    private IReadOnlyList<AgentAdapterOption> Agents => State.Agents;
+
+    /// <summary>The command that runs this card's estimate in the chosen agent's terminal.</summary>
+    private string EstimateCommand => $"/aiko-estimate {Card.Reference.CardId}";
 
     /// <summary>
     /// The stage the card sits in, from its own workflow: it carries what the stage asks for (the
@@ -1177,12 +1244,15 @@
             _priority = Card.OwnPriority;
             _size = Card.Size;
             _scope = string.Join(Environment.NewLine, Card.DeclaredScopeFiles);
+            _requirements = Card.Requirements;
             _instruction = Stage?.Instruction ?? string.Empty;
             LoadCriterionValues();
             _message = null;
             _hasError = false;
             _priorityError = null;
         }
+
+        _estimateAgent ??= Agents.FirstOrDefault()?.Id;
 
         if (cardChanged || _lastRefreshTick != ExecutionRefreshTick)
         {
@@ -1240,6 +1310,37 @@
         }
     }
 
+    private async Task RequestEstimateAsync()
+    {
+        if (_sendingEstimate || string.IsNullOrWhiteSpace(_estimateAgent))
+        {
+            return;
+        }
+
+        _sendingEstimate = true;
+        _estimateMessage = null;
+        try
+        {
+            using var response = await Http.PostAsJsonAsync(
+                $"api/v1/projects/{Uri.EscapeDataString(Card.Reference.ProjectId)}/cards/{Uri.EscapeDataString(Card.Reference.CardId)}/estimate",
+                new EstimateCardRequest(_estimateAgent),
+                PwaJson.Options);
+            response.EnsureSuccessStatusCode();
+            _estimateMessage = Loc.Format("EstimateRequested", AgentName(_estimateAgent));
+            _estimateError = false;
+            await OnSaved.InvokeAsync();
+        }
+        catch (Exception exception)
+        {
+            _estimateMessage = Loc.Format("EstimateRequestFailed", exception.Message);
+            _estimateError = true;
+        }
+        finally
+        {
+            _sendingEstimate = false;
+        }
+    }
+
     private async Task SaveAsync()
     {
         _priorityError = null;
@@ -1266,7 +1367,7 @@
         {
             using var response = await Http.PutAsJsonAsync(
                 $"api/v1/projects/{Uri.EscapeDataString(Card.Reference.ProjectId)}/cards/{Uri.EscapeDataString(Card.Reference.CardId)}",
-                new UpdateCardRequest(_title, priority, scopeFiles, Card.Revision, _size, CriterionPayload),
+                new UpdateCardRequest(_title, priority, scopeFiles, Card.Revision, _size, CriterionPayload, _requirements),
                 PwaJson.Options);
             if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
             {

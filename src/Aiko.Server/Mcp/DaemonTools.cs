@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using ModelContextProtocol.Server;
+using Aiko.Application.Cards;
 using Aiko.Application.Contracts;
 using Aiko.Domain.Cards;
 using Aiko.Server.Contracts;
@@ -72,24 +73,26 @@ internal sealed class DaemonTools(
 
     [McpServerTool(Name = "aiko_create_card_in_project", Title = "Create Aiko card in a project")]
     [Description(
-        "Creates a card of any type the project defines in the given project, validating the stage against that project's workflow. Pass originProjectId when reporting from another project.")]
+        "Creates a card of any type the project defines in the given project. The card lands in that "
+        + "project's workflow backlog stage; Aiko names it, so pass no id unless you are importing a card "
+        + "that already has one. Pass originProjectId when reporting from another project.")]
     public async Task<string> CreateCardAsync(
         [Description("Target project id.")]
         string projectId,
-        [Description("File-safe card id, for example TASK-001.")]
-        string cardId,
         [Description("Card type: story, task, or any type the project added in its workflow editor.")]
         string kind,
         [Description("Human-readable title.")]
         string title,
-        [Description("Workflow id that defines the type, for example story or task.")]
-        string workflowId,
-        [Description("Initial stage id.")]
-        string stageId,
         [Description("Own priority score, zero or greater.")]
         decimal ownPriority,
-        [Description("Initial declared scope file patterns.")]
-        string[] declaredScopeFiles,
+        [Description("File-safe card id, only when importing a card that already has one.")]
+        [Optional] string? cardId,
+        [Description("Workflow id that defines the type. Defaults to the kind's own id.")]
+        [Optional] string? workflowId,
+        [Description("Declared scope file patterns.")]
+        [Optional] string[]? declaredScopeFiles,
+        [Description("What the card is asked to do, when the title alone is not enough.")]
+        [Optional] string? requirements,
         [Description("Source project id when reporting from another project.")]
         [Optional] string? originProjectId,
         [Description("Source card id when reporting from another project.")]
@@ -97,31 +100,47 @@ internal sealed class DaemonTools(
         CancellationToken cancellationToken)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(ownPriority);
-        var reference = new CardReference(projectId, cardId);
+        var canonicalKind = ParseKind(kind);
+        var (workflow, backlog, reason) = await CardCreation.ResolveAsync(
+            definitions,
+            projectId,
+            canonicalKind,
+            workflowId,
+            cancellationToken);
+        if (workflow is null || backlog is null)
+        {
+            throw new ArgumentException(reason!, nameof(kind));
+        }
+
+        var resolvedId = string.IsNullOrWhiteSpace(cardId)
+            ? await CardIdGenerator.NextAsync(cards, projectId, canonicalKind, cancellationToken)
+            : cardId.Trim();
+        var reference = new CardReference(projectId, resolvedId);
         if (await cards.FindAsync(reference, cancellationToken) is not null)
         {
-            throw new InvalidOperationException($"Card '{cardId}' already exists in project {projectId}.");
+            throw new InvalidOperationException($"Card '{resolvedId}' already exists in project {projectId}.");
+        }
+
+        var metadata = new Dictionary<string, string>(StringComparer.Ordinal);
+        if (!string.IsNullOrWhiteSpace(requirements))
+        {
+            metadata[Card.RequirementsMetadataKey] = requirements.Trim();
         }
 
         var card = new Card(
             reference,
-            ParseKind(kind),
+            canonicalKind,
             title,
-            workflowId,
-            stageId,
+            workflow.Id,
+            backlog.Id,
             1,
             ownPriority,
-            declaredScopeFiles,
+            declaredScopeFiles ?? [],
             [],
-            new Dictionary<string, string>(StringComparer.Ordinal),
+            metadata,
             originProjectId is null
                 ? null
                 : new CardOrigin(originProjectId, originCardId, null, DateTimeOffset.UtcNow));
-
-        var stage = await CardStageValidation.FindValidStageAsync(card, stageId, definitions, cancellationToken)
-            ?? throw new ArgumentException(
-                $"Stage '{stageId}' is not valid for the card workflow in project {projectId}.",
-                nameof(stageId));
 
         await cards.SaveAsync(card, 0, cancellationToken);
         return JsonSerializer.Serialize(card, ServerJsonContext.Default.Card);

@@ -481,6 +481,53 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
     }
 
     [Fact]
+    public async Task A_card_is_named_and_staged_by_aiko()
+    {
+        using var http = CreateClient();
+        var project = fixture.ProjectId;
+
+        // No id and no stage: Aiko names the card after its type and lands it in backlog.
+        using var created = await http.PostAsJsonAsync($"api/v1/projects/{project}/cards", new
+        {
+            kind = "Task",
+            title = "Aiko names this one",
+            ownPriority = 2,
+            declaredScopeFiles = new[] { "src/**" },
+            requirements = "It must exist."
+        });
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        var card = await created.Content.ReadFromJsonAsync<JsonElement>();
+        var cardId = card.GetProperty("reference").GetProperty("cardId").GetString();
+        Assert.StartsWith("TASK-", cardId, StringComparison.Ordinal);
+        Assert.Equal("backlog", card.GetProperty("stageId").GetString());
+        Assert.Equal("It must exist.", card.GetProperty("metadata").GetProperty("requirements").GetString());
+
+        // A second card of the same type gets the next free id rather than colliding with the first.
+        using var second = await http.PostAsJsonAsync($"api/v1/projects/{project}/cards", new
+        {
+            kind = "Task",
+            title = "And this one too",
+            ownPriority = 2,
+            declaredScopeFiles = Array.Empty<string>()
+        });
+        Assert.Equal(HttpStatusCode.Created, second.StatusCode);
+        var secondId = (await second.Content.ReadFromJsonAsync<JsonElement>())
+            .GetProperty("reference").GetProperty("cardId").GetString();
+        Assert.NotEqual(cardId, secondId);
+
+        // A card is born unelaborated, so naming another stage is rejected rather than honoured.
+        using var premature = await http.PostAsJsonAsync($"api/v1/projects/{project}/cards", new
+        {
+            kind = "Task",
+            title = "Starts too late",
+            workflowId = "task",
+            stageId = "implementation",
+            ownPriority = 2
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, premature.StatusCode);
+    }
+
+    [Fact]
     public async Task Artifacts_round_trip_and_reject_a_stale_version()
     {
         using var http = CreateClient();

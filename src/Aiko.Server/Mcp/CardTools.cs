@@ -1,7 +1,9 @@
 using System.ComponentModel;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using ModelContextProtocol.Server;
+using Aiko.Application.Cards;
 using Aiko.Application.Contracts;
 using Aiko.Domain.Cards;
 using Aiko.Server.Contracts;
@@ -67,43 +69,115 @@ internal sealed class CardTools(
     [McpServerTool(Name = "aiko_create_card", Title = "Create Aiko card")]
     [Description(
         "Creates a card of any type the project defines at revision 1 in the current project. Read "
-        + "aiko_get_project_context to see which types exist and which stage each one starts in.")]
+        + "aiko_get_project_context to see which types exist. The card lands in its workflow's backlog "
+        + "stage; Aiko names it, so pass no id unless you are importing a card that already has one. "
+        + "Leave size and criterion values out when the person did not set them - run /aiko-estimate "
+        + "afterwards, or estimate them yourself, instead of guessing a number here.")]
     public async Task<string> CreateCardAsync(
-        [Description("Stable file-safe card id, for example TASK-001.")]
-        string cardId,
         [Description("Card kind: story, task, or any type this project defines.")]
         string kind,
         [Description("Human-readable title.")]
         string title,
-        [Description("Workflow id that defines the type, for example story or task.")]
-        string workflowId,
-        [Description("Initial stage id.")]
-        string stageId,
         [Description("Own priority score, zero or greater.")]
         decimal ownPriority,
-        [Description("Initial declared scope file patterns.")]
-        string[] declaredScopeFiles,
+        [Description(
+            "Stable file-safe card id, only when importing a card that already has one. Leave it out and "
+            + "Aiko invents the next free id for the type, for example TASK-3.")]
+        [Optional] string? cardId,
+        [Description("Workflow id that defines the type, for example story or task. Defaults to the kind's own id.")]
+        [Optional] string? workflowId,
+        [Description("Declared scope file patterns.")]
+        [Optional] string[]? declaredScopeFiles,
         [Description(
             "Size step from the project's size grid (see aiko_get_project_context). Pick the step whose "
-            + "description matches the work; a large step is a plan to split rather than something to start.")]
+            + "description matches the work; a large step is a plan to split rather than something to start. "
+            + "Leave it out when the person did not set one.")]
         [Optional] string? size,
+        [Description("What the card is asked to do, when the title alone is not enough.")]
+        [Optional] string? requirements,
         CancellationToken cancellationToken)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(ownPriority);
-        var card = new Card(
-            new CardReference(GetProjectId(), cardId),
-            ParseCardKind(kind),
-            title,
+        var canonicalKind = ParseCardKind(kind);
+        var (workflow, backlog, reason) = await CardCreation.ResolveAsync(
+            definitions,
+            GetProjectId(),
+            canonicalKind,
             workflowId,
-            stageId,
+            cancellationToken);
+        if (workflow is null || backlog is null)
+        {
+            throw new ArgumentException(reason!, nameof(kind));
+        }
+
+        var resolvedId = string.IsNullOrWhiteSpace(cardId)
+            ? await CardIdGenerator.NextAsync(cards, GetProjectId(), canonicalKind, cancellationToken)
+            : cardId.Trim();
+        var metadata = new Dictionary<string, string>(StringComparer.Ordinal);
+        if (!string.IsNullOrWhiteSpace(requirements))
+        {
+            metadata[Card.RequirementsMetadataKey] = requirements.Trim();
+        }
+
+        var card = new Card(
+            new CardReference(GetProjectId(), resolvedId),
+            canonicalKind,
+            title,
+            workflow.Id,
+            backlog.Id,
             1,
             ownPriority,
-            declaredScopeFiles,
+            declaredScopeFiles ?? [],
             [],
-            new Dictionary<string, string>(StringComparer.Ordinal),
+            metadata,
             Size: string.IsNullOrWhiteSpace(size) ? null : size.Trim());
         await cards.SaveAsync(card, 0, cancellationToken);
         return JsonSerializer.Serialize(card, ServerJsonContext.Default.Card);
+    }
+
+    [McpServerTool(Name = "aiko_estimate_card", Title = "Estimate Aiko card")]
+    [Description(
+        "Records an estimate on a card: the size step from the project's grid and the score for every "
+        + "criterion the project defines. Read the card and aiko_get_project_context first - the context "
+        + "carries each criterion's range and each size step's description. Only the fields you pass are "
+        + "written, so an estimate that only sets the size leaves the scores alone.")]
+    public async Task<string> EstimateCardAsync(
+        [Description("Card id to estimate.")]
+        string cardId,
+        [Description("Revision read by the caller. The saved revision becomes expectedRevision + 1.")]
+        long expectedRevision,
+        [Description("Size step from the project's size grid that matches the work.")]
+        [Optional] string? size,
+        [Description(
+            "Scores to write, one \"criterionId=score\" per entry, for example \"complexity=5\". Pass a score "
+            + "for every criterion the project defines; criteria left out keep their stored value.")]
+        [Optional] string[]? criterionValues,
+        [Description("Own priority the estimate implies, as a number, when the criteria are not the whole story.")]
+        [Optional] string? ownPriority,
+        CancellationToken cancellationToken)
+    {
+        var reference = new CardReference(GetProjectId(), cardId);
+        var existing = await cards.FindAsync(reference, cancellationToken)
+            ?? throw new KeyNotFoundException($"Card '{cardId}' was not found.");
+        if (existing.Revision != expectedRevision)
+        {
+            throw new RevisionConflictException(
+                $"card {GetProjectId()}/{cardId}",
+                expectedRevision,
+                existing.Revision);
+        }
+
+        var scores = ParseScores(criterionValues);
+        var updated = existing with
+        {
+            // Absent means "leave it alone", which is why each field is only written when the caller sent it.
+            Size = size is null ? existing.Size : string.IsNullOrWhiteSpace(size) ? null : size.Trim(),
+            CriterionValues = scores is null ? existing.CriterionValues : scores,
+            OwnPriority = ParseOwnPriority(ownPriority) ?? existing.OwnPriority,
+            Revision = existing.Revision + 1
+        };
+        await cards.SaveAsync(updated, expectedRevision, cancellationToken);
+        return JsonSerializer.Serialize(updated, ServerJsonContext.Default.Card);
     }
 
     [McpServerTool(Name = "aiko_update_card", Title = "Update Aiko card")]
@@ -230,4 +304,59 @@ internal sealed class CardTools(
         await cards.SaveAsync(updated, card.Revision, cancellationToken);
         return JsonSerializer.Serialize(updated, ServerJsonContext.Default.Card);
     }
+
+    /// <summary>
+    /// Reads the estimate's <c>criterionId=score</c> entries into the dictionary a card stores, or null when
+    /// the caller sent none - which leaves the stored scores untouched.
+    /// </summary>
+    /// <remarks>
+    /// The MCP tool takes text rather than a JSON object because the daemon's MCP serializer is
+    /// source-generated and carries no type info for a <see cref="Dictionary{TKey,TValue}"/>; a flat list of
+    /// pairs is what it can marshal, and it stays readable in a tool-call transcript.
+    /// </remarks>
+    private static Dictionary<string, decimal>? ParseScores(string[]? entries)
+    {
+        if (entries is not { Length: > 0 })
+        {
+            return null;
+        }
+
+        var scores = new Dictionary<string, decimal>(StringComparer.Ordinal);
+        foreach (var entry in entries)
+        {
+            var separator = entry.IndexOf('=');
+            if (separator <= 0 || separator == entry.Length - 1)
+            {
+                throw new ArgumentException(
+                    $"'{entry}' is not a criterion score; expected \"criterionId=score\".",
+                    nameof(entries));
+            }
+
+            var id = entry[..separator].Trim();
+            if (!decimal.TryParse(
+                    entry[(separator + 1)..].Trim(),
+                    NumberStyles.Number,
+                    CultureInfo.InvariantCulture,
+                    out var score))
+            {
+                throw new ArgumentException($"'{entry}' has no readable score.", nameof(entries));
+            }
+
+            scores[id] = score;
+        }
+
+        return scores;
+    }
+
+    /// <summary>Reads an optional decimal the caller sent as text, or null when it sent none.</summary>
+    private static decimal? ParseOwnPriority(string? value) =>
+        string.IsNullOrWhiteSpace(value)
+            ? null
+            : decimal.TryParse(
+                value.Trim(),
+                NumberStyles.Number,
+                CultureInfo.InvariantCulture,
+                out var priority)
+                ? priority
+                : throw new ArgumentException($"'{value}' is not a priority.", nameof(value));
 }

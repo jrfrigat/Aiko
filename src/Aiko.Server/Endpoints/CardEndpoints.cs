@@ -1,3 +1,4 @@
+using Aiko.Application.Cards;
 using Aiko.Application.Contracts;
 using Aiko.Domain.Cards;
 using Aiko.Server.Contracts;
@@ -99,6 +100,10 @@ internal static class CardEndpoints
                             criterionValues.Where(pair => !string.IsNullOrWhiteSpace(pair.Key)),
                             StringComparer.Ordinal)
                         : card.CriterionValues,
+                    // Requirements follow the same rule: null leaves the text alone, a blank string clears it.
+                    Metadata = request.Requirements is { } requirements
+                        ? WithRequirements(card.Metadata, requirements)
+                        : card.Metadata,
                     Revision = card.Revision + 1
                 };
                 await cards.SaveAsync(updated, request.ExpectedRevision, cancellationToken);
@@ -156,26 +161,46 @@ internal static class CardEndpoints
                 IProjectDefinitionStore definitions,
                 CancellationToken cancellationToken) =>
             {
-                if (string.IsNullOrWhiteSpace(request.CardId) ||
-                    string.IsNullOrWhiteSpace(request.Title) ||
-                    request.OwnPriority < 0)
+                if (string.IsNullOrWhiteSpace(request.Title) || request.OwnPriority < 0)
                 {
                     return Results.BadRequest(new ErrorResponse(
-                        "Card id and title are required and priority cannot be negative."));
+                        "Card title is required and priority cannot be negative."));
                 }
 
-                var reference = new CardReference(projectId, request.CardId);
+                if (!CardCreation.IsCreationStage(request.StageId))
+                {
+                    return Results.BadRequest(new ErrorResponse(
+                        "A card is created in the backlog and moves from there; it cannot start in another stage."));
+                }
+
+                var kind = CardKind.Canonical(request.Kind);
+                var (workflow, backlog, reason) = await CardCreation.ResolveAsync(
+                    definitions,
+                    projectId,
+                    kind,
+                    request.WorkflowId,
+                    cancellationToken);
+                if (workflow is null || backlog is null)
+                {
+                    return Results.BadRequest(new ErrorResponse(reason!));
+                }
+
+                // The id is Aiko's own bookkeeping, so it is invented here unless the caller named one.
+                var cardId = string.IsNullOrWhiteSpace(request.CardId)
+                    ? await CardIdGenerator.NextAsync(cards, projectId, kind, cancellationToken)
+                    : request.CardId.Trim();
+                var reference = new CardReference(projectId, cardId);
                 if (await cards.FindAsync(reference, cancellationToken) is not null)
                 {
-                    return Results.Conflict(new ErrorResponse($"Card '{request.CardId}' already exists."));
+                    return Results.Conflict(new ErrorResponse($"Card '{cardId}' already exists."));
                 }
 
                 var card = new Card(
                     reference,
-                    CardKind.Canonical(request.Kind),
+                    kind,
                     request.Title.Trim(),
-                    request.WorkflowId,
-                    request.StageId,
+                    workflow.Id,
+                    backlog.Id,
                     1,
                     request.OwnPriority,
                     (request.DeclaredScopeFiles ?? [])
@@ -184,24 +209,99 @@ internal static class CardEndpoints
                         .Distinct(StringComparer.OrdinalIgnoreCase)
                         .ToArray(),
                     [],
-                    new Dictionary<string, string>(StringComparer.Ordinal),
+                    BuildMetadata(request.Requirements),
                     null,
                     request.CriterionValues,
                     NormalizeSize(request.Size));
 
-                var stage = await CardStageValidation.FindValidStageAsync(
-                    card,
-                    request.StageId,
-                    definitions,
-                    cancellationToken);
-                if (stage is null)
+                await cards.SaveAsync(card, 0, cancellationToken);
+                return Results.Created($"/api/v1/projects/{projectId}/cards/{cardId}", card);
+            });
+        // Asking an agent to estimate a card. The daemon cannot run an agent - that is a post-MVP feature -
+        // so this records who was asked and leaves the command in the card's discussion; the person runs it
+        // in that agent's terminal, and the agent writes the estimate back through aiko_estimate_card.
+        app.MapPost(
+            "/api/v1/projects/{projectId}/cards/{cardId}/estimate",
+            async (
+                string projectId,
+                string cardId,
+                EstimateCardRequest request,
+                ICardStore cards,
+                ICardDiscussionStore discussion,
+                CancellationToken cancellationToken) =>
+            {
+                if (string.IsNullOrWhiteSpace(request.AgentAdapterId))
                 {
-                    return Results.BadRequest(new ErrorResponse("Stage is not valid for this card workflow."));
+                    return Results.BadRequest(new ErrorResponse("An estimate needs an agent to run it."));
                 }
 
-                await cards.SaveAsync(card, 0, cancellationToken);
-                return Results.Created($"/api/v1/projects/{projectId}/cards/{request.CardId}", card);
+                var reference = new CardReference(projectId, cardId);
+                var card = await cards.FindAsync(reference, cancellationToken);
+                if (card is null)
+                {
+                    return Results.NotFound();
+                }
+
+                var agent = request.AgentAdapterId.Trim();
+                var metadata = new Dictionary<string, string>(card.Metadata, StringComparer.Ordinal)
+                {
+                    [EstimateAgentMetadataKey] = agent,
+                    [EstimateRequestedAtMetadataKey] = DateTimeOffset.UtcNow.ToString("O")
+                };
+                var updated = card with { Metadata = metadata, Revision = card.Revision + 1 };
+                await cards.SaveAsync(updated, card.Revision, cancellationToken);
+                await discussion.AppendAsync(
+                    reference,
+                    "aiko",
+                    $"Estimate requested from {agent}. Run /aiko-estimate {cardId} in its terminal.",
+                    cancellationToken);
+                return Results.Ok(updated);
             });
+    }
+
+    /// <summary>The metadata key naming the agent a person asked to estimate a card.</summary>
+    private const string EstimateAgentMetadataKey = "estimateRequestedAgentAdapterId";
+
+    /// <summary>The metadata key recording when the estimate was asked for.</summary>
+    private const string EstimateRequestedAtMetadataKey = "estimateRequestedAt";
+
+    /// <summary>
+    /// The metadata a new card starts with: its requirements, when the caller wrote any.
+    /// </summary>
+    /// <remarks>
+    /// Requirements are prose, so they live in the card's metadata rather than as a field of their own.
+    /// A card created without any holds no key at all, which keeps its document as small as the card is.
+    /// </remarks>
+    private static Dictionary<string, string> BuildMetadata(string? requirements)
+    {
+        var metadata = new Dictionary<string, string>(StringComparer.Ordinal);
+        if (!string.IsNullOrWhiteSpace(requirements))
+        {
+            metadata[Card.RequirementsMetadataKey] = requirements.Trim();
+        }
+
+        return metadata;
+    }
+
+    /// <summary>
+    /// The card's metadata with its requirements replaced: the text is trimmed and stored, and a blank
+    /// string removes the key rather than storing an empty one, so "no requirements" has one representation.
+    /// </summary>
+    private static IReadOnlyDictionary<string, string> WithRequirements(
+        IReadOnlyDictionary<string, string> metadata,
+        string requirements)
+    {
+        var updated = new Dictionary<string, string>(metadata, StringComparer.Ordinal);
+        if (string.IsNullOrWhiteSpace(requirements))
+        {
+            updated.Remove(Card.RequirementsMetadataKey);
+        }
+        else
+        {
+            updated[Card.RequirementsMetadataKey] = requirements.Trim();
+        }
+
+        return updated;
     }
 
     /// <summary>

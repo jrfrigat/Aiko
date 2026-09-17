@@ -50,16 +50,10 @@
                             <span class="aiko-tag aiko-tag--accent">@board.Project.Name</span>
                         </FlareStack>
 
-                        <div class="aiko-form-row">
-                            <AikoField Label="@Loc.Get("CardId")"
-                                       Hint="@Loc.Get("CardIdHelper")"
-                                       Placeholder="FL-201"
-                                       Value="@_newCardId"
-                                       ValueChanged="value => _newCardId = value" />
-                            <AikoField Label="@Loc.Get("Title")"
-                                       Value="@_newCardTitle"
-                                       ValueChanged="value => _newCardTitle = value" />
-                        </div>
+                        <AikoField Label="@Loc.Get("Title")"
+                                   Hint="@Loc.Get("CardIdAutoHint")"
+                                   Value="@_newCardTitle"
+                                   ValueChanged="value => _newCardTitle = value" />
                     </FlareStack>
                 </FlarePaper>
 
@@ -72,16 +66,26 @@
                             <FlareStack Gap="FlareSpacing.None">
                                 <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("ScopeTitle")</FlareText>
                                 <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                                    @Loc.Get("ScopeHelper")
+                                    @Loc.Get("ScopeAndRequirementsHint")
                                 </FlareText>
                             </FlareStack>
                         </FlareStack>
-                        <AikoField Label="@Loc.Get("DeclaredScope")"
-                                   Hint="@Loc.Get("ScopeHelper")"
-                                   Placeholder="@Loc.Get("ScopeHelper")"
-                                   Rows="5"
-                                   Value="@_newCardScope"
-                                   ValueChanged="value => _newCardScope = value" />
+                        @* Both blocks are long prose, so both wear the design's prompt block - the same one
+                           the card page and the stage editor use - instead of a plain text area. Requirements
+                           come first: what the card must do is what the scope is chosen to serve. *@
+                        <PromptField Name="requirements.md"
+                                     Title="@Loc.Get("Requirements")"
+                                     Rows="4"
+                                     Placeholder="@Loc.Get("RequirementsHelper")"
+                                     Value="@_newCardRequirements"
+                                     ValueChanged="value => _newCardRequirements = value" />
+                        <PromptField Name="scope.txt"
+                                     Title="@Loc.Get("DeclaredScope")"
+                                     Rows="5"
+                                     ShowMetrics="false"
+                                     Placeholder="@Loc.Get("ScopeHelper")"
+                                     Value="@_newCardScope"
+                                     ValueChanged="value => _newCardScope = value" />
                         @if (ScopePreview is { Count: > 0 } preview)
                         {
                             <FlareStack Gap="FlareSpacing.XXSmall">
@@ -113,18 +117,11 @@
                                 <option value="@option.CardType">@option.Title</option>
                             }
                         </AikoSelectField>
-                        @* The stage list is the chosen kind's own workflow: a task cannot join a story stage,
-                           which is why the field is a select rather than free text. *@
-                        <AikoSelectField Label="@Loc.Get("Stage")"
-                                         Value="@_newCardStage"
-                                         ValueChanged="value => _newCardStage = value"
-                                         Hint="@Loc.Format("WorkflowStagesHint", StagesFor(SelectedKind).Count)">
-                            @foreach (var stage in StagesFor(SelectedKind))
-                            {
-                                var option = stage;
-                                <option value="@option.Id">@option.Title</option>
-                            }
-                        </AikoSelectField>
+                        @* Where the card starts is not a choice: it is born in backlog and moves from there,
+                           so the form states the fact instead of offering a stage nobody has worked out yet. *@
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Get("BacklogStageNote")
+                        </FlareText>
                         <AikoSelectField Label="@Loc.Get("SizeIdLabel")"
                                          Value="@_newCardSize"
                                          ValueChanged="value => _newCardSize = value"
@@ -171,6 +168,11 @@
                                              Value="@_newCardPriority"
                                              ValueChanged="value => _newCardPriority = value" />
                         }
+                        @* The estimate is the agent's job: a score left empty here is one the agent will
+                           judge after the card exists, so the form says how rather than demanding a number. *@
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Get("EstimateAfterCreateHint")
+                        </FlareText>
                     </FlareStack>
                 </FlarePaper>
 
@@ -196,12 +198,11 @@
 @code {
     [Parameter] public string ProjectId { get; set; } = string.Empty;
 
-    private string? _newCardId;
     private string? _newCardKind;
     private string? _newCardTitle;
-    private string? _newCardStage;
     private string? _newCardSize;
     private decimal? _newCardPriority = 1m;
+    private string? _newCardRequirements;
     private string? _newCardScope;
     private bool _creating;
     private IReadOnlyList<PriorityCriterion> _priorityCriteria = [];
@@ -209,7 +210,7 @@
 
     private string BoardHref => $"/p/{Uri.EscapeDataString(ProjectId)}/board";
 
-    /// <summary>The type the form is currently creating, which is what the stage list follows.</summary>
+    /// <summary>The type the form is currently creating.</summary>
     private string SelectedKind =>
         string.IsNullOrWhiteSpace(_newCardKind) ? DefaultCardType : _newCardKind;
 
@@ -225,16 +226,6 @@
         CardTypes.FirstOrDefault(workflow => StringComparer.Ordinal.Equals(workflow.Id, "task"))?.CardType
         ?? CardTypes.FirstOrDefault()?.CardType
         ?? CardKind.Task;
-
-    /// <summary>
-    /// The stages a card of this type can start in: the stages of the workflow that defines it. A task cannot
-    /// join a story stage, so the form offers the workflow's stages rather than a free-text id.
-    /// </summary>
-    private IReadOnlyList<StageDefinition> StagesFor(string kind) =>
-        State.Board?.Workflows
-            .FirstOrDefault(workflow => StringComparer.OrdinalIgnoreCase.Equals(workflow.CardType, kind))
-            ?.Stages.OrderBy(stage => stage.Order)
-            .ToArray() ?? [];
 
     /// <summary>The project's size grid, the same ladder the agent assigns a card from.</summary>
     private IReadOnlyList<SizeDefinition> SizeGrid => State.Board is null ? [] : _sizeGrid;
@@ -266,11 +257,10 @@
         .Distinct(StringComparer.OrdinalIgnoreCase)
         .ToArray();
 
-    /// <summary>Switching the type switches the pipeline, so the stage follows it.</summary>
+    /// <summary>The type is what the form follows; nothing else on it depends on the choice.</summary>
     private Task OnKindChangedAsync(string? kind)
     {
         _newCardKind = kind;
-        _newCardStage = DefaultStage(SelectedKind);
         return Task.CompletedTask;
     }
 
@@ -281,10 +271,6 @@
         if (string.IsNullOrWhiteSpace(_newCardKind))
         {
             _newCardKind = DefaultCardType;
-        }
-        if (string.IsNullOrWhiteSpace(_newCardStage))
-        {
-            _newCardStage = DefaultStage(SelectedKind);
         }
     }
 
@@ -312,11 +298,6 @@
         }
     }
 
-    /// <summary>The first stage of the workflow that defines this type.</summary>
-    private string DefaultStage(string kind) =>
-        StagesFor(kind).Select(stage => stage.Id).FirstOrDefault()
-        ?? WorkflowDefinition.BacklogStageId;
-
     private decimal? GetCriterionValue(string id) =>
         _criterionValues.TryGetValue(id, out var value) ? value : null;
 
@@ -339,11 +320,10 @@
     private async Task CreateAsync()
     {
         if (State.Board is not { } board ||
-            string.IsNullOrWhiteSpace(_newCardId) ||
             string.IsNullOrWhiteSpace(_newCardTitle) ||
             _creating)
         {
-            await State.ReportErrorAsync(Loc.Get("IdTitleRequired"));
+            await State.ReportErrorAsync(Loc.Get("TitleRequired"));
             return;
         }
 
@@ -355,25 +335,32 @@
             var ownPriority = criterionValues.Count > 0
                 ? PriorityCalculator.CalculateOwnPriority(criterionValues, _priorityCriteria)
                 : _newCardPriority ?? 0m;
+            // The id and the stage are not sent: Aiko names the card and lands it in backlog. Only the
+            // fields a person actually filled in travel with the request.
             var request = new CreateCardRequest(
-                _newCardId.Trim(),
+                null,
                 kind,
                 _newCardTitle.Trim(),
                 CardKind.ToWorkflowId(kind),
-                string.IsNullOrWhiteSpace(_newCardStage) ? DefaultStage(kind) : _newCardStage.Trim(),
+                null,
                 ownPriority,
                 ScopePreview.ToArray(),
                 criterionValues.Count > 0 ? criterionValues : null,
-                string.IsNullOrWhiteSpace(_newCardSize) ? null : _newCardSize.Trim());
+                string.IsNullOrWhiteSpace(_newCardSize) ? null : _newCardSize.Trim(),
+                string.IsNullOrWhiteSpace(_newCardRequirements) ? null : _newCardRequirements.Trim());
             using var response = await Http.PostAsJsonAsync(
                 $"api/v1/projects/{Uri.EscapeDataString(board.Project.Id)}/cards",
                 request,
                 PwaJson.Options);
             response.EnsureSuccessStatusCode();
+            // The id is Aiko's, so it comes back from the daemon rather than from the form.
+            var created = await response.Content.ReadFromJsonAsync<Card>(PwaJson.Options);
             await State.LoadBoardAsync();
             // Straight to the card: it exists now, and that is what the person came here to fill in.
-            Navigation.NavigateTo(
-                $"/p/{Uri.EscapeDataString(ProjectId)}/cards/{Uri.EscapeDataString(request.CardId)}");
+            var cardId = created?.Reference.CardId;
+            Navigation.NavigateTo(string.IsNullOrWhiteSpace(cardId)
+                ? BoardHref
+                : $"/p/{Uri.EscapeDataString(ProjectId)}/cards/{Uri.EscapeDataString(cardId)}");
         }
         catch (Exception exception)
         {

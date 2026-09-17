@@ -20,6 +20,7 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         "aiko_list_cards",
         "aiko_get_card",
         "aiko_create_card",
+        "aiko_estimate_card",
         "aiko_update_card",
         "aiko_move_card",
         "aiko_link_cards",
@@ -173,28 +174,32 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
     {
         await using var client = await ConnectAsync();
 
+        // No id and no stage: Aiko names the card and lands it in backlog.
         var create = await client.CallToolAsync(
             "aiko_create_card",
             new Dictionary<string, object?>
             {
-                ["cardId"] = "TASK-MCP-001",
                 ["kind"] = "task",
                 ["title"] = "Verify MCP mutation",
-                ["workflowId"] = "task",
-                ["stageId"] = "backlog",
                 ["ownPriority"] = 5,
                 ["declaredScopeFiles"] = new[] { "src/**" }
             },
             cancellationToken: CancellationToken.None);
         Assert.NotEqual(true, create.IsError);
+        var createdText = FirstText(create);
+        Assert.False(string.IsNullOrWhiteSpace(createdText));
+        using var created = JsonDocument.Parse(createdText!);
+        var cardId = created.RootElement.GetProperty("reference").GetProperty("cardId").GetString();
+        Assert.StartsWith("TASK-", cardId, StringComparison.Ordinal);
+        Assert.Equal("backlog", created.RootElement.GetProperty("stageId").GetString());
 
         var get = await client.CallToolAsync(
             "aiko_get_card",
-            new Dictionary<string, object?> { ["cardId"] = "TASK-MCP-001" },
+            new Dictionary<string, object?> { ["cardId"] = cardId },
             cancellationToken: CancellationToken.None);
         var cardText = FirstText(get);
         Assert.False(string.IsNullOrWhiteSpace(cardText));
-        Assert.Contains("TASK-MCP-001", cardText, StringComparison.Ordinal);
+        Assert.Contains(cardId!, cardText, StringComparison.Ordinal);
     }
 
     [Fact]

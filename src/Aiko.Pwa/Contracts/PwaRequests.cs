@@ -10,16 +10,33 @@ namespace Aiko.Pwa.Contracts;
 /// reachable from the generated code (a private type nested in a component is not).
 /// </summary>
 /// <summary>Creates a card of any type the project defines.</summary>
+/// <param name="CardId">A card id to import, or null to let Aiko name the card.</param>
+/// <param name="Kind">Card type id.</param>
+/// <param name="Title">Human-readable title.</param>
+/// <param name="WorkflowId">Workflow id, or null to take the type's own workflow.</param>
+/// <param name="StageId">Must be the backlog stage (or null); a card always starts unelaborated.</param>
+/// <param name="OwnPriority">Own priority before the size coefficient.</param>
+/// <param name="DeclaredScopeFiles">File patterns the card intends to touch.</param>
+/// <param name="CriterionValues">Per-criterion values, or null.</param>
+/// <param name="Size">Size step of the project's grid, or null.</param>
+/// <param name="Requirements">What the card is asked to do, or null for none.</param>
 internal sealed record CreateCardRequest(
-    string CardId,
+    string? CardId,
     string Kind,
     string Title,
-    string WorkflowId,
-    string StageId,
+    string? WorkflowId,
+    string? StageId,
     decimal OwnPriority,
     IReadOnlyList<string>? DeclaredScopeFiles,
     IReadOnlyDictionary<string, decimal>? CriterionValues,
-    string? Size = null);
+    string? Size = null,
+    string? Requirements = null);
+
+/// <summary>
+/// Asks an agent to estimate a card. The daemon records who was asked; the person runs the
+/// <c>/aiko-estimate</c> command in that agent's terminal.
+/// </summary>
+internal sealed record EstimateCardRequest(string AgentAdapterId);
 
 /// <summary>
 /// Moves a card to another workflow stage.
@@ -40,13 +57,17 @@ internal sealed record MoveCardRequest(
 /// The card's scores per criterion keyed by criterion id, or null to leave the stored values alone - which
 /// is what a caller editing only the title wants.
 /// </param>
+/// <param name="Requirements">
+/// What the card is asked to do, or null to leave the stored text alone. An empty string clears it.
+/// </param>
 internal sealed record UpdateCardRequest(
     string Title,
     decimal OwnPriority,
     IReadOnlyList<string> DeclaredScopeFiles,
     long ExpectedRevision,
     string? Size = null,
-    IReadOnlyDictionary<string, decimal>? CriterionValues = null);
+    IReadOnlyDictionary<string, decimal>? CriterionValues = null,
+    string? Requirements = null);
 
 /// <summary>
 /// Writes a card artifact. A null version creates or overwrites without a conflict check.

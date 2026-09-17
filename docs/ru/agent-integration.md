@@ -22,11 +22,11 @@ http://127.0.0.1:<port>/mcp
 aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<projectId>
 ```
 
-## Набор инструментов (28 tools)
+## Набор инструментов
 
 - **Контекст проекта** - `aiko_get_project_context`, `aiko_open_ui`.
 - **Карточки** - `aiko_list_cards`, `aiko_get_card`, `aiko_create_card`, `aiko_update_card`,
-  `aiko_move_card`, `aiko_take_card`, `aiko_link_cards`.
+  `aiko_estimate_card`, `aiko_move_card`, `aiko_take_card`, `aiko_link_cards`.
 - **Execution** - `aiko_start_stage`, `aiko_report_progress`, `aiko_request_scope_expansion`,
   `aiko_complete_stage`, `aiko_pause_execution`, `aiko_handoff_execution`,
   `aiko_resume_execution`, `aiko_report_agent_state`, `aiko_report_commit`, `aiko_approve_commit`.
@@ -42,15 +42,23 @@ aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<projectId>
 
 Project-scoped скиллы/команды (устанавливаются `aiko agent install --project <id>`):
 
-`/aiko-create`, `/aiko-run`, `/aiko-scope`, `/aiko-handoff`,
+`/aiko-create`, `/aiko-estimate`, `/aiko-run`, `/aiko-scope`, `/aiko-handoff`,
 `/aiko-memory`, `/aiko-status`, `/aiko-ui`.
 
 `/aiko-create` принимает тип карточки аргументом (`/aiko-create bug Не работает выпадающий список`) и
-определяет его по контексту проекта, поэтому покрывает любой тип без перегенерации. Рядом демон ставит по
+определяет его по контексту проекта, поэтому покрывает любой тип без перегенерации. Карточку называет
+Aiko - человек никогда не придумывает id - и она всегда создаётся в этапе backlog своего типа: карточка,
+которую ещё не проработали, не должна начинаться нигде больше. Рядом демон ставит по
 одной команде `/aiko-create-<тип>` на каждый тип карточек проекта - `/aiko-create-story`,
 `/aiko-create-task` и по одной на каждый тип, добавленный в редакторе workflow. Эти команды - проекция
 workflow проекта: они перезаписываются при создании и удалении типа, и только для агентов, уже
 подключённых к этому проекту.
+
+`/aiko-estimate <cardId>` заполняет оценку, которую человек оставил машине: агент читает карточку и
+контекст проекта (описания шагов сетки размеров и диапазоны каждого критерия) и вызывает
+`aiko_estimate_card` с шагом размера и оценками. Это вторая половина создания карточки из одного
+заголовка и требований - размер и значения критериев не обязательны при создании, и карточка без них
+как раз и рассчитана на оценку агентом.
 
 `/aiko-run <cardId> [stageId]` запускает карточку: берёт её текущий этап и инструкцию этого этапа из
 контекста проекта, выполняет работу, отчитывается о прогрессе и завершает этап. Указанный `stageId`
@@ -107,6 +115,7 @@ UI пока нет, таблица говорит это прямо, а не д�
 | Создать карточку любого типа проекта | `/aiko-create <тип> <заголовок>`, `/aiko-create-<тип>` | `aiko_create_card`, `aiko_create_card_in_project` | Доска - *Создать карточку* |
 | Прочитать доску | `/aiko-status` | `aiko_list_cards`, `aiko_get_card` | Доска, и карточка как отдельная страница |
 | Изменить карточку | — | `aiko_update_card` | Страница карточки - *Сохранить* |
+| Оценить размер и оценки карточки | `/aiko-estimate <cardId>` | `aiko_estimate_card` | Страница карточки - *Попросить оценить* |
 | Перевести карточку по этапам | `/aiko-run <cardId> <stageId>` | `aiko_move_card` | Перетаскивание между колонками |
 | Запустить этап | — | `aiko_start_stage` | — (доска покажет результат) |
 | Отчитаться о прогрессе | `/aiko-run` | `aiko_report_progress` | Страница карточки - история исполнения |

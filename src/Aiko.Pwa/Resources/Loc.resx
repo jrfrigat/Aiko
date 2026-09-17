@@ -19,10 +19,21 @@
   <data name="CreateCard" xml:space="preserve"><value>Card</value></data>
   <data name="CreateCardTitle" xml:space="preserve"><value>Create card</value></data>
   <data name="CardIdentityTitle" xml:space="preserve"><value>The card</value></data>
-  <data name="CardIdentityHint" xml:space="preserve"><value>Its id on the board, and the title everyone reads it by</value></data>
-  <data name="CardIdHelper" xml:space="preserve"><value>A stable id, for example FL-201</value></data>
+  <data name="CardIdentityHint" xml:space="preserve"><value>Aiko names the card; you give it the title everyone reads it by</value></data>
+  <data name="CardIdAutoHint" xml:space="preserve"><value>Aiko names it, for example TASK-3</value></data>
+  <data name="Requirements" xml:space="preserve"><value>Requirements</value></data>
+  <data name="ScopeAndRequirementsHint" xml:space="preserve"><value>What the card must do, and the files it may touch</value></data>
+  <data name="RequirementsHelper" xml:space="preserve"><value>What this card must do, in your words</value></data>
+  <data name="BacklogStageNote" xml:space="preserve"><value>The card starts in backlog and moves from there.</value></data>
+  <data name="EstimateAfterCreateHint" xml:space="preserve"><value>Left blank, the size and the scores are the agent's estimate - run /aiko-estimate afterwards.</value></data>
+  <data name="EstimateTitle" xml:space="preserve"><value>Estimate</value></data>
+  <data name="EstimateHint" xml:space="preserve"><value>The size and criterion scores you did not set are the agent's judgement.</value></data>
+  <data name="EstimateAgent" xml:space="preserve"><value>Who estimates</value></data>
+  <data name="EstimateCard" xml:space="preserve"><value>Ask to estimate</value></data>
+  <data name="EstimateCommandHint" xml:space="preserve"><value>Run {0} in that agent's terminal.</value></data>
+  <data name="EstimateRequested" xml:space="preserve"><value>Asked {0} to estimate this card.</value></data>
+  <data name="EstimateRequestFailed" xml:space="preserve"><value>The estimate request failed: {0}</value></data>
   <data name="CardPlaceTitle" xml:space="preserve"><value>Where it starts</value></data>
-  <data name="WorkflowStagesHint" xml:space="preserve"><value>{0} stages in this workflow</value></data>
   <data name="ScoringHint" xml:space="preserve"><value>The agent may refine these later; the card's own score is computed from them</value></data>
   <data name="CreateCardHint" xml:space="preserve"><value>The card opens right after it is created - that is where its artifacts and runs collect</value></data>
   <data name="Add" xml:space="preserve"><value>Add</value></data>
@@ -35,7 +46,6 @@
   <data name="Title" xml:space="preserve"><value>Title</value></data>
   <data name="ProjectPath" xml:space="preserve"><value>Project path</value></data>
   <data name="ProjectName" xml:space="preserve"><value>Name (optional)</value></data>
-  <data name="CardId" xml:space="preserve"><value>ID (for example FL-201)</value></data>
   <data name="Stage" xml:space="preserve"><value>Stage (for example backlog)</value></data>
   <data name="Priority" xml:space="preserve"><value>Priority (number)</value></data>
   <data name="Scope" xml:space="preserve"><value>Scope (comma separated)</value></data>
@@ -64,7 +74,6 @@
   <data name="TaskKind" xml:space="preserve"><value>Task</value></data>
   <data name="StoryKind" xml:space="preserve"><value>Story</value></data>
   <data name="PathRequired" xml:space="preserve"><value>Enter the project path.</value></data>
-  <data name="IdTitleRequired" xml:space="preserve"><value>Enter the card ID and title.</value></data>
   <data name="AddProjectFailed" xml:space="preserve"><value>Could not add the project: {0}</value></data>
   <data name="CreateCardFailed" xml:space="preserve"><value>Could not create the card: {0}</value></data>
   <data name="MoveFailed" xml:space="preserve"><value>Move {0} was not saved: {1}</value></data>

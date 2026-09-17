@@ -39,9 +39,12 @@ internal static class AgentTemplates
         """
         Create a card in Aiko. Read aiko_get_project_context first: it lists every card type this project
         defines, the workflow behind each one and the stages of its pipeline. Use the type the user named;
-        if they named none, ask which type they mean. Then call aiko_create_card with that type's kind, its
-        workflow id and its backlog stage, a file-safe id (type id plus a number, for example BUG-001), a
-        clear title taken from what the user asked for, and an own priority. Report the created card id.
+        if they named none, ask which type they mean. Then call aiko_create_card with that type's kind, a
+        clear title taken from what the user asked for, an own priority and, for work that changes files,
+        the declared scope patterns - and nothing else. Aiko names the card and lands it in the type's
+        backlog stage, so never invent a card id or a stage: neither is yours to choose. Leave the size
+        and the criterion values out when the user did not set them, and run /aiko-estimate afterwards
+        instead of guessing a number. Report the created card id.
         """;
 
     /// <summary>
@@ -56,20 +59,48 @@ internal static class AgentTemplates
     public static string CreateCard(CardTypeDescriptor type)
     {
         var kind = CardKind.FromWorkflowId(type.Id);
-        var prefix = type.Id.ToUpperInvariant();
         var intro = string.IsNullOrWhiteSpace(type.Description)
             ? $"Create a {type.Title} card in Aiko."
             : $"Create a {type.Title} card in Aiko. {type.Description.Trim()}";
         return $"""
             {intro}
 
-            This type is the workflow {type.Id}: call aiko_create_card with kind={kind}, workflowId={type.Id}
-            and stageId={WorkflowDefinition.BacklogStageId}. The project context lists the rest of that
-            pipeline if you need it. Pick a file-safe id (for example {prefix}-001), a clear title taken from
-            what the user asked for, an own priority and, for work that changes files, the declared scope
-            patterns. Report the created card id.
+            This type is the workflow {type.Id}: call aiko_create_card with kind={kind}, a clear title taken
+            from what the user asked for, an own priority and, for work that changes files, the declared
+            scope patterns - and nothing else. Aiko names the card and lands it in the workflow's
+            {WorkflowDefinition.BacklogStageId} stage, so never invent a card id or a stage; the project
+            context lists the rest of that pipeline if you need it. Leave the size and the criterion values
+            out when the user did not set them and run /aiko-estimate afterwards instead of guessing.
+            Report the created card id.
             """;
     }
+
+    /// <summary>
+    /// Slash command that estimates a card: the size step and the criterion scores the person left for the
+    /// machine to judge.
+    /// </summary>
+    /// <remarks>
+    /// Estimation is what lets a card be created from a title and its requirements alone. The grid and the
+    /// criteria are project data, so the command reads them from the context instead of naming them, and the
+    /// agent's judgement is written back through <c>aiko_estimate_card</c> rather than typed into the UI.
+    /// </remarks>
+    public const string Estimate =
+        """
+        Estimate a card in Aiko. The user named the card: its id is the first argument.
+
+        Read aiko_get_project_context and aiko_get_card. The context carries the project's size grid, with
+        each step's description, and every scoring criterion with its range and weight; the card carries its
+        title, its requirements and its declared scope.
+
+        Judge the work from those and call aiko_estimate_card with the card id, the revision you read and
+        the estimate: the size step whose description matches the work, and one "criterionId=score" entry per
+        criterion the project defines. Set the own priority only when the criteria do not already account for
+        it. A step that means "too large for one stage" is a plan to split the card, not an estimate to start
+        from - say so instead of writing it.
+
+        Report at the end: the size and the scores you wrote, what you judged them from, and whether the
+        card looks too large to run as it stands.
+        """;
 
     /// <summary>
     /// Slash command that runs a card: the work its current stage asks for, whichever stage and whichever card

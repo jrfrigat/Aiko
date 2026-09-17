@@ -13,10 +13,14 @@ namespace Aiko.Server.Contracts;
 /// A form that edits the criteria sends the whole set, so a criterion left out of the dictionary is one
 /// the card holds no value for - which is how a cleared field is saved (ТЗ §10).
 /// </param>
+/// <param name="Requirements">
+/// What the card is asked to do, or null to leave the stored text untouched. An empty string clears it.
+/// </param>
 internal sealed record UpdateCardRequest(
     string Title,
     decimal OwnPriority,
     IReadOnlyList<string> DeclaredScopeFiles,
     long ExpectedRevision,
     string? Size = null,
-    IReadOnlyDictionary<string, decimal>? CriterionValues = null);
+    IReadOnlyDictionary<string, decimal>? CriterionValues = null,
+    string? Requirements = null);
