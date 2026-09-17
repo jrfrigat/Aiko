@@ -58,10 +58,42 @@
                     }
                 </FlareStack>
 
-                @if (Stage is { Instruction.Length: > 0 } asked)
-                {
-                    <span class="aiko-tile">@asked.Instruction</span>
-                }
+                @* What the stage asks for. The instruction belongs to the workflow rather than to the card,
+                   so it is saved on its own and the hint says what that means. *@
+                <FlareStack Gap="FlareSpacing.XSmall">
+                    <FlareTextArea Label="@Loc.Get("Instruction")"
+                                   HelperText="@Loc.Get("WorkflowHint")"
+                                   Rows="3"
+                                   @bind-Value="_instruction" />
+                    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                        <FlareButton Variant="ButtonVariant.Tonal"
+                                     Size="ButtonSize.Sm"
+                                     Loading="@_savingInstruction"
+                                     OnClick="SaveInstructionAsync">
+                            <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.Edit" /></LeadingIcon>
+                            <ChildContent>@Loc.Get("SaveStageInstruction")</ChildContent>
+                        </FlareButton>
+                    </FlareStack>
+                </FlareStack>
+
+                @* What the card declares it will touch: the half of the scope the card owns, and the one
+                   piece of it a person edits here. *@
+                <FlareStack Gap="FlareSpacing.XSmall">
+                    <FlareTextArea Label="@Loc.Get("DeclaredScope")"
+                                   HelperText="@Loc.Get("ScopeHelper")"
+                                   Rows="3"
+                                   @bind-Value="_scope" />
+                    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                        <FlareButton Variant="ButtonVariant.Tonal"
+                                     Size="ButtonSize.Sm"
+                                     Loading="@_saving"
+                                     OnClick="SaveAsync">
+                            <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.Check" /></LeadingIcon>
+                            <ChildContent>@Loc.Get("SaveCard")</ChildContent>
+                        </FlareButton>
+                    </FlareStack>
+                </FlareStack>
+
                 <FileGroup Title="@Loc.Get("FilesDeclared")" Files="Card.DeclaredScopeFiles" />
                 <FileGroup Title="@Loc.Get("FilesActual")" Files="Card.ActualChangedFiles" />
                 <FileGroup Title="@Loc.Get("OutOfScope")"
@@ -90,8 +122,7 @@
                                 <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
                                     <FlareIconView Value="@(present ? MaterialDesign3Icons.Regular.CheckCircle : MaterialDesign3Icons.Regular.RadioButtonUnchecked)"
                                                    Color="@(present ? FlareColor.Tertiary : FlareColor.OnSurfaceVariant2)" />
-                                    <FlareText Element="span" Mono="true" Typo="TypographyScale.LabelSmall"
-                                               Class="@(present ? "aiko-done" : null)">@item.Path</FlareText>
+                                    <FlareText Element="span" Mono="true" Typo="TypographyScale.LabelSmall">@item.Path</FlareText>
                                     <span class="aiko-tag aiko-tag--quiet">@item.MissingPolicy</span>
                                 </FlareStack>
                                 <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
@@ -118,211 +149,176 @@
             </FlareStack>
         </FlarePaper>
 
-        @* What the last run reported: its own summary, its numbers, what it finished, what it left, and the
-           commits it says it made. *@
+        @* Everything the card has produced, in one block: what the last run reported, where the commit diff
+           will stand, the artifacts themselves and the run history. The design keeps them behind one tab
+           bar instead of stacking four panels, and a card is read one question at a time. The tabs are not
+           lazy: a document half-written in the artifacts tab has to survive a look at the run history. *@
         <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
-            <FlareStack Gap="FlareSpacing.Medium">
-                <FlareStack Row="true" Align="FlareAlignItems.Start" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small" Wrap="true">
-                    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
-                        <span class="aiko-panel__icon aiko-panel__icon--tertiary">
-                            <FlareIconView Value="@MaterialDesign3Icons.Regular.CheckCircle" />
-                        </span>
-                        <FlareStack Gap="FlareSpacing.None">
-                            <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("CompletedOutcomes")</FlareText>
-                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                                @Loc.Get("CompletedOutcomesHint")
-                            </FlareText>
-                        </FlareStack>
-                    </FlareStack>
-                    <span class="aiko-tag @(IsRunning ? "aiko-tag--live" : null)">@RunStateCaption</span>
-                </FlareStack>
+            <FlareTabs ActiveIndex="_activeTab" ActiveIndexChanged="OnActiveTabChanged">
+                <FlareTab Label="@Loc.Get("CompletedOutcomes")">
+                    <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.CheckCircle" /></LeadingIcon>
+                    <ChildContent>
+                            <FlareStack Gap="FlareSpacing.Medium">
+                            @if (LatestExecution is { } run)
+                            {
+                                @* The agent's own report, drawn as the design's synthesis block. *@
+                                <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                                    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
+                                        <FlareIconView Value="@MaterialDesign3Icons.Regular.SmartToy" Color="FlareColor.Primary" />
+                                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                                            @Loc.Get("AgentReport")
+                                        </FlareText>
+                                        <span class="aiko-tag @(IsRunning ? "aiko-tag--live" : null)">@RunStateCaption</span>
+                                    </FlareStack>
+                                    <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant">
+                                        @(run.ProgressSummary is { Length: > 0 } summary ? summary : Loc.Get("NoRunSummary"))
+                                    </FlareText>
+                                </FlareStack>
 
-                @if (LatestExecution is { } run)
-                {
-                    @* The agent's own report, drawn as the design's synthesis block. *@
-                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
-                        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
-                            <FlareIconView Value="@MaterialDesign3Icons.Regular.SmartToy" Color="FlareColor.Primary" />
-                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
-                                @Loc.Get("AgentReport")
-                            </FlareText>
-                        </FlareStack>
-                        <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant">
-                            @(run.ProgressSummary is { Length: > 0 } summary ? summary : Loc.Get("NoRunSummary"))
-                        </FlareText>
-                    </FlareStack>
+                                @* The run's own numbers: what it took, what it carried, what it left outside the scope. *@
+                                <div class="aiko-tiles aiko-tiles--three">
+                                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
+                                            @Loc.Get("AttemptsLabel")
+                                        </FlareText>
+                                        <span class="aiko-value">@DisplayFormat.Number(run.Attempts.Count)</span>
+                                    </FlareStack>
+                                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
+                                            @Loc.Get("ArtifactsLabel")
+                                        </FlareText>
+                                        <span class="aiko-value">@DisplayFormat.Number(_artifacts.Count)</span>
+                                    </FlareStack>
+                                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
+                                            @Loc.Get("OutOfScope")
+                                        </FlareText>
+                                        <span class="aiko-value @(OutOfScopeCount > 0 ? "aiko-value--warn" : null)">
+                                            @DisplayFormat.Number(OutOfScopeCount)
+                                        </span>
+                                    </FlareStack>
+                                </div>
 
-                    @* The run's own numbers: what it took, what it carried, what it left outside the scope. *@
-                    <div class="aiko-tiles aiko-tiles--three">
-                        <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
-                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
-                                @Loc.Get("AttemptsLabel")
-                            </FlareText>
-                            <span class="aiko-value">@DisplayFormat.Number(run.Attempts.Count)</span>
-                        </FlareStack>
-                        <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
-                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
-                                @Loc.Get("ArtifactsLabel")
-                            </FlareText>
-                            <span class="aiko-value">@DisplayFormat.Number(_artifacts.Count)</span>
-                        </FlareStack>
-                        <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
-                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
-                                @Loc.Get("OutOfScope")
-                            </FlareText>
-                            <span class="aiko-value @(OutOfScopeCount > 0 ? "aiko-value--warn" : null)">
-                                @DisplayFormat.Number(OutOfScopeCount)
-                            </span>
-                        </FlareStack>
-                    </div>
-
-                    @foreach (var step in run.CompletedSteps)
-                    {
-                        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
-                            <FlareIconView Value="@MaterialDesign3Icons.Regular.CheckCircle" Color="FlareColor.Tertiary" />
-                            <FlareText Element="span" Typo="TypographyScale.LabelMedium">@step</FlareText>
-                        </FlareStack>
-                    }
-                    @foreach (var step in run.RemainingSteps)
-                    {
-                        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
-                            <FlareIconView Value="@MaterialDesign3Icons.Regular.Pending" Color="FlareColor.OnSurfaceVariant2" />
-                            <FlareText Element="span" Typo="TypographyScale.LabelMedium">@step</FlareText>
-                        </FlareStack>
-                    }
-                    @if (run.Commits.Count > 0)
-                    {
-                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                            @Loc.Get("ReportedCommits")
-                        </FlareText>
-                        @foreach (var commit in run.Commits)
-                        {
-                            var reported = commit;
-                            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
-                                <span class="aiko-tag aiko-tag--accent">@(reported.Sha ?? Loc.Get("CommitPending"))</span>
-                                <FlareText Element="span" Typo="TypographyScale.LabelMedium">@reported.Message</FlareText>
-                            </FlareStack>
-                        }
-                    }
-                }
-                else
-                {
-                    <FlareEmptyState Compact="true" Title="@Loc.Get("NoExecutions")">
-                        <IconContent><FlareIconView Size="2rem" Value="@FlareIcons.PlayArrow" /></IconContent>
-                    </FlareEmptyState>
-                }
-            </FlareStack>
-        </FlarePaper>
-
-        @* Where the design puts its code-diff viewer. Aiko has no diff yet - the commits will come from git
-           once that integration lands - so the block states what will fill it rather than pretending. *@
-        <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
-            <FlareStack Gap="FlareSpacing.Medium">
-                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
-                    <span class="aiko-panel__icon aiko-panel__icon--secondary">
-                        <FlareIconView Value="@MaterialDesign3Icons.Regular.Difference" />
-                    </span>
-                    <FlareStack Gap="FlareSpacing.None">
-                        <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("CodeChanges")</FlareText>
-                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                            @Loc.Get("CodeChangesHint")
-                        </FlareText>
-                    </FlareStack>
-                </FlareStack>
-                <div class="aiko-placeholder">
-                    <span>@Loc.Get("CodeChangesPending")</span>
-                    <span>@Loc.Get("CodeChangesPlan")</span>
-                </div>
-            </FlareStack>
-        </FlarePaper>
-
-        @* The artifacts the card owns, edited in place. *@
-        <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
-            <FlareStack Gap="FlareSpacing.Medium">
-                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
-                    <span class="aiko-panel__icon aiko-panel__icon--primary">
-                        <FlareIconView Value="@MaterialDesign3Icons.Regular.Description" />
-                    </span>
-                    <FlareStack Gap="FlareSpacing.None">
-                        <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("ArtifactsTitle")</FlareText>
-                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                            @Loc.Get("ArtifactsHint")
-                        </FlareText>
-                    </FlareStack>
-                </FlareStack>
-                <ArtifactEditor Card="Card" Board="Board" Executions="_executions" />
-            </FlareStack>
-        </FlarePaper>
-
-
-        @* Every run of this card, newest first: the history the drawer used to end with. *@
-        <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
-            <FlareStack Gap="FlareSpacing.Medium">
-                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
-                    <span class="aiko-panel__icon aiko-panel__icon--secondary">
-                        <FlareIconView Value="@MaterialDesign3Icons.Regular.History" />
-                    </span>
-                    <FlareStack Gap="FlareSpacing.None">
-                        <FlareText Element="h2" Typo="TypographyScale.TitleMedium">
-                            @Loc.Get("RunsTitle") (@_executions.Count)
-                        </FlareText>
-                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                            @Loc.Get("RunsHint")
-                        </FlareText>
-                    </FlareStack>
-                </FlareStack>
-
-                @if (_loadingExecutions)
-                {
-                    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
-                        <FlareProgressCircular Size="TrackSize.Xs" />
-                        <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant">
-                            @Loc.Get("LoadingHistory")
-                        </FlareText>
-                    </FlareStack>
-                }
-                else if (_executions.Count == 0)
-                {
-                    <FlareEmptyState Compact="true" Title="@Loc.Get("NoExecutions")">
-                        <IconContent><FlareIconView Size="2rem" Value="@FlareIcons.PlayArrow" /></IconContent>
-                    </FlareEmptyState>
-                }
-                else
-                {
-                    <FlareTimeline>
-                        @foreach (var execution in _executions.OrderByDescending(item => item.UpdatedAt))
-                        {
-                            <FlareTimelineItem Title="@execution.StageId" Color="@StateColor(execution.State)">
-                                <FlareStack Gap="FlareSpacing.XXSmall">
-                                    <FlareBadge Standalone="true"
-                                                Text="@execution.State.ToString()"
-                                                Color="@StateColor(execution.State)" />
-                                    @if (!string.IsNullOrWhiteSpace(execution.ProgressSummary))
+                                @foreach (var step in run.CompletedSteps)
+                                {
+                                    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                                        <FlareIconView Value="@MaterialDesign3Icons.Regular.CheckCircle" Color="FlareColor.Tertiary" />
+                                        <FlareText Element="span" Typo="TypographyScale.LabelMedium">@step</FlareText>
+                                    </FlareStack>
+                                }
+                                @foreach (var step in run.RemainingSteps)
+                                {
+                                    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                                        <FlareIconView Value="@MaterialDesign3Icons.Regular.Pending" Color="FlareColor.OnSurfaceVariant2" />
+                                        <FlareText Element="span" Typo="TypographyScale.LabelMedium">@step</FlareText>
+                                    </FlareStack>
+                                }
+                                @if (run.Commits.Count > 0)
+                                {
+                                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                        @Loc.Get("ReportedCommits")
+                                    </FlareText>
+                                    @foreach (var commit in run.Commits)
                                     {
-                                        <FlareText Element="span" Typo="TypographyScale.BodySmall">@execution.ProgressSummary</FlareText>
-                                    }
-                                    @foreach (var attempt in execution.Attempts)
-                                    {
-                                        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
-                                            <FlareText Element="span" Typo="TypographyScale.LabelSmall">@attempt.AgentAdapterId</FlareText>
-                                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant">
-                                                @attempt.State
-                                            </FlareText>
+                                        var reported = commit;
+                                        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
+                                            <span class="aiko-tag aiko-tag--accent">@(reported.Sha ?? Loc.Get("CommitPending"))</span>
+                                            <FlareText Element="span" Typo="TypographyScale.LabelMedium">@reported.Message</FlareText>
                                         </FlareStack>
                                     }
-                                    @if (execution.Artifacts.Count > 0)
-                                    {
-                                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant">
-                                            @Loc.Format("ArtifactsLabel", string.Join(", ", execution.Artifacts))
-                                        </FlareText>
-                                    }
+                                }
+                            }
+                            else
+                            {
+                                <FlareEmptyState Compact="true" Title="@Loc.Get("NoExecutions")">
+                                    <IconContent><FlareIconView Size="2rem" Value="@FlareIcons.PlayArrow" /></IconContent>
+                                </FlareEmptyState>
+                            }
+                        </FlareStack>
+                </ChildContent>
+                </FlareTab>
+
+                @* Where the design puts its code-diff viewer. Aiko has no diff yet - the commits will come
+                   from git once that integration lands - so the tab states what will fill it rather than
+                   pretending. *@
+                <FlareTab Label="@Loc.Get("CodeChanges")">
+                    <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.Difference" /></LeadingIcon>
+                    <ChildContent>
+                        <div class="aiko-placeholder">
+                            <span>@Loc.Get("CodeChangesPending")</span>
+                            <span>@Loc.Get("CodeChangesPlan")</span>
+                        </div>
+                    </ChildContent>
+                </FlareTab>
+
+                @* The artifacts the card owns, edited in place. *@
+                <FlareTab Label="@ArtifactsTabLabel">
+                    <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.Description" /></LeadingIcon>
+                    <ChildContent>
+                        <ArtifactEditor Card="Card" Board="Board" Executions="_executions" ShowHeading="false" />
+                    </ChildContent>
+                </FlareTab>
+
+                @* Every run of this card, newest first. *@
+                <FlareTab Label="@RunsTabLabel">
+                    <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.History" /></LeadingIcon>
+                    <ChildContent>
+                            <FlareStack Gap="FlareSpacing.Medium">
+                            @if (_loadingExecutions)
+                            {
+                                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                                    <FlareProgressCircular Size="TrackSize.Xs" />
+                                    <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant">
+                                        @Loc.Get("LoadingHistory")
+                                    </FlareText>
                                 </FlareStack>
-                            </FlareTimelineItem>
-                        }
-                    </FlareTimeline>
-                }
-            </FlareStack>
+                            }
+                            else if (_executions.Count == 0)
+                            {
+                                <FlareEmptyState Compact="true" Title="@Loc.Get("NoExecutions")">
+                                    <IconContent><FlareIconView Size="2rem" Value="@FlareIcons.PlayArrow" /></IconContent>
+                                </FlareEmptyState>
+                            }
+                            else
+                            {
+                                <FlareTimeline>
+                                    @foreach (var execution in _executions.OrderByDescending(item => item.UpdatedAt))
+                                    {
+                                        <FlareTimelineItem Title="@execution.StageId" Color="@StateColor(execution.State)">
+                                            <FlareStack Gap="FlareSpacing.XXSmall">
+                                                <FlareBadge Standalone="true"
+                                                            Text="@execution.State.ToString()"
+                                                            Color="@StateColor(execution.State)" />
+                                                @if (!string.IsNullOrWhiteSpace(execution.ProgressSummary))
+                                                {
+                                                    <FlareText Element="span" Typo="TypographyScale.BodySmall">@execution.ProgressSummary</FlareText>
+                                                }
+                                                @foreach (var attempt in execution.Attempts)
+                                                {
+                                                    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall" Wrap="true">
+                                                        <FlareText Element="span" Typo="TypographyScale.LabelSmall">@attempt.AgentAdapterId</FlareText>
+                                                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant">
+                                                            @attempt.State
+                                                        </FlareText>
+                                                    </FlareStack>
+                                                }
+                                                @if (execution.Artifacts.Count > 0)
+                                                {
+                                                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant">
+                                                        @Loc.Format("ArtifactsLabel", string.Join(", ", execution.Artifacts))
+                                                    </FlareText>
+                                                }
+                                            </FlareStack>
+                                        </FlareTimelineItem>
+                                    }
+                                </FlareTimeline>
+                            }
+                        </FlareStack>
+                    </ChildContent>
+                </FlareTab>
+            </FlareTabs>
         </FlarePaper>
+
     </FlareStack>
 
     @* The state column: the design's inspector aside. *@
@@ -552,7 +548,8 @@
             </FlarePaper>
         }
 
-        @* The card's own parameters, which is what the design's "Edit card" action opens. *@
+        @* The card's own parameters, which is what the design's "Edit card" action opens. The declared
+           scope lives in the scope panel, beside the files it produces. *@
         <FlarePaper Elevation="0" Padding="FlareSpacing.Medium" Square="true" Class="aiko-panel">
             <FlareStack Gap="FlareSpacing.Small">
                 <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
@@ -583,10 +580,37 @@
                         </FlareText>
                     }
                 </FlareStack>
-                <FlareTextArea Label="@Loc.Get("DeclaredScope")"
-                               HelperText="@Loc.Get("ScopeHelper")"
-                               Rows="4"
-                               @bind-Value="_scope" />
+
+                @* Every criterion the project scores by, in the project's order: a card with no value for one
+                   is scored as if that criterion did not exist, so the person editing the card sees them all,
+                   each with the band its value is read against. *@
+                <FlareStack Gap="FlareSpacing.XSmall">
+                    <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small">
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
+                            @Loc.Get("ScoringCriteria")
+                        </FlareText>
+                        <span class="aiko-tag aiko-tag--quiet">@DisplayFormat.Number(Criteria.Count)</span>
+                    </FlareStack>
+                    @if (Criteria.Count == 0)
+                    {
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Get("NoCriteria")
+                        </FlareText>
+                    }
+                    else
+                    {
+                        @foreach (var criterion in Criteria)
+                        {
+                            var item = criterion;
+                            <FlareNumericField TValue="decimal?"
+                                               Label="@item.Title"
+                                               HelperText="@CriterionRange(item)"
+                                               Value="@CriterionValue(item.Id)"
+                                               ValueChanged="value => SetCriterion(item.Id, value)" />
+                        }
+                    }
+                </FlareStack>
+
                 <FlareButton FullWidth="true"
                              Loading="@_saving"
                              OnClick="SaveAsync">@Loc.Get("SaveCard")</FlareButton>
@@ -608,13 +632,17 @@
     private decimal? _priority;
     private string? _size;
     private string? _scope;
+    private string? _instruction;
     private string? _priorityError;
     private string? _message;
     private bool _hasError;
     private bool _saving;
+    private bool _savingInstruction;
     private bool _loadingExecutions;
+    private int _activeTab;
     private IReadOnlyList<StageExecution> _executions = [];
     private IReadOnlyList<CardArtifactSummary> _artifacts = [];
+    private readonly Dictionary<string, decimal?> _criterionValues = new(StringComparer.Ordinal);
 
     /// <summary>
     /// The stage the card sits in, from its own workflow: it carries what the stage asks for (the
@@ -623,6 +651,13 @@
     private StageDefinition? Stage => Board.Workflows
         .FirstOrDefault(workflow => StringComparer.Ordinal.Equals(workflow.Id, Card.WorkflowId))
         ?.Stages.FirstOrDefault(stage => StringComparer.Ordinal.Equals(stage.Id, Card.StageId));
+
+    /// <summary>
+    /// The card's own workflow. The stage instruction belongs to it rather than to the card, so editing
+    /// that instruction is a workflow update and carries the workflow's revision.
+    /// </summary>
+    private WorkflowDefinition? Workflow => Board.Workflows
+        .FirstOrDefault(workflow => StringComparer.Ordinal.Equals(workflow.Id, Card.WorkflowId));
 
     /// <summary>The most recent execution, which is the run whose outcomes the card reports.</summary>
     private StageExecution? LatestExecution => _executions
@@ -755,6 +790,44 @@
     /// <summary>The project's size grid: what the human may choose from, same ladder the agent reads.</summary>
     private IReadOnlyList<SizeDefinition> SizeGrid => State.SettingsView?.EffectivePriority.Grid ?? [];
 
+    /// <summary>
+    /// The project's scoring criteria: every criterion a card is scored against, in the project's order.
+    /// The form shows all of them, because a card with no value for one is scored as if the criterion
+    /// did not exist, and that is not something the person filling it in should have to guess.
+    /// </summary>
+    private IReadOnlyList<PriorityCriterion> Criteria => State.SettingsView?.EffectivePriority.Criteria ?? [];
+
+    /// <summary>
+    /// The criterion values as the form holds them. A criterion left empty means the card has no value
+    /// for it, so it is left out rather than sent as zero - which the formula would read as a real score.
+    /// </summary>
+    private IReadOnlyDictionary<string, decimal> CriterionPayload => _criterionValues
+        .Where(pair => pair.Value is not null)
+        .ToDictionary(pair => pair.Key, pair => pair.Value!.Value, StringComparer.Ordinal);
+
+    /// <summary>Stores one criterion's value as its field reports it; an empty field clears it.</summary>
+    private void SetCriterion(string criterionId, decimal? value) => _criterionValues[criterionId] = value;
+
+    /// <summary>
+    /// The value the form holds for a criterion, or null when the card has none. Read through a method
+    /// rather than indexed directly: a criterion added to the project after this page was loaded has no
+    /// entry yet, and an empty field is the right answer for it.
+    /// </summary>
+    private decimal? CriterionValue(string criterionId) =>
+        _criterionValues.TryGetValue(criterionId, out var value) ? value : null;
+
+    /// <summary>The band a criterion's value is read against, which is what normalizes it into the score.</summary>
+    private static string CriterionRange(PriorityCriterion criterion) =>
+        $"{criterion.Minimum} - {criterion.Maximum}";
+
+    /// <summary>Keeps the visible tab across the renders a live board refresh causes.</summary>
+    private void OnActiveTabChanged(int index) => _activeTab = index;
+
+    /// <summary>Tab captions the counts belong in, the way the design's tab bar prints them.</summary>
+    private string ArtifactsTabLabel => $"{Loc.Get("ArtifactsTitle")} ({_artifacts.Count})";
+
+    private string RunsTabLabel => $"{Loc.Get("RunsTitle")} ({_executions.Count})";
+
     /// <summary>The chosen step, so the form can show what it does to the score.</summary>
     private SizeDefinition? SelectedSize => string.IsNullOrWhiteSpace(_size)
         ? null
@@ -845,6 +918,8 @@
             _priority = Card.OwnPriority;
             _size = Card.Size;
             _scope = string.Join(Environment.NewLine, Card.DeclaredScopeFiles);
+            _instruction = Stage?.Instruction ?? string.Empty;
+            LoadCriterionValues();
             _message = null;
             _hasError = false;
             _priorityError = null;
@@ -854,6 +929,22 @@
         {
             _lastRefreshTick = ExecutionRefreshTick;
             await LoadExecutionsAsync();
+        }
+    }
+
+    /// <summary>
+    /// Fills the form with the card's own scores, one entry per project criterion. The dictionary is the
+    /// form's model, not the card's: a criterion the card holds no value for stays empty until it is set.
+    /// </summary>
+    private void LoadCriterionValues()
+    {
+        _criterionValues.Clear();
+        foreach (var criterion in Criteria)
+        {
+            _criterionValues[criterion.Id] = Card.CriterionValues is { } values &&
+                values.TryGetValue(criterion.Id, out var value)
+                ? value
+                : null;
         }
     }
 
@@ -908,7 +999,7 @@
         {
             using var response = await Http.PutAsJsonAsync(
                 $"api/v1/projects/{Uri.EscapeDataString(Card.Reference.ProjectId)}/cards/{Uri.EscapeDataString(Card.Reference.CardId)}",
-                new UpdateCardRequest(_title, priority, scopeFiles, Card.Revision, _size),
+                new UpdateCardRequest(_title, priority, scopeFiles, Card.Revision, _size, CriterionPayload),
                 PwaJson.Options);
             if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
             {
@@ -931,6 +1022,56 @@
         finally
         {
             _saving = false;
+        }
+    }
+
+    /// <summary>
+    /// Saves the stage's instruction into the project's workflow. The instruction is the stage's, not the
+    /// card's - it is what the agent is asked to do here - so the write replaces that one stage in the
+    /// workflow, with the revision of the definition the page read. A conflict means someone else changed
+    /// the pipeline, and the refreshed board carries their version.
+    /// </summary>
+    private async Task SaveInstructionAsync()
+    {
+        if (_savingInstruction || Stage is not { } stage || Workflow is not { } workflow)
+        {
+            return;
+        }
+
+        _savingInstruction = true;
+        _message = null;
+        try
+        {
+            var stages = workflow.Stages
+                .Select(item => StringComparer.Ordinal.Equals(item.Id, stage.Id)
+                    ? item with { Instruction = (_instruction ?? string.Empty).Trim() }
+                    : item)
+                .ToArray();
+            using var response = await Http.PutAsJsonAsync(
+                $"api/v1/projects/{Uri.EscapeDataString(Card.Reference.ProjectId)}/workflows/{Uri.EscapeDataString(workflow.Id)}",
+                new UpdateWorkflowRequest(workflow.Title, stages, workflow.Revision),
+                PwaJson.Options);
+            if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+            {
+                _message = Loc.Get("WorkflowConflict");
+                _hasError = true;
+                await OnSaved.InvokeAsync();
+                return;
+            }
+
+            response.EnsureSuccessStatusCode();
+            _message = Loc.Get("WorkflowSaved");
+            _hasError = false;
+            await OnSaved.InvokeAsync();
+        }
+        catch (Exception exception)
+        {
+            _message = Loc.Format("SaveWorkflowFailed", exception.Message);
+            _hasError = true;
+        }
+        finally
+        {
+            _savingInstruction = false;
         }
     }
 

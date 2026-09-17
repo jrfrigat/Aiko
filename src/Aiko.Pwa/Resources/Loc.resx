@@ -80,6 +80,7 @@
   <data name="FilesCount" xml:space="preserve"><value>{0}/{1} files</value></data>
   <data name="OutOfScopeCount" xml:space="preserve"><value>out of scope: {0}</value></data>
   <data name="Parameters" xml:space="preserve"><value>Parameters</value></data>
+  <data name="ScoringCriteria" xml:space="preserve"><value>Scoring criteria</value></data>
   <data name="PriorityLabel" xml:space="preserve"><value>Score / priority</value></data>
   <data name="ScopeHelper" xml:space="preserve"><value>One path or glob per line</value></data>
   <data name="SaveCard" xml:space="preserve"><value>Save card</value></data>
@@ -130,6 +131,7 @@
   <data name="MoveUp" xml:space="preserve"><value>Up</value></data>
   <data name="MoveDown" xml:space="preserve"><value>Down</value></data>
   <data name="SaveWorkflow" xml:space="preserve"><value>Save workflow</value></data>
+  <data name="SaveStageInstruction" xml:space="preserve"><value>Save instruction</value></data>
   <data name="WorkflowHint" xml:space="preserve"><value>Changes apply to the board and to the next agent runs.</value></data>
   <data name="NewStage" xml:space="preserve"><value>New stage</value></data>
   <data name="NewStageInstruction" xml:space="preserve"><value>Describe what the agent should do at this stage.</value></data>

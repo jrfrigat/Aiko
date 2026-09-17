@@ -55,9 +55,9 @@
                                                 Id="@card.Reference.CardId"
                                                 Payload="@(new BoardCardDrag(card.Reference.CardId, card.StageId))"
                                                 Class="aiko-drag">
-                                    @* The whole card opens the card page. A plain wrapper carries the click
-                                       rather than FlareCard itself: the drag handle lives inside, and a
-                                       click must not fight the drag gesture. *@
+                                    @* The card opens its own page; only the handle icon drags it (see
+                                       wwwroot/js/aiko-board.js). The plain wrapper carries the click
+                                       rather than FlareCard itself, so the whole card body is one target. *@
                                     <div class="aiko-card__open" @onclick="() => OnCardSelected.InvokeAsync(card.Reference.CardId)">
                                     <FlareCard Variant="CardVariant.Filled" Size="CardSize.Sm" Class="aiko-card">
                                         <FlareStack Gap="FlareSpacing.XXSmall">
@@ -112,6 +112,8 @@
 </FlareStack>
 
 @code {
+    [Inject] private IJSRuntime Js { get; set; } = null!;
+
     [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
     [Parameter] public CardKind Kind { get; set; }
     [Parameter, EditorRequired] public ProjectBoardSnapshot Board { get; set; } = null!;
@@ -144,6 +146,19 @@
             .Where(card => card.Kind == Kind)
             .OrderByDescending(card => card.OwnPriority)
             .ToArray();
+    }
+
+    /// <summary>
+    /// Arms the board's drag handle. Flare starts a drag from anywhere inside a draggable card, which
+    /// leaves a card impossible to click open, so the page hands the gesture to the handle icon alone -
+    /// see wwwroot/js/aiko-board.js. Registered once for the document, so every re-render is a no-op.
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Js.InvokeVoidAsync("aikoDragHandle.enable");
+        }
     }
 
     private IReadOnlyList<Card> CardsIn(string stageId) =>

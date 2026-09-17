@@ -8,7 +8,8 @@ The board shows the project's cards in three projections:
 - **Tasks** - task cards grouped by their workflow stages.
 - **Combined** - stories and tasks together.
 
-Drag a card between columns to move it to another stage. The move is saved with optimistic
+Drag a card between columns to move it to another stage: a card is picked up by its handle icon, while a
+plain click opens the card's page. The move is saved with optimistic
 concurrency; if the card changed elsewhere, the UI asks you to reload.
 
 ## Cards
@@ -30,12 +31,13 @@ A card's own score is the weighted average of its normalized criterion values, o
 the project defines no criteria; the size coefficient multiplies either. A task then blends that with the
 highest parent value using the project's weights (ТЗ §10).
 
-The card page is laid out in two columns: on the left the stage's scope with the declared and actual files
-and the acceptance criteria, the last run's report, the block the commit diff will fill, the artifacts and
-the run history; on the right the execution state with its assignees, the triage and score with the card's
+The card page is laid out in two columns: on the left the stage's scope - the editable stage instruction
+(which belongs to the project's workflow), the editable declared scope, the declared and actual files and
+the acceptance criteria - above one block of tabs: the completed outcomes, the code changes, the artifacts
+and the runs; on the right the execution state with its assignees, the triage and score with the card's
 rank on the board, the related cards (parents, children and plain relations - each links to its own page),
 the progress of the stage's acceptance criteria, the stage's skills and the card's parameters (title,
-priority, size, declared scope).
+priority, size and every scoring criterion of the project).
 
 ## Workflows
 

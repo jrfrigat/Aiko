@@ -74,6 +74,7 @@
   <data name="FilesCount" xml:space="preserve"><value>{0}/{1} файлов</value></data>
   <data name="OutOfScopeCount" xml:space="preserve"><value>вне scope: {0}</value></data>
   <data name="Parameters" xml:space="preserve"><value>Параметры</value></data>
+  <data name="ScoringCriteria" xml:space="preserve"><value>Критерии оценки</value></data>
   <data name="PriorityLabel" xml:space="preserve"><value>Оценка / приоритет</value></data>
   <data name="ScopeHelper" xml:space="preserve"><value>Один путь или glob на строку</value></data>
   <data name="SaveCard" xml:space="preserve"><value>Сохранить карточку</value></data>
@@ -122,6 +123,7 @@
   <data name="MoveUp" xml:space="preserve"><value>Выше</value></data>
   <data name="MoveDown" xml:space="preserve"><value>Ниже</value></data>
   <data name="SaveWorkflow" xml:space="preserve"><value>Сохранить workflow</value></data>
+  <data name="SaveStageInstruction" xml:space="preserve"><value>Сохранить инструкцию</value></data>
   <data name="WorkflowHint" xml:space="preserve"><value>Изменения применятся к доске и к следующим запускам агентов.</value></data>
   <data name="NewStage" xml:space="preserve"><value>Новый статус</value></data>
   <data name="NewStageInstruction" xml:space="preserve"><value>Опиши, что агент должен сделать на этом этапе.</value></data>

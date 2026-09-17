@@ -91,6 +91,14 @@ internal static class CardEndpoints
                         .Select(path => path.Trim())
                         .Distinct(StringComparer.OrdinalIgnoreCase)
                         .ToArray(),
+                    // Null keeps what the card already carries: a caller that edits only the title has no
+                    // opinion about the criteria, and replacing them with nothing would silently erase a
+                    // score an agent set. The form that does edit them sends its whole set.
+                    CriterionValues = request.CriterionValues is { } criterionValues
+                        ? new Dictionary<string, decimal>(
+                            criterionValues.Where(pair => !string.IsNullOrWhiteSpace(pair.Key)),
+                            StringComparer.Ordinal)
+                        : card.CriterionValues,
                     Revision = card.Revision + 1
                 };
                 await cards.SaveAsync(updated, request.ExpectedRevision, cancellationToken);

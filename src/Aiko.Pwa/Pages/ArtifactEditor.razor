@@ -4,9 +4,12 @@
    badge carries the artifact state) and the editor is a FlareCodeBlock, so both the tab strip and the
    code surface are Flare's rather than hand-built lists and textareas. *@
 <FlareStack Gap="FlareSpacing.Small">
-    <FlareText Element="h3" Typo="TypographyScale.TitleSmall">
-        @Loc.Get("DocumentsTitle") (@AvailablePaths.Count)
-    </FlareText>
+    @if (ShowHeading)
+    {
+        <FlareText Element="h3" Typo="TypographyScale.TitleSmall">
+            @Loc.Get("DocumentsTitle") (@AvailablePaths.Count)
+        </FlareText>
+    }
 
     <FlareStack Row="true" Align="FlareAlignItems.End" Gap="FlareSpacing.XSmall" StretchFirst="true">
         <FlareTextField Label="@Loc.Get("NewMarkdown")"
@@ -75,6 +78,12 @@
     [Parameter, EditorRequired] public Card Card { get; set; } = null!;
     [Parameter, EditorRequired] public ProjectBoardSnapshot Board { get; set; } = null!;
     [Parameter, EditorRequired] public IReadOnlyList<StageExecution> Executions { get; set; } = [];
+
+    /// <summary>
+    /// Whether the component prints its own "Documents" heading. The card page puts it behind a tab that
+    /// already names it, so the heading would be the screen talking to itself.
+    /// </summary>
+    [Parameter] public bool ShowHeading { get; set; } = true;
 
     private string? _loadedCardKey;
     private IReadOnlyList<CardArtifactSummary> _savedArtifacts = [];

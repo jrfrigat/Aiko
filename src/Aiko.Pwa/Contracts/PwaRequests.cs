@@ -29,12 +29,22 @@ internal sealed record MoveCardRequest(
 /// <summary>
 /// Updates the editable fields of a card.
 /// </summary>
+/// <param name="Title">New title.</param>
+/// <param name="OwnPriority">New own priority, before the size coefficient.</param>
+/// <param name="DeclaredScopeFiles">Complete declared scope list.</param>
+/// <param name="ExpectedRevision">Revision the caller read.</param>
+/// <param name="Size">Size step of the project's grid, or null for none.</param>
+/// <param name="CriterionValues">
+/// The card's scores per criterion keyed by criterion id, or null to leave the stored values alone - which
+/// is what a caller editing only the title wants.
+/// </param>
 internal sealed record UpdateCardRequest(
     string Title,
     decimal OwnPriority,
     IReadOnlyList<string> DeclaredScopeFiles,
     long ExpectedRevision,
-    string? Size = null);
+    string? Size = null,
+    IReadOnlyDictionary<string, decimal>? CriterionValues = null);
 
 /// <summary>
 /// Writes a card artifact. A null version creates or overwrites without a conflict check.

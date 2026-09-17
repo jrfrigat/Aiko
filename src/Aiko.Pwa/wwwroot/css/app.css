@@ -328,15 +328,22 @@
     cursor: pointer;
 }
 
-/* The wrapper that carries the click opening a card: the drag handle lives inside the card, and the click
-   must not fight the drag gesture. Flare has no "clickable card" variant. */
+/* The wrapper that carries the click opening a card. Flare has no "clickable card" variant, and the
+   card's own drag gesture is confined to the handle by wwwroot/js/aiko-board.js. */
 .aiko-card__open {
     display: block;
 }
 
+/* The drag handle: the only place a card can be picked up, so it says so with the cursor and keeps the
+   card body free for the click that opens it. */
 .aiko-card__handle {
-    opacity: 0.4;
+    opacity: 0.55;
+    cursor: grab;
     transition: opacity var(--flare-motion-duration-short2) var(--flare-motion-easing-standard);
+}
+
+.aiko-card__handle:active {
+    cursor: grabbing;
 }
 
 .aiko-card:hover .aiko-card__handle {
@@ -761,11 +768,6 @@
 /* Three tiles on one line: the design's strip of run metrics. */
 .aiko-tiles--three {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-/* A criterion the card already satisfies: struck through rather than hidden, as the design draws it. */
-.aiko-done {
-    text-decoration: line-through;
 }
 
 /* A tag that has to warn: the out-of-scope count in the scope panel's head. */
