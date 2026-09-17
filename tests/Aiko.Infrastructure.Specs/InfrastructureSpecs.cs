@@ -1466,18 +1466,27 @@ public class InfrastructureSpecs
             await installer.ApplyAsync(
                 context.Project.Id, endpoint, "test-token", ["claude-code"], CancellationToken.None);
 
-            // One type-agnostic command plus one command per type the project declares, and one command
-            // that estimates a card the person left unsized.
+            // One type-agnostic command plus one command per type the project declares, one command that
+            // creates a sub-card under an existing card, and one that estimates a card on its own.
             Assert.True(File.Exists(Path.Combine(commands, "aiko-create.md")));
             Assert.True(File.Exists(Path.Combine(commands, "aiko-create-story.md")));
             Assert.True(File.Exists(Path.Combine(commands, "aiko-create-task.md")));
+            Assert.True(File.Exists(Path.Combine(commands, "aiko-create-sub.md")));
             Assert.True(File.Exists(Path.Combine(commands, "aiko-estimate.md")));
             var story = await File.ReadAllTextAsync(Path.Combine(commands, "aiko-create-story.md"));
             Assert.Contains("kind=Story", story, StringComparison.Ordinal);
-            // A created card is named and staged by Aiko, so the command must not send an id or a stage.
+            // A created card is named and staged by Aiko, so the command must not send an id or a stage...
             Assert.Contains("backlog", story, StringComparison.Ordinal);
             Assert.DoesNotContain("workflowId=", story, StringComparison.Ordinal);
             Assert.DoesNotContain("stageId=", story, StringComparison.Ordinal);
+            // ...but it does estimate the card in the same pass, so a new card is never left unranked.
+            Assert.Contains("aiko_estimate_card", story, StringComparison.Ordinal);
+
+            // A sub-card is linked from its parent: the edge the board reads as parent to child.
+            var sub = await File.ReadAllTextAsync(Path.Combine(commands, "aiko-create-sub.md"));
+            Assert.Contains("parent-child", sub, StringComparison.Ordinal);
+            Assert.Contains("sourceCardId", sub, StringComparison.Ordinal);
+            Assert.Contains("targetCardId", sub, StringComparison.Ordinal);
 
             // Commands an older Aiko wrote are no longer part of the plan, so the next install sweeps them
             // instead of leaving two ways to do the same thing.

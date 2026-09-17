@@ -29,22 +29,68 @@ internal static class AgentTemplates
 
     /// <summary>
     /// Slash command that creates a card of a type the user names, resolved against the project's own
-    /// workflows.
+    /// workflows, and estimates it in the same pass.
     /// </summary>
     /// <remarks>
     /// This is the type-agnostic entry point: it reads the project context instead of naming types itself, so
-    /// a project that adds a card type later needs no regenerated file for the agent to learn about it.
+    /// a project that adds a card type later needs no regenerated file for the agent to learn about it. The
+    /// arguments are free text - the type first, then what the card is about - which is why the command says
+    /// what to do with each of them rather than parsing a fixed signature. A card that is created but left
+    /// without a size and scores is one nobody can rank, so the command estimates it in the same pass; an
+    /// estimate the user typed wins over the agent's judgement.
     /// </remarks>
     public const string Create =
         """
-        Create a card in Aiko. Read aiko_get_project_context first: it lists every card type this project
-        defines, the workflow behind each one and the stages of its pipeline. Use the type the user named;
-        if they named none, ask which type they mean. Then call aiko_create_card with that type's kind, a
-        clear title taken from what the user asked for, an own priority and, for work that changes files,
-        the declared scope patterns - and nothing else. Aiko names the card and lands it in the type's
-        backlog stage, so never invent a card id or a stage: neither is yours to choose. Leave the size
-        and the criterion values out when the user did not set them, and run /aiko-estimate afterwards
-        instead of guessing a number. Report the created card id.
+        Create a card in Aiko. The user named a type first and then what the card is about.
+
+        Read aiko_get_project_context first: it lists every card type this project defines, the workflow
+        behind each one, the stages of its pipeline, the size grid and the scoring criteria. Use the type the
+        user named; if they named none, ask which type they mean.
+
+        Then call aiko_create_card with that type's kind, a clear title taken from what the user asked for, an
+        own priority and, for work that changes files, the declared scope patterns - and nothing else. Aiko
+        names the card and lands it in the type's backlog stage, so never invent a card id or a stage. Put
+        what the user described into the card's requirements when it says more than the title.
+
+        Estimate the card in the same pass, unless the user gave the numbers themselves: read the card back to
+        get its revision, judge the size step whose description matches the work and every criterion the
+        project defines, and write them with aiko_estimate_card.
+
+        Report at the end: the created card id, the size and the scores you wrote, and one line on what the
+        card is about.
+        """;
+
+    /// <summary>
+    /// Slash command that creates a sub-card under an existing card: the same creation as
+    /// <see cref="Create"/>, plus the parent-child edge and the estimate.
+    /// </summary>
+    /// <remarks>
+    /// The edge is drawn from the parent to the child, which is the direction the board reads as "this card
+    /// belongs under that one" - so the command names the parent as the source, not as the target, because
+    /// getting it backwards would show the sub-card as its parent's parent.
+    /// </remarks>
+    public const string CreateSub =
+        """
+        Create a sub-card in Aiko under an existing card. The user named the parent card id first, then the
+        type and then what the sub-task is about.
+
+        Read aiko_get_project_context and aiko_get_card for the parent. The context lists every card type,
+        its workflow, the size grid and the scoring criteria; the parent says what the whole thing is about,
+        which is what the sub-card has to contribute to.
+
+        Call aiko_create_card with the type's kind, a clear title, an own priority and, for work that changes
+        files, the declared scope patterns - and nothing else: Aiko names the sub-card and lands it in
+        backlog. Put what the user described into the sub-card's requirements when it says more than the
+        title.
+
+        Then link it to its parent: call aiko_link_cards with the PARENT card id as sourceCardId, the new
+        sub-card id as targetCardId and "parent-child" as the relation type. The edge points from the parent
+        to the child; the other way round the board would show the sub-card as the parent.
+
+        Finally estimate the new card exactly as /aiko-create does - read it back for its revision, judge the
+        size step and every criterion the project defines, and write them with aiko_estimate_card.
+
+        Report at the end: the created card id, its parent, and the size and scores you wrote.
         """;
 
     /// <summary>
@@ -69,9 +115,15 @@ internal static class AgentTemplates
             from what the user asked for, an own priority and, for work that changes files, the declared
             scope patterns - and nothing else. Aiko names the card and lands it in the workflow's
             {WorkflowDefinition.BacklogStageId} stage, so never invent a card id or a stage; the project
-            context lists the rest of that pipeline if you need it. Leave the size and the criterion values
-            out when the user did not set them and run /aiko-estimate afterwards instead of guessing.
-            Report the created card id.
+            context lists the rest of that pipeline if you need it. Put what the user described into the
+            card's requirements when it says more than the title.
+
+            Estimate the card in the same pass, unless the user gave the numbers themselves: read it back for
+            its revision, judge the size step and every criterion the project defines, and write them with
+            aiko_estimate_card.
+
+            Report at the end: the created card id, the size and the scores you wrote, and one line on what
+            the card is about.
             """;
     }
 

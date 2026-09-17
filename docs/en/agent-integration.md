@@ -61,23 +61,28 @@ policy already covers); for a project initialized earlier, add the lines by hand
 
 Project-scoped skills/commands (installed with `aiko agent install --project <id>`):
 
-`/aiko-create`, `/aiko-estimate`, `/aiko-run`, `/aiko-scope`, `/aiko-handoff`,
+`/aiko-create`, `/aiko-create-sub`, `/aiko-estimate`, `/aiko-run`, `/aiko-scope`, `/aiko-handoff`,
 `/aiko-memory`, `/aiko-status`, `/aiko-ui`.
 
-`/aiko-create` takes the card type as its argument (`/aiko-create bug The dropdown is empty`) and reads
-the project context to resolve it, so it covers every type without being regenerated. The card is named by
-Aiko - a person never invents an id - and it is always created in that type's backlog stage, because a
-card nobody has worked out has no business starting anywhere else. Alongside `/aiko-create` the
-daemon installs one `/aiko-create-<type>` per card type the project defines - `/aiko-create-story`,
-`/aiko-create-task`, and one for every type you add in the workflow editor. Those per-type commands are a
-projection of the project's workflows: they are re-written when a type is created or removed, and only for
-the agents already connected to that project.
+`/aiko-create <type> <description>` takes the card type as its first argument (`/aiko-create bug The
+dropdown is empty`) and reads the project context to resolve it, so it covers every type without being
+regenerated. The card is named by Aiko - a person never invents an id - and it is always created in that
+type's backlog stage, because a card nobody has worked out has no business starting anywhere else. In the
+same pass the agent estimates the card: it judges the size step and every criterion from the description
+and calls `aiko_estimate_card`, so a card created from a command is never left unranked. Alongside
+`/aiko-create` the daemon installs one `/aiko-create-<type>` per card type the project defines -
+`/aiko-create-story`, `/aiko-create-task`, and one for every type you add in the workflow editor. Those
+per-type commands are a projection of the project's workflows: they are re-written when a type is created
+or removed, and only for the agents already connected to that project.
 
-`/aiko-estimate <cardId>` fills in the estimate a person left to the machine: the agent reads the card and
-the project context (the size grid's descriptions and each criterion's range) and calls
-`aiko_estimate_card` with the size step and the scores. This is the other half of creating a card from a
-title and its requirements alone - the size and the criterion values are not required at creation, and a
-card left without them is one the agent is expected to estimate.
+`/aiko-create-sub <parentCardId> <type> <description>` is the same creation under an existing card: the
+agent creates the sub-card, links it with `aiko_link_cards` passing the parent as `sourceCardId`, the new
+card as `targetCardId` and `parent-child` as the relation type, and estimates it. The edge points from the
+parent to the child, which is the direction the board reads as "this card belongs under that one".
+
+`/aiko-estimate <cardId>` re-estimates a card on its own, which is what the card page's *Ask to estimate*
+action hands to an agent. The agent reads the card and the project context (the size grid's descriptions
+and each criterion's range) and calls `aiko_estimate_card` with the size step and the scores.
 
 `/aiko-run <cardId> [stageId]` runs a card: it reads the card's own stage and that stage's instruction from
 the project context, does the work, reports progress and completes the stage. A stage id moves the card
@@ -113,7 +118,8 @@ has no path yet, the table says so rather than pretending the sets are already e
 | Register a project from a chosen template | `/aiko-init [templateId]` | `aiko_list_templates`, `aiko_init_project` | Dashboard - *Add project* (folder browser + template select) |
 | List projects | `/aiko-list-projects` | `aiko_list_projects` | Dashboard - project list |
 | Open the board | `/aiko-ui` | `aiko_open_ui` | `aiko ui`, or the URL in the app bar |
-| Create a card of any type the project defines | `/aiko-create <type> <title>`, `/aiko-create-<type>` | `aiko_create_card`, `aiko_create_card_in_project` | Board - *Create card* |
+| Create a card of any type the project defines | `/aiko-create <type> <description>`, `/aiko-create-<type>` | `aiko_create_card`, `aiko_create_card_in_project`, `aiko_estimate_card` | Board - *Create card* |
+| Create a sub-card under a card | `/aiko-create-sub <parentCardId> <type> <description>` | `aiko_create_card`, `aiko_link_cards`, `aiko_estimate_card` | Board - *Create card*, linked on the card page |
 | Read the board | `/aiko-status` | `aiko_list_cards`, `aiko_get_card` | Board, and the card as its own page |
 | Edit a card | — | `aiko_update_card` | Card page - *Save card* |
 | Estimate a card's size and scores | `/aiko-estimate <cardId>` | `aiko_estimate_card` | Card page - *Ask to estimate* |

@@ -189,7 +189,8 @@ Written by `aiko agent install`. Project scope (`--project <id>`):
 
 | Skill | Does |
 | :-- | :-- |
-| `/aiko-create <type> <title>`, `/aiko-create-<type>` | Create a card of any type this project defines; Aiko names it and lands it in backlog |
+| `/aiko-create <type> <description>`, `/aiko-create-<type>` | Create a card of any type this project defines: Aiko names it, lands it in backlog and the agent estimates its size and scores |
+| `/aiko-create-sub <parentCardId> <type> <description>` | Create a sub-card under a card: the same creation, plus the parent-child link |
 | `/aiko-estimate <cardId>` | Estimate a card: the agent judges the size step and the criterion scores |
 | `/aiko-run <cardId> [stageId]` | Run a card: do what its current stage asks for, report progress and complete it; a stage id moves it there first |
 | `/aiko-scope` | Ask for a scope expansion |
