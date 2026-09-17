@@ -419,13 +419,15 @@
     align-items: start;
 }
 
-.aiko-settings__main {
-    grid-column: span 7;
+/* Two columns on the twelve-column page: the narrow one carries the daemon and the execution defaults,
+   the wide one the scoring model - its criteria and size tables need the room. */
+.aiko-settings__narrow {
+    grid-column: span 5;
     min-width: 0;
 }
 
-.aiko-settings__side {
-    grid-column: span 5;
+.aiko-settings__wide {
+    grid-column: span 7;
     min-width: 0;
 }
 
@@ -537,31 +539,6 @@
 
 .aiko-choice__head input {
     accent-color: var(--flare-color-primary);
-}
-
-/* The criteria table of the formula panel. */
-.aiko-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.aiko-table th {
-    padding: 0.25rem 0.375rem;
-    text-align: start;
-    font-size: 0.6875rem;
-    font-weight: 600;
-    color: var(--flare-color-on-surface-variant2);
-}
-
-.aiko-table td {
-    padding: 0.125rem 0.375rem;
-    vertical-align: middle;
-}
-
-.aiko-table__num {
-    width: 1%;
-    text-align: end;
-    white-space: nowrap;
 }
 
 /* One finding of the doctor checklist. */

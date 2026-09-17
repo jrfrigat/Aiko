@@ -35,22 +35,22 @@ internal static class BuiltInProjectTemplate
             "story",
             "Stories",
             [
-                Stage("backlog", "Бэклог", 10, CardKind.Story, "Уточни ценность, границы и связи story."),
+                Stage("backlog", "Backlog", 10, CardKind.Story, "Clarify the value, the boundaries and the links of this story."),
                 Stage(
                     "elaboration",
-                    "Проработка",
+                    "Elaboration",
                     20,
                     CardKind.Story,
-                    "Проработай требования и архитектурные ограничения story.",
+                    "Work out the requirements and the architectural constraints of this story.",
                     [
                         new ArtifactRequirement(
                             "analysis.md",
-                            "Результат проработки story.",
+                            "The outcome of the story elaboration.",
                             MissingArtifactPolicy.NeedsAttention)
                     ]),
-                Stage("ready", "Готово к декомпозиции", 30, CardKind.Story, "Проверь готовность story к декомпозиции."),
-                Stage("in-progress", "В работе", 40, CardKind.Story, "Координируй реализацию дочерних задач."),
-                Stage("done", "Завершено", 50, CardKind.Story, "Проверь достижение результата story.")
+                Stage("ready", "Ready for decomposition", 30, CardKind.Story, "Check that this story is ready to be decomposed into tasks."),
+                Stage("in-progress", "In progress", 40, CardKind.Story, "Coordinate the implementation of the child tasks."),
+                Stage("done", "Done", 50, CardKind.Story, "Verify that the story's outcome was reached.")
             ],
             1);
 
@@ -59,33 +59,33 @@ internal static class BuiltInProjectTemplate
             "task",
             "Tasks",
             [
-                Stage("backlog", "Бэклог", 10, CardKind.Task, "Уточни запрос, scope и связи задачи."),
+                Stage("backlog", "Backlog", 10, CardKind.Task, "Clarify the request, the scope and the links of this task."),
                 Stage(
                     "analysis",
-                    "Анализ",
+                    "Analysis",
                     20,
                     CardKind.Task,
-                    "Проанализируй задачу, риски и варианты реализации.",
+                    "Analyse the task, its risks and the implementation options.",
                     [
                         new ArtifactRequirement(
                             "analysis.md",
-                            "Результат анализа задачи.",
+                            "The outcome of the task analysis.",
                             MissingArtifactPolicy.NeedsAttention)
                     ]),
                 Stage(
                     "implementation",
-                    "Реализация",
+                    "Implementation",
                     30,
                     CardKind.Task,
-                    "Реализуй задачу и зафиксируй фактически измененные файлы.",
+                    "Implement the task and record the files you actually changed.",
                     [
                         new ArtifactRequirement(
                             "implementation.md",
-                            "Итог реализации и проверки.",
+                            "The outcome of the implementation and its verification.",
                             MissingArtifactPolicy.Warn)
                     ]),
-                Stage("review", "Проверка", 40, CardKind.Task, "Проверь результат, тесты и отклонения от scope."),
-                Stage("done", "Завершено", 50, CardKind.Task, "Зафиксируй итог выполнения задачи.")
+                Stage("review", "Review", 40, CardKind.Task, "Check the result, the tests and any deviation from the declared scope."),
+                Stage("done", "Done", 50, CardKind.Task, "Record the outcome of this task.")
             ],
             1);
 
@@ -115,10 +115,10 @@ internal static class BuiltInProjectTemplate
 
     private static IReadOnlyList<TemplateDocument> MemoryFiles() =>
     [
-        new("memory/index.md", "# Память проекта\n\nЭтот индекс содержит ссылки на устойчивые знания проекта.\n"),
-        new("memory/architecture.md", "# Архитектура\n\n"),
-        new("memory/conventions.md", "# Соглашения\n\n"),
-        new("memory/lessons.md", "# Накопленный опыт\n\n")
+        new("memory/index.md", "# Project memory\n\nThis index links the durable knowledge of the project.\n"),
+        new("memory/architecture.md", "# Architecture\n\n"),
+        new("memory/conventions.md", "# Conventions\n\n"),
+        new("memory/lessons.md", "# Lessons learned\n\n")
     ];
 
     private static IReadOnlyDictionary<string, string> EmptyFilters() =>
