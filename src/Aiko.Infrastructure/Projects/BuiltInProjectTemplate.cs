@@ -1,5 +1,6 @@
 using Aiko.Application.Contracts;
 using Aiko.Domain.Cards;
+using Aiko.Domain.Prioritization;
 using Aiko.Domain.Workflow;
 
 namespace Aiko.Infrastructure.Projects;
@@ -17,7 +18,7 @@ namespace Aiko.Infrastructure.Projects;
 /// </remarks>
 internal static class BuiltInProjectTemplate
 {
-    /// <summary>Builds the default template. Settings stay null: the global application settings fill them.</summary>
+    /// <summary>Builds the default template. Settings stay null: the installation defaults fill them.</summary>
     public static ProjectTemplate Create() => new(
         ProjectTemplate.DefaultId,
         "Default",

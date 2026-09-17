@@ -11,19 +11,20 @@ namespace Aiko.Application.Prioritization;
 public static class CardPriorityProjector
 {
     /// <summary>
-    /// Computes a <see cref="CardPriority"/> for every card: cards without parents keep
-    /// their own priority, others blend it with the maximum parent value.
+    /// Computes a <see cref="CardPriority"/> for every card: each card's own score is computed from its
+    /// criterion values and its size (ТЗ §10), then a task blends it with the maximum parent value.
     /// </summary>
     /// <param name="cards">All cards of the board.</param>
     /// <param name="relations">All relations of the board; only parent-child edges are used.</param>
-    /// <param name="weights">Priority weights to use; null uses the default weights.</param>
+    /// <param name="settings">The project's priority settings: criteria, size grid and blending weights.</param>
     public static IReadOnlyList<CardPriority> Project(
         IReadOnlyList<Card> cards,
         IReadOnlyList<CardRelation> relations,
-        PriorityWeights? weights = null)
+        PrioritySettings settings)
     {
         ArgumentNullException.ThrowIfNull(cards);
         ArgumentNullException.ThrowIfNull(relations);
+        ArgumentNullException.ThrowIfNull(settings);
 
         var cardsById = cards.ToDictionary(card => card.Reference.CardId, StringComparer.Ordinal);
         var parentIdsByCard = relations
@@ -48,26 +49,32 @@ public static class CardPriorityProjector
                 return memoized;
             }
 
-            // Stories (and any non-task card) keep their own priority.
+            var ownScore = PriorityCalculator.CalculateOwnScore(
+                card.OwnPriority,
+                card.CriterionValues,
+                settings,
+                card.Size);
+
+            // Stories (and any non-task card) keep their own score.
             if (card.Kind != CardKind.Task)
             {
                 var own = new PrioritySnapshot(
-                    card.OwnPriority,
+                    ownScore,
                     null,
-                    card.OwnPriority,
+                    ownScore,
                     PriorityCalculator.CurrentFormulaVersion);
                 snapshots[card.Reference.CardId] = own;
                 return own;
             }
 
             // Guard against parent-child cycles: a card already being computed falls back to
-            // its own priority, so pathological cycles terminate deterministically.
+            // its own score, so pathological cycles terminate deterministically.
             if (!computing.Add(card.Reference.CardId))
             {
                 var cyclic = new PrioritySnapshot(
-                    card.OwnPriority,
+                    ownScore,
                     null,
-                    card.OwnPriority,
+                    ownScore,
                     PriorityCalculator.CurrentFormulaVersion);
                 snapshots[card.Reference.CardId] = cyclic;
                 return cyclic;
@@ -85,7 +92,7 @@ public static class CardPriorityProjector
                 }
             }
 
-            var snapshot = PriorityCalculator.CalculateTask(card.OwnPriority, parentPriorities, weights);
+            var snapshot = PriorityCalculator.CalculateTask(ownScore, parentPriorities, settings.Weights);
             snapshots[card.Reference.CardId] = snapshot;
             computing.Remove(card.Reference.CardId);
             return snapshot;

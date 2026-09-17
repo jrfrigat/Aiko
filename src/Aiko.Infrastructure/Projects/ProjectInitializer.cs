@@ -144,8 +144,8 @@ public sealed class ProjectInitializer(
     }
 
     /// <summary>
-    /// Gives the project its settings snapshot: the template's own section when it has one, otherwise the
-    /// global application settings.
+    /// Gives the project its settings snapshot: the template's own sections with the installation defaults
+    /// filling the ones the template leaves out.
     /// </summary>
     private async ValueTask CopyDefaultSettingsAsync(
         RegisteredProject project,
@@ -157,7 +157,7 @@ public sealed class ProjectInitializer(
             return;
         }
 
-        var defaults = template.Settings ?? await settings.ReadGlobalAsync(cancellationToken);
+        var defaults = Merge(await settings.ReadGlobalAsync(cancellationToken), template.Settings);
         if (defaults is null)
         {
             // Nothing to copy: the project resolves through its own safe defaults instead.
@@ -165,6 +165,30 @@ public sealed class ProjectInitializer(
         }
 
         await settings.SaveProjectAsync(project.Id, defaults, cancellationToken);
+    }
+
+    /// <summary>
+    /// Combines the installation defaults with the template's own settings: the template wins section by
+    /// section, the global document fills what it leaves out. A template states what a project *is* (its
+    /// size grid, and later its workflows), the installation states how this machine runs (workspace mode,
+    /// run limits, policies) - so a project needs both, and neither should silently replace the other.
+    /// </summary>
+    private static AppSettings? Merge(AppSettings? global, AppSettings? template)
+    {
+        if (template is null)
+        {
+            return global;
+        }
+
+        if (global is null)
+        {
+            return template;
+        }
+
+        return new AppSettings(
+            Math.Max(global.SchemaVersion, template.SchemaVersion),
+            template.Execution ?? global.Execution,
+            template.Priority ?? global.Priority);
     }
 
     private static void CreateDirectories(string stitchRoot)

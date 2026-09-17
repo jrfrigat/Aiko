@@ -251,6 +251,23 @@
   <data name="ActiveProjectTag" xml:space="preserve"><value>(active)</value></data>
   <data name="OpenProjectLabel" xml:space="preserve"><value>Open project</value></data>
   <data name="DaemonRoundTrip" xml:space="preserve"><value>round-trip</value></data>
+  <data name="CriterionTitle" xml:space="preserve"><value>Criterion title</value></data>
+  <data name="MinimumLabel" xml:space="preserve"><value>From</value></data>
+  <data name="MaximumLabel" xml:space="preserve"><value>To</value></data>
+  <data name="AiInstructionLabel" xml:space="preserve"><value>Agent instruction</value></data>
+  <data name="AiInstructionHint" xml:space="preserve"><value>What the agent should look at to score this criterion</value></data>
+  <data name="SizeGrid" xml:space="preserve"><value>Size grid</value></data>
+  <data name="SizeGridHint" xml:space="preserve"><value>The agent assigns a size from these descriptions; the coefficient multiplies the card's score</value></data>
+  <data name="AddSize" xml:space="preserve"><value>Add step</value></data>
+  <data name="NoSizes" xml:space="preserve"><value>No size steps: every card is scored without a size coefficient.</value></data>
+  <data name="SizeIdLabel" xml:space="preserve"><value>Step</value></data>
+  <data name="SizeCoefficient" xml:space="preserve"><value>Coefficient</value></data>
+  <data name="SizeDescription" xml:space="preserve"><value>Description</value></data>
+  <data name="SizeDescriptionHint" xml:space="preserve"><value>What the agent reads to choose this step</value></data>
+  <data name="SizeIdRequired" xml:space="preserve"><value>Every size step needs an identifier.</value></data>
+  <data name="InvalidSizeCoefficient" xml:space="preserve"><value>A size coefficient must be greater than zero.</value></data>
+  <data name="DuplicateSizeId" xml:space="preserve"><value>The size step "{0}" is listed twice.</value></data>
+  <data name="InvalidCriterionRange" xml:space="preserve"><value>A criterion's upper bound must be greater than its lower bound.</value></data>
   <data name="Template" xml:space="preserve"><value>Template</value></data>
   <data name="TemplateHint" xml:space="preserve"><value>Copied into the project at creation: it fixes the stages and their artifacts, the board projections, the starting memory and the default settings. Changing the template later affects only projects created afterwards.</value></data>
   <data name="TemplateFirstProjectHint" xml:space="preserve"><value>This installation has no templates yet; the first project is created from the built-in default template, which is written next to the daemon's database.</value></data>

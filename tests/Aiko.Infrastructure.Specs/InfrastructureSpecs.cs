@@ -625,7 +625,8 @@ public class InfrastructureSpecs
 
             var priorities = CardPriorityProjector.Project(
                 await context.Cards.ListAsync(context.Project.Id, CancellationToken.None),
-                await context.Relations.ListAsync(context.Project.Id, CancellationToken.None));
+                await context.Relations.ListAsync(context.Project.Id, CancellationToken.None),
+                Aiko.Domain.Prioritization.PrioritySettings.SafeDefault);
 
             var taskSnapshot = priorities
                 .Single(priority => priority.CardId == task.Reference.CardId)
@@ -1060,7 +1061,8 @@ public class InfrastructureSpecs
 
             var priorities = CardPriorityProjector.Project(
                 await context.Cards.ListAsync(context.Project.Id, CancellationToken.None),
-                await context.Relations.ListAsync(context.Project.Id, CancellationToken.None));
+                await context.Relations.ListAsync(context.Project.Id, CancellationToken.None),
+                Aiko.Domain.Prioritization.PrioritySettings.SafeDefault);
 
             var taskSnapshot = priorities.Single(priority => priority.CardId == "TASK-DEEP").Snapshot;
             Assert.Equal(5.8m, taskSnapshot.EffectivePriority);

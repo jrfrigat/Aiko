@@ -65,13 +65,13 @@ public class DomainSpecs
     }
 
     [Fact]
-    public void Priority_criteria_compute_weighted_own_priority()
+    public void Priority_criteria_normalize_values_by_their_range_and_weight_them()
     {
         PriorityCriterion[] criteria =
         [
-            new("readiness", "Готовность", "Насколько задача готова к взятию", 1m),
-            new("size", "Размер", "Оценка объёма работы", 2m),
-            new("benefit", "Польза", "Польза для продукта", 3m)
+            new("readiness", "Готовность", "Насколько задача готова к взятию", 1m, 0m, 10m),
+            new("size", "Размер", "Оценка объёма работы", 2m, 0m, 10m),
+            new("benefit", "Польза", "Польза для продукта", 3m, 0m, 10m)
         ];
         var values = new Dictionary<string, decimal>
         {
@@ -80,10 +80,81 @@ public class DomainSpecs
             ["benefit"] = 10m
         };
 
-        // (4*1 + 5*2 + 10*3) / (1+2+3) = 44 / 6
+        // ((4/10)*1 + (5/10)*2 + (10/10)*3) / (1+2+3)
         var priority = PriorityCalculator.CalculateOwnPriority(values, criteria);
 
-        Assert.Equal(44m / 6m, priority);
+        Assert.Equal(4.4m / 6m, priority);
+    }
+
+    [Fact]
+    public void Values_outside_a_criterion_range_are_clamped()
+    {
+        PriorityCriterion[] criteria = [new("benefit", "Польза", "Польза для продукта", 1m, 0m, 10m)];
+
+        Assert.Equal(1m, PriorityCalculator.CalculateOwnPriority(
+            new Dictionary<string, decimal> { ["benefit"] = 40m },
+            criteria));
+        Assert.Equal(0m, PriorityCalculator.CalculateOwnPriority(
+            new Dictionary<string, decimal> { ["benefit"] = -5m },
+            criteria));
+    }
+
+    [Fact]
+    public void A_criterion_with_an_empty_range_scores_nothing_instead_of_dividing_by_zero()
+    {
+        PriorityCriterion[] criteria = [new("broken", "Сломанный", "Диапазон задан неверно", 1m, 5m, 5m)];
+
+        var priority = PriorityCalculator.CalculateOwnPriority(
+            new Dictionary<string, decimal> { ["broken"] = 5m },
+            criteria);
+
+        Assert.Equal(0m, priority);
+    }
+
+    [Fact]
+    public void The_card_size_multiplies_the_own_score()
+    {
+        var settings = new PrioritySettings(
+            PriorityWeights.Default,
+            [],
+            [
+                new("S", "S", "До половины дня", 1.08m),
+                new("M", "M", "До дня работы", 1m),
+                new("XL", "XL", "Больше недели", 0.8m)
+            ]);
+
+        Assert.Equal(8m, PriorityCalculator.CalculateOwnScore(8m, null, settings, "M"));
+        Assert.Equal(8.64m, PriorityCalculator.CalculateOwnScore(8m, null, settings, "S"));
+        Assert.Equal(6.4m, PriorityCalculator.CalculateOwnScore(8m, null, settings, "XL"));
+        // No size, and a step that is not in the grid any more, are both neutral.
+        Assert.Equal(8m, PriorityCalculator.CalculateOwnScore(8m, null, settings, null));
+        Assert.Equal(8m, PriorityCalculator.CalculateOwnScore(8m, null, settings, "XXXL"));
+    }
+
+    [Fact]
+    public void Criterion_values_win_over_the_manual_priority_only_when_the_project_has_criteria()
+    {
+        var settings = new PrioritySettings(
+            PriorityWeights.Default,
+            [new("benefit", "Польза", "Польза для продукта", 1m, 0m, 10m)]);
+        var values = new Dictionary<string, decimal> { ["benefit"] = 5m };
+
+        // Criteria configured and a value present: the value decides.
+        Assert.Equal(0.5m, PriorityCalculator.CalculateOwnScore(9m, values, settings, null));
+        // No value on the card: the manually entered priority stands.
+        Assert.Equal(9m, PriorityCalculator.CalculateOwnScore(9m, null, settings, null));
+        // No criteria in the project at all: likewise.
+        Assert.Equal(
+            9m,
+            PriorityCalculator.CalculateOwnScore(9m, values, PrioritySettings.SafeDefault, null));
+    }
+
+    [Fact]
+    public void A_size_step_must_carry_an_id_and_a_positive_coefficient()
+    {
+        Assert.Throws<ArgumentException>(() => new SizeDefinition(" ", "S", "Описание", 1m));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new SizeDefinition("S", "S", "Описание", 0m));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new SizeDefinition("S", "S", "Описание", -1m));
     }
 
     [Fact]

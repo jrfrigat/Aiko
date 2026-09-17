@@ -34,14 +34,14 @@ internal static class BoardEndpoints
                 var definition = await definitions.ReadAsync(projectId, cancellationToken);
                 var boardCards = await cards.ListAsync(projectId, cancellationToken);
                 var boardRelations = await relations.ListAsync(projectId, cancellationToken);
-                var weights = await settings.GetEffectivePriorityAsync(projectId, cancellationToken);
+                var priority = await settings.GetEffectivePriorityAsync(projectId, cancellationToken);
                 return Results.Ok(new ProjectBoardSnapshot(
                     project,
                     definition.Workflows,
                     definition.Projections,
                     boardCards,
                     boardRelations,
-                    CardPriorityProjector.Project(boardCards, boardRelations, weights.Weights)));
+                    CardPriorityProjector.Project(boardCards, boardRelations, priority)));
             });
     }
 }

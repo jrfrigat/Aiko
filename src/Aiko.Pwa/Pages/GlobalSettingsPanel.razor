@@ -288,43 +288,101 @@
                         }
                         else
                         {
-                            <table class="aiko-table">
-                                <thead>
-                                    <tr>
-                                        <th>@Loc.Get("Title")</th>
-                                        <th>@Loc.Get("CriterionDescription")</th>
-                                        <th class="aiko-table__num">@Loc.Get("CriterionWeight")</th>
-                                        <th></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var criterion in _criteria)
-                                    {
-                                        var draft = criterion;
-                                        <tr>
-                                            <td><span class="aiko-tag aiko-tag--quiet">@draft.Id</span></td>
-                                            <td>
-                                                <FlareTextField Size="FieldSize.Xs"
-                                                                AriaLabel="@Loc.Get("CriterionDescription")"
-                                                                Value="@draft.Title"
-                                                                ValueChanged="value => draft.Title = value" />
-                                            </td>
-                                            <td class="aiko-table__num">
-                                                <FlareNumericField TValue="decimal?"
-                                                                   Size="FieldSize.Xs"
-                                                                   AriaLabel="@Loc.Get("CriterionWeight")"
-                                                                   @bind-Value="draft.Weight" />
-                                            </td>
-                                            <td class="aiko-table__num">
-                                                <FlareIconButton Variant="ButtonVariant.Text"
-                                                                 Icon="@MaterialDesign3Icons.Regular.Delete"
-                                                                 AriaLabel="@Loc.Get("Remove")"
-                                                                 OnClick="() => _criteria.Remove(draft)" />
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
+                            @foreach (var criterion in _criteria)
+                            {
+                                var draft = criterion;
+                                <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                                    <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XSmall">
+                                        <span class="aiko-tag aiko-tag--quiet">@draft.Id</span>
+                                        <FlareIconButton Variant="ButtonVariant.Text"
+                                                         Icon="@MaterialDesign3Icons.Regular.Delete"
+                                                         AriaLabel="@Loc.Get("Remove")"
+                                                         OnClick="() => _criteria.Remove(draft)" />
+                                    </FlareStack>
+                                    <FlareTextField Size="FieldSize.Xs"
+                                                    Label="@Loc.Get("CriterionTitle")"
+                                                    Value="@draft.Title"
+                                                    ValueChanged="value => draft.Title = value" />
+                                    <FlareTextField Size="FieldSize.Xs"
+                                                    Label="@Loc.Get("CriterionDescription")"
+                                                    Value="@draft.Description"
+                                                    ValueChanged="value => draft.Description = value" />
+                                    <FlareStack Row="true" Align="FlareAlignItems.End" Gap="FlareSpacing.XSmall">
+                                        <FlareNumericField TValue="decimal"
+                                                           Size="FieldSize.Xs"
+                                                           Label="@Loc.Get("MinimumLabel")"
+                                                           @bind-Value="draft.Minimum" />
+                                        <FlareNumericField TValue="decimal"
+                                                           Size="FieldSize.Xs"
+                                                           Label="@Loc.Get("MaximumLabel")"
+                                                           @bind-Value="draft.Maximum" />
+                                        <FlareNumericField TValue="decimal"
+                                                           Size="FieldSize.Xs"
+                                                           Label="@Loc.Get("CriterionWeight")"
+                                                           @bind-Value="draft.Weight" />
+                                    </FlareStack>
+                                    <FlareTextField Size="FieldSize.Xs"
+                                                    Label="@Loc.Get("AiInstructionLabel")"
+                                                    HelperText="@Loc.Get("AiInstructionHint")"
+                                                    Value="@draft.AiInstruction"
+                                                    ValueChanged="value => draft.AiInstruction = value" />
+                                </FlareStack>
+                            }
+                        }
+                    </FlareStack>
+
+                    @* The size grid: the descriptions are what the agent reads to assign a card its step, and
+                       the coefficient is what that step does to the score (ТЗ §10). A project that needs
+                       another step adds one here. *@
+                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.XSmall">
+                        <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small" Wrap="true">
+                            <FlareStack Gap="FlareSpacing.None">
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                                    @Loc.Get("SizeGrid")
+                                </FlareText>
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                    @Loc.Get("SizeGridHint")
+                                </FlareText>
+                            </FlareStack>
+                            <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm" OnClick="AddSize">
+                                <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.Add" /></LeadingIcon>
+                                <ChildContent>@Loc.Get("AddSize")</ChildContent>
+                            </FlareButton>
+                        </FlareStack>
+
+                        @if (_sizes.Count == 0)
+                        {
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                @Loc.Get("NoSizes")
+                            </FlareText>
+                        }
+                        else
+                        {
+                            @foreach (var size in _sizes)
+                            {
+                                var draft = size;
+                                <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                                    <FlareStack Row="true" Align="FlareAlignItems.End" Gap="FlareSpacing.XSmall">
+                                        <FlareTextField Size="FieldSize.Xs"
+                                                        Label="@Loc.Get("SizeIdLabel")"
+                                                        Value="@draft.Id"
+                                                        ValueChanged="value => draft.Id = value" />
+                                        <FlareNumericField TValue="decimal"
+                                                           Size="FieldSize.Xs"
+                                                           Label="@Loc.Get("SizeCoefficient")"
+                                                           @bind-Value="draft.Coefficient" />
+                                        <FlareIconButton Variant="ButtonVariant.Text"
+                                                         Icon="@MaterialDesign3Icons.Regular.Delete"
+                                                         AriaLabel="@Loc.Get("Remove")"
+                                                         OnClick="() => _sizes.Remove(draft)" />
+                                    </FlareStack>
+                                    <FlareTextField Size="FieldSize.Xs"
+                                                    Label="@Loc.Get("SizeDescription")"
+                                                    HelperText="@Loc.Get("SizeDescriptionHint")"
+                                                    Value="@draft.Description"
+                                                    ValueChanged="value => draft.Description = value" />
+                                </FlareStack>
+                            }
                         }
                     </FlareStack>
                 </FlareStack>
@@ -453,6 +511,7 @@
     private ActionPolicy _scopePolicy = ActionPolicy.Ask;
     private ActionPolicy _commitPolicy = ActionPolicy.Deny;
     private List<CriterionDraft> _criteria = [];
+    private List<SizeDraft> _sizes = [];
     private double _ownWeight = 0.7d;
     private double _parentWeight = 0.3d;
     private WorkshopDiagnostics? _diagnostics;
@@ -517,6 +576,9 @@
         _ownWeight = (double)priority.Weights.TaskWeight;
         _parentWeight = (double)priority.Weights.ParentWeight;
         _criteria = priority.Criteria.Select(CriterionDraft.From).ToList();
+        // The effective view carries the standard grid when nothing is configured, so a fresh install
+        // shows the ladder it would use rather than an empty table.
+        _sizes = priority.Grid.Select(SizeDraft.From).ToList();
     }
 
     private void OnOwnWeightChanged(double value) => _ownWeight = value;
@@ -525,6 +587,14 @@
 
     private void AddCriterion() =>
         _criteria.Add(new CriterionDraft { Id = NewCriterionId(_criteria) });
+
+    private void AddSize() =>
+        _sizes.Add(new SizeDraft
+        {
+            Id = NewSizeId(_sizes),
+            Description = string.Empty,
+            Coefficient = 1m,
+        });
 
     /// <summary>
     /// Builds and saves the global document. Both sections travel together: the settings file is
@@ -546,6 +616,39 @@
             return;
         }
 
+        // An empty range would make the criterion meaningless, so it is refused here rather than silently
+        // scoring nothing on every card.
+        if (_criteria.Any(criterion => criterion.Maximum <= criterion.Minimum))
+        {
+            _message = Loc.Get("InvalidCriterionRange");
+            _hasError = true;
+            return;
+        }
+
+        if (_sizes.Any(size => string.IsNullOrWhiteSpace(size.Id)))
+        {
+            _message = Loc.Get("SizeIdRequired");
+            _hasError = true;
+            return;
+        }
+
+        if (_sizes.Any(size => size.Coefficient <= 0m))
+        {
+            _message = Loc.Get("InvalidSizeCoefficient");
+            _hasError = true;
+            return;
+        }
+
+        var duplicateSize = _sizes
+            .GroupBy(size => size.Id!.Trim(), StringComparer.Ordinal)
+            .FirstOrDefault(group => group.Count() > 1);
+        if (duplicateSize is not null)
+        {
+            _message = Loc.Format("DuplicateSizeId", duplicateSize.Key);
+            _hasError = true;
+            return;
+        }
+
         _saving = true;
         _message = null;
         _hasError = false;
@@ -558,7 +661,19 @@
                     criterion.Id,
                     criterion.Title!.Trim(),
                     criterion.Description ?? string.Empty,
-                    criterion.Weight ?? 0m)).ToArray());
+                    criterion.Weight,
+                    criterion.Minimum,
+                    criterion.Maximum,
+                    string.IsNullOrWhiteSpace(criterion.AiInstruction)
+                        ? null
+                        : criterion.AiInstruction.Trim())).ToArray(),
+                _sizes.Select(size => new SizeDefinition(
+                    size.Id!.Trim(),
+                    // The step's label is its id: the grid is a ladder of codes (S, M, XL) and a separate
+                    // display title would be a second name for the same thing.
+                    size.Id!.Trim(),
+                    size.Description ?? string.Empty,
+                    size.Coefficient)).ToArray());
 
             using var response = await Http.PutAsJsonAsync(
                 "api/v1/settings",
@@ -687,6 +802,19 @@
         </FlareText>
     </label>;
 
+    /// <summary>A free step id, so a row the user has just added has something valid to be saved with.</summary>
+    private static string NewSizeId(IReadOnlyList<SizeDraft> existing)
+    {
+        var suffix = existing.Count + 1;
+        var id = $"S{suffix}";
+        while (existing.Any(item => string.Equals(item.Id, id, StringComparison.Ordinal)))
+        {
+            id = $"S{++suffix}";
+        }
+
+        return id;
+    }
+
     private static string NewCriterionId(IReadOnlyList<CriterionDraft> existing)
     {
         var id = "criterion";
@@ -705,7 +833,10 @@
         public required string Id { get; init; }
         public string? Title { get; set; }
         public string? Description { get; set; }
-        public decimal? Weight { get; set; } = 1m;
+        public decimal Weight { get; set; } = 1m;
+        public decimal Minimum { get; set; }
+        public decimal Maximum { get; set; } = 1m;
+        public string? AiInstruction { get; set; }
 
         public static CriterionDraft From(PriorityCriterion criterion) => new()
         {
@@ -713,6 +844,24 @@
             Title = criterion.Title,
             Description = criterion.Description,
             Weight = criterion.Weight,
+            Minimum = criterion.Minimum,
+            Maximum = criterion.Maximum,
+            AiInstruction = criterion.AiInstruction,
+        };
+    }
+
+    /// <summary>A size step as the form holds it, before it becomes a <see cref="SizeDefinition"/>.</summary>
+    private sealed class SizeDraft
+    {
+        public string? Id { get; set; }
+        public string? Description { get; set; }
+        public decimal Coefficient { get; set; } = 1m;
+
+        public static SizeDraft From(SizeDefinition size) => new()
+        {
+            Id = size.Id,
+            Description = size.Description,
+            Coefficient = size.Coefficient,
         };
     }
 }
