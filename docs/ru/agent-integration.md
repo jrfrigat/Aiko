@@ -48,7 +48,8 @@ Project-scoped скиллы/команды (устанавливаются `aiko
 
 Глобальные скиллы/команды (устанавливаются `aiko agent install --scope user`):
 
-`/aiko-init`, `/aiko-list-projects`, `/aiko-status`, `/aiko-doctor`, `/aiko-repair`, `/aiko-ui`.
+`/aiko-init`, `/aiko-list-projects`, `/aiko-status`, `/aiko-doctor`, `/aiko-repair`, `/aiko-agents`,
+`/aiko-token`, `/aiko-backup`, `/aiko-ui`.
 
 Контракт поведения: любая работа начинается с карточки; читайте контекст перед действиями;
 предупреждайте об изменениях вне declared scope; сообщайте прогресс, фактические файлы и коммиты
@@ -80,8 +81,9 @@ UI пока нет, таблица говорит это прямо, а не д�
 | Перестроить проекции | — | `aiko_reindex` | — (`aiko reindex`) |
 | Диагностика установки | `/aiko-doctor` | `aiko_doctor` | — (`aiko doctor`) |
 | Починка установки | `/aiko-repair` | — | — (`aiko repair --fix`) |
-| Резервная копия проекта | — | `aiko_backup` | — |
-| Показать токен доступа | — | `aiko_token` | — (`aiko token show`) |
+| Резервная копия проекта | `/aiko-backup` | `aiko_backup` | — |
+| Показать токен доступа | `/aiko-token` | `aiko_token` | — (`aiko token show`) |
+| Управление интеграциями агентов | `/aiko-agents` | — (`aiko agent list` / `install` / `uninstall`) | — |
 
 ## Что пишет установщик
 

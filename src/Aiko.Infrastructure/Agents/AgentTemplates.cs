@@ -140,9 +140,10 @@ internal static class AgentTemplates
 
         Aiko coordinates project work between agents. Use the global commands to register the
         current project (/aiko-init), list projects (/aiko-list-projects), check the daemon
-        (/aiko-status), diagnose it (/aiko-doctor), repair what the diagnosis found (/aiko-repair)
-        and open the UI (/aiko-ui). After /aiko-init, restart this agent so the project-scoped MCP
-        configuration and skills are loaded.
+        (/aiko-status), diagnose it (/aiko-doctor), repair what the diagnosis found (/aiko-repair),
+        manage the agents' integrations (/aiko-agents), show the access token (/aiko-token), back a
+        project up (/aiko-backup) and open the UI (/aiko-ui). After /aiko-init, restart this agent so
+        the project-scoped MCP configuration and skills are loaded.
         """;
 
     /// <summary>
@@ -202,6 +203,39 @@ internal static class AgentTemplates
         configurations that point at an old endpoint; without --fix it only reports. A repair never
         deletes project files and never removes an installation - say what it changed and show the
         report it prints afterwards.
+        """;
+
+    /// <summary>
+    /// Global slash command that manages agent integrations.
+    /// </summary>
+    public const string GlobalAgents =
+        """
+        Manage the Aiko integration of the agents on this machine. Run `aiko agent list` to see the
+        detected agents, `aiko agent install --project <id> [--agent <ids>]` to connect one to a
+        project, `aiko agent install --scope user` for the global skills and MCP entry, and
+        `aiko agent uninstall ...` to remove it. Tell the user to restart the agent afterwards so it
+        loads the new MCP server.
+        """;
+
+    /// <summary>
+    /// Global slash command that shows the access token.
+    /// </summary>
+    public const string GlobalToken =
+        """
+        Show the local Aiko access token with `aiko token show`, or the aiko_token MCP tool. The token
+        authenticates REST and MCP clients; a browser is paired once with `aiko ui` instead, so it is
+        never needed in a URL. Treat it as a secret for this machine: do not paste it into issues,
+        prompts or commits.
+        """;
+
+    /// <summary>
+    /// Global slash command that backs up a project.
+    /// </summary>
+    public const string GlobalBackup =
+        """
+        Back up a project's `.aiko` tree with the aiko_backup MCP tool and the project id; it writes a
+        timestamped zip under the Aiko data directory and returns the path. Restoring is a deliberate,
+        manual step: unpack the archive yourself. Aiko never overwrites or deletes project files.
         """;
 
     /// <summary>

@@ -80,6 +80,9 @@ public sealed class ClaudeCodeAgentAdapter : BuiltInAgentAdapter
             Command("aiko-status", AgentTemplates.GlobalStatus),
             Command("aiko-doctor", AgentTemplates.GlobalDoctor),
             Command("aiko-repair", AgentTemplates.GlobalRepair),
+            Command("aiko-agents", AgentTemplates.GlobalAgents),
+            Command("aiko-token", AgentTemplates.GlobalToken),
+            Command("aiko-backup", AgentTemplates.GlobalBackup),
             Command("aiko-ui", AgentTemplates.GlobalUi)
         ];
     }

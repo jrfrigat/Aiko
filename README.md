@@ -186,6 +186,9 @@ User scope (`--scope user`), available without a project open:
 | `/aiko-status` | Daemon health, data directory, port |
 | `/aiko-doctor` | Diagnose the installation (changes nothing) |
 | `/aiko-repair` | Apply the fixes the diagnosis named |
+| `/aiko-agents` | List, install and uninstall the agents' integrations |
+| `/aiko-token` | Show the local access token |
+| `/aiko-backup` | Back up a project's `.aiko` tree |
 | `/aiko-ui` | Open the UI |
 
 [Agent Integration](docs/en/agent-integration.md) has the full skill → MCP tool → UI table, including

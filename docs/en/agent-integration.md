@@ -47,7 +47,8 @@ Project-scoped skills/commands (installed with `aiko agent install --project <id
 
 Global skills/commands (installed with `aiko agent install --scope user`):
 
-`/aiko-init`, `/aiko-list-projects`, `/aiko-status`, `/aiko-doctor`, `/aiko-repair`, `/aiko-ui`.
+`/aiko-init`, `/aiko-list-projects`, `/aiko-status`, `/aiko-doctor`, `/aiko-repair`, `/aiko-agents`,
+`/aiko-token`, `/aiko-backup`, `/aiko-ui`.
 
 The behavior contract: any work item starts with a card; read context before acting; warn before
 changing files outside the declared scope; report progress, actual files and commits through Aiko.
@@ -78,8 +79,9 @@ has no path yet, the table says so rather than pretending the sets are already e
 | Rebuild projections | — | `aiko_reindex` | — (`aiko reindex`) |
 | Diagnose the installation | `/aiko-doctor` | `aiko_doctor` | — (`aiko doctor`) |
 | Repair the installation | `/aiko-repair` | — | — (`aiko repair --fix`) |
-| Back up a project | — | `aiko_backup` | — |
-| Show the access token | — | `aiko_token` | — (`aiko token show`) |
+| Back up a project | `/aiko-backup` | `aiko_backup` | — |
+| Show the access token | `/aiko-token` | `aiko_token` | — (`aiko token show`) |
+| Manage agent integrations | `/aiko-agents` | — (`aiko agent list` / `install` / `uninstall`) | — |
 
 ## What the installer writes
 
