@@ -258,17 +258,51 @@
   <data name="AiInstructionHint" xml:space="preserve"><value>What the agent should look at to score this criterion</value></data>
   <data name="CharactersCount" xml:space="preserve"><value>Characters: {0}</value></data>
   <data name="TokensEstimate" xml:space="preserve"><value>Tokens ~{0}</value></data>
+  <data name="CloseTask" xml:space="preserve"><value>Close task</value></data>
+  <data name="ExecutionState" xml:space="preserve"><value>Execution state</value></data>
+  <data name="WorkflowStatus" xml:space="preserve"><value>Workflow status</value></data>
+  <data name="ActiveAssignees" xml:space="preserve"><value>Active assignees</value></data>
+  <data name="NoActiveAssignees" xml:space="preserve"><value>This stage names no agent yet.</value></data>
+  <data name="RoleAgent" xml:space="preserve"><value>Agent</value></data>
+  <data name="NotStarted" xml:space="preserve"><value>Not started</value></data>
+  <data name="TriageScore" xml:space="preserve"><value>Triage &amp; score</value></data>
+  <data name="EffectivePriority" xml:space="preserve"><value>Effective priority</value></data>
+  <data name="RankOf" xml:space="preserve"><value>Rank #{0}</value></data>
+  <data name="PriorityOf" xml:space="preserve"><value>own value {0}</value></data>
+  <data name="RelatedCards" xml:space="preserve"><value>Related cards</value></data>
+  <data name="RelatedParents" xml:space="preserve"><value>Parents</value></data>
+  <data name="RelatedChildren" xml:space="preserve"><value>Children</value></data>
+  <data name="RelatedLinks" xml:space="preserve"><value>Linked</value></data>
+  <data name="RelationBlocks" xml:space="preserve"><value>blocks this</value></data>
+  <data name="RelationBlockedBy" xml:space="preserve"><value>blocked by this</value></data>
+  <data name="RelationImplements" xml:space="preserve"><value>implements this</value></data>
+  <data name="RelationImplementedBy" xml:space="preserve"><value>implemented by this</value></data>
+  <data name="RelationRelatesTo" xml:space="preserve"><value>related</value></data>
+  <data name="ResolvedOf" xml:space="preserve"><value>{0} / {1} resolved</value></data>
+  <data name="StageSkills" xml:space="preserve"><value>Stage skills</value></data>
   <data name="CodeChanges" xml:space="preserve"><value>Code changes</value></data>
+  <data name="CodeChangesHint" xml:space="preserve"><value>Where the diff of this card's commits will appear</value></data>
   <data name="CodeChangesPending" xml:space="preserve"><value>A diff of this card's commits appears here.</value></data>
   <data name="CodeChangesPlan" xml:space="preserve"><value>It waits for the git integration: the block will list the commits reported for this card - sha, message, the files they touched - and the diff of each, hunk by hunk.</value></data>
+  <data name="ArtifactsTitle" xml:space="preserve"><value>Artifacts</value></data>
+  <data name="ArtifactsHint" xml:space="preserve"><value>The files this card owns, edited as Markdown</value></data>
+  <data name="RunsTitle" xml:space="preserve"><value>Runs</value></data>
+  <data name="RunsHint" xml:space="preserve"><value>Every execution of this card, newest first</value></data>
   <data name="AttemptsLabel" xml:space="preserve"><value>Agent attempts</value></data>
   <data name="AssignedTo" xml:space="preserve"><value>assigned to {0}</value></data>
   <data name="ScopeTitle" xml:space="preserve"><value>Scope &amp; requirements</value></data>
+  <data name="DeclaredScope" xml:space="preserve"><value>Declared scope</value></data>
+  <data name="ScopePanelHint" xml:space="preserve"><value>What the stage asks for and what the card declared</value></data>
+  <data name="ArtifactPresent" xml:space="preserve"><value>present</value></data>
+  <data name="ArtifactMissing" xml:space="preserve"><value>missing</value></data>
   <data name="FilesDeclared" xml:space="preserve"><value>Declared</value></data>
   <data name="FilesActual" xml:space="preserve"><value>Actually changed</value></data>
   <data name="DefinitionOfDone" xml:space="preserve"><value>Definition of done</value></data>
   <data name="NoRequiredArtifacts" xml:space="preserve"><value>This stage asks for no artifacts.</value></data>
   <data name="CompletedOutcomes" xml:space="preserve"><value>Completed outcomes &amp; report</value></data>
+  <data name="CompletedOutcomesHint" xml:space="preserve"><value>What the last run reported</value></data>
+  <data name="AgentReport" xml:space="preserve"><value>Agent report</value></data>
+  <data name="NoRunSummary" xml:space="preserve"><value>This run left no summary.</value></data>
   <data name="ReportedCommits" xml:space="preserve"><value>Reported commits</value></data>
   <data name="CommitPending" xml:space="preserve"><value>awaiting approval</value></data>
   <data name="RevisionTag" xml:space="preserve"><value>rev {0}</value></data>

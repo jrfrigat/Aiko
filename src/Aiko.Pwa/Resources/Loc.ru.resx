@@ -258,17 +258,51 @@
   <data name="AiInstructionHint" xml:space="preserve"><value>На что агенту смотреть, чтобы оценить этот критерий</value></data>
   <data name="CharactersCount" xml:space="preserve"><value>Символов: {0}</value></data>
   <data name="TokensEstimate" xml:space="preserve"><value>Токенов ~{0}</value></data>
+  <data name="CloseTask" xml:space="preserve"><value>Закрыть задачу</value></data>
+  <data name="ExecutionState" xml:space="preserve"><value>Состояние выполнения</value></data>
+  <data name="WorkflowStatus" xml:space="preserve"><value>Статус workflow</value></data>
+  <data name="ActiveAssignees" xml:space="preserve"><value>Активные исполнители</value></data>
+  <data name="NoActiveAssignees" xml:space="preserve"><value>У этапа пока нет агента.</value></data>
+  <data name="RoleAgent" xml:space="preserve"><value>Агент</value></data>
+  <data name="NotStarted" xml:space="preserve"><value>Не запускалось</value></data>
+  <data name="TriageScore" xml:space="preserve"><value>Триаж и оценка</value></data>
+  <data name="EffectivePriority" xml:space="preserve"><value>Эффективный приоритет</value></data>
+  <data name="RankOf" xml:space="preserve"><value>Ранг #{0}</value></data>
+  <data name="PriorityOf" xml:space="preserve"><value>своя оценка {0}</value></data>
+  <data name="RelatedCards" xml:space="preserve"><value>Связанные задачи</value></data>
+  <data name="RelatedParents" xml:space="preserve"><value>Родительские</value></data>
+  <data name="RelatedChildren" xml:space="preserve"><value>Дочерние</value></data>
+  <data name="RelatedLinks" xml:space="preserve"><value>Связанные</value></data>
+  <data name="RelationBlocks" xml:space="preserve"><value>блокирует эту</value></data>
+  <data name="RelationBlockedBy" xml:space="preserve"><value>заблокирована этой</value></data>
+  <data name="RelationImplements" xml:space="preserve"><value>реализует эту</value></data>
+  <data name="RelationImplementedBy" xml:space="preserve"><value>реализована этой</value></data>
+  <data name="RelationRelatesTo" xml:space="preserve"><value>связана</value></data>
+  <data name="ResolvedOf" xml:space="preserve"><value>{0} / {1} выполнено</value></data>
+  <data name="StageSkills" xml:space="preserve"><value>Скиллы этапа</value></data>
   <data name="CodeChanges" xml:space="preserve"><value>Изменения кода</value></data>
+  <data name="CodeChangesHint" xml:space="preserve"><value>Здесь появится дифф коммитов этой карточки</value></data>
   <data name="CodeChangesPending" xml:space="preserve"><value>Здесь появится дифф коммитов этой карточки.</value></data>
   <data name="CodeChangesPlan" xml:space="preserve"><value>Блок ждёт git-интеграцию: здесь будут коммиты, заявленные по карточке — sha, сообщение, затронутые файлы — и дифф каждого, по хункам.</value></data>
+  <data name="ArtifactsTitle" xml:space="preserve"><value>Артефакты</value></data>
+  <data name="ArtifactsHint" xml:space="preserve"><value>Файлы этой карточки, редактируемые как Markdown</value></data>
+  <data name="RunsTitle" xml:space="preserve"><value>Запуски</value></data>
+  <data name="RunsHint" xml:space="preserve"><value>Все исполнения этой карточки, новые сверху</value></data>
   <data name="AttemptsLabel" xml:space="preserve"><value>Попыток агентов</value></data>
   <data name="AssignedTo" xml:space="preserve"><value>исполнитель: {0}</value></data>
   <data name="ScopeTitle" xml:space="preserve"><value>Scope и требования</value></data>
+  <data name="DeclaredScope" xml:space="preserve"><value>Заявленный scope</value></data>
+  <data name="ScopePanelHint" xml:space="preserve"><value>Что требует этап и что заявила карточка</value></data>
+  <data name="ArtifactPresent" xml:space="preserve"><value>на месте</value></data>
+  <data name="ArtifactMissing" xml:space="preserve"><value>отсутствует</value></data>
   <data name="FilesDeclared" xml:space="preserve"><value>Объявлено</value></data>
   <data name="FilesActual" xml:space="preserve"><value>Реально изменено</value></data>
   <data name="DefinitionOfDone" xml:space="preserve"><value>Критерии приёмки</value></data>
   <data name="NoRequiredArtifacts" xml:space="preserve"><value>Этот этап не требует артефактов.</value></data>
   <data name="CompletedOutcomes" xml:space="preserve"><value>Что сделано по итогу</value></data>
+  <data name="CompletedOutcomesHint" xml:space="preserve"><value>Что сообщил последний запуск</value></data>
+  <data name="AgentReport" xml:space="preserve"><value>Отчёт агента</value></data>
+  <data name="NoRunSummary" xml:space="preserve"><value>Этот запуск не оставил отчёта.</value></data>
   <data name="ReportedCommits" xml:space="preserve"><value>Заявленные коммиты</value></data>
   <data name="CommitPending" xml:space="preserve"><value>ждёт подтверждения</value></data>
   <data name="RevisionTag" xml:space="preserve"><value>rev {0}</value></data>

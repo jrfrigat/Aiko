@@ -1,4 +1,5 @@
 @page "/p/{ProjectId}/cards/{CardId}"
+@inject HttpClient Http
 @inject WorkspaceState State
 
 @* A card as its own page: the board is where you work across cards, this is where you work inside one -
@@ -19,6 +20,31 @@
 else
 {
     <FlareStack Gap="FlareSpacing.Medium">
+        @* The breadcrumb strip the design opens a card with: where the card sits, and the one action that
+           moves it on - closing it means sending it to the last stage of its own pipeline. *@
+        <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small" Wrap="true">
+            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall" Wrap="true">
+                <span class="aiko-value">@board.Project.Name</span>
+                <span class="aiko-tag aiko-tag--quiet">/</span>
+                <FlareNavLink Href="@BoardHref">
+                    <ChildContent>@Loc.Get("KanbanBoard")</ChildContent>
+                </FlareNavLink>
+                <span class="aiko-tag aiko-tag--quiet">/</span>
+                <FlareNavLink Href="@SectionHref(Card.Kind)"><ChildContent>@Card.Kind</ChildContent></FlareNavLink>
+                <span class="aiko-tag aiko-tag--quiet">/</span>
+                <span class="aiko-tag aiko-tag--accent">@Card.Reference.CardId</span>
+            </FlareStack>
+            @if (LastStage is { } last && !string.Equals(last.Id, Card.StageId, StringComparison.Ordinal))
+            {
+                <FlareButton Variant="ButtonVariant.Tonal"
+                             Size="ButtonSize.Sm"
+                             Loading="@_closing"
+                             OnClick="CloseCardAsync">
+                    <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.TaskAlt" /></LeadingIcon>
+                    <ChildContent>@Loc.Get("CloseTask")</ChildContent>
+                </FlareButton>
+            }
+        </FlareStack>
         @* The card's own banner, as the design leads every card page with it: what the card is, where it is
            in the pipeline, who is on it, and the counts that matter before any detail. *@
         <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel aiko-banner">
@@ -79,6 +105,47 @@ else
 
     private string BoardHref => $"/p/{Uri.EscapeDataString(ProjectId)}/board";
 
+    /// <summary>The projection route for a card kind, so the breadcrumb links to the board's view of it.</summary>
+    private string SectionHref(CardKind kind) =>
+        $"/p/{Uri.EscapeDataString(ProjectId)}/{(kind == CardKind.Story ? "stories" : "tasks")}";
+
+    /// <summary>The last stage of the card's own workflow: where closing a card sends it.</summary>
+    private StageDefinition? LastStage => State.Board?.Workflows
+        .FirstOrDefault(workflow => Card is not null &&
+            StringComparer.Ordinal.Equals(workflow.Id, Card.WorkflowId))
+        ?.Stages.OrderBy(stage => stage.Order).LastOrDefault();
+
+    /// <summary>
+    /// Moves the card to the last stage of its pipeline, which is what "close" means here: the workflow's
+    /// own end, not a state the UI invents.
+    /// </summary>
+    private async Task CloseCardAsync()
+    {
+        if (Card is not { } card || LastStage is not { } last || _closing)
+        {
+            return;
+        }
+
+        _closing = true;
+        try
+        {
+            using var response = await Http.PutAsJsonAsync(
+                $"api/v1/projects/{Uri.EscapeDataString(card.Reference.ProjectId)}/cards/{Uri.EscapeDataString(card.Reference.CardId)}/stage",
+                new MoveCardRequest(last.Id, card.Revision),
+                PwaJson.Options);
+            response.EnsureSuccessStatusCode();
+        }
+        catch (Exception exception)
+        {
+            await State.ReportErrorAsync(FailureText.Describe(exception));
+        }
+        finally
+        {
+            _closing = false;
+            await State.LoadBoardAsync();
+        }
+    }
+
     private Card? Card => State.Board?.Cards.FirstOrDefault(card =>
         StringComparer.Ordinal.Equals(card.Reference.CardId, CardId));
 
@@ -137,6 +204,8 @@ else
             ];
         }
     }
+
+    private bool _closing;
 
     protected override async Task OnParametersSetAsync() => await State.EnsureProjectAsync(ProjectId);
 }

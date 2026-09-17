@@ -30,8 +30,12 @@ A card's own score is the weighted average of its normalized criterion values, o
 the project defines no criteria; the size coefficient multiplies either. A task then blends that with the
 highest parent value using the project's weights (ТЗ §10).
 
-Open a card to edit the title, priority and declared scope, and to view relations,
-executions, agent attempts, progress and artifacts.
+The card page is laid out in two columns: on the left the stage's scope with the declared and actual files
+and the acceptance criteria, the last run's report, the block the commit diff will fill, the artifacts and
+the run history; on the right the execution state with its assignees, the triage and score with the card's
+rank on the board, the related cards (parents, children and plain relations - each links to its own page),
+the progress of the stage's acceptance criteria, the stage's skills and the card's parameters (title,
+priority, size, declared scope).
 
 ## Workflows
 
