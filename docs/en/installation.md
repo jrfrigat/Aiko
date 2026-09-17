@@ -118,6 +118,24 @@ This creates the `.aiko` directory (workflows, projections, memory) and register
 The default git policy is `local-only` (the whole `.aiko` directory is added to `.gitignore`);
 `track-project-knowledge` keeps workflows and memory under version control.
 
+## Unregister a project
+
+A registration can be dropped without touching anything on disk - a mistyped path, a project that
+moved, or a throwaway used for a test:
+
+```powershell
+aiko project remove <projectId> --yes
+```
+
+Only the registration and its SQLite projections go. The `.aiko` directory, the workflows and the
+memory stay where they are, and `aiko init` on the same path registers the project again. In the UI
+this is the bin button on a project row on the dashboard; over REST it is
+`DELETE /api/v1/projects/<projectId>` (204 on success, 404 when nothing was registered).
+
+Deleting the `.aiko` directory as well is deliberately **not** implemented: unregistering exists to undo
+a mistake, and a command that also removes files cannot be the default. Remove the directory yourself
+when that is what you want.
+
 ## Connect an agent
 
 ```powershell

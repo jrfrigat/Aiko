@@ -217,4 +217,7 @@
   <data name="BoardUnavailable" xml:space="preserve"><value>Не удалось загрузить доску. Обновите страницу.</value></data>
   <data name="WorkflowUnavailable" xml:space="preserve"><value>В этом проекте пока нет workflow.</value></data>
   <data name="QuickStartTitle" xml:space="preserve"><value>Быстрый старт</value></data>
+  <data name="Unregister" xml:space="preserve"><value>Отключить</value></data>
+  <data name="UnregisterConfirm" xml:space="preserve"><value>Отключить проект? Файлы на диске останутся.</value></data>
+  <data name="UnregisterFailed" xml:space="preserve"><value>Не удалось отключить проект: {0}</value></data>
 </root>

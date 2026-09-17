@@ -217,4 +217,7 @@
   <data name="BoardUnavailable" xml:space="preserve"><value>The board could not be loaded. Refresh to try again.</value></data>
   <data name="WorkflowUnavailable" xml:space="preserve"><value>This project has no workflows yet.</value></data>
   <data name="QuickStartTitle" xml:space="preserve"><value>Quick start</value></data>
+  <data name="Unregister" xml:space="preserve"><value>Unregister</value></data>
+  <data name="UnregisterConfirm" xml:space="preserve"><value>Unregister this project? Its files are kept.</value></data>
+  <data name="UnregisterFailed" xml:space="preserve"><value>Could not unregister the project: {0}</value></data>
 </root>

@@ -34,5 +34,18 @@ internal static class ProjectEndpoints
                 IProjectReindexer reindexer,
                 CancellationToken cancellationToken) =>
                 TypedResults.Ok(await reindexer.ReindexAsync(projectId, cancellationToken)));
+        // Unregistering, not deleting: the registration and its SQLite projections go, the project's
+        // files stay. A mistyped `aiko init` path has to be undoable, so this cannot be a destructive
+        // operation by default.
+        app.MapDelete(
+            "/api/v1/projects/{projectId}",
+            async Task<IResult> (
+                string projectId,
+                IProjectCatalog catalog,
+                CancellationToken cancellationToken) =>
+            {
+                var removed = await catalog.RemoveAsync(projectId, cancellationToken);
+                return removed ? TypedResults.NoContent() : TypedResults.NotFound();
+            });
     }
 }

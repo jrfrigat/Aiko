@@ -80,6 +80,26 @@ public class InfrastructureSpecs
     }
 
     [Fact]
+    public async Task Removing_a_project_registration_keeps_its_files()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            Assert.True(await context.Catalog.RemoveAsync(context.Project.Id, CancellationToken.None));
+
+            Assert.Empty(await context.Catalog.ListAsync(CancellationToken.None));
+
+            // Unregistering is not deleting: the .aiko directory and the documents in it stay, so a
+            // mistyped path can be dropped without losing anything.
+            Assert.True(Directory.Exists(context.StitchRoot));
+            Assert.True(File.Exists(Path.Combine(context.StitchRoot, "project.json")));
+            Assert.True(Directory.Exists(Path.Combine(context.StitchRoot, "workflows")));
+
+            // A second removal reports that there was nothing left to remove.
+            Assert.False(await context.Catalog.RemoveAsync(context.Project.Id, CancellationToken.None));
+        });
+    }
+
+    [Fact]
     public async Task Default_project_documents_are_created()
     {
         await WithInitializedProjectAsync(context =>

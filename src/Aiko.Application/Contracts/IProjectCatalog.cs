@@ -19,4 +19,12 @@ public interface IProjectCatalog
     /// Creates or updates a project registration.
     /// </summary>
     ValueTask SaveAsync(RegisteredProject project, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Removes a project registration, along with the SQLite projections that hang off it (cards,
+    /// executions and events cascade). The project's files on disk are never touched: unregistering is
+    /// not deleting, and a mistyped path has to be recoverable.
+    /// </summary>
+    /// <returns>True when a registration was actually removed.</returns>
+    ValueTask<bool> RemoveAsync(string projectId, CancellationToken cancellationToken);
 }

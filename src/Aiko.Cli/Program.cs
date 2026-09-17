@@ -13,6 +13,7 @@ var command = args.Length == 0 ? "help" : args[0];
 var exitCode = command switch
 {
     "init" => await InitAsync(args),
+    "project" => await ProjectAsync(args),
     "serve" => await ServeAsync(),
     "ui" => await UiAsync(),
     "status" => await StatusAsync(),
@@ -34,10 +35,15 @@ static int Help()
 
         Commands:
           init <path> [--name <n>] [--git-policy <p>]   Register a project (.aiko)
+          project remove <id> [--yes]                   Unregister a project (keeps its files)
           serve                                         Start the Aiko daemon
           ui                                            Open the UI in the browser
           status                                        Daemon, data and port status
           agent list                                    List agents and detected installs
+          agent install --project <id> [--agent <ids>] [--scope user]
+                                                        Connect an agent to a project
+          agent uninstall --project <id> [--agent <ids>] [--scope user]
+                                                        Disconnect an agent from a project
           token show                                    Print the local access token
           reindex <projectId>                           Rebuild a project's SQLite projections
 
@@ -87,8 +93,67 @@ static async Task<int> InitAsync(string[] args)
     }
 }
 
+// `aiko project remove <id>` unregisters a project. Only the catalog entry (and the SQLite projections
+// that hang off it) goes: the project's files - including .aiko - belong to the user, and a mistyped
+// `aiko init` path is exactly the case this command exists to undo.
+static async Task<int> ProjectAsync(string[] args)
+{
+    var subcommand = args.Length > 1 ? args[1] : null;
+    var projectId = args.Length > 2 && !args[2].StartsWith('-') ? args[2] : null;
+    if (!string.Equals(subcommand, "remove", StringComparison.Ordinal) ||
+        string.IsNullOrWhiteSpace(projectId))
+    {
+        Console.Error.WriteLine("Usage: aiko project remove <projectId> [--yes]");
+        return 2;
+    }
+
+    var dataPaths = AikoDataPaths.FromEnvironment();
+    var database = new AikoDatabase(dataPaths);
+    await database.InitializeAsync();
+    var catalog = new SqliteProjectCatalog(database);
+
+    var project = await catalog.FindAsync(projectId, CancellationToken.None);
+    if (project is null)
+    {
+        Console.Error.WriteLine($"No registered project with id {projectId}.");
+        return 1;
+    }
+
+    if (!HasFlag(args, "--yes", "-y") &&
+        !Confirm($"Unregister {project.Name} ({project.RootPath})? Its files will be kept"))
+    {
+        Console.Error.WriteLine("Cancelled. Nothing changed.");
+        return 1;
+    }
+
+    await catalog.RemoveAsync(projectId, CancellationToken.None);
+    Console.WriteLine(
+        $"Unregistered project {project.Id} ({project.RootPath}). Files on disk were not touched.");
+    return 0;
+}
+
+// Unregistering changes what the daemon shows, so it asks first. A redirected stdin means a script:
+// there the explicit `--yes` is the only consent that counts, and waiting on a prompt nobody can
+// answer would hang the caller.
+static bool Confirm(string question)
+{
+    if (Console.IsInputRedirected)
+    {
+        Console.Error.WriteLine("Refusing to continue: pass --yes to confirm in a non-interactive shell.");
+        return false;
+    }
+
+    Console.Write($"{question} [y/N] ");
+    var answer = Console.ReadLine();
+    return answer is not null && answer.Trim().Equals("y", StringComparison.OrdinalIgnoreCase);
+}
+
+static bool HasFlag(string[] args, params string[] flags) =>
+    args.Any(arg => flags.Any(flag => string.Equals(arg, flag, StringComparison.Ordinal)));
+
 static async Task<int> ServeAsync()
 {
+
     var server = ResolveServerCommand();
     if (server is null)
     {

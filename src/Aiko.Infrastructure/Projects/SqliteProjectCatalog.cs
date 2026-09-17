@@ -74,4 +74,18 @@ public sealed class SqliteProjectCatalog(AikoDatabase database) : IProjectCatalo
         command.Parameters.AddWithValue("$updatedUtc", DateTimeOffset.UtcNow.ToString("O"));
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
+
+    /// <inheritdoc />
+    public async ValueTask<bool> RemoveAsync(string projectId, CancellationToken cancellationToken)
+    {
+        await using var connection = database.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+
+        await using var command = connection.CreateCommand();
+        // One statement clears the project's projections too: cards, executions and events all declare
+        // ON DELETE CASCADE against projects(id). Nothing on disk is touched.
+        command.CommandText = "DELETE FROM projects WHERE id = $id;";
+        command.Parameters.AddWithValue("$id", projectId);
+        return await command.ExecuteNonQueryAsync(cancellationToken) > 0;
+    }
 }

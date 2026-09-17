@@ -202,10 +202,27 @@
                         </Leading>
                         <Trailing>
                             <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
-                                <span class="aiko-tag">@Loc.Get("StatCards") @DisplayFormat.Number(board?.Cards.Count ?? 0)</span>
-                                <span class="aiko-tag">@Loc.Get("StatInProgress") @DisplayFormat.Number(BoardMetrics.InProgressCount(board))</span>
-                                <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm"
-                                             OnClick="() => OpenProject(item.Id)">@Loc.Get("OpenProject")</FlareButton>
+                                @if (_removingProjectId == item.Id)
+                                {
+                                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.Warning">
+                                        @Loc.Get("UnregisterConfirm")
+                                    </FlareText>
+                                    <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm"
+                                                 OnClick="() => RemoveProjectAsync(item.Id)">@Loc.Get("Unregister")</FlareButton>
+                                    <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm"
+                                                 OnClick="CancelRemoveProject">@Loc.Get("Cancel")</FlareButton>
+                                }
+                                else
+                                {
+                                    <span class="aiko-tag">@Loc.Get("StatCards") @DisplayFormat.Number(board?.Cards.Count ?? 0)</span>
+                                    <span class="aiko-tag">@Loc.Get("StatInProgress") @DisplayFormat.Number(BoardMetrics.InProgressCount(board))</span>
+                                    <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm"
+                                                 OnClick="() => OpenProject(item.Id)">@Loc.Get("OpenProject")</FlareButton>
+                                    <FlareIconButton Variant="ButtonVariant.Text"
+                                                     Icon="@FlareIcons.Delete"
+                                                     AriaLabel="@Loc.Get("Unregister")"
+                                                     OnClick="() => BeginRemoveProject(item.Id)" />
+                                }
                             </FlareStack>
                         </Trailing>
                     </FlareListItem>
@@ -228,6 +245,7 @@
     private bool _loading = true;
     private string? _error;
     private bool _showAddProject;
+    private string? _removingProjectId;
     private string? _newProjectPath;
     private string? _newProjectName;
     private string? _newGitPolicy = "LocalOnly";
@@ -299,6 +317,38 @@
                 (Loc.Get("StatInProgress"), DisplayFormat.Number(_boards.Sum(BoardMetrics.InProgressCount)), false),
                 (Loc.Get("StatOutOfScope"), DisplayFormat.Number(outOfScope), outOfScope > 0)
             ];
+        }
+    }
+
+    /// <summary>
+    /// Unregistering is asked twice: the first press only marks the row, and the row turns into its own
+    /// confirmation. A project's board is a lot to lose by a mis-click.
+    /// </summary>
+    private void BeginRemoveProject(string projectId) => _removingProjectId = projectId;
+
+    private void CancelRemoveProject() => _removingProjectId = null;
+
+    /// <summary>
+    /// Unregisters a project: the daemon forgets it, its files on disk stay. The local board snapshot is
+    /// dropped alongside, so the numbers above cannot keep counting a project the list no longer shows.
+    /// </summary>
+    private async Task RemoveProjectAsync(string projectId)
+    {
+        _removingProjectId = null;
+        _error = null;
+        try
+        {
+            using var response = await Http.DeleteAsync(
+                $"api/v1/projects/{Uri.EscapeDataString(projectId)}");
+            response.EnsureSuccessStatusCode();
+            _boards = _boards
+                .Where(board => !StringComparer.Ordinal.Equals(board.Project.Id, projectId))
+                .ToArray();
+            await State.ReloadProjectsAsync();
+        }
+        catch (Exception exception)
+        {
+            _error = Loc.Format("UnregisterFailed", FailureText.Describe(exception));
         }
     }
 

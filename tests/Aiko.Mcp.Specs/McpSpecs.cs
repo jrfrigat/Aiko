@@ -110,6 +110,46 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
     }
 
     [Fact]
+    public async Task Removing_a_project_unregisters_it_and_keeps_its_files()
+    {
+        // A throwaway project: the fixture's own project is shared by every spec in this class.
+        var root = Path.Combine(Path.GetTempPath(), "Aiko.Mcp.Specs", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            using var http = new HttpClient { BaseAddress = fixture.BaseUrl };
+            using var content = new StringContent(
+                JsonSerializer.Serialize(new { rootPath = root }),
+                Encoding.UTF8,
+                "application/json");
+            using var created = await http.PostAsync("/api/v1/projects/initialize", content);
+            created.EnsureSuccessStatusCode();
+            using var document = await JsonDocument.ParseAsync(await created.Content.ReadAsStreamAsync());
+            var projectId = document.RootElement.GetProperty("id").GetString();
+            Assert.False(string.IsNullOrWhiteSpace(projectId));
+
+            using var removed = await http.DeleteAsync($"/api/v1/projects/{projectId}");
+            Assert.Equal(HttpStatusCode.NoContent, removed.StatusCode);
+
+            var projects = await http.GetStringAsync("/api/v1/projects");
+            Assert.DoesNotContain(projectId!, projects, StringComparison.Ordinal);
+            // The registration goes; the project's .aiko directory stays.
+            Assert.True(Directory.Exists(Path.Combine(root, ".aiko")));
+
+            // Removing a project that is already gone is a 404, not a silent success.
+            using var again = await http.DeleteAsync($"/api/v1/projects/{projectId}");
+            Assert.Equal(HttpStatusCode.NotFound, again.StatusCode);
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, true);
+            }
+        }
+    }
+
+    [Fact]
     public async Task Activity_endpoint_reports_the_day_of_a_started_stage()
     {
         await using var client = await ConnectAsync();

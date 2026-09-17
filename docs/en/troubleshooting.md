@@ -66,6 +66,17 @@ aiko reindex <projectId>
 Deleting the database is safe - `aiko init` (or `POST /api/v1/projects/initialize`) and
 `aiko reindex` rebuild everything from `.aiko`.
 
+## A project is registered with the wrong path
+
+Unregister it - the files on disk are kept:
+
+```powershell
+aiko project remove <projectId> --yes
+```
+
+The same button (a bin) is on the project's row on the dashboard. Nothing needs to be edited in SQLite,
+and re-registering the right path is just `aiko init`.
+
 ## The agent skipped aiko_get_project_context
 
 Aiko cannot force an agent to call a tool. The installed skills, `AGENTS.md` block and Cursor rule
