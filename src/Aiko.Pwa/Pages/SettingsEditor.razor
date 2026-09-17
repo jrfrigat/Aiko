@@ -14,15 +14,26 @@
     <FlareStack Row="true" Align="FlareAlignItems.End" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Medium" Wrap="true">
         <FlareStack Gap="FlareSpacing.XXSmall">
             <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
-                <span class="aiko-tag aiko-tag--accent">@Loc.Get("CoreFallbackConfig")</span>
-                <span class="aiko-tag aiko-tag--quiet">app-settings.json</span>
-                <span class="aiko-tag aiko-tag--live">
-                    <span class="aiko-dot"></span>@Loc.Get("ImmutableSync")
-                </span>
+                <span class="aiko-tag aiko-tag--accent">@ScopeCaption</span>
+                <span class="aiko-tag aiko-tag--quiet">@SettingsFileCaption</span>
+                @if (ProjectId is null)
+                {
+                    <span class="aiko-tag aiko-tag--live">
+                        <span class="aiko-dot"></span>@Loc.Get("ImmutableSync")
+                    </span>
+                }
+                else
+                {
+                    @* A project's settings are read from its own file, so the live tag reports the stream the
+                       screen is subscribed to rather than a synchronization it does not perform. *@
+                    <span class="aiko-tag aiko-tag--live">
+                        <span class="aiko-dot"></span>@(State.EventsConnected ? Loc.Get("SseLive") : Loc.Get("Online"))
+                    </span>
+                }
             </FlareStack>
-            <FlareText Element="h1" Typo="TypographyScale.HeadlineMedium">@Loc.Get("GlobalSettingsHeading")</FlareText>
+            <FlareText Element="h1" Typo="TypographyScale.HeadlineMedium">@HeadingCaption</FlareText>
             <FlareText Element="p" Typo="TypographyScale.BodyMedium" Color="FlareColor.OnSurfaceVariant">
-                @Loc.Get("GlobalHint")
+                @HintCaption
             </FlareText>
         </FlareStack>
         <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
@@ -31,14 +42,14 @@
                          Disabled="@_saving"
                          OnClick="ResetToDefaultsAsync">
                 <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.History" /></LeadingIcon>
-                <ChildContent>@Loc.Get("ResetToDefaults")</ChildContent>
+                <ChildContent>@Loc.Get(ProjectId is null ? "ResetToDefaults" : "ResetToAppDefaults")</ChildContent>
             </FlareButton>
             <FlareButton Variant="ButtonVariant.Filled"
                          Size="ButtonSize.Sm"
                          Loading="@_saving"
                          OnClick="SaveAsync">
                 <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.Check" /></LeadingIcon>
-                <ChildContent>@Loc.Get("SaveGlobalSettings")</ChildContent>
+                <ChildContent>@Loc.Get(ProjectId is null ? "SaveGlobalSettings" : "SaveProjectSettings")</ChildContent>
             </FlareButton>
         </FlareStack>
     </FlareStack>
@@ -505,6 +516,30 @@
         new(nameof(ActionPolicy.Allow), "CommitAllowTitle", "CommitAllowHint"),
     ];
 
+    /// <summary>
+    /// The project whose settings are edited, or null for the installation's defaults. It is one form at
+    /// both levels: what differs is the file it reads and writes, and what the reset button restores.
+    /// </summary>
+    [Parameter] public string? ProjectId { get; set; }
+
+    /// <summary>The endpoint the form reads and writes: the project's own file, or the global one.</summary>
+    private string SettingsUrl => ProjectId is null
+        ? "api/v1/settings"
+        : $"api/v1/projects/{Uri.EscapeDataString(ProjectId)}/settings";
+
+    /// <summary>What this level is, as the header's first tag.</summary>
+    private string ScopeCaption => Loc.Get(ProjectId is null ? "CoreFallbackConfig" : "ProjectOverrideScope");
+
+    /// <summary>The file this level lives in, shown beside the tag.</summary>
+    private string SettingsFileCaption => ProjectId is null ? "app-settings.json" : ".aiko/settings.json";
+
+    /// <summary>The page heading of this level.</summary>
+    private string HeadingCaption =>
+        Loc.Get(ProjectId is null ? "GlobalSettingsHeading" : "ProjectSettingsHeading");
+
+    /// <summary>What this level is for, under the heading.</summary>
+    private string HintCaption => Loc.Get(ProjectId is null ? "GlobalHint" : "ProjectSettingsHint");
+
     private AppSettingsView? _view;
     private WorkspaceMode _workspaceMode = WorkspaceMode.Shared;
     private int _maxRuns = 1;
@@ -547,7 +582,7 @@
     {
         try
         {
-            _view = await Http.GetFromJsonAsync<AppSettingsView>("api/v1/settings", PwaJson.Options);
+            _view = await Http.GetFromJsonAsync<AppSettingsView>(SettingsUrl, PwaJson.Options);
             ApplyView(_view);
         }
         catch (Exception exception)
@@ -564,15 +599,17 @@
             return;
         }
 
-        // A missing global section means the level inherits the safe defaults, and the effective view
-        // already carries them - so the form shows what the daemon would actually use.
-        var execution = view.Global?.Execution ?? view.EffectiveExecution;
+        // The level's own sections, or the effective values when the level states none: the project screen
+        // edits .aiko/settings.json, the global screen app-settings.json, and the effective view already
+        // carries what the daemon would really use when a section is missing.
+        var own = ProjectId is null ? view.Global : view.Project;
+        var execution = own?.Execution ?? view.EffectiveExecution;
         _workspaceMode = execution.WorkspaceMode;
         _maxRuns = execution.MaxConcurrentRuns;
         _scopePolicy = execution.ScopeOverlapPolicy;
         _commitPolicy = execution.SharedCheckoutCommitPolicy;
 
-        var priority = view.Global?.Priority ?? view.EffectivePriority;
+        var priority = own?.Priority ?? view.EffectivePriority;
         _ownWeight = (double)priority.Weights.TaskWeight;
         _parentWeight = (double)priority.Weights.ParentWeight;
         _criteria = priority.Criteria.Select(CriterionDraft.From).ToList();
@@ -676,7 +713,7 @@
                     size.Coefficient)).ToArray());
 
             using var response = await Http.PutAsJsonAsync(
-                "api/v1/settings",
+                SettingsUrl,
                 new AppSettings(AppSettings.CurrentSchemaVersion, execution, priority),
                 PwaJson.Options);
             if (!response.IsSuccessStatusCode)
@@ -701,16 +738,36 @@
         }
     }
 
-    /// <summary>Writes the safe defaults back: the same document, with the built-in values.</summary>
+    /// <summary>
+    /// Writes the defaults back into this level: the safe defaults for the installation, and the
+    /// installation's own values for a project - which is what "reset to app defaults" means.
+    /// </summary>
     private async Task ResetToDefaultsAsync()
     {
-        ApplyView(new AppSettingsView(
-            null,
-            null,
-            ExecutionSettings.SafeDefault,
-            AppSettingsSources.Default,
-            PrioritySettings.SafeDefault,
-            AppSettingsSources.Default));
+        if (ProjectId is null)
+        {
+            ApplyView(new AppSettingsView(
+                null,
+                null,
+                ExecutionSettings.SafeDefault,
+                AppSettingsSources.Default,
+                PrioritySettings.SafeDefault,
+                AppSettingsSources.Default));
+        }
+        else
+        {
+            // Reading the global document and putting its sections on the project is the reset: the project
+            // ends up stating what the installation says, instead of overriding it.
+            var global = await Http.GetFromJsonAsync<AppSettingsView>("api/v1/settings", PwaJson.Options);
+            ApplyView(new AppSettingsView(
+                null,
+                global?.Global,
+                global?.Global?.Execution ?? ExecutionSettings.SafeDefault,
+                AppSettingsSources.Global,
+                global?.Global?.Priority ?? PrioritySettings.SafeDefault,
+                AppSettingsSources.Global));
+        }
+
         await SaveAsync();
     }
 

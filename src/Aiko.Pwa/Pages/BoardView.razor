@@ -40,7 +40,7 @@ else
             }
         </FlareStack>
 
-        @if (SettingsPanel.IsParallelShared(State.SettingsView?.EffectiveExecution))
+        @if (BoardMetrics.IsParallelShared(State.SettingsView?.EffectiveExecution))
         {
             <FlareAlert Severity="AlertSeverity.Warning"
                         Variant="AlertVariant.Outlined"

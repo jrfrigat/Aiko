@@ -268,6 +268,16 @@
   <data name="InvalidSizeCoefficient" xml:space="preserve"><value>Коэффициент размера должен быть больше нуля.</value></data>
   <data name="DuplicateSizeId" xml:space="preserve"><value>Размер "{0}" указан дважды.</value></data>
   <data name="InvalidCriterionRange" xml:space="preserve"><value>Верхняя граница критерия должна быть больше нижней.</value></data>
+  <data name="ProjectOverrideScope" xml:space="preserve"><value>Переопределения проекта</value></data>
+  <data name="ProjectSettingsHeading" xml:space="preserve"><value>Настройки проекта</value></data>
+  <data name="ProjectSettingsHint" xml:space="preserve"><value>С чем работает этот проект. Значения лежат в .aiko/settings.json и не меняются вместе с настройками установки.</value></data>
+  <data name="ResetToAppDefaults" xml:space="preserve"><value>Сбросить к настройкам приложения</value></data>
+  <data name="EffectiveConfigurationTitle" xml:space="preserve"><value>Действующая конфигурация</value></data>
+  <data name="EffectiveConfigurationHint" xml:space="preserve"><value>Что демон разрешает для этого проекта и какой уровень дал каждое значение</value></data>
+  <data name="ResolvingOrder" xml:space="preserve"><value>Проект - Глобальные - Встроенные</value></data>
+  <data name="ParameterName" xml:space="preserve"><value>Параметр</value></data>
+  <data name="EffectiveValue" xml:space="preserve"><value>Действующее значение</value></data>
+  <data name="Origin" xml:space="preserve"><value>Источник</value></data>
   <data name="StageRoleInitial" xml:space="preserve"><value>Начальный</value></data>
   <data name="StageRoleTerminal" xml:space="preserve"><value>Финальный</value></data>
   <data name="AllowedExecutors" xml:space="preserve"><value>Разрешённые исполнители</value></data>
