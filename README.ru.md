@@ -81,7 +81,7 @@ scriptblock:
 
 ```powershell
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1))) `
-    -Version v0.3.0 -InstallDir D:\Tools\Aiko
+    -Version v0.3.1 -InstallDir D:\Tools\Aiko
 ```
 
 Повторный запуск установщика - это и есть обновление: бинари перезаписываются, данные проектов и
@@ -102,7 +102,7 @@ scriptblock:
 dotnet test Aiko.slnx
 ```
 
-84 xUnit-проверки в четырёх наборах: доменные правила, инфраструктура (файлы/SQLite), интеграция
+85 xUnit-проверок в четырёх наборах: доменные правила, инфраструктура (файлы/SQLite), интеграция
 демона (инструменты MCP плюс REST API, его коды ответов и защита loopback/Host/Origin) и JSON-контракт
 клиента. Интеграционный набор сам поднимает демон на случайном порту с изолированной базой - ручной
 оркестратор не нужен.

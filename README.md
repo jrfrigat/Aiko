@@ -80,7 +80,7 @@ Pin a specific release or choose another directory by fetching the script into a
 
 ```powershell
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1))) `
-    -Version v0.3.0 -InstallDir D:\Tools\Aiko
+    -Version v0.3.1 -InstallDir D:\Tools\Aiko
 ```
 
 Re-running the installer is the update path: binaries are replaced, project data and settings are
@@ -101,7 +101,7 @@ directories and the database are never deleted automatically.
 dotnet test Aiko.slnx
 ```
 
-84 xUnit facts across four suites: domain rules, infrastructure/file/SQLite behavior, daemon
+85 xUnit facts across four suites: domain rules, infrastructure/file/SQLite behavior, daemon
 integration (MCP tools plus the REST API, its status codes and the loopback/Host/Origin guard) and the
 client JSON contract. The integration suite boots its own daemon on a random port with an isolated
 database - no manual orchestration needed.

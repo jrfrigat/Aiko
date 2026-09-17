@@ -23,7 +23,9 @@
                         <FlareText Element="h1" Typo="TypographyScale.HeadlineMedium">Aiko</FlareText>
                         @if (State.System is not null)
                         {
-                            <span class="aiko-tag aiko-tag--accent">v@State.System.Version</span>
+                            @* Interpolated on purpose: "v@State.System.Version" is Razor's email-looking text,
+                               so it renders literally instead of evaluating the expression. *@
+                            <span class="aiko-tag aiko-tag--accent">@($"v{State.System.Version}")</span>
                         }
                         <span class="aiko-tag">@Loc.Get("NativeAot")</span>
                     </FlareStack>
