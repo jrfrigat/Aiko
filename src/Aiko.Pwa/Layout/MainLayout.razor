@@ -224,7 +224,10 @@
                         </FlareText>
                         @* The project's own page first, then the board: the overview answers "how are we
                            doing" before the board answers "what is next". *@
-                        <FlareNavLink Href="@ProjectHref">
+                        @* Exact match: the overview lives at /p/{id} itself, and its sub-pages (the board, the
+                           backlog, the settings) have their own rail items. Prefix matching would light up
+                           two of them at once. *@
+                        <FlareNavLink Href="@ProjectHref" Match="NavMatchMode.Exact">
                             <ChildContent>@Loc.Get("ProjectOverviewNav")</ChildContent>
                         </FlareNavLink>
                         <FlareNavLink Href="@BoardHref(open.Handle)">

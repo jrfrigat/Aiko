@@ -1281,3 +1281,16 @@
 .aiko-size--down .aiko-size__coefficient {
     color: var(--flare-color-warning);
 }
+
+/* A name that opens something - the project name in the dashboard table. It reads as text, because a table
+   of names should not look like a wall of links; only the pointer and the hover underline say it is one. */
+.aiko-link {
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.aiko-link:hover {
+    text-decoration: underline;
+}
+

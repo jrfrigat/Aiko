@@ -17,8 +17,11 @@ public static class CardAppearance
 {
     /// <summary>Resolves an icon id, or returns the fallback when there is no choice or no match.</summary>
     /// <param name="icon">Icon id stored on a stage or a workflow.</param>
-    /// <param name="fallback">Icon to draw when the id names nothing.</param>
-    public static FlareIcon Icon(string? icon, FlareIcon fallback) => icon switch
+    /// <param name="fallback">
+    /// Icon to draw when the id names nothing. Null by default, because "no choice" means no icon: a screen
+    /// that wants the design's own iconography passes one explicitly.
+    /// </param>
+    public static FlareIcon? Icon(string? icon, FlareIcon? fallback = null) => icon switch
     {
         "inbox" => FlareIcons.Inbox,
         "description" => FlareIcons.Description,
@@ -35,8 +38,11 @@ public static class CardAppearance
 
     /// <summary>Resolves a colour id, or returns the fallback when there is no choice or no match.</summary>
     /// <param name="color">Colour id stored on a stage or a workflow.</param>
-    /// <param name="fallback">Colour to draw when the id names nothing.</param>
-    public static FlareColor Color(string? color, FlareColor fallback) => color switch
+    /// <param name="fallback">
+    /// Colour to draw when the id names nothing. Null by default, which lets the theme's own colour through
+    /// rather than inventing an accent the project never chose.
+    /// </param>
+    public static FlareColor? Color(string? color, FlareColor? fallback = null) => color switch
     {
         "primary" => FlareColor.Primary,
         "secondary" => FlareColor.Secondary,

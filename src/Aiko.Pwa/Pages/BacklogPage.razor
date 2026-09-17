@@ -41,8 +41,8 @@ else
                     <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
                         <FlareStack Gap="FlareSpacing.Small">
                             <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
-                                <FlareIconView Value="@CardAppearance.Icon(group.Icon, FlareIcons.Inbox)"
-                                               Color="@CardAppearance.Color(group.Color, FlareColor.Secondary)" />
+                                <FlareIconView Value="@(CardAppearance.Icon(group.Icon) ?? FlareIcons.Inbox)"
+                                               Color="@(CardAppearance.Color(group.Color) ?? FlareColor.Secondary)" />
                                 <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@group.Title</FlareText>
                                 <span class="aiko-tag aiko-tag--pill">@group.Cards.Count</span>
                             </FlareStack>

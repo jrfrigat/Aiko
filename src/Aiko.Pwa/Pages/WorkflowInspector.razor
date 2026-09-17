@@ -71,26 +71,26 @@
         <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XSmall" Wrap="true">
             <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
                 <FlareIconView Value="@IconOf(_workflowIcon)" Color="@ColorOf(_workflowColor)" />
-                <select aria-label="@Loc.Get("CardTypeIcon")"
-                        value="@_workflowIcon"
-                        @onchange="OnWorkflowIconPicked">
+                <AikoSelectField Label="@Loc.Get("CardTypeIcon")"
+                                 Value="@_workflowIcon"
+                                 ValueChanged="value => _workflowIcon = TrimOrNull(value)">
                     <option value="">@Loc.Get("AppearanceDefault")</option>
                     @foreach (var choice in IconChoices)
                     {
                         var icon = choice;
                         <option value="@icon">@icon</option>
                     }
-                </select>
-                <select aria-label="@Loc.Get("CardTypeColor")"
-                        value="@_workflowColor"
-                        @onchange="OnWorkflowColorPicked">
+                </AikoSelectField>
+                <AikoSelectField Label="@Loc.Get("CardTypeColor")"
+                                 Value="@_workflowColor"
+                                 ValueChanged="value => _workflowColor = TrimOrNull(value)">
                     <option value="">@Loc.Get("AppearanceDefault")</option>
                     @foreach (var choice in ColorChoices)
                     {
                         var color = choice;
                         <option value="@color">@color</option>
                     }
-                </select>
+                </AikoSelectField>
             </FlareStack>
             @if (Delete is not null && _deleteTypeConfirm)
             {
@@ -152,26 +152,26 @@
                                ValueChanged="value => _newTypeDescription = value" />
                     <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
                         <FlareIconView Value="@IconOf(_newTypeIcon)" Color="@ColorOf(_newTypeColor)" />
-                        <select aria-label="@Loc.Get("CardTypeIcon")"
-                                value="@_newTypeIcon"
-                                @onchange="OnNewTypeIconPicked">
+                        <AikoSelectField Label="@Loc.Get("CardTypeIcon")"
+                                         Value="@_newTypeIcon"
+                                         ValueChanged="value => _newTypeIcon = TrimOrNull(value)">
                             <option value="">@Loc.Get("AppearanceDefault")</option>
                             @foreach (var choice in IconChoices)
                             {
                                 var icon = choice;
                                 <option value="@icon">@icon</option>
                             }
-                        </select>
-                        <select aria-label="@Loc.Get("CardTypeColor")"
-                                value="@_newTypeColor"
-                                @onchange="OnNewTypeColorPicked">
+                        </AikoSelectField>
+                        <AikoSelectField Label="@Loc.Get("CardTypeColor")"
+                                         Value="@_newTypeColor"
+                                         ValueChanged="value => _newTypeColor = TrimOrNull(value)">
                             <option value="">@Loc.Get("AppearanceDefault")</option>
                             @foreach (var choice in ColorChoices)
                             {
                                 var color = choice;
                                 <option value="@color">@color</option>
                             }
-                        </select>
+                        </AikoSelectField>
                         <FlareButton Variant="ButtonVariant.Tonal"
                                      Size="ButtonSize.Sm"
                                      Loading="@_creatingType"
@@ -409,26 +409,26 @@
                    them looks exactly as it did before the choice existed. *@
                 <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small" Wrap="true">
                     <FlareIconView Value="@IconOf(stage.Icon)" Color="@ColorOf(stage.Color)" />
-                    <select aria-label="@Loc.Get("StageIcon")"
-                            value="@stage.Icon"
-                            @onchange="args => OnStageIconPicked(stage, args)">
+                    <AikoSelectField Label="@Loc.Get("StageIcon")"
+                                     Value="@stage.Icon"
+                                     ValueChanged="value => OnStageIconPicked(stage, value)">
                         <option value="">@Loc.Get("AppearanceDefault")</option>
                         @foreach (var choice in IconChoices)
                         {
                             var icon = choice;
                             <option value="@icon">@icon</option>
                         }
-                    </select>
-                    <select aria-label="@Loc.Get("StageColor")"
-                            value="@stage.Color"
-                            @onchange="args => OnStageColorPicked(stage, args)">
+                    </AikoSelectField>
+                    <AikoSelectField Label="@Loc.Get("StageColor")"
+                                     Value="@stage.Color"
+                                     ValueChanged="value => OnStageColorPicked(stage, value)">
                         <option value="">@Loc.Get("AppearanceDefault")</option>
                         @foreach (var choice in ColorChoices)
                         {
                             var color = choice;
                             <option value="@color">@color</option>
                         }
-                    </select>
+                    </AikoSelectField>
                 </FlareStack>
                 @* What the stage must produce and the commands that verify it, side by side: on the wide
                    drawer the two read as one contract. *@
@@ -513,12 +513,16 @@
     /// <summary>The colour ids a stage or a card type may choose from.</summary>
     private static IReadOnlyList<string> ColorChoices => AppearanceCatalog.Colors;
 
-    /// <summary>The icon a choice draws, so a picker can show what it is choosing.</summary>
+    /// <summary>
+    /// The icon a choice draws, so a picker can show what it is choosing. The fallback makes the result
+    /// non-null, which is what the icon control needs: it has no "draw nothing" state.
+    /// </summary>
     private static FlareIcon IconOf(string? icon) =>
-        CardAppearance.Icon(icon, MaterialDesign3Icons.Regular.Pending);
+        CardAppearance.Icon(icon, MaterialDesign3Icons.Regular.Pending)!;
 
     /// <summary>The colour a choice draws, so a picker can show what it is choosing.</summary>
-    private static FlareColor ColorOf(string? color) => CardAppearance.Color(color, FlareColor.OnSurfaceVariant);
+    private static FlareColor ColorOf(string? color) =>
+        CardAppearance.Color(color) ?? FlareColor.OnSurfaceVariant;
 
     private static string? TrimOrNull(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
@@ -916,23 +920,11 @@
     private bool SelectedTypeHasCards => Cards.Any(card =>
         StringComparer.Ordinal.Equals(card.WorkflowId, _workflowId));
 
-    private void OnWorkflowIconPicked(ChangeEventArgs args) =>
-        _workflowIcon = TrimOrNull(args.Value?.ToString());
+    private static void OnStageIconPicked(StageDraft stage, string? value) =>
+        stage.Icon = TrimOrNull(value);
 
-    private void OnWorkflowColorPicked(ChangeEventArgs args) =>
-        _workflowColor = TrimOrNull(args.Value?.ToString());
-
-    private void OnNewTypeIconPicked(ChangeEventArgs args) =>
-        _newTypeIcon = TrimOrNull(args.Value?.ToString());
-
-    private void OnNewTypeColorPicked(ChangeEventArgs args) =>
-        _newTypeColor = TrimOrNull(args.Value?.ToString());
-
-    private static void OnStageIconPicked(StageDraft stage, ChangeEventArgs args) =>
-        stage.Icon = TrimOrNull(args.Value?.ToString());
-
-    private static void OnStageColorPicked(StageDraft stage, ChangeEventArgs args) =>
-        stage.Color = TrimOrNull(args.Value?.ToString());
+    private static void OnStageColorPicked(StageDraft stage, string? value) =>
+        stage.Color = TrimOrNull(value);
 
     /// <summary>
     /// Whether the stage is the reserved backlog column. It is the list of cards not taken into work yet,

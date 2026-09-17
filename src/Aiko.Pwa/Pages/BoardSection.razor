@@ -8,8 +8,11 @@
    otherwise the one FlareKanban uses internally; see kanban-card-template.md. *@
 <FlareStack Class="aiko-board-section" Gap="FlareSpacing.Small">
     <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
-        <FlareIconView Value="@KindIcon" Color="@KindAccent" />
-        <FlareText Element="h2" Typo="TypographyScale.HeadlineMedium">@Title</FlareText>
+        @if (KindIcon is { } kindIcon)
+        {
+            <FlareIconView Value="kindIcon" Color="@KindAccent" />
+        }
+        <FlareText Element="h2" Typo="TypographyScale.HeadlineMedium" Color="@KindAccent">@Title</FlareText>
         <span class="aiko-tag aiko-tag--pill">@_cards.Count</span>
         <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant">@SummaryLine</FlareText>
     </FlareStack>
@@ -35,8 +38,11 @@
                         <FlareStack Class="aiko-col__head" Gap="FlareSpacing.XXSmall">
                             <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XXSmall">
                                 <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
-                                    <FlareIconView Value="@StageIcon(stage)" Color="@accent" />
-                                    <FlareText Element="span" Typo="TypographyScale.HeadlineMedium">@stage.Title</FlareText>
+                                    @if (StageIcon(stage) is { } stageIcon)
+                                    {
+                                        <FlareIconView Value="stageIcon" Color="@accent" />
+                                    }
+                                    <FlareText Element="span" Typo="TypographyScale.HeadlineMedium" Color="@accent">@stage.Title</FlareText>
                                 </FlareStack>
                                 <span class="aiko-tag aiko-tag--pill">@stageCards.Count</span>
                             </FlareStack>
@@ -131,22 +137,17 @@
     private string _dragGroup => $"aiko-board-{Kind}";
 
     /// <summary>
-    /// The type's own icon and colour when the workflow states them, otherwise the built-in pair, so a
-    /// project that never touched the appearance keeps the look it had before the choice existed.
+    /// The type's icon and accent, or nothing at all: an unset choice draws no icon and leaves the title to
+    /// the theme, rather than inventing an icon by position. A project that never opened the appearance
+    /// picker should not be shown iconography it did not ask for.
     /// </summary>
-    private FlareIcon KindIcon => CardAppearance.Icon(_workflow?.Icon, KindDefaultIcon);
+    private FlareIcon? KindIcon => CardAppearance.Icon(_workflow?.Icon);
 
-    private FlareColor KindAccent => CardAppearance.Color(_workflow?.Color, KindDefaultColor);
-
-    private FlareIcon KindDefaultIcon =>
-        StringComparer.OrdinalIgnoreCase.Equals(Kind, CardKind.Story)
-            ? FlareIcons.FolderOpen
-            : FlareIcons.ViewColumn;
-
-    private FlareColor KindDefaultColor =>
-        StringComparer.OrdinalIgnoreCase.Equals(Kind, CardKind.Story)
-            ? FlareColor.Primary
-            : FlareColor.Tertiary;
+    /// <summary>
+    /// The type's accent, or <see cref="FlareColor.Default"/> when the project chose none - which is the
+    /// theme's own colour, not an accent Aiko invented.
+    /// </summary>
+    private FlareColor KindAccent => CardAppearance.Color(_workflow?.Color) ?? FlareColor.Default;
 
     private string SummaryLine => Loc.Format("CardsStagesCount", _cards.Count, _stages.Count);
 
@@ -204,47 +205,17 @@
         await OnCardMoved.InvokeAsync(new BoardCardMove(payload.CardId, e.TargetId));
     }
 
-    // A stage's icon and tint follow its own appearance when it states one, and its position in the pipeline
-    // otherwise, because the stages themselves are project data: the design's five-step state machine is the
-    // default workflow, not a contract.
-    private FlareIcon StageIcon(StageDefinition stage) =>
-        CardAppearance.Icon(stage.Icon, StageDefaultIcon(stage));
+    // A stage's icon and tint are exactly what the stage states, and nothing when it states nothing: the
+    // design's five-step state machine is the default workflow, not a contract, so an icon invented by
+    // position would be a claim about a column the project never made.
+    private FlareIcon? StageIcon(StageDefinition stage) => CardAppearance.Icon(stage.Icon);
 
-    private FlareIcon StageDefaultIcon(StageDefinition stage) => StageIndex(stage) switch
-    {
-        0 => FlareIcons.Inbox,
-        1 => FlareIcons.Description,
-        2 => FlareIcons.Code,
-        3 => FlareIcons.CheckCircle,
-        4 => FlareIcons.DoneAll,
-        _ => FlareIcons.PlayArrow
-    };
-
+    /// <summary>
+    /// The stage's accent, or <see cref="FlareColor.Default"/> when the project chose none: the column title
+    /// and the icon then keep the theme's own colour instead of an accent invented by position.
+    /// </summary>
     private FlareColor StageAccent(StageDefinition stage) =>
-        CardAppearance.Color(stage.Color, StageDefaultAccent(stage));
-
-    private FlareColor StageDefaultAccent(StageDefinition stage) => StageIndex(stage) switch
-    {
-        0 => FlareColor.Secondary,
-        1 => FlareColor.Primary,
-        2 => FlareColor.Tertiary,
-        3 => FlareColor.Warning,
-        4 => FlareColor.Info,
-        _ => FlareColor.OnSurfaceVariant
-    };
-
-    private int StageIndex(StageDefinition stage)
-    {
-        for (var index = 0; index < _stages.Count; index++)
-        {
-            if (StringComparer.Ordinal.Equals(_stages[index].Id, stage.Id))
-            {
-                return index;
-            }
-        }
-
-        return _stages.Count;
-    }
+        CardAppearance.Color(stage.Color) ?? FlareColor.Default;
 
     private static string Agents(StageDefinition stage) =>
         string.IsNullOrWhiteSpace(stage.DefaultAgentAdapterId)
