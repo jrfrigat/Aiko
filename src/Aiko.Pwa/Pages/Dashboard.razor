@@ -33,18 +33,33 @@
     }
     else
     {
-        @* The metric strip: the same mono summary line the board uses, at workshop scale. *@
-        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true" Class="aiko-metrics">
-            @foreach (var tile in StatTiles)
+        @* The metric cards: the design's five tiles, each with the number it counts and what that number
+           is made of. They replace a one-line mono strip because a workshop's state is read at a glance
+           here, not compared digit by digit. *@
+        <div class="aiko-metric-grid">
+            @foreach (var card in MetricCards)
             {
-                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
-                    <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant">@tile.Label</FlareText>
-                    <FlareText Element="span" Mono="true"
-                               Color="@(tile.Warn ? FlareColor.Error : FlareColor.Tertiary)"
-                               Weight="FontWeight.SemiBold">@tile.Value</FlareText>
+                var item = card;
+                <FlareStack Class="aiko-metric" Gap="FlareSpacing.XXSmall">
+                    <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XXSmall">
+                        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
+                            <FlareIconView Value="@item.Icon" Color="@item.Accent" />
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
+                                @item.Label
+                            </FlareText>
+                        </FlareStack>
+                        @if (item.Tag is { Length: > 0 } tag)
+                        {
+                            <span class="aiko-tag @(item.Warn ? "aiko-tag--warn" : "aiko-tag--quiet")">@tag</span>
+                        }
+                    </FlareStack>
+                    <span class="aiko-value aiko-value--big @(item.Warn ? "aiko-value--warn" : null)">@item.Value</span>
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                        @item.Caption
+                    </FlareText>
                 </FlareStack>
             }
-        </FlareStack>
+        </div>
 
         <FlareCard Variant="CardVariant.Filled">
             <FlareStack Gap="FlareSpacing.XSmall">
@@ -285,43 +300,59 @@
         }
         else
         {
-            <FlareList TItem="RegisteredProject">
+            @* The registered workspaces as the design's table: one row per project, with the numbers the
+               workshop reads it by and the two actions a project has here. The unregistering row turns
+               into its own confirmation, because a project's board is a lot to lose by a mis-click. *@
+            <div class="aiko-table">
+                <div class="aiko-table__head">
+                    <span>@Loc.Get("TableProject")</span>
+                    <span>@Loc.Get("ProjectPath")</span>
+                    <span>@Loc.Get("StatCards")</span>
+                    <span>@Loc.Get("StatInProgress")</span>
+                    <span>@Loc.Get("TableStatus")</span>
+                    <span>@Loc.Get("TableActions")</span>
+                </div>
                 @foreach (var project in State.Projects)
                 {
                     var item = project;
                     var board = BoardOf(item.Id);
-                    <FlareListItem Primary="@item.Name" Secondary="@item.RootPath">
-                        <Leading>
+                    <div class="aiko-table__row">
+                        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
                             <FlareAvatar Text="@DisplayFormat.Initials(item.Name)" Size="AvatarSize.Xs" Shape="AvatarShape.Square" />
-                        </Leading>
-                        <Trailing>
-                            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
-                                @if (_removingProjectId == item.Id)
-                                {
-                                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.Warning">
-                                        @Loc.Get("UnregisterConfirm")
-                                    </FlareText>
-                                    <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm"
-                                                 OnClick="() => RemoveProjectAsync(item.Id)">@Loc.Get("Unregister")</FlareButton>
-                                    <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm"
-                                                 OnClick="CancelRemoveProject">@Loc.Get("Cancel")</FlareButton>
-                                }
-                                else
-                                {
-                                    <span class="aiko-tag">@Loc.Get("StatCards") @DisplayFormat.Number(board?.Cards.Count ?? 0)</span>
-                                    <span class="aiko-tag">@Loc.Get("StatInProgress") @DisplayFormat.Number(BoardMetrics.InProgressCount(board))</span>
-                                    <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm"
-                                                 OnClick="() => OpenProject(item.Id)">@Loc.Get("OpenProject")</FlareButton>
-                                    <FlareIconButton Variant="ButtonVariant.Text"
-                                                     Icon="@FlareIcons.Delete"
-                                                     AriaLabel="@Loc.Get("Unregister")"
-                                                     OnClick="() => BeginRemoveProject(item.Id)" />
-                                }
-                            </FlareStack>
-                        </Trailing>
-                    </FlareListItem>
+                            <FlareText Element="span" Typo="TypographyScale.BodySmall" Weight="FontWeight.SemiBold">
+                                @item.Name
+                            </FlareText>
+                        </FlareStack>
+                        <span class="aiko-value aiko-value--clip" title="@item.RootPath">@item.RootPath</span>
+                        <span class="aiko-value">@DisplayFormat.Number(board?.Cards.Count ?? 0)</span>
+                        <span class="aiko-value">@DisplayFormat.Number(BoardMetrics.InProgressCount(board))</span>
+                        <span class="aiko-tag @(board is null ? "aiko-tag--warn" : "aiko-tag--live")">
+                            @(board is null ? Loc.Get("NoBoardData") : Loc.Get("StatLive"))
+                        </span>
+                        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
+                            @if (_removingProjectId == item.Id)
+                            {
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.Warning">
+                                    @Loc.Get("UnregisterConfirm")
+                                </FlareText>
+                                <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm"
+                                             OnClick="() => RemoveProjectAsync(item.Id)">@Loc.Get("Unregister")</FlareButton>
+                                <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm"
+                                             OnClick="CancelRemoveProject">@Loc.Get("Cancel")</FlareButton>
+                            }
+                            else
+                            {
+                                <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm"
+                                             OnClick="() => OpenProject(item.Id)">@Loc.Get("OpenProject")</FlareButton>
+                                <FlareIconButton Variant="ButtonVariant.Text"
+                                                 Icon="@FlareIcons.Delete"
+                                                 AriaLabel="@Loc.Get("Unregister")"
+                                                 OnClick="() => BeginRemoveProject(item.Id)" />
+                            }
+                        </FlareStack>
+                    </div>
                 }
-            </FlareList>
+            </div>
         }
     </FlareStack>
 </FlareStack>
@@ -336,6 +367,7 @@
     private IReadOnlyList<ActivityDay> _activity = [];
     private IReadOnlyList<ActivityCell> _cells = [];
     private int _activityTotal;
+    private int _todayCount;
     private bool _loading = true;
     private string? _error;
     private bool _showAddProject;
@@ -401,19 +433,57 @@
     private ProjectBoardSnapshot? BoardOf(string projectId) =>
         _boards.FirstOrDefault(board => StringComparer.Ordinal.Equals(board.Project.Id, projectId));
 
-    private IReadOnlyList<(string Label, string Value, bool Warn)> StatTiles
+    /// <summary>
+    /// The workshop's five numbers, as the design's tiles: what is on the boards, what is in flight, and
+    /// what drifted. Each card carries the caption that says what its number is made of, because a total
+    /// across projects means nothing without one.
+    /// </summary>
+    private IReadOnlyList<(string Label, string Value, string Caption, string? Tag, FlareIcon Icon, FlareColor Accent, bool Warn)> MetricCards
     {
         get
         {
+            var cards = _boards.Sum(board => board.Cards.Count);
+            var tasks = _boards.Sum(board => BoardMetrics.CountKind(board, CardKind.Task));
+            var stories = _boards.Sum(board => BoardMetrics.CountKind(board, CardKind.Story));
+            var inProgress = _boards.Sum(BoardMetrics.InProgressCount);
             var outOfScope = _boards.Sum(BoardMetrics.OutOfScopeCount);
             return
             [
-                (Loc.Get("StatProjects"), DisplayFormat.Number(State.Projects.Count), false),
-                (Loc.Get("StatCards"), DisplayFormat.Number(_boards.Sum(board => board.Cards.Count)), false),
-                (Loc.Get("StatTasks"), DisplayFormat.Number(_boards.Sum(board => BoardMetrics.CountKind(board, CardKind.Task))), false),
-                (Loc.Get("StatStories"), DisplayFormat.Number(_boards.Sum(board => BoardMetrics.CountKind(board, CardKind.Story))), false),
-                (Loc.Get("StatInProgress"), DisplayFormat.Number(_boards.Sum(BoardMetrics.InProgressCount)), false),
-                (Loc.Get("StatOutOfScope"), DisplayFormat.Number(outOfScope), outOfScope > 0)
+                (Loc.Get("StatCards"),
+                    DisplayFormat.Number(cards),
+                    Loc.Format("AcrossProjects", DisplayFormat.Number(State.Projects.Count)),
+                    _todayCount > 0 ? Loc.Format("TodayDelta", DisplayFormat.Number(_todayCount)) : null,
+                    MaterialDesign3Icons.Regular.Dashboard,
+                    FlareColor.Primary,
+                    false),
+                (Loc.Get("StatTasks"),
+                    DisplayFormat.Number(tasks),
+                    Loc.Get("StatTasksCaption"),
+                    null,
+                    MaterialDesign3Icons.Regular.TaskAlt,
+                    FlareColor.Secondary,
+                    false),
+                (Loc.Get("StatStories"),
+                    DisplayFormat.Number(stories),
+                    Loc.Get("StatStoriesCaption"),
+                    null,
+                    MaterialDesign3Icons.Regular.AccountTree,
+                    FlareColor.Tertiary,
+                    false),
+                (Loc.Get("StatInProgress"),
+                    DisplayFormat.Number(inProgress),
+                    Loc.Format("StatInProgressCaption", DisplayFormat.Number(State.Agents.Count)),
+                    null,
+                    MaterialDesign3Icons.Regular.Hub,
+                    FlareColor.Secondary,
+                    false),
+                (Loc.Get("StatOutOfScope"),
+                    DisplayFormat.Number(outOfScope),
+                    Loc.Get("StatOutOfScopeCaption"),
+                    null,
+                    MaterialDesign3Icons.Regular.Warning,
+                    outOfScope > 0 ? FlareColor.Error : FlareColor.OnSurfaceVariant2,
+                    outOfScope > 0)
             ];
         }
     }
@@ -465,6 +535,7 @@
         _activityTotal = counts.Values.Sum();
         var max = counts.Count == 0 ? 0 : counts.Values.Max();
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        _todayCount = counts.TryGetValue(today, out var todayEvents) ? todayEvents : 0;
         var start = today.AddDays(-(HeatmapDays - 1));
         // Step back to the Monday of that week, so every column is a calendar week.
         start = start.AddDays(-(((int)start.DayOfWeek + 6) % 7));

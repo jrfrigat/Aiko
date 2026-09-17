@@ -18,6 +18,13 @@
   <data name="AddProjectHint" xml:space="preserve"><value>Укажите путь к папке проекта. Будет создан каталог .aiko и стандартные workflow.</value></data>
   <data name="CreateCard" xml:space="preserve"><value>Карточка</value></data>
   <data name="CreateCardTitle" xml:space="preserve"><value>Создать карточку</value></data>
+  <data name="CardIdentityTitle" xml:space="preserve"><value>Карточка</value></data>
+  <data name="CardIdentityHint" xml:space="preserve"><value>Её id на доске и заголовок, по которому её читают</value></data>
+  <data name="CardIdHelper" xml:space="preserve"><value>Устойчивый id, например FL-201</value></data>
+  <data name="CardPlaceTitle" xml:space="preserve"><value>Где она начинается</value></data>
+  <data name="WorkflowStagesHint" xml:space="preserve"><value>этапов в этом workflow: {0}</value></data>
+  <data name="ScoringHint" xml:space="preserve"><value>Агент может уточнить их позже; собственный score карточки считается из них</value></data>
+  <data name="CreateCardHint" xml:space="preserve"><value>Карточка откроется сразу после создания — там собираются её артефакты и запуски</value></data>
   <data name="Add" xml:space="preserve"><value>Добавить</value></data>
   <data name="Create" xml:space="preserve"><value>Создать</value></data>
   <data name="Cancel" xml:space="preserve"><value>Отмена</value></data>
@@ -28,7 +35,7 @@
   <data name="Title" xml:space="preserve"><value>Название</value></data>
   <data name="ProjectPath" xml:space="preserve"><value>Путь к проекту</value></data>
   <data name="ProjectName" xml:space="preserve"><value>Имя (необязательно)</value></data>
-  <data name="CardId" xml:space="preserve"><value>ID (например TASK-001)</value></data>
+  <data name="CardId" xml:space="preserve"><value>ID (например FL-201)</value></data>
   <data name="Stage" xml:space="preserve"><value>Этап (например backlog)</value></data>
   <data name="Priority" xml:space="preserve"><value>Приоритет (число)</value></data>
   <data name="Scope" xml:space="preserve"><value>Scope (через запятую)</value></data>
@@ -211,6 +218,17 @@
   <data name="StatStories" xml:space="preserve"><value>Истории</value></data>
   <data name="StatInProgress" xml:space="preserve"><value>В работе</value></data>
   <data name="StatOutOfScope" xml:space="preserve"><value>Вне scope</value></data>
+  <data name="AcrossProjects" xml:space="preserve"><value>по {0} проектам</value></data>
+  <data name="TodayDelta" xml:space="preserve"><value>+{0} сегодня</value></data>
+  <data name="StatTasksCaption" xml:space="preserve"><value>task-карточек в пайплайнах</value></data>
+  <data name="StatStoriesCaption" xml:space="preserve"><value>story-карточек задают их</value></data>
+  <data name="StatInProgressCaption" xml:space="preserve"><value>агентов на машине: {0}</value></data>
+  <data name="StatOutOfScopeCaption" xml:space="preserve"><value>файлов вне заявленного scope</value></data>
+  <data name="StatLive" xml:space="preserve"><value>Активен (live SSE)</value></data>
+  <data name="NoBoardData" xml:space="preserve"><value>Нет данных доски</value></data>
+  <data name="TableProject" xml:space="preserve"><value>Проект</value></data>
+  <data name="TableStatus" xml:space="preserve"><value>Статус</value></data>
+  <data name="TableActions" xml:space="preserve"><value>Действия</value></data>
   <data name="ActivityTitle" xml:space="preserve"><value>Активность</value></data>
   <data name="ActivityCaption" xml:space="preserve"><value>запуски и события · за год</value></data>
   <data name="ActivityNone" xml:space="preserve"><value>Пока ничего не записано. Запустите демон и выполните этап.</value></data>
@@ -313,6 +331,13 @@
   <data name="McpEndpoint" xml:space="preserve"><value>MCP endpoint</value></data>
   <data name="McpEndpointHint" xml:space="preserve"><value>Адрес, к которому подключается агент для открытого проекта</value></data>
   <data name="AgentBridges" xml:space="preserve"><value>Мосты к агентам</value></data>
+  <data name="ConnectBridge" xml:space="preserve"><value>Подключить мост</value></data>
+  <data name="BridgesSummary" xml:space="preserve"><value>подключено {0} · неполных {1} · отсутствует {2}</value></data>
+  <data name="BridgeConnectedHint" xml:space="preserve"><value>Скиллы и команды Aiko для этого агента записаны</value></data>
+  <data name="BridgePartialHint" xml:space="preserve"><value>Часть конфигурации Aiko отсутствует — подключите заново, чтобы дополнить</value></data>
+  <data name="BridgeInstalledHint" xml:space="preserve"><value>Агент есть на машине и ещё не подключён к Aiko</value></data>
+  <data name="BridgeNotInstalledHint" xml:space="preserve"><value>Не найден в PATH: установите агента и подключите мост</value></data>
+  <data name="AgentBridgeChanged" xml:space="preserve"><value>Мост для {0} обновлён.</value></data>
   <data name="AgentBridgesHint" xml:space="preserve"><value>Какие агенты есть на машине и подключён ли к ним Aiko</value></data>
   <data name="BridgeConnected" xml:space="preserve"><value>подключён</value></data>
   <data name="BridgePartial" xml:space="preserve"><value>частично</value></data>
@@ -321,6 +346,22 @@
   <data name="BridgeNoUserScope" xml:space="preserve"><value>нет user-scope конфигурации</value></data>
   <data name="BridgeFiles" xml:space="preserve"><value>{0}/{1} файлов</value></data>
   <data name="ProjectStats" xml:space="preserve"><value>Статистика проекта</value></data>
+  <data name="ProjectOverviewNav" xml:space="preserve"><value>Обзор и статистика проекта</value></data>
+  <data name="StoriesBacklog" xml:space="preserve"><value>Истории и бэклог</value></data>
+  <data name="ProjectSettingsNav" xml:space="preserve"><value>Настройки проекта</value></data>
+  <data name="GlobalSettingsNav" xml:space="preserve"><value>Глобальные настройки</value></data>
+  <data name="ProjectOverviewHint" xml:space="preserve"><value>Что это за проект, из чего он состоит и как его карточки распределены по пайплайнам</value></data>
+  <data name="ProjectDataTitle" xml:space="preserve"><value>Данные проекта</value></data>
+  <data name="ProjectDataHint" xml:space="preserve"><value>Где лежит проект и что демон из него читает</value></data>
+  <data name="WorkflowsTitle" xml:space="preserve"><value>Workflows</value></data>
+  <data name="StagesCount" xml:space="preserve"><value>этапов: {0}</value></data>
+  <data name="ProjectionsTitle" xml:space="preserve"><value>Проекции доски</value></data>
+  <data name="ProjectionsHint" xml:space="preserve"><value>Какие представления предлагает доска проекта</value></data>
+  <data name="RelationsHint" xml:space="preserve"><value>Связи между карточками проекта</value></data>
+  <data name="ReindexProject" xml:space="preserve"><value>Переиндексировать проект</value></data>
+  <data name="ReindexDone" xml:space="preserve"><value>Проект переиндексирован.</value></data>
+  <data name="ReindexDoneCounts" xml:space="preserve"><value>Переиндексировано: карточек {0}, связей {1}, документов памяти {2}</value></data>
+  <data name="ReindexFailed" xml:space="preserve"><value>Не удалось переиндексировать проект: {0}</value></data>
   <data name="ProjectStatsHint" xml:space="preserve"><value>Как карточки проекта распределены по его конвейерам, по данным доски от демона</value></data>
   <data name="StageLoad" xml:space="preserve"><value>Карточки по этапам</value></data>
   <data name="StageLoadHint" xml:space="preserve"><value>Каждая полоса - доля этапа от самого нагруженного этапа его конвейера</value></data>

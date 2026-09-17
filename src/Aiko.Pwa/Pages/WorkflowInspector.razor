@@ -173,7 +173,7 @@
 <FlareDrawer Anchor="DrawerAnchor.Right"
              Open="_stageDrawerOpen"
              OpenChanged="SetStageDrawer"
-             Width="30rem"
+             Width="48rem"
              ContentPadding="FlareSpacing.Large"
              AriaLabel="@Loc.Get("SelectedStage")">
     <HeaderContent>
@@ -191,15 +191,17 @@
         {
             <FlareStack Gap="FlareSpacing.Small">
                 @* The stage id is an identifier, so it wears the design's identifier row. *@
-                <div class="aiko-code-row" title="@Loc.Get("StableIdHelper")">
-                    <FlareIconView Value="@MaterialDesign3Icons.Regular.Tag" Color="FlareColor.OnSurfaceVariant2" />
-                    <input type="text"
-                           aria-label="@Loc.Get("StableId")"
-                           placeholder="@Loc.Get("StableIdHelper")"
-                           readonly="@(!stage.IsNew)"
-                           @bind="stage.Id" />
+                <div class="aiko-form-row">
+                    <div class="aiko-code-row" title="@Loc.Get("StableIdHelper")">
+                        <FlareIconView Value="@MaterialDesign3Icons.Regular.Tag" Color="FlareColor.OnSurfaceVariant2" />
+                        <input type="text"
+                               aria-label="@Loc.Get("StableId")"
+                               placeholder="@Loc.Get("StableIdHelper")"
+                               readonly="@(!stage.IsNew)"
+                               @bind="stage.Id" />
+                    </div>
+                    <FlareTextField Label="@Loc.Get("Title")" @bind-Value="stage.Title" />
                 </div>
-                <FlareTextField Label="@Loc.Get("Title")" @bind-Value="stage.Title" />
                 @* The instruction and the two skill lists as the design's prompt editor: a dark plane with a
                    header bar (the window dots, the file-like name, what it holds) over a borderless code
                    area. One block per list, because what goes before the instruction is not what goes after. *@
@@ -225,98 +227,108 @@
                     </div>
                 </div>
 
-                <div class="aiko-terminal">
-                    <div class="aiko-terminal__bar">
-                        <span class="aiko-terminal__dots">
-                            <span class="aiko-terminal__dot" style="background: var(--flare-color-tertiary)"></span>
-                            <span class="aiko-terminal__name">@($"{stage.Id}.skills-before")</span>
-                        </span>
-                        <span>@Loc.Get("SkillsBefore")</span>
+                @* The two skill lists side by side: the wide drawer has the room, and the pair is read
+                   together - what the agent reads before the instruction and what it reports after it. *@
+                <div class="aiko-form-row">
+                    <div class="aiko-terminal">
+                        <div class="aiko-terminal__bar">
+                            <span class="aiko-terminal__dots">
+                                <span class="aiko-terminal__dot" style="background: var(--flare-color-tertiary)"></span>
+                                <span class="aiko-terminal__name">@($"{stage.Id}.skills-before")</span>
+                            </span>
+                            <span>@Loc.Get("SkillsBefore")</span>
+                        </div>
+                        <textarea rows="3"
+                                  aria-label="@Loc.Get("SkillsBefore")"
+                                  placeholder="@Loc.Get("SkillsBeforeHelper")"
+                                  @bind="stage.BeforeSkillLines"></textarea>
                     </div>
-                    <textarea rows="3"
-                              aria-label="@Loc.Get("SkillsBefore")"
-                              placeholder="@Loc.Get("SkillsBeforeHelper")"
-                              @bind="stage.BeforeSkillLines"></textarea>
-                </div>
 
-                <div class="aiko-terminal">
-                    <div class="aiko-terminal__bar">
-                        <span class="aiko-terminal__dots">
-                            <span class="aiko-terminal__dot" style="background: var(--flare-color-primary)"></span>
-                            <span class="aiko-terminal__name">@($"{stage.Id}.skills-after")</span>
-                        </span>
-                        <span>@Loc.Get("SkillsAfter")</span>
+                    <div class="aiko-terminal">
+                        <div class="aiko-terminal__bar">
+                            <span class="aiko-terminal__dots">
+                                <span class="aiko-terminal__dot" style="background: var(--flare-color-primary)"></span>
+                                <span class="aiko-terminal__name">@($"{stage.Id}.skills-after")</span>
+                            </span>
+                            <span>@Loc.Get("SkillsAfter")</span>
+                        </div>
+                        <textarea rows="3"
+                                  aria-label="@Loc.Get("SkillsAfter")"
+                                  placeholder="@Loc.Get("SkillsAfterHelper")"
+                                  @bind="stage.AfterSkillLines"></textarea>
                     </div>
-                    <textarea rows="3"
-                              aria-label="@Loc.Get("SkillsAfter")"
-                              placeholder="@Loc.Get("SkillsAfterHelper")"
-                              @bind="stage.AfterSkillLines"></textarea>
                 </div>
-                @* Executors: the stage's own list of adapters. An empty selection means every discovered
-                   adapter may run the stage, which is what the label says. *@
-                <FlareStack Gap="FlareSpacing.XXSmall">
-                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant">
-                        @Loc.Get("AllowedExecutors")
-                    </FlareText>
-                    @if (State.Agents.Count == 0)
-                    {
-                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                            @Loc.Get("NoAgentsDiscovered")
+                @* Who may run the stage, and who it starts with: the two belong together, so the select
+                   sits beside the chip list rather than under it. *@
+                <div class="aiko-form-row">
+                    <FlareStack Gap="FlareSpacing.XXSmall">
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant">
+                            @Loc.Get("AllowedExecutors")
                         </FlareText>
-                    }
-                    else
-                    {
-                        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall" Wrap="true">
-                            @foreach (var agent in State.Agents)
-                            {
-                                var option = agent;
-                                <label class="aiko-check-chip">
-                                    <input type="checkbox"
-                                           checked="@stage.AllowedAgentAdapterIds.Contains(option.Id)"
-                                           @onchange="() => ToggleExecutor(stage, option.Id)" />
-                                    @option.DisplayName
-                                </label>
-                            }
-                        </FlareStack>
-                    }
-                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                        @Loc.Get("AllowedExecutorsHint")
-                    </FlareText>
-                </FlareStack>
-                <FlareSelect TValue="string" Label="@Loc.Get("DefaultAgent")" @bind-Value="stage.DefaultAgentAdapterId">
-                    <option value="">@Loc.Get("AnyAgent")</option>
-                    @foreach (var agent in State.Agents)
-                    {
-                        var option = agent;
-                        <option value="@option.Id">@option.DisplayName</option>
-                    }
-                </FlareSelect>
-                <div class="aiko-terminal">
-                    <div class="aiko-terminal__bar">
-                        <span class="aiko-terminal__dots">
-                            <span class="aiko-terminal__dot" style="background: var(--flare-color-secondary)"></span>
-                            <span class="aiko-terminal__name">@($"{stage.Id}.artifacts")</span>
-                        </span>
-                        <span>@Loc.Get("RequiredArtifacts")</span>
-                    </div>
-                    <textarea rows="4"
-                              aria-label="@Loc.Get("RequiredArtifacts")"
-                              placeholder="@Loc.Get("ArtifactsHelper")"
-                              @bind="stage.ArtifactLines"></textarea>
+                        @if (State.Agents.Count == 0)
+                        {
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                @Loc.Get("NoAgentsDiscovered")
+                            </FlareText>
+                        }
+                        else
+                        {
+                            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall" Wrap="true">
+                                @foreach (var agent in State.Agents)
+                                {
+                                    var option = agent;
+                                    <label class="aiko-check-chip">
+                                        <input type="checkbox"
+                                               checked="@stage.AllowedAgentAdapterIds.Contains(option.Id)"
+                                               @onchange="() => ToggleExecutor(stage, option.Id)" />
+                                        @option.DisplayName
+                                    </label>
+                                }
+                            </FlareStack>
+                        }
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Get("AllowedExecutorsHint")
+                        </FlareText>
+                    </FlareStack>
+                    <FlareSelect TValue="string" Label="@Loc.Get("DefaultAgent")" @bind-Value="stage.DefaultAgentAdapterId">
+                        <option value="">@Loc.Get("AnyAgent")</option>
+                        @foreach (var agent in State.Agents)
+                        {
+                            var option = agent;
+                            <option value="@option.Id">@option.DisplayName</option>
+                        }
+                    </FlareSelect>
                 </div>
-
-                <div class="aiko-terminal">
-                    <div class="aiko-terminal__bar">
-                        <span class="aiko-terminal__dots">
-                            <span class="aiko-terminal__dot" style="background: var(--flare-color-warning)"></span>
-                            <span class="aiko-terminal__name">@($"{stage.Id}.validate")</span>
-                        </span>
-                        <span>@Loc.Get("ValidationCommands")</span>
+                @* What the stage must produce and the commands that verify it, side by side: on the wide
+                   drawer the two read as one contract. *@
+                <div class="aiko-form-row">
+                    <div class="aiko-terminal">
+                        <div class="aiko-terminal__bar">
+                            <span class="aiko-terminal__dots">
+                                <span class="aiko-terminal__dot" style="background: var(--flare-color-secondary)"></span>
+                                <span class="aiko-terminal__name">@($"{stage.Id}.artifacts")</span>
+                            </span>
+                            <span>@Loc.Get("RequiredArtifacts")</span>
+                        </div>
+                        <textarea rows="4"
+                                  aria-label="@Loc.Get("RequiredArtifacts")"
+                                  placeholder="@Loc.Get("ArtifactsHelper")"
+                                  @bind="stage.ArtifactLines"></textarea>
                     </div>
-                    <textarea rows="3"
-                              aria-label="@Loc.Get("ValidationCommands")"
-                              placeholder="@Loc.Get("ValidationCommandsHelper")"
-                              @bind="stage.CommandLines"></textarea>
+
+                    <div class="aiko-terminal">
+                        <div class="aiko-terminal__bar">
+                            <span class="aiko-terminal__dots">
+                                <span class="aiko-terminal__dot" style="background: var(--flare-color-warning)"></span>
+                                <span class="aiko-terminal__name">@($"{stage.Id}.validate")</span>
+                            </span>
+                            <span>@Loc.Get("ValidationCommands")</span>
+                        </div>
+                        <textarea rows="4"
+                                  aria-label="@Loc.Get("ValidationCommands")"
+                                  placeholder="@Loc.Get("ValidationCommandsHelper")"
+                                  @bind="stage.CommandLines"></textarea>
+                    </div>
                 </div>
             </FlareStack>
         }

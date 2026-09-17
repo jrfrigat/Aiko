@@ -20,6 +20,7 @@ namespace Aiko.Pwa.Services;
 [JsonSerializable(typeof(InitializeProjectRequest))]
 [JsonSerializable(typeof(RegisteredProject))]
 [JsonSerializable(typeof(IReadOnlyList<RegisteredProject>))]
+[JsonSerializable(typeof(ReindexResult))]
 [JsonSerializable(typeof(ProjectBoardSnapshot))]
 [JsonSerializable(typeof(Card))]
 [JsonSerializable(typeof(IReadOnlyList<Card>))]

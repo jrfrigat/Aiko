@@ -821,6 +821,95 @@
     background: var(--flare-color-surface-container);
 }
 
+/* A pair of fields on one line. Used by the stage editor, whose drawer is wide enough for two: the pairs
+   there are read together - the id beside the title, the two skill lists, artifacts beside the commands. */
+.aiko-form-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    align-items: start;
+}
+
+@media (max-width: 47.9375rem) {
+    .aiko-form-row {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* The dashboard's metric cards: five tiles that fit one row on a wide screen and wrap below it. */
+.aiko-metric-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    gap: 0.75rem;
+}
+
+.aiko-metric {
+    padding: 0.75rem;
+    border-radius: var(--flare-shape-large);
+    background: var(--flare-color-surface-container-low);
+}
+
+/* A grid table: the design's registered-workspaces list. A real <table> would fight Flare's components
+   inside its cells, and the columns are a fixed six, so CSS grid carries the layout instead. */
+.aiko-table {
+    border-radius: var(--flare-shape-large);
+    overflow: hidden;
+}
+
+.aiko-table__head,
+.aiko-table__row {
+    display: grid;
+    grid-template-columns:
+        minmax(9rem, 1.2fr)
+        minmax(10rem, 1.8fr)
+        minmax(3.5rem, 0.5fr)
+        minmax(3.5rem, 0.5fr)
+        minmax(7rem, 0.8fr)
+        minmax(9rem, auto);
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+}
+
+.aiko-table__head {
+    background: var(--flare-color-surface-container);
+    color: var(--flare-color-outline);
+    font-family: var(--aiko-font-mono, monospace);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.aiko-table__row {
+    background: var(--flare-color-surface-container-lowest);
+}
+
+.aiko-table__row + .aiko-table__row {
+    border-block-start: var(--flare-border-width, 1px) solid
+        color-mix(in srgb, var(--flare-color-outline-variant) 35%, transparent);
+}
+
+.aiko-table__row:hover {
+    background: var(--flare-color-surface-container);
+}
+
+/* Below the wide breakpoint the path and status columns are the first to go: the numbers and the actions
+   are what the table is for. */
+@media (max-width: 63.9375rem) {
+    .aiko-table__head,
+    .aiko-table__row {
+        grid-template-columns: minmax(8rem, 1fr) minmax(3.5rem, 0.5fr) minmax(3.5rem, 0.5fr) minmax(9rem, auto);
+    }
+
+    .aiko-table__head > :nth-child(2),
+    .aiko-table__row > :nth-child(2),
+    .aiko-table__head > :nth-child(5),
+    .aiko-table__row > :nth-child(5) {
+        display: none;
+    }
+}
+
 .aiko-code-row input,
 .aiko-code-row select {
     flex: 1 1 auto;

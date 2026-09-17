@@ -1,10 +1,13 @@
+@page "/p/{ProjectId}"
 @page "/p/{ProjectId}/stats"
+@inject HttpClient Http
 @inject WorkspaceState State
 
-@* The project's numbers, read from its own board: how the cards are spread across the stages and how much
-   work is in flight. Everything is computed from the snapshot the daemon already serves, so this screen
-   cannot disagree with the board it summarises. *@
-<PageTitle>@Loc.Get("ProjectStats")</PageTitle>
+@* The project's own page: what it is, what it is made of, and how its cards are spread across its
+   pipelines. Everything is read from the snapshot the daemon already serves, so this screen cannot
+   disagree with the board it summarises. It answers to both routes: the rail links the project root, and
+   /stats keeps working for the deep links and the older screens that point at it. *@
+<PageTitle>@Loc.Get("ProjectOverviewNav")</PageTitle>
 
 @if (State.Board is not { } board)
 {
@@ -13,21 +16,40 @@
 else
 {
     <FlareStack Gap="FlareSpacing.Medium">
+        @if (!string.IsNullOrWhiteSpace(_message))
+        {
+            <FlareAlert Severity="@(_hasError ? AlertSeverity.Error : AlertSeverity.Success)"
+                        Variant="AlertVariant.Outlined">@_message</FlareAlert>
+        }
+
         <FlareStack Row="true" Align="FlareAlignItems.End" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Medium" Wrap="true">
             <FlareStack Gap="FlareSpacing.XXSmall">
                 <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
                     <span class="aiko-tag aiko-tag--accent">@Loc.Get("ProjectStats")</span>
-                    <span class="aiko-tag aiko-tag--quiet">@board.Project.Name</span>
+                    <span class="aiko-tag aiko-tag--quiet aiko-tag--clip" title="@board.Project.RootPath">
+                        @board.Project.RootPath
+                    </span>
                 </FlareStack>
                 <FlareText Element="h1" Typo="TypographyScale.HeadlineMedium">@board.Project.Name</FlareText>
                 <FlareText Element="p" Typo="TypographyScale.BodyMedium" Color="FlareColor.OnSurfaceVariant">
-                    @Loc.Get("ProjectStatsHint")
+                    @Loc.Get("ProjectOverviewHint")
                 </FlareText>
             </FlareStack>
-            <FlareNavLink Href="@BoardHref">
-                <IconContent><FlareIconView Value="@MaterialDesign3Icons.Regular.ViewKanban" /></IconContent>
-                <ChildContent>@Loc.Get("KanbanBoard")</ChildContent>
-            </FlareNavLink>
+            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                @* The index is a projection of the files the project owns, so rebuilding it is the one
+                   action this screen owns: it re-reads .aiko and answers with what it found. *@
+                <FlareButton Variant="ButtonVariant.Tonal"
+                             Size="ButtonSize.Sm"
+                             Loading="@_reindexing"
+                             OnClick="ReindexAsync">
+                    <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.Refresh" /></LeadingIcon>
+                    <ChildContent>@Loc.Get("ReindexProject")</ChildContent>
+                </FlareButton>
+                <FlareNavLink Href="@BoardHref">
+                    <IconContent><FlareIconView Value="@MaterialDesign3Icons.Regular.ViewKanban" /></IconContent>
+                    <ChildContent>@Loc.Get("KanbanBoard")</ChildContent>
+                </FlareNavLink>
+            </FlareStack>
         </FlareStack>
 
         <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
@@ -36,17 +58,22 @@ else
                     <span class="aiko-panel__icon aiko-panel__icon--primary">
                         <FlareIconView Value="@MaterialDesign3Icons.Regular.BarChart" />
                     </span>
-                    <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("ProjectStats")</FlareText>
+                    <FlareStack Gap="FlareSpacing.None">
+                        <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("ProjectStats")</FlareText>
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Get("ProjectStatsHint")
+                        </FlareText>
+                    </FlareStack>
                 </FlareStack>
                 <div class="aiko-tiles">
                     @foreach (var tile in Tiles)
                     {
                         var item = tile;
                         <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
-                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
                                 @item.Label
                             </FlareText>
-                            <span class="aiko-value">@item.Value</span>
+                            <span class="aiko-value aiko-value--big">@item.Value</span>
                         </FlareStack>
                     }
                 </div>
@@ -55,11 +82,67 @@ else
 
         <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
             <FlareStack Gap="FlareSpacing.Medium">
-                <FlareStack Gap="FlareSpacing.None">
-                    <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("StageLoad")</FlareText>
-                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                        @Loc.Get("StageLoadHint")
-                    </FlareText>
+                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
+                    <span class="aiko-panel__icon aiko-panel__icon--secondary">
+                        <FlareIconView Value="@MaterialDesign3Icons.Regular.FolderOpen" />
+                    </span>
+                    <FlareStack Gap="FlareSpacing.None">
+                        <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("ProjectDataTitle")</FlareText>
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Get("ProjectDataHint")
+                        </FlareText>
+                    </FlareStack>
+                </FlareStack>
+                <div class="aiko-tiles">
+                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
+                            @Loc.Get("ProjectPath")
+                        </FlareText>
+                        <span class="aiko-value aiko-value--clip" title="@board.Project.RootPath">@board.Project.RootPath</span>
+                    </FlareStack>
+                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
+                            @Loc.Get("WorkflowsTitle")
+                        </FlareText>
+                        <span class="aiko-value">@DisplayFormat.Number(board.Workflows.Count)</span>
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Format("StagesCount", board.Workflows.Sum(workflow => workflow.Stages.Count))
+                        </FlareText>
+                    </FlareStack>
+                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
+                            @Loc.Get("ProjectionsTitle")
+                        </FlareText>
+                        <span class="aiko-value">@DisplayFormat.Number(board.Projections.Count)</span>
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Get("ProjectionsHint")
+                        </FlareText>
+                    </FlareStack>
+                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
+                            @Loc.Get("Relations")
+                        </FlareText>
+                        <span class="aiko-value">@DisplayFormat.Number(board.Relations.Count)</span>
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Get("RelationsHint")
+                        </FlareText>
+                    </FlareStack>
+                </div>
+            </FlareStack>
+        </FlarePaper>
+
+        <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
+            <FlareStack Gap="FlareSpacing.Medium">
+                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
+                    <span class="aiko-panel__icon aiko-panel__icon--tertiary">
+                        <FlareIconView Value="@MaterialDesign3Icons.Regular.AccountTree" />
+                    </span>
+                    <FlareStack Gap="FlareSpacing.None">
+                        <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("StageLoad")</FlareText>
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Get("StageLoadHint")
+                        </FlareText>
+                    </FlareStack>
                 </FlareStack>
                 @foreach (var workflow in StagesByWorkflow)
                 {
@@ -86,7 +169,48 @@ else
 @code {
     [Parameter] public string ProjectId { get; set; } = string.Empty;
 
+    private bool _reindexing;
+    private string? _message;
+    private bool _hasError;
+
     private string BoardHref => $"/p/{Uri.EscapeDataString(ProjectId)}/board";
+
+    /// <summary>
+    /// Rebuilds the project's index from the files it owns. It is the one write this screen performs, and
+    /// it is safe to repeat: the files are the source of truth, the index is what the daemon reads.
+    /// </summary>
+    private async Task ReindexAsync()
+    {
+        if (_reindexing)
+        {
+            return;
+        }
+
+        _reindexing = true;
+        _message = null;
+        try
+        {
+            using var response = await Http.PostAsync(
+                $"api/v1/projects/{Uri.EscapeDataString(ProjectId)}/reindex",
+                content: null);
+            response.EnsureSuccessStatusCode();
+            var result = await response.Content.ReadFromJsonAsync<ReindexResult>(PwaJson.Options);
+            _message = result is null
+                ? Loc.Get("ReindexDone")
+                : Loc.Format("ReindexDoneCounts", result.Cards, result.Relations, result.MemoryDocuments);
+            _hasError = false;
+            await State.LoadBoardAsync();
+        }
+        catch (Exception exception)
+        {
+            _message = Loc.Format("ReindexFailed", FailureText.Describe(exception));
+            _hasError = true;
+        }
+        finally
+        {
+            _reindexing = false;
+        }
+    }
 
     /// <summary>The numbers a board is read by.</summary>
     private IReadOnlyList<(string Label, string Value)> Tiles

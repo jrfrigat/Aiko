@@ -80,8 +80,14 @@
                         </FlareText>
                     </FlareStack>
                 </FlareStack>
-                <span class="aiko-tag">@DisplayFormat.Number(State.Agents.Count)</span>
+                <span class="aiko-tag aiko-tag--quiet">@BridgeSummary</span>
             </FlareStack>
+
+            @if (!string.IsNullOrWhiteSpace(_message))
+            {
+                <FlareAlert Severity="@(_hasError ? AlertSeverity.Error : AlertSeverity.Success)"
+                            Variant="AlertVariant.Outlined">@_message</FlareAlert>
+            }
 
             @if (State.Agents.Count == 0)
             {
@@ -91,51 +97,86 @@
             }
             else
             {
-                <div class="aiko-stages">
+                <FlareStack Gap="FlareSpacing.Small">
                     @foreach (var agent in State.Agents)
                     {
                         var bridge = agent;
-                        <div class="aiko-stage">
-                            <span class="aiko-stage__open">
-                                <span class="aiko-stage__head">
-                                    <span class="aiko-stage__dot"></span>
-                                    <FlareText Element="span" Typo="TypographyScale.BodySmall" Weight="FontWeight.SemiBold">
+                        var presence = DisplayFormat.Classify(bridge);
+                        <FlareStack Class="aiko-tile" Gap="FlareSpacing.XSmall">
+                            <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small" Wrap="true">
+                                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
+                                    <span class="aiko-panel__icon aiko-panel__icon--tertiary">
+                                        <FlareIconView Value="@MaterialDesign3Icons.Regular.SmartToy" />
+                                    </span>
+                                    <FlareText Element="span" Typo="TypographyScale.BodyMedium" Weight="FontWeight.SemiBold">
                                         @bridge.DisplayName
                                     </FlareText>
-                                    <span class="aiko-tag @BridgeTagClass(bridge)">@BridgeCaption(bridge)</span>
-                                </span>
-                                <span class="aiko-stage__facts">
-                                    @if (bridge.Installations.FirstOrDefault() is { } installation)
+                                    <span class="aiko-tag @BridgeTagClass(presence)">@BridgeCaption(presence)</span>
+                                </FlareStack>
+                                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                                    @if (presence == DisplayFormat.AgentPresence.NotDetected)
                                     {
-                                        <span class="aiko-tag aiko-tag--clip" title="@installation.ExecutablePath">
-                                            @installation.ExecutablePath
-                                        </span>
-                                        @if (!string.IsNullOrWhiteSpace(installation.Version))
-                                        {
-                                            <span class="aiko-tag aiko-tag--quiet">@installation.Version</span>
-                                        }
+                                        @* Nothing to attach to: an agent that is not on PATH cannot be
+                                           connected, and what helps is the command that installs it. *@
+                                        <span class="aiko-value aiko-value--clip">aiko agent install</span>
                                     }
                                     else
                                     {
-                                        <span class="aiko-tag aiko-tag--quiet">@Loc.Get("BridgeNotInstalled")</span>
+                                        <FlareButton Variant="@(presence == DisplayFormat.AgentPresence.Connected ? ButtonVariant.Tonal : ButtonVariant.Filled)"
+                                                     Size="ButtonSize.Sm"
+                                                     Loading="@(_busyAdapterId == bridge.Id)"
+                                                     Disabled="@(_busyAdapterId is not null && _busyAdapterId != bridge.Id)"
+                                                     OnClick="() => ToggleBridgeAsync(bridge.Id)">
+                                            <LeadingIcon>
+                                                <FlareIconView Value="@(presence == DisplayFormat.AgentPresence.Connected ? MaterialDesign3Icons.Regular.LinkOff : MaterialDesign3Icons.Regular.PlugConnect)" />
+                                            </LeadingIcon>
+                                            <ChildContent>
+                                                @(presence == DisplayFormat.AgentPresence.Connected
+                                                    ? Loc.Get("DisconnectAgent")
+                                                    : Loc.Get("ConnectBridge"))
+                                            </ChildContent>
+                                        </FlareButton>
                                     }
-                                    @if (bridge.UserScope is { ExpectedFiles: > 0 } scope)
+                                </FlareStack>
+                            </FlareStack>
+                            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall" Wrap="true">
+                                @if (bridge.Installations.FirstOrDefault() is { } installation)
+                                {
+                                    <span class="aiko-tag aiko-tag--clip" title="@installation.ExecutablePath">
+                                        @installation.ExecutablePath
+                                    </span>
+                                    @if (!string.IsNullOrWhiteSpace(installation.Version))
                                     {
-                                        <span class="aiko-tag aiko-tag--quiet">
-                                            @Loc.Format("BridgeFiles", scope.ConfiguredFiles, scope.ExpectedFiles)
-                                        </span>
+                                        <span class="aiko-tag aiko-tag--quiet">@installation.Version</span>
                                     }
-                                </span>
-                            </span>
-                        </div>
+                                }
+                                else
+                                {
+                                    <span class="aiko-tag aiko-tag--quiet">@Loc.Get("BridgeNotInstalled")</span>
+                                }
+                                @if (bridge.UserScope is { ExpectedFiles: > 0 } scope)
+                                {
+                                    <span class="aiko-tag aiko-tag--quiet">
+                                        @Loc.Format("BridgeFiles", scope.ConfiguredFiles, scope.ExpectedFiles)
+                                    </span>
+                                }
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                    @BridgeHint(presence)
+                                </FlareText>
+                            </FlareStack>
+                        </FlareStack>
                     }
-                </div>
+                </FlareStack>
             }
         </FlareStack>
     </FlarePaper>
 </FlareStack>
 
 @code {
+    private string? _busyAdapterId;
+    private string? _message;
+    private bool _hasError;
+
     /// <summary>The MCP endpoint an agent connects to: the daemon plus the open project, when one is open.</summary>
     private string McpEndpoint => State.SelectedProjectId is { } projectId && State.HostCaption is { Length: > 0 } host
         ? $"http://{host}/mcp/projects/{projectId}"
@@ -147,19 +188,105 @@
         : "—";
 
     /// <summary>Whether an agent is reachable and configured, in the one word the card has room for.</summary>
-    private static string BridgeCaption(AgentAdapterOption agent) => agent.UserScope switch
+    private static string BridgeCaption(DisplayFormat.AgentPresence presence) => presence switch
     {
-        { ExpectedFiles: 0 } => Loc.Get("BridgeNoUserScope"),
-        { } scope when scope.IsConfigured() => Loc.Get("BridgeConnected"),
-        { } scope when scope.IsPartial() => Loc.Get("BridgePartial"),
-        _ => agent.Installations.Count > 0 ? Loc.Get("BridgeInstalled") : Loc.Get("BridgeNotInstalled")
+        DisplayFormat.AgentPresence.Connected => Loc.Get("BridgeConnected"),
+        DisplayFormat.AgentPresence.PartiallyConnected => Loc.Get("BridgePartial"),
+        DisplayFormat.AgentPresence.NotConnected => Loc.Get("BridgeInstalled"),
+        _ => Loc.Get("BridgeNotInstalled")
     };
 
-    private static string BridgeTagClass(AgentAdapterOption agent) => agent.UserScope switch
+    /// <summary>
+    /// What the card says beside the agent's own facts: the state read as what it means, and what the one
+    /// action next to it will do.
+    /// </summary>
+    private static string BridgeHint(DisplayFormat.AgentPresence presence) => presence switch
     {
-        { ExpectedFiles: 0 } => "aiko-tag--quiet",
-        { } scope when scope.IsConfigured() => "aiko-tag--live",
-        { } scope when scope.IsPartial() => "aiko-tag--accent",
+        DisplayFormat.AgentPresence.Connected => Loc.Get("BridgeConnectedHint"),
+        DisplayFormat.AgentPresence.PartiallyConnected => Loc.Get("BridgePartialHint"),
+        DisplayFormat.AgentPresence.NotConnected => Loc.Get("BridgeInstalledHint"),
+        _ => Loc.Get("BridgeNotInstalledHint")
+    };
+
+    /// <summary>The panel's own count: how many bridges are attached, incomplete and absent.</summary>
+    private string BridgeSummary
+    {
+        get
+        {
+            var connected = 0;
+            var incomplete = 0;
+            var absent = 0;
+            foreach (var adapter in State.Agents)
+            {
+                switch (DisplayFormat.Classify(adapter))
+                {
+                    case DisplayFormat.AgentPresence.Connected:
+                        connected++;
+                        break;
+                    case DisplayFormat.AgentPresence.PartiallyConnected:
+                    case DisplayFormat.AgentPresence.NotConnected:
+                        incomplete++;
+                        break;
+                    default:
+                        absent++;
+                        break;
+                }
+            }
+
+            return Loc.Format("BridgesSummary", connected, incomplete, absent);
+        }
+    }
+
+    private static string BridgeTagClass(DisplayFormat.AgentPresence presence) => presence switch
+    {
+        DisplayFormat.AgentPresence.Connected => "aiko-tag--live",
+        DisplayFormat.AgentPresence.PartiallyConnected => "aiko-tag--accent",
         _ => "aiko-tag--quiet"
     };
+
+    /// <summary>
+    /// Attaches or detaches one agent's bridge. Connecting writes Aiko's global skills and commands for that
+    /// agent; disconnecting removes them. The card reports the outcome itself, because this screen is where
+    /// the configuration is being changed.
+    /// </summary>
+    private async Task ToggleBridgeAsync(string adapterId)
+    {
+        if (_busyAdapterId is not null)
+        {
+            return;
+        }
+
+        var adapter = State.Agents.FirstOrDefault(item =>
+            StringComparer.Ordinal.Equals(item.Id, adapterId));
+        var name = adapter?.DisplayName ?? adapterId;
+        _busyAdapterId = adapterId;
+        _message = null;
+        try
+        {
+            if (adapter is not null &&
+                DisplayFormat.Classify(adapter) == DisplayFormat.AgentPresence.Connected)
+            {
+                await State.DisconnectAgentAsync(adapterId);
+            }
+            else
+            {
+                await State.ConnectAgentAsync(adapterId);
+            }
+
+            if (State.Error is { Length: > 0 } error)
+            {
+                _message = Loc.Format("AgentConnectFailed", name, error);
+                _hasError = true;
+            }
+            else
+            {
+                _message = Loc.Format("AgentBridgeChanged", name);
+                _hasError = false;
+            }
+        }
+        finally
+        {
+            _busyAdapterId = null;
+        }
+    }
 }

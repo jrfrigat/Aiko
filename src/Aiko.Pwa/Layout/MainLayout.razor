@@ -198,10 +198,10 @@
                         <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow aiko-rail__group">
                             @Loc.Format("CurrentProjectGroup", open.Name)
                         </FlareText>
-                        @* Stats first, then the board: the overview answers "how are we doing" before the
-                           board answers "what is next". *@
-                        <FlareNavLink Href="@SectionHref(open.Id, "stats")">
-                            <ChildContent>@Loc.Get("ProjectStats")</ChildContent>
+                        @* The project's own page first, then the board: the overview answers "how are we
+                           doing" before the board answers "what is next". *@
+                        <FlareNavLink Href="@ProjectHref">
+                            <ChildContent>@Loc.Get("ProjectOverviewNav")</ChildContent>
                         </FlareNavLink>
                         <FlareNavLink Href="@BoardHref(open.Id)">
                             <ChildContent>@Loc.Get("KanbanBoard")</ChildContent>
@@ -210,7 +210,7 @@
                             </BadgeContent>
                         </FlareNavLink>
                         <FlareNavLink Href="@SectionHref(open.Id, "stories")">
-                            <ChildContent>@Loc.Get("StoriesNav")</ChildContent>
+                            <ChildContent>@Loc.Get("StoriesBacklog")</ChildContent>
                             <BadgeContent>
                                 <span class="aiko-tag">@DisplayFormat.Number(BoardMetrics.CountKind(State.Board, CardKind.Story))</span>
                             </BadgeContent>
@@ -219,7 +219,7 @@
                            editor, and one place to edit a pipeline is better than two. The /workflow route
                            stays for deep links. *@
                         <FlareNavLink Href="@SectionHref(open.Id, "settings")">
-                            <ChildContent>@Loc.Get("Settings")</ChildContent>
+                            <ChildContent>@Loc.Get("ProjectSettingsNav")</ChildContent>
                         </FlareNavLink>
                     }
 
@@ -238,7 +238,7 @@
                         </BadgeContent>
                     </FlareNavLink>
                     <FlareNavLink Href="@SettingsHref">
-                        <ChildContent>@Loc.Get("Settings")</ChildContent>
+                        <ChildContent>@Loc.Get("GlobalSettingsNav")</ChildContent>
                     </FlareNavLink>
                 </FlareStack>
             </ChildContent>

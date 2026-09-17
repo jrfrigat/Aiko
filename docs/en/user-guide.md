@@ -1,5 +1,12 @@
 # Aiko - User Guide
 
+## The project
+
+The project page (the first item in the rail) answers two questions: what this project is and how its cards
+are doing. It shows the project's path, its workflows and how many stages they have, the board projections
+and the relations, plus the cards per stage of each pipeline. "Re-index project" rebuilds the daemon's index
+from the `.aiko` files - the one write this screen performs, and one that is safe to repeat.
+
 ## The board
 
 The board shows the project's cards in three projections:
@@ -48,6 +55,16 @@ when it is missing) and the commands that verify its outcome. Edit them in **Pro
 lists the stages of the pipeline and lets you reorder them, and clicking a stage opens it in a drawer.
 A project owns its own copy of the pipelines, so a change there never reaches another project - or a
 project created later from the template. Removing a stage that still contains cards is rejected.
+
+## Agent bridges
+
+The **Daemon & MCP bridges** screen shows the daemon itself (version, address, PID, round-trip, MCP endpoint)
+and one card per agent: whether it is installed on this machine and whether it is attached to Aiko. The button
+on a card attaches the bridge - it writes Aiko's global skills and commands for that agent - and detaches it
+again. The two facts are independent: an agent can be installed without being attached, or found only partly
+configured, in which case the button completes it. An agent that is not on `PATH` shows the
+`aiko agent install` command instead of the button. The MCP entry for one project is added separately:
+`aiko agent install --project <id>`.
 
 ## Settings
 

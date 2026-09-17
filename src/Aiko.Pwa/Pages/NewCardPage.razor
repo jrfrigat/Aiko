@@ -8,48 +8,190 @@
 <PageTitle>@Loc.Get("CreateCardTitle")</PageTitle>
 
 <FlareStack Gap="FlareSpacing.Small">
-    <FlareNavLink Href="@BoardHref">
-        <ChildContent>@Loc.Get("KanbanBoard")</ChildContent>
-    </FlareNavLink>
+    @* The breadcrumb the card page opens with, so creating a card and reading it start the same way. *@
+    <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small" Wrap="true">
+        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
+            <span class="aiko-value">@(State.Board?.Project.Name ?? ProjectId)</span>
+            <span class="aiko-tag aiko-tag--quiet">/</span>
+            <FlareNavLink Href="@BoardHref"><ChildContent>@Loc.Get("KanbanBoard")</ChildContent></FlareNavLink>
+            <span class="aiko-tag aiko-tag--quiet">/</span>
+            <span class="aiko-tag aiko-tag--accent">@Loc.Get("CreateCardTitle")</span>
+        </FlareStack>
+        <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm" OnClick="Cancel">
+            <LeadingIcon><FlareIconView Value="@FlareIcons.Close" /></LeadingIcon>
+            <ChildContent>@Loc.Get("Cancel")</ChildContent>
+        </FlareButton>
+    </FlareStack>
 
-    @if (State.Board is null)
+    @if (State.Board is not { } board)
     {
         <FlareAlert Severity="AlertSeverity.Info" Variant="AlertVariant.Text">@Loc.Get("BoardUnavailable")</FlareAlert>
     }
     else
     {
-        <FlareCard Variant="CardVariant.Outlined">
-            <FlareStack Gap="FlareSpacing.Small">
-                <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("CreateCardTitle")</FlareText>
-                <FlareTextField Label="@Loc.Get("CardId")" @bind-Value="_newCardId" />
-                <FlareSelect TValue="string" Label="@Loc.Get("CardKind")" @bind-Value="_newCardKind">
-                    <option value="Task">@Loc.Get("TaskKind")</option>
-                    <option value="Story">@Loc.Get("StoryKind")</option>
-                </FlareSelect>
-                <FlareTextField Label="@Loc.Get("Title")" @bind-Value="_newCardTitle" />
-                <FlareTextField Label="@Loc.Get("Stage")" @bind-Value="_newCardStage" />
-                @if (_priorityCriteria.Count > 0)
-                {
-                    @foreach (var criterion in _priorityCriteria)
-                    {
-                        <FlareNumericField TValue="decimal?"
-                                           Min="0"
-                                           Label="@criterion.Title"
-                                           Value="GetCriterionValue(criterion.Id)"
-                                           ValueChanged="value => SetCriterionValue(criterion.Id, value)" />
-                    }
-                }
-                else
-                {
-                    <FlareNumericField TValue="decimal?" Label="@Loc.Get("Priority")" @bind-Value="_newCardPriority" />
-                }
-                <FlareTextField Label="@Loc.Get("Scope")" HelperText="@Loc.Get("ScopeHelper")" @bind-Value="_newCardScope" />
-                <FlareStack Row="true" Gap="FlareSpacing.XSmall">
-                    <FlareButton OnClick="CreateAsync">@Loc.Get("Create")</FlareButton>
-                    <FlareButton Variant="ButtonVariant.Text" OnClick="Cancel">@Loc.Get("Cancel")</FlareButton>
-                </FlareStack>
+        @* The same two columns the card page uses: what the card is on the left, where it starts and how it
+           is scored on the right. Creating a card is the first step of the screen it opens into. *@
+        <div class="aiko-settings">
+            <FlareStack Class="aiko-card__main" Gap="FlareSpacing.Medium">
+                <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
+                    <FlareStack Gap="FlareSpacing.Medium">
+                        <FlareStack Row="true" Align="FlareAlignItems.Start" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small" Wrap="true">
+                            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
+                                <span class="aiko-panel__icon aiko-panel__icon--primary">
+                                    <FlareIconView Value="@MaterialDesign3Icons.Regular.Description" />
+                                </span>
+                                <FlareStack Gap="FlareSpacing.None">
+                                    <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("CardIdentityTitle")</FlareText>
+                                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                        @Loc.Get("CardIdentityHint")
+                                    </FlareText>
+                                </FlareStack>
+                            </FlareStack>
+                            <span class="aiko-tag aiko-tag--accent">@board.Project.Name</span>
+                        </FlareStack>
+
+                        <div class="aiko-form-row">
+                            <FlareTextField Label="@Loc.Get("CardId")"
+                                            HelperText="@Loc.Get("CardIdHelper")"
+                                            Immediate="true"
+                                            @bind-Value="_newCardId" />
+                            <FlareTextField Label="@Loc.Get("Title")"
+                                            Required="true"
+                                            Immediate="true"
+                                            @bind-Value="_newCardTitle" />
+                        </div>
+                    </FlareStack>
+                </FlarePaper>
+
+                <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
+                    <FlareStack Gap="FlareSpacing.Medium">
+                        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
+                            <span class="aiko-panel__icon aiko-panel__icon--secondary">
+                                <FlareIconView Value="@MaterialDesign3Icons.Regular.Target" />
+                            </span>
+                            <FlareStack Gap="FlareSpacing.None">
+                                <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("ScopeTitle")</FlareText>
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                    @Loc.Get("ScopeHelper")
+                                </FlareText>
+                            </FlareStack>
+                        </FlareStack>
+                        <FlareTextArea Label="@Loc.Get("DeclaredScope")"
+                                       HelperText="@Loc.Get("ScopeHelper")"
+                                       Rows="5"
+                                       @bind-Value="_newCardScope" />
+                        @if (ScopePreview is { Count: > 0 } preview)
+                        {
+                            <FlareStack Gap="FlareSpacing.XXSmall">
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
+                                    @Loc.Get("FilesDeclared")
+                                </FlareText>
+                                @foreach (var path in preview)
+                                {
+                                    var file = path;
+                                    <span class="aiko-value aiko-value--clip" title="@file">@file</span>
+                                }
+                            </FlareStack>
+                        }
+                    </FlareStack>
+                </FlarePaper>
             </FlareStack>
-        </FlareCard>
+            <FlareStack Class="aiko-card__side" Gap="FlareSpacing.Medium">
+                <FlarePaper Elevation="0" Padding="FlareSpacing.Medium" Square="true" Class="aiko-panel">
+                    <FlareStack Gap="FlareSpacing.Medium">
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
+                            @Loc.Get("CardPlaceTitle")
+                        </FlareText>
+                        <FlareSelect TValue="string"
+                                     Label="@Loc.Get("CardKind")"
+                                     Value="@_newCardKind"
+                                     ValueChanged="OnKindChangedAsync">
+                            <option value="Task">@Loc.Get("TaskKind")</option>
+                            <option value="Story">@Loc.Get("StoryKind")</option>
+                        </FlareSelect>
+                        @* The stage list is the chosen kind's own workflow: a task cannot join a story stage,
+                           which is why the field is a select rather than free text. *@
+                        <FlareSelect TValue="string" Label="@Loc.Get("Stage")" @bind-Value="_newCardStage">
+                            @foreach (var stage in StagesFor(SelectedKind))
+                            {
+                                var option = stage;
+                                <option value="@option.Id">@option.Title</option>
+                            }
+                        </FlareSelect>
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Format("WorkflowStagesHint", StagesFor(SelectedKind).Count)
+                        </FlareText>
+                        <FlareStack Gap="FlareSpacing.None">
+                            <FlareSelect TValue="string" Label="@Loc.Get("SizeIdLabel")" @bind-Value="_newCardSize">
+                                <option value="">@Loc.Get("NoSize")</option>
+                                @foreach (var step in SizeGrid)
+                                {
+                                    var option = step;
+                                    <option value="@option.Id">@SizeOption(option)</option>
+                                }
+                            </FlareSelect>
+                            @if (SelectedSize is { } selected)
+                            {
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                    @($"x{selected.Coefficient} · {selected.Description}")
+                                </FlareText>
+                            }
+                        </FlareStack>
+                    </FlareStack>
+                </FlarePaper>
+                <FlarePaper Elevation="0" Padding="FlareSpacing.Medium" Square="true" Class="aiko-panel">
+                    <FlareStack Gap="FlareSpacing.Medium">
+                        <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small">
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
+                                @Loc.Get("ScoringCriteria")
+                            </FlareText>
+                            @if (_priorityCriteria.Count > 0)
+                            {
+                                <span class="aiko-tag aiko-tag--quiet">@DisplayFormat.Number(_priorityCriteria.Count)</span>
+                            }
+                        </FlareStack>
+                        @if (_priorityCriteria.Count > 0)
+                        {
+                            @foreach (var criterion in _priorityCriteria)
+                            {
+                                var item = criterion;
+                                <FlareNumericField TValue="decimal?"
+                                                   Label="@item.Title"
+                                                   HelperText="@($"{item.Minimum} - {item.Maximum}")"
+                                                   Value="GetCriterionValue(item.Id)"
+                                                   ValueChanged="value => SetCriterionValue(item.Id, value)" />
+                            }
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                @Loc.Get("ScoringHint")
+                            </FlareText>
+                        }
+                        else
+                        {
+                            @* No criteria: the project scores by hand, so the form asks for the number. *@
+                            <FlareNumericField TValue="decimal?"
+                                               Label="@Loc.Get("Priority")"
+                                               HelperText="@Loc.Get("NoCriteria")"
+                                               @bind-Value="_newCardPriority" />
+                        }
+                    </FlareStack>
+                </FlarePaper>
+
+                <FlarePaper Elevation="0" Padding="FlareSpacing.Medium" Square="true" Class="aiko-panel">
+                    <FlareStack Gap="FlareSpacing.Small">
+                        <FlareButton FullWidth="true" Loading="@_creating" OnClick="CreateAsync">
+                            <LeadingIcon><FlareIconView Value="@FlareIcons.Add" /></LeadingIcon>
+                            <ChildContent>@Loc.Get("Create")</ChildContent>
+                        </FlareButton>
+                        <FlareButton FullWidth="true" Variant="ButtonVariant.Text" OnClick="Cancel">
+                            <ChildContent>@Loc.Get("Cancel")</ChildContent>
+                        </FlareButton>
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Get("CreateCardHint")
+                        </FlareText>
+                    </FlareStack>
+                </FlarePaper>
+            </FlareStack>
+        </div>
     }
 </FlareStack>
 
@@ -60,17 +202,69 @@
     private string? _newCardKind = "Task";
     private string? _newCardTitle;
     private string? _newCardStage;
+    private string? _newCardSize;
     private decimal? _newCardPriority = 1m;
     private string? _newCardScope;
+    private bool _creating;
     private IReadOnlyList<PriorityCriterion> _priorityCriteria = [];
     private readonly Dictionary<string, decimal?> _criterionValues = new(StringComparer.Ordinal);
 
     private string BoardHref => $"/p/{Uri.EscapeDataString(ProjectId)}/board";
 
+    /// <summary>The kind the form is currently creating, which is what the stage list follows.</summary>
+    private CardKind SelectedKind => _newCardKind == nameof(CardKind.Story) ? CardKind.Story : CardKind.Task;
+
+    /// <summary>
+    /// The stages a card of this kind can start in: the stages of its own workflow. A task cannot join a
+    /// story stage, so the form offers the workflow's stages rather than a free-text id.
+    /// </summary>
+    private IReadOnlyList<StageDefinition> StagesFor(CardKind kind)
+    {
+        var workflowId = kind == CardKind.Story ? "story" : "task";
+        return State.Board?.Workflows
+            .FirstOrDefault(workflow => StringComparer.Ordinal.Equals(workflow.Id, workflowId))
+            ?.Stages.OrderBy(stage => stage.Order)
+            .ToArray() ?? [];
+    }
+
+    /// <summary>The project's size grid, the same ladder the agent assigns a card from.</summary>
+    private IReadOnlyList<SizeDefinition> SizeGrid => State.Board is null ? [] : _sizeGrid;
+
+    private IReadOnlyList<SizeDefinition> _sizeGrid = [];
+
+    /// <summary>The chosen step, so the form can show what it does to the score.</summary>
+    private SizeDefinition? SelectedSize => string.IsNullOrWhiteSpace(_newCardSize)
+        ? null
+        : _sizeGrid.FirstOrDefault(step => StringComparer.Ordinal.Equals(step.Id, _newCardSize));
+
+    /// <summary>A step as the select shows it.</summary>
+    private static string SizeOption(SizeDefinition step) => $"{step.Id} (x{step.Coefficient})";
+
+    /// <summary>
+    /// What the declared scope will become once saved: one pattern per line. Shown under the field so a
+    /// comma-separated paste is visible as the list the card will carry.
+    /// </summary>
+    private IReadOnlyList<string> ScopePreview => (_newCardScope ?? string.Empty)
+        .Split(['\r', '\n', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToArray();
+
+    /// <summary>Switching the kind switches the pipeline, so the stage follows it.</summary>
+    private Task OnKindChangedAsync(string? kind)
+    {
+        _newCardKind = kind;
+        _newCardStage = DefaultStage(SelectedKind);
+        return Task.CompletedTask;
+    }
+
     protected override async Task OnParametersSetAsync()
     {
         await State.EnsureProjectAsync(ProjectId);
         await LoadCriteriaAsync();
+        if (string.IsNullOrWhiteSpace(_newCardStage))
+        {
+            _newCardStage = DefaultStage(SelectedKind);
+        }
     }
 
     /// <summary>The project's scoring criteria decide which fields the form asks for.</summary>
@@ -88,10 +282,12 @@
             var view = await Http.GetFromJsonAsync<AppSettingsView>(
                 $"api/v1/projects/{Uri.EscapeDataString(board.Project.Id)}/settings", PwaJson.Options);
             _priorityCriteria = view?.EffectivePriority.Criteria ?? [];
+            _sizeGrid = view?.EffectivePriority.Grid ?? [];
         }
         catch
         {
             _priorityCriteria = [];
+            _sizeGrid = [];
         }
     }
 
@@ -128,15 +324,17 @@
     {
         if (State.Board is not { } board ||
             string.IsNullOrWhiteSpace(_newCardId) ||
-            string.IsNullOrWhiteSpace(_newCardTitle))
+            string.IsNullOrWhiteSpace(_newCardTitle) ||
+            _creating)
         {
             await State.ReportErrorAsync(Loc.Get("IdTitleRequired"));
             return;
         }
 
+        _creating = true;
         try
         {
-            var kind = _newCardKind == nameof(CardKind.Story) ? CardKind.Story : CardKind.Task;
+            var kind = SelectedKind;
             var criterionValues = BuildCriterionValues();
             var ownPriority = criterionValues.Count > 0
                 ? PriorityCalculator.CalculateOwnPriority(criterionValues, _priorityCriteria)
@@ -148,10 +346,9 @@
                 kind == CardKind.Story ? "story" : "task",
                 string.IsNullOrWhiteSpace(_newCardStage) ? DefaultStage(kind) : _newCardStage.Trim(),
                 ownPriority,
-                (_newCardScope ?? string.Empty)
-                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                    .ToArray(),
-                criterionValues.Count > 0 ? criterionValues : null);
+                ScopePreview.ToArray(),
+                criterionValues.Count > 0 ? criterionValues : null,
+                string.IsNullOrWhiteSpace(_newCardSize) ? null : _newCardSize.Trim());
             using var response = await Http.PostAsJsonAsync(
                 $"api/v1/projects/{Uri.EscapeDataString(board.Project.Id)}/cards",
                 request,
@@ -165,6 +362,10 @@
         catch (Exception exception)
         {
             await State.ReportErrorAsync(Loc.Format("CreateCardFailed", FailureText.Describe(exception)));
+        }
+        finally
+        {
+            _creating = false;
         }
     }
 

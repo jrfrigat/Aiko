@@ -18,6 +18,13 @@
   <data name="AddProjectHint" xml:space="preserve"><value>Point at the project folder. Aiko creates the .aiko directory and the default workflows.</value></data>
   <data name="CreateCard" xml:space="preserve"><value>Card</value></data>
   <data name="CreateCardTitle" xml:space="preserve"><value>Create card</value></data>
+  <data name="CardIdentityTitle" xml:space="preserve"><value>The card</value></data>
+  <data name="CardIdentityHint" xml:space="preserve"><value>Its id on the board, and the title everyone reads it by</value></data>
+  <data name="CardIdHelper" xml:space="preserve"><value>A stable id, for example FL-201</value></data>
+  <data name="CardPlaceTitle" xml:space="preserve"><value>Where it starts</value></data>
+  <data name="WorkflowStagesHint" xml:space="preserve"><value>{0} stages in this workflow</value></data>
+  <data name="ScoringHint" xml:space="preserve"><value>The agent may refine these later; the card's own score is computed from them</value></data>
+  <data name="CreateCardHint" xml:space="preserve"><value>The card opens right after it is created - that is where its artifacts and runs collect</value></data>
   <data name="Add" xml:space="preserve"><value>Add</value></data>
   <data name="Create" xml:space="preserve"><value>Create</value></data>
   <data name="Cancel" xml:space="preserve"><value>Cancel</value></data>
@@ -28,7 +35,7 @@
   <data name="Title" xml:space="preserve"><value>Title</value></data>
   <data name="ProjectPath" xml:space="preserve"><value>Project path</value></data>
   <data name="ProjectName" xml:space="preserve"><value>Name (optional)</value></data>
-  <data name="CardId" xml:space="preserve"><value>ID (for example TASK-001)</value></data>
+  <data name="CardId" xml:space="preserve"><value>ID (for example FL-201)</value></data>
   <data name="Stage" xml:space="preserve"><value>Stage (for example backlog)</value></data>
   <data name="Priority" xml:space="preserve"><value>Priority (number)</value></data>
   <data name="Scope" xml:space="preserve"><value>Scope (comma separated)</value></data>
@@ -211,6 +218,17 @@
   <data name="StatStories" xml:space="preserve"><value>Stories</value></data>
   <data name="StatInProgress" xml:space="preserve"><value>In progress</value></data>
   <data name="StatOutOfScope" xml:space="preserve"><value>Out of scope</value></data>
+  <data name="AcrossProjects" xml:space="preserve"><value>across {0} projects</value></data>
+  <data name="TodayDelta" xml:space="preserve"><value>+{0} today</value></data>
+  <data name="StatTasksCaption" xml:space="preserve"><value>task cards in the pipelines</value></data>
+  <data name="StatStoriesCaption" xml:space="preserve"><value>story cards driving them</value></data>
+  <data name="StatInProgressCaption" xml:space="preserve"><value>{0} agents detected on this machine</value></data>
+  <data name="StatOutOfScopeCaption" xml:space="preserve"><value>files outside the declared scope</value></data>
+  <data name="StatLive" xml:space="preserve"><value>Active (live SSE)</value></data>
+  <data name="NoBoardData" xml:space="preserve"><value>No board data</value></data>
+  <data name="TableProject" xml:space="preserve"><value>Project</value></data>
+  <data name="TableStatus" xml:space="preserve"><value>Status</value></data>
+  <data name="TableActions" xml:space="preserve"><value>Actions</value></data>
   <data name="ActivityTitle" xml:space="preserve"><value>Activity</value></data>
   <data name="ActivityCaption" xml:space="preserve"><value>runs and events · last year</value></data>
   <data name="ActivityNone" xml:space="preserve"><value>Nothing recorded yet. Start the daemon and run a stage.</value></data>
@@ -313,6 +331,13 @@
   <data name="McpEndpoint" xml:space="preserve"><value>MCP endpoint</value></data>
   <data name="McpEndpointHint" xml:space="preserve"><value>The address an agent connects to for the open project</value></data>
   <data name="AgentBridges" xml:space="preserve"><value>Agent bridges</value></data>
+  <data name="ConnectBridge" xml:space="preserve"><value>Attach bridge</value></data>
+  <data name="BridgesSummary" xml:space="preserve"><value>{0} attached · {1} incomplete · {2} absent</value></data>
+  <data name="BridgeConnectedHint" xml:space="preserve"><value>Aiko's skills and commands are written for this agent</value></data>
+  <data name="BridgePartialHint" xml:space="preserve"><value>Part of Aiko's configuration is missing - attach again to complete it</value></data>
+  <data name="BridgeInstalledHint" xml:space="preserve"><value>The agent is on this machine and not attached to Aiko yet</value></data>
+  <data name="BridgeNotInstalledHint" xml:space="preserve"><value>Not found on PATH: install the agent, then attach its bridge</value></data>
+  <data name="AgentBridgeChanged" xml:space="preserve"><value>Bridge for {0} updated.</value></data>
   <data name="AgentBridgesHint" xml:space="preserve"><value>Which agents this machine has, and whether Aiko has connected to them</value></data>
   <data name="BridgeConnected" xml:space="preserve"><value>connected</value></data>
   <data name="BridgePartial" xml:space="preserve"><value>partial</value></data>
@@ -321,6 +346,22 @@
   <data name="BridgeNoUserScope" xml:space="preserve"><value>no user-scope config</value></data>
   <data name="BridgeFiles" xml:space="preserve"><value>{0}/{1} files</value></data>
   <data name="ProjectStats" xml:space="preserve"><value>Project stats</value></data>
+  <data name="ProjectOverviewNav" xml:space="preserve"><value>Project overview / stats</value></data>
+  <data name="StoriesBacklog" xml:space="preserve"><value>Stories &amp; backlog</value></data>
+  <data name="ProjectSettingsNav" xml:space="preserve"><value>Project settings</value></data>
+  <data name="GlobalSettingsNav" xml:space="preserve"><value>Global settings</value></data>
+  <data name="ProjectOverviewHint" xml:space="preserve"><value>What this project is, what it is made of, and how its cards are spread across its pipelines</value></data>
+  <data name="ProjectDataTitle" xml:space="preserve"><value>Project data</value></data>
+  <data name="ProjectDataHint" xml:space="preserve"><value>Where the project lives, and what the daemon reads from it</value></data>
+  <data name="WorkflowsTitle" xml:space="preserve"><value>Workflows</value></data>
+  <data name="StagesCount" xml:space="preserve"><value>{0} stages</value></data>
+  <data name="ProjectionsTitle" xml:space="preserve"><value>Board projections</value></data>
+  <data name="ProjectionsHint" xml:space="preserve"><value>The views this project's board offers</value></data>
+  <data name="RelationsHint" xml:space="preserve"><value>Links between the project's cards</value></data>
+  <data name="ReindexProject" xml:space="preserve"><value>Re-index project</value></data>
+  <data name="ReindexDone" xml:space="preserve"><value>Project re-indexed.</value></data>
+  <data name="ReindexDoneCounts" xml:space="preserve"><value>Re-indexed: {0} cards, {1} relations, {2} memory documents</value></data>
+  <data name="ReindexFailed" xml:space="preserve"><value>Could not re-index the project: {0}</value></data>
   <data name="ProjectStatsHint" xml:space="preserve"><value>How this project's cards are spread across its pipelines, read from the board the daemon serves</value></data>
   <data name="StageLoad" xml:space="preserve"><value>Cards per stage</value></data>
   <data name="StageLoadHint" xml:space="preserve"><value>Each bar is a stage's share of the busiest stage of its own pipeline</value></data>
