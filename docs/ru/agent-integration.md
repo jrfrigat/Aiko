@@ -22,7 +22,7 @@ http://127.0.0.1:<port>/mcp
 aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<projectId>
 ```
 
-## Набор инструментов (27 tools)
+## Набор инструментов (29 tools)
 
 - **Контекст проекта** - `aiko_get_project_context`, `aiko_open_ui`.
 - **Карточки** - `aiko_list_cards`, `aiko_get_card`, `aiko_create_card`, `aiko_update_card`,
@@ -32,7 +32,8 @@ aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<projectId>
   `aiko_resume_execution`, `aiko_report_agent_state`, `aiko_report_commit`, `aiko_approve_commit`.
 - **Память** - `aiko_search_memory`, `aiko_store_memory`.
 - **Daemon (глобальные)** - `aiko_init_project`, `aiko_list_projects`,
-  `aiko_create_card_in_project`, `aiko_doctor`, `aiko_reindex`, `aiko_get_settings`.
+  `aiko_create_card_in_project`, `aiko_doctor`, `aiko_reindex`, `aiko_get_settings`, `aiko_token`,
+  `aiko_backup`.
 
 Описания инструментов требуют сначала читать контекст проекта; установленные скиллы и правила
 подкрепляют это для каждого агента.
@@ -55,12 +56,28 @@ Project-scoped скиллы/команды (устанавливаются `aiko
 
 ## Что пишет установщик
 
+В проект (`aiko agent install --project <id>`):
+
 | Агент | Файлы |
 | :-- | :-- |
 | Claude Code | `.mcp.json`, `.claude/skills/aiko/SKILL.md`, `.claude/commands/aiko-*.md` |
 | Codex | `.codex/config.toml` (`mcp_servers.aiko`), `.agents/skills/aiko/SKILL.md`, блок `AGENTS.md` |
 | Cursor | `.cursor/mcp.json`, `.cursor/rules/aiko.mdc` |
 | ZCode | `.zcode/config.json` (нативный `mcp.servers`), `.zcode/skills/aiko/SKILL.md`, `.zcode/commands/aiko-*.md` |
+
+Глобально, для всего пользователя (`aiko agent install --scope user`, это и запускает установщик):
+
+| Агент | Файлы |
+| :-- | :-- |
+| Claude Code | `~/.claude/skills/aiko/SKILL.md`, `~/.claude/commands/aiko-*.md` |
+| Codex | `~/.codex/skills/aiko/SKILL.md`, `~/.agents/skills/aiko/SKILL.md` |
+| Cursor | `~/.cursor/rules/aiko.mdc` |
+| ZCode | `~/.zcode/skills/aiko/SKILL.md`, `~/.zcode/commands/aiko-*.md` |
+
+Codex читает user-scope скиллы из собственного корня `~/.codex/skills` (его встроенные скиллы лежат в
+`~/.codex/skills/.system`), поэтому глобальный скилл пишется туда; копия в переносимом
+`~/.agents/skills` остаётся для раскладок, которые читают это дерево. Переменная `AIKO_USER_HOME`
+переключает установку в другой домашний каталог.
 
 Установка идемпотентна и сохраняет ваши настройки; удаление убирает только Aiko-управляемый
 контент (MCP-записи, managed-блоки и файлы с маркером владения Aiko).

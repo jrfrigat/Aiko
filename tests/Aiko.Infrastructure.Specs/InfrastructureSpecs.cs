@@ -602,6 +602,39 @@ public class InfrastructureSpecs
     }
 
     [Fact]
+    public async Task Codex_user_scope_install_writes_the_clients_own_skills_root()
+    {
+        var previousHome = Environment.GetEnvironmentVariable("AIKO_USER_HOME");
+        var fakeHome = Path.Combine(Path.GetTempPath(), "Aiko.Specs", Guid.NewGuid().ToString("N"));
+        Environment.SetEnvironmentVariable("AIKO_USER_HOME", fakeHome);
+        try
+        {
+            var adapter = new CodexAgentAdapter();
+            var applied = await adapter.ApplyUserInstallAsync(CancellationToken.None);
+            Assert.True(applied.Succeeded);
+
+            // The client's own root: this is where Codex looks for user-scope skills, so a skill that
+            // only landed in the portable .agents tree was effectively invisible.
+            Assert.True(File.Exists(Path.Combine(fakeHome, ".codex", "skills", "aiko", "SKILL.md")));
+            // The portable location is still written, and stays byte-identical to the client's copy.
+            var portable = Path.Combine(fakeHome, ".agents", "skills", "aiko", "SKILL.md");
+            Assert.True(File.Exists(portable));
+            Assert.Equal(
+                await File.ReadAllTextAsync(Path.Combine(fakeHome, ".codex", "skills", "aiko", "SKILL.md")),
+                await File.ReadAllTextAsync(portable));
+
+            var removed = await adapter.UninstallUserAsync(CancellationToken.None);
+            Assert.True(removed.Succeeded);
+            Assert.False(File.Exists(Path.Combine(fakeHome, ".codex", "skills", "aiko", "SKILL.md")));
+            Assert.False(File.Exists(portable));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("AIKO_USER_HOME", previousHome);
+        }
+    }
+
+    [Fact]
     public async Task Project_initialization_copies_global_defaults()
     {
         await WithInitializedProjectAsync(async context =>

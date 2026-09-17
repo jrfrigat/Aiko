@@ -3,8 +3,8 @@ using Aiko.Application.Agents;
 namespace Aiko.Infrastructure.Agents;
 
 /// <summary>
-/// Codex adapter: a TOML configuration in .codex, a skill in .agents
-/// and a managed block in AGENTS.md.
+/// Codex adapter: a TOML configuration in .codex, a skill in .codex/skills (the client's own
+/// skills root) and in the portable .agents/skills, and a managed block in AGENTS.md.
 /// </summary>
 public sealed class CodexAgentAdapter : BuiltInAgentAdapter
 {
@@ -63,6 +63,21 @@ public sealed class CodexAgentAdapter : BuiltInAgentAdapter
 
     private protected override IReadOnlyList<AgentFileDefinition> CreateUserFiles() =>
     [
-        new(UserPath(".agents", "skills", "aiko", "SKILL.md"), "Install the global Aiko skill.", AgentFileKind.OwnedText, AgentTemplates.GlobalSkill)
+        // The client's OWN skills root. Codex (CLI and the desktop app) keeps user-scope skills in
+        // ~/.codex/skills - its built-ins live in ~/.codex/skills/.system - so the global Aiko skill
+        // has to be here to be loaded at all.
+        new(
+            UserPath(".codex", "skills", "aiko", "SKILL.md"),
+            "Install the global Aiko skill in the Codex skills root.",
+            AgentFileKind.OwnedText,
+            AgentTemplates.GlobalSkill),
+        // The portable location stays: it is the cross-client convention the docs describe, and a
+        // layout that reads it (or a future client that does) keeps working. Both files carry the
+        // same template, and uninstall removes both because it walks this same list.
+        new(
+            UserPath(".agents", "skills", "aiko", "SKILL.md"),
+            "Install the global Aiko skill in the portable agent skills root.",
+            AgentFileKind.OwnedText,
+            AgentTemplates.GlobalSkill)
     ];
 }

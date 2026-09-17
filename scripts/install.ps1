@@ -203,10 +203,10 @@ if (-not $NoAgentSetup -and -not $agentList) {
     Write-Host "It writes the global MCP entry, the /aiko-* skills and the shared memory into each"
     Write-Host "agent's own configuration; nothing else is touched."
     Write-Host "  [1] Claude Code   [2] Codex   [3] Cursor   [4] ZCode"
-    Write-Host "  all = every agent above, Enter = skip" -ForegroundColor DarkGray
+    Write-Host "  1,3 = several agents, all = every agent above, Enter = skip" -ForegroundColor DarkGray
     $answer = ''
     try {
-        $answer = Read-Host 'Agents to connect'
+        $answer = Read-Host 'Agents to connect (for example 1,3)'
     }
     catch {
         Write-Verbose "No interactive console, skipping agent setup. $($_.Exception.Message)"
