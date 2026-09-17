@@ -2,61 +2,164 @@
 @implements IAsyncDisposable
 @inject WorkspaceState State
 @inject NavigationManager Navigation
+@inject IJSRuntime Js
 
-@* The application shell. Every screen is a page rendered into @Body; the shell owns what all of them
-   share: the brand and telemetry bar, the project rail, the card drawer and the error banner.
+@* The application shell, as the v2 frame draws it: a 56px top bar over the darkest plane, a 256px
+   rail grouped by scope, and a telemetry card at the foot of the rail. Every screen is a page rendered
+   into @Body; the shell owns what all of them share.
 
-   The rail's items are ordinary links (FlareNavLink Href=...) rather than click handlers, so Flare
-   marks the current one active from the navigation string alone - the address bar, the back button and
-   a deep link are all the same source of truth. That is also why the open project and the open card are
-   route segments: the URL says where you are, and nothing has to be kept in step by hand. *@
+   Two things here are deliberately not the mock's. The runtime tag reports what the daemon actually
+   does (the release workflow publishes with PublishAot=false, so "NATIVE AOT" would be a claim the
+   binary cannot back), and the round-trip figure beside the endpoint is a measured stopwatch over the
+   daemon's own identification call rather than the mock's "4ms".
+
+   The rail's destinations are ordinary links (FlareNavLink Href=...) rather than click handlers, so
+   Flare marks the current one active from the navigation string alone - the address bar, the back
+   button and a deep link are all the same source of truth. The open project and the open card are
+   route segments for the same reason. *@
 <FlareLayout>
     <FlareLayoutAppBar DrawerToggle="true">
         <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small" StretchFirst="true">
-            @* Brand: an icon tile, the app name, the daemon version and the AOT tag. *@
-            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
-                <FlarePaper Elevation="0" Class="aiko-brand">
-                    <FlareIconView Value="@FlareIcons.GridOn" Color="FlareColor.Primary" />
-                </FlarePaper>
-                <FlareStack Gap="FlareSpacing.None">
-                    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
-                        <FlareText Element="h1" Typo="TypographyScale.HeadlineMedium">Aiko</FlareText>
-                        @if (State.System is not null)
-                        {
-                            @* Interpolated on purpose: "v@State.System.Version" is Razor's email-looking text,
-                               so it renders literally instead of evaluating the expression. *@
-                            <span class="aiko-tag aiko-tag--accent">@($"v{State.System.Version}")</span>
-                        }
-                        <span class="aiko-tag">@Loc.Get("NativeAot")</span>
-                    </FlareStack>
-                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant">
-                        @(State.SelectedProject?.Name ?? Loc.Get("BoardCaption"))
+            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small" Wrap="true">
+                @* Brand: the accent tile with the app's initial, the name, and what is running. *@
+                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                    <span class="aiko-brand" aria-hidden="true">A</span>
+                    <FlareText Element="span" Typo="TypographyScale.HeadlineSmall" Weight="FontWeight.SemiBold">
+                        Aiko
                     </FlareText>
+                    @if (State.System is { } system)
+                    {
+                        @* Interpolated on purpose: "v@State.System.Version" is Razor's email-looking text,
+                           so it renders literally instead of evaluating the expression. *@
+                        <span class="aiko-tag aiko-tag--accent">@($"v{system.Version}")</span>
+                        <span class="aiko-tag">@system.Runtime</span>
+                    }
                 </FlareStack>
-            </FlareStack>
 
-            @* Telemetry: daemon state and the local endpoint. *@
-            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Class="aiko-status">
-                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall" Class="aiko-pill">
+                @* Daemon health: the live dot, the endpoint, the measured round-trip and the stream. *@
+                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall" Class="aiko-pill aiko-pill--live">
                     <FlareBadge Dot="true"
                                 Standalone="true"
                                 Color="@(State.EventsConnected ? FlareColor.Tertiary : FlareColor.Warning)" />
                     <FlareText Element="span" Mono="true"
                                Color="@(State.EventsConnected ? FlareColor.Tertiary : FlareColor.Warning)">
-                        @(State.EventsConnected ? "SSE LIVE" : "ONLINE")
+                        @(State.EventsConnected ? Loc.Get("SseLive") : Loc.Get("Online"))
                     </FlareText>
+                    <span class="aiko-tag aiko-tag--quiet">@State.HostCaption</span>
+                    <span class="aiko-tag aiko-tag--quiet" title="@Loc.Get("DaemonRoundTrip")">@LatencyCaption</span>
                 </FlareStack>
-                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall" Class="aiko-pill">
-                    <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant2">@Loc.Get("Host")</FlareText>
-                    <FlareText Element="span" Mono="true">@State.HostCaption</FlareText>
-                </FlareStack>
+
+                @* The open project, and the switch between projects. The rail lists the pages of one
+                   project; which project that is belongs here, as the design has it. *@
+                <FlarePopover Open="@_projectMenuOpen"
+                              OpenChanged="SetProjectMenu"
+                              Placement="Placement.BottomStart"
+                              MinWidth="18rem"
+                              MaxHeight="20rem">
+                    <AnchorContent>
+                        <button type="button"
+                                class="aiko-project-switch"
+                                aria-label="@Loc.Get("OpenProjectLabel")"
+                                @onclick="ToggleProjectMenu">
+                            <FlareIconView Value="@MaterialDesign3Icons.Regular.FolderOpen" Color="FlareColor.Secondary" />
+                            <FlareText Element="span" Mono="true" Color="FlareColor.Secondary">@ProjectSwitchCaption</FlareText>
+                            <FlareIconView Value="@MaterialDesign3Icons.Regular.KeyboardArrowDown" Color="FlareColor.OnSurfaceVariant2" />
+                        </button>
+                    </AnchorContent>
+                    <ChildContent>
+                        @if (State.Projects.Count == 0)
+                        {
+                            <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant2">
+                                @Loc.Get("EmptyStateTitle")
+                            </FlareText>
+                        }
+                        else
+                        {
+                            @foreach (var project in State.Projects)
+                            {
+                                var item = project;
+                                <button type="button" class="aiko-menu-item" @onclick="() => OpenProject(item.Id)">
+                                    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                                        <FlareAvatar Text="@DisplayFormat.Initials(item.Name)"
+                                                     Size="AvatarSize.Xs"
+                                                     Shape="AvatarShape.Square" />
+                                        <FlareText Element="span" Typo="TypographyScale.BodySmall">@item.Name</FlareText>
+                                    </FlareStack>
+                                    <span class="aiko-tag aiko-tag--clip" title="@item.RootPath">@DisplayFormat.ProjectTag(item.RootPath)</span>
+                                </button>
+                            }
+                        }
+                    </ChildContent>
+                </FlarePopover>
             </FlareStack>
 
-            <FlareIconButton Variant="ButtonVariant.Text"
-                             Icon="@FlareIcons.Refresh"
-                             AriaLabel="@Loc.Get("Refresh")"
-                             Loading="@State.Loading"
-                             OnClick="State.ReloadAsync" />
+            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                @* Quick search: a real filter over the open board. Enter opens the first match, a click
+                   opens the one under the pointer, and Ctrl+K reaches the field from anywhere. *@
+                <FlarePopover Open="@_searchOpen"
+                              OpenChanged="SetSearchOpen"
+                              Placement="Placement.BottomStart"
+                              MatchAnchorWidth="true"
+                              MaxHeight="20rem">
+                    <AnchorContent>
+                        <FlareTextField Class="aiko-search"
+                                        Size="FieldSize.Xs"
+                                        Placeholder="@Loc.Get("QuickSearchPlaceholder")"
+                                        AriaLabel="@Loc.Get("QuickSearchAriaLabel")"
+                                        Value="@_query"
+                                        ValueChanged="OnQueryChanged"
+                                        OnKeyDown="OnSearchKeyDown"
+                                        Clearable="true">
+                            <LeadingIcon>
+                                <FlareIconView Value="@MaterialDesign3Icons.Regular.Search" Color="FlareColor.OnSurfaceVariant2" />
+                            </LeadingIcon>
+                            <AdornmentEnd>
+                                @* A keycap is a hint, not a control: Flare has no keyboard-hint element. *@
+                                <span class="aiko-kbd">Ctrl+K</span>
+                            </AdornmentEnd>
+                        </FlareTextField>
+                    </AnchorContent>
+                    <ChildContent>
+                        @if (QuickMatches.Count == 0)
+                        {
+                            <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant2">
+                                @Loc.Format("QuickSearchNoMatch", _query ?? string.Empty)
+                            </FlareText>
+                        }
+                        else
+                        {
+                            @foreach (var card in QuickMatches)
+                            {
+                                var item = card;
+                                <button type="button" class="aiko-menu-item" @onclick="() => OpenCard(item)">
+                                    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                                        <span class="aiko-tag aiko-tag--accent">@item.Reference.CardId</span>
+                                        <FlareText Element="span" Typo="TypographyScale.BodySmall">@item.Title</FlareText>
+                                    </FlareStack>
+                                    <span class="aiko-tag">@item.StageId</span>
+                                </button>
+                            }
+                        }
+                    </ChildContent>
+                </FlarePopover>
+
+                @if (State.SelectedProjectId is not null)
+                {
+                    <FlareButton Variant="ButtonVariant.Filled" Size="ButtonSize.Sm" OnClick="OpenNewCard">
+                        <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.Add" /></LeadingIcon>
+                        <ChildContent>@Loc.Get("NewTask")</ChildContent>
+                    </FlareButton>
+                }
+
+                @* The design's end slot holds an identity avatar; this is a local, single-user daemon with
+                   no accounts to name, so the slot carries the one action the bar still needs - a reload
+                   for when the live stream is down. *@
+                <FlareIconButton Variant="ButtonVariant.Text"
+                                 Icon="@MaterialDesign3Icons.Regular.Refresh"
+                                 AriaLabel="@Loc.Get("Refresh")"
+                                 Loading="@State.Loading"
+                                 OnClick="State.ReloadAsync" />
+            </FlareStack>
         </FlareStack>
     </FlareLayoutAppBar>
 
@@ -65,70 +168,77 @@
                        Width="16rem"
                        AriaLabel="@Loc.Get("RailAriaLabel")">
         <FlareNavMenu>
-            <HeaderContent>
-                @* One location at a time. The workspace items exist only while a project is open -
-                   before that the dashboard is the workspace. *@
-                <FlareStack Class="aiko-rail__head" Gap="FlareSpacing.XXSmall">
-                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
-                        @Loc.Get("WorkspaceFlow")
+            <ChildContent>
+                <FlareStack Gap="FlareSpacing.XXSmall">
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow aiko-rail__group">
+                        @Loc.Get("OverviewGroup")
                     </FlareText>
                     <FlareNavLink Href="/" Match="NavMatchMode.Exact">
-                        <IconContent><FlareIconView Value="@FlareIcons.Home" /></IconContent>
                         <ChildContent>@Loc.Get("Dashboard")</ChildContent>
+                        <BadgeContent>
+                            @if (State.EventsConnected)
+                            {
+                                <span class="aiko-tag aiko-tag--quiet"><span class="aiko-dot aiko-dot--pulse"></span></span>
+                            }
+                        </BadgeContent>
                     </FlareNavLink>
-                    @if (State.SelectedProjectId is { } projectId)
+
+                    @if (State.SelectedProject is { } open)
                     {
-                        <FlareNavLink Href="@BoardHref(projectId)">
-                            <IconContent><FlareIconView Value="@FlareIcons.GridOn" /></IconContent>
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow aiko-rail__group">
+                            @Loc.Format("CurrentProjectGroup", open.Name)
+                        </FlareText>
+                        <FlareNavLink Href="@BoardHref(open.Id)">
                             <ChildContent>@Loc.Get("KanbanBoard")</ChildContent>
                             <BadgeContent>
                                 <span class="aiko-tag aiko-tag--accent">@DisplayFormat.Number(State.Board?.Cards.Count ?? 0)</span>
                             </BadgeContent>
                         </FlareNavLink>
-                        <FlareNavLink Href="@SectionHref(projectId, "stories")">
-                            <IconContent><FlareIconView Value="@FlareIcons.FolderOpen" /></IconContent>
+                        <FlareNavLink Href="@SectionHref(open.Id, "stories")">
                             <ChildContent>@Loc.Get("StoriesNav")</ChildContent>
                             <BadgeContent>
                                 <span class="aiko-tag">@DisplayFormat.Number(BoardMetrics.CountKind(State.Board, CardKind.Story))</span>
                             </BadgeContent>
                         </FlareNavLink>
-                        <FlareNavLink Href="@SectionHref(projectId, "tasks")">
-                            <IconContent><FlareIconView Value="@FlareIcons.ViewColumn" /></IconContent>
-                            <ChildContent>@Loc.Get("TasksNav")</ChildContent>
-                            <BadgeContent>
-                                <span class="aiko-tag">@DisplayFormat.Number(BoardMetrics.CountKind(State.Board, CardKind.Task))</span>
-                            </BadgeContent>
-                        </FlareNavLink>
-                        <FlareNavLink Href="@SectionHref(projectId, "workflow")">
-                            <IconContent><FlareIconView Value="@FlareIcons.Tune" /></IconContent>
+                        @* Workflow has no place in the v2 rail: it becomes a section of Project Settings.
+                           It stays reachable here until that section exists, so nothing is lost meanwhile. *@
+                        <FlareNavLink Href="@SectionHref(open.Id, "workflow")">
                             <ChildContent>@Loc.Get("Workflow")</ChildContent>
                             <BadgeContent>
                                 <span class="aiko-tag">@DisplayFormat.Number(State.Board?.Workflows.Count ?? 0)</span>
                             </BadgeContent>
                         </FlareNavLink>
+                        <FlareNavLink Href="@SectionHref(open.Id, "settings")">
+                            <ChildContent>@Loc.Get("Settings")</ChildContent>
+                        </FlareNavLink>
                     }
+
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow aiko-rail__group">
+                        @Loc.Get("GlobalSystemGroup")
+                    </FlareText>
                     <FlareNavLink Href="@SettingsHref">
-                        <IconContent><FlareIconView Value="@FlareIcons.Settings" /></IconContent>
                         <ChildContent>@Loc.Get("Settings")</ChildContent>
                     </FlareNavLink>
                 </FlareStack>
-            </HeaderContent>
+            </ChildContent>
 
             <FooterContent>
+                @* What the daemon is doing right now: the share of cards an agent is working, whether the
+                   event stream is up, and the component library the cockpit renders with. *@
                 <FlareStack Class="aiko-rail__foot" Gap="FlareSpacing.XXSmall">
                     <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XXSmall">
                         <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
                             @Loc.Get("OrchestrationLoad")
                         </FlareText>
-                        <FlareText Element="span" Mono="true" Color="FlareColor.Tertiary">@LoadPercent%</FlareText>
+                        <FlareText Element="span" Mono="true" Weight="FontWeight.SemiBold">@($"{LoadPercent}%")</FlareText>
                     </FlareStack>
-                    <FlareProgressLinear Value="@LoadPercent" Size="TrackSize.Xs" Color="FlareColor.Tertiary" />
+                    <FlareProgressLinear Value="LoadPercent" Size="TrackSize.Xs" Color="FlareColor.Secondary" />
                     <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XXSmall">
                         <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
                             <FlareBadge Dot="true"
                                         Standalone="true"
                                         Color="@(State.EventsConnected ? FlareColor.Tertiary : FlareColor.Warning)" />
-                            <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant">
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
                                 @Loc.Get("ContextEngine")
                             </FlareText>
                         </FlareStack>
@@ -136,29 +246,13 @@
                             @(State.EventsConnected ? "SSE" : "online")
                         </FlareText>
                     </FlareStack>
+                    <span class="aiko-rail__divider"></span>
+                    <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XXSmall">
+                        <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant2">Flare.Blazor</FlareText>
+                        <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant2">@($"v{FlareVersion}")</FlareText>
+                    </FlareStack>
                 </FlareStack>
             </FooterContent>
-
-            <ChildContent>
-                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow aiko-rail__group">
-                    @Loc.Get("Projects")
-                </FlareText>
-                @foreach (var project in State.Projects)
-                {
-                    var item = project;
-                    <FlareNavLink Href="@BoardHref(item.Id)" Tooltip="@item.RootPath">
-                        <IconContent>
-                            <FlareAvatar Text="@DisplayFormat.Initials(item.Name)"
-                                         Size="AvatarSize.Xs"
-                                         Shape="AvatarShape.Square" />
-                        </IconContent>
-                        <ChildContent>@item.Name</ChildContent>
-                        <BadgeContent>
-                            <span class="aiko-tag aiko-tag--clip" title="@item.RootPath">@DisplayFormat.ProjectTag(item.RootPath)</span>
-                        </BadgeContent>
-                    </FlareNavLink>
-                }
-            </ChildContent>
         </FlareNavMenu>
     </FlareLayoutDrawer>
 
@@ -190,12 +284,35 @@
 
 @code {
     private bool _railOpen = true;
+    private bool _projectMenuOpen;
+    private bool _searchOpen;
+    private string? _query;
 
     protected override async Task OnInitializedAsync()
     {
         State.Changed += OnStateChanged;
         Navigation.LocationChanged += OnLocationChanged;
         await State.EnsureInitializedAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        try
+        {
+            await Js.InvokeVoidAsync("aikoHotkey", ".aiko-search input", "k");
+        }
+        catch (JSException)
+        {
+            // No JS runtime (prerender): the field is still reachable with the mouse.
+        }
+        catch (InvalidOperationException)
+        {
+        }
     }
 
     // The service raises the change from whatever context the SSE callback arrived on; the component
@@ -211,9 +328,28 @@
     private static string SectionHref(string projectId, string section) =>
         $"/p/{Uri.EscapeDataString(projectId)}/{section}";
 
+    private string ProjectHref => State.SelectedProjectId is { } projectId
+        ? $"/p/{Uri.EscapeDataString(projectId)}"
+        : "/";
+
     private string SettingsHref => State.SelectedProjectId is { } projectId
         ? SectionHref(projectId, "settings")
         : "/settings";
+
+    /// <summary>"Project: name (active)", or the invitation to open one.</summary>
+    private string ProjectSwitchCaption => State.SelectedProject is { } project
+        ? $"{Loc.Get("ProjectLabel")}: {project.Name} {Loc.Get("ActiveProjectTag")}"
+        : Loc.Get("OpenProjectLabel");
+
+    /// <summary>The measured round-trip, or a dash before the daemon has answered once.</summary>
+    private string LatencyCaption => State.DaemonLatencyMs is { } milliseconds
+        ? $"{milliseconds}ms"
+        : "—";
+
+    /// <summary>The component library's version, read from the assembly the cockpit loaded.</summary>
+    private static string FlareVersion => typeof(FlareText).Assembly.GetName().Version is { } version
+        ? $"{version.Major}.{version.Minor}.{version.Build}"
+        : "—";
 
     /// <summary>
     /// The rail's orchestration load: the share of cards an agent is working right now. A real
@@ -233,6 +369,80 @@
                 BoardMetrics.InProgressCount(State.Board) * 100d / total,
                 MidpointRounding.AwayFromZero);
         }
+    }
+
+    /// <summary>
+    /// The cards matching the quick search: the id or the title, at most eight of them, so the panel
+    /// stays a shortcut rather than a second board.
+    /// </summary>
+    private IReadOnlyList<Card> QuickMatches
+    {
+        get
+        {
+            var query = _query?.Trim();
+            if (string.IsNullOrEmpty(query) || State.Board is not { } board)
+            {
+                return [];
+            }
+
+            return board.Cards
+                .Where(card =>
+                    card.Reference.CardId.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                    card.Title.Contains(query, StringComparison.OrdinalIgnoreCase))
+                .Take(8)
+                .ToArray();
+        }
+    }
+
+    private void OnQueryChanged(string? value)
+    {
+        _query = value;
+        _searchOpen = !string.IsNullOrWhiteSpace(value);
+    }
+
+    private void SetSearchOpen(bool open)
+    {
+        _searchOpen = open;
+        if (!open)
+        {
+            _query = null;
+        }
+    }
+
+    /// <summary>Enter opens the first match; the arrow keys stay with the field.</summary>
+    private void OnSearchKeyDown(KeyboardEventArgs args)
+    {
+        if (!string.Equals(args.Key, "Enter", StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        var match = QuickMatches.FirstOrDefault();
+        if (match is not null)
+        {
+            OpenCard(match);
+        }
+    }
+
+    private void ToggleProjectMenu() => _projectMenuOpen = !_projectMenuOpen;
+
+    private void SetProjectMenu(bool open) => _projectMenuOpen = open;
+
+    private void OpenProject(string projectId)
+    {
+        _projectMenuOpen = false;
+        Navigation.NavigateTo(BoardHref(projectId));
+    }
+
+    private void OpenNewCard() =>
+        Navigation.NavigateTo($"{ProjectHref}/cards/new");
+
+    private void OpenCard(Card card)
+    {
+        var target = $"{ProjectHref}/cards/{Uri.EscapeDataString(card.Reference.CardId)}";
+        _query = null;
+        _searchOpen = false;
+        Navigation.NavigateTo(target);
     }
 
     public ValueTask DisposeAsync()

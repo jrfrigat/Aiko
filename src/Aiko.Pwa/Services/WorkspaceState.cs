@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net.Http.Json;
 using Aiko.Application.Agents;
 using Aiko.Application.Contracts;
@@ -47,6 +48,13 @@ internal sealed class WorkspaceState : IAsyncDisposable
     /// <summary>The daemon's own identification, when it answered.</summary>
     public SystemInfo? System { get; private set; }
 
+    /// <summary>
+    /// Round-trip time of the daemon's identification call, in milliseconds, or null before that call
+    /// completes. The design's top bar reports a live round-trip next to the endpoint; this is the
+    /// measured value behind it.
+    /// </summary>
+    public int? DaemonLatencyMs { get; private set; }
+
     /// <summary>The open project's board, or null when no project is open.</summary>
     public ProjectBoardSnapshot? Board { get; private set; }
 
@@ -93,8 +101,13 @@ internal sealed class WorkspaceState : IAsyncDisposable
         {
             Projects = await _http.GetFromJsonAsync<IReadOnlyList<RegisteredProject>>(
                 "api/v1/projects", PwaJson.Options) ?? [];
-            // The top bar's version tag comes from the daemon itself, not from the client build.
+            // The top bar's version tag comes from the daemon itself, not from the client build. The
+            // stopwatch around the call fills the design's round-trip telemetry with a measured number
+            // instead of a mock one.
+            var roundTrip = Stopwatch.StartNew();
             System = await _http.GetFromJsonAsync<SystemInfo>("api/v1/system", PwaJson.Options);
+            roundTrip.Stop();
+            DaemonLatencyMs = (int)roundTrip.ElapsedMilliseconds;
             // Which agents the daemon can see is overview information: a failure here must not turn
             // the board into an error screen.
             try

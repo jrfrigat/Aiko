@@ -236,4 +236,20 @@
   <data name="DisconnectAgent" xml:space="preserve"><value>Отключить</value></data>
   <data name="AgentConnectFailed" xml:space="preserve"><value>Не удалось изменить подключение {0}: {1}</value></data>
   <data name="CardNotFound" xml:space="preserve"><value>Такой карточки на доске проекта нет.</value></data>
+  <data name="OverviewGroup" xml:space="preserve"><value>Обзор</value></data>
+  <data name="CurrentProjectGroup" xml:space="preserve"><value>Текущий проект ({0})</value></data>
+  <data name="GlobalSystemGroup" xml:space="preserve"><value>Глобальная система</value></data>
+  <data name="ProjectOverviewStats" xml:space="preserve"><value>Обзор проекта / статистика</value></data>
+  <data name="DaemonMcpBridges" xml:space="preserve"><value>Демон и мосты MCP</value></data>
+  <data name="LiveTag" xml:space="preserve"><value>live</value></data>
+  <data name="QuickSearchPlaceholder" xml:space="preserve"><value>Быстрый поиск по карточкам...</value></data>
+  <data name="QuickSearchAriaLabel" xml:space="preserve"><value>Быстрый поиск по карточкам</value></data>
+  <data name="QuickSearchNoMatch" xml:space="preserve"><value>Ни одна карточка не подходит под "{0}".</value></data>
+  <data name="NewTask" xml:space="preserve"><value>Новая задача</value></data>
+  <data name="Online" xml:space="preserve"><value>ONLINE</value></data>
+  <data name="SseLive" xml:space="preserve"><value>SSE LIVE</value></data>
+  <data name="ActiveProjectTag" xml:space="preserve"><value>(активный)</value></data>
+  <data name="OpenProjectLabel" xml:space="preserve"><value>Открыть проект</value></data>
+  <data name="DaemonRoundTrip" xml:space="preserve"><value>отклик</value></data>
+  <data name="ProjectLabel" xml:space="preserve"><value>Проект</value></data>
 </root>

@@ -64,15 +64,20 @@
  * The .aiko-* layout hooks
  * ------------------------------------------------------------------------------------------- */
 
-/* Brand tile in the top bar: a rounded plane holding the mark, with the design's accent glow. */
+/* Brand tile in the top bar: the accent square holding the app's initial, as the design draws it.
+   It used to be an icon tile with an accent glow; the v2 frame drops the glow and letters the tile. */
 .aiko-brand {
     display: grid;
     place-items: center;
-    width: 2rem;
-    height: 2rem;
+    width: 1.5rem;
+    height: 1.5rem;
     flex: 0 0 auto;
-    border: var(--flare-border-width, 1px) solid var(--flare-color-outline-variant);
-    box-shadow: 0 0 12px color-mix(in srgb, var(--flare-color-primary) 25%, transparent);
+    border-radius: var(--flare-shape-small);
+    background: var(--flare-color-primary-container);
+    color: var(--flare-color-on-primary-container);
+    font-size: 0.875rem;
+    font-weight: 700;
+    line-height: 1;
 }
 
 /* A static micro-tag: the design's monospaced, 2px-radius chip. FlareChip cannot be used for it,
@@ -101,6 +106,32 @@
 .aiko-tag--quiet {
     background: transparent;
     color: var(--flare-color-on-surface-variant);
+}
+
+/* A live tag: the accent that marks a running stream, with the pulsing dot beside it. */
+.aiko-tag--live {
+    background: color-mix(in srgb, var(--flare-color-tertiary) 20%, transparent);
+    color: var(--flare-color-tertiary);
+}
+
+/* The status dot that marks a live row. FlareBadge draws one, but a nav link's badge slot is the
+   only place it fits, and the frame needs the dot inside a tag as well. */
+.aiko-dot {
+    display: inline-block;
+    width: 0.25rem;
+    height: 0.25rem;
+    border-radius: var(--flare-shape-full);
+    background: currentColor;
+}
+
+.aiko-dot--pulse {
+    animation: aiko-pulse 1.6s var(--flare-motion-easing-standard) infinite;
+}
+
+@keyframes aiko-pulse {
+    50% {
+        opacity: 0.35;
+    }
 }
 
 /* A tag in a narrow slot (the rail): it clips instead of pushing the label out of the row. */
@@ -141,16 +172,88 @@
     background: var(--flare-color-surface-container-low);
 }
 
+/* The live status pill: no rule, the next plane up, and the accent that says "connected". */
+.aiko-pill--live {
+    border: none;
+    background: var(--flare-color-surface-container);
+}
+
+/* The project switch in the top bar: a low-contrast recessed button, not a nav link. The health of
+   the shell (which project is open) is a control, and FlareButton's variants are all louder. */
+.aiko-project-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--flare-spacing-2, 0.5rem);
+    padding: 0.25rem 0.375rem;
+    border: none;
+    border-radius: var(--flare-shape-extra-small);
+    background: var(--flare-color-surface-container-low);
+    color: var(--flare-color-secondary);
+    cursor: pointer;
+    font: inherit;
+}
+
+.aiko-project-switch:hover {
+    background: var(--flare-color-surface-container);
+}
+
+/* The keycap that names a shortcut. Flare has no keyboard-hint element. */
+.aiko-kbd {
+    padding: 0.0625rem 0.25rem;
+    border-radius: var(--flare-shape-extra-small);
+    background: var(--flare-color-surface-container);
+    color: var(--flare-color-outline-variant);
+    font-family: var(--aiko-font-mono, monospace);
+    font-size: 0.6875rem;
+    line-height: 1rem;
+}
+
+/* The quick search occupies a fixed slot in the top bar, as the design's 256px field does. */
+.aiko-search {
+    width: 16rem;
+    flex: 0 0 auto;
+}
+
+/* A row of a popover list - the project switch and the quick-search results. FlareMenu renders
+   role="menu" with its own keyboard model, and these two panels are plain lists of buttons. */
+.aiko-menu-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--flare-spacing-2, 0.5rem);
+    width: 100%;
+    padding: 0.25rem 0.375rem;
+    border: none;
+    border-radius: var(--flare-shape-extra-small);
+    background: none;
+    color: var(--flare-color-on-surface);
+    cursor: pointer;
+    font: inherit;
+    text-align: start;
+}
+
+.aiko-menu-item:hover {
+    background: var(--flare-color-surface-container);
+}
+
 /* The rail's own insets (the nav menu takes no padding of its own). */
-.aiko-rail__head,
-.aiko-rail__foot {
+.aiko-rail__head {
     padding: 0.75rem;
 }
 
+/* The telemetry block at the foot of the rail is a floating card in the v2 frame, not a strip: it
+   takes its own margin, radius and a recessed plane. */
 .aiko-rail__foot {
-    border-top: var(--flare-border-width, 1px) solid
-            color-mix(in srgb, var(--flare-color-outline-variant) 30%, transparent);
-    background: color-mix(in srgb, var(--flare-color-surface-container-low) 40%, transparent);
+    margin: 0.375rem;
+    padding: 0.375rem;
+    border-radius: var(--flare-shape-large);
+    background: color-mix(in srgb, var(--flare-color-surface-container-low) 50%, transparent);
+}
+
+/* The hairline between the telemetry rows of that block. */
+.aiko-rail__divider {
+    height: 1px;
+    background: var(--flare-color-surface-container-high);
 }
 
 .aiko-rail__group {

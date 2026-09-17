@@ -362,15 +362,15 @@ public static class StitchFlowTheme
         },
 
         // ------------------------------------------------------------------ Nav ---------------
-        // The rail: 32px rows, 8px corners, an accent-contained active item with a glow instead of a
-        // left bar (ActiveLeftBar is "none" - the design never draws one).
+        // The rail: 32px rows, 4px corners, and an active item that is a filled row carrying the
+        // accent's left bar - the v2 frame states "you are here" with the bar, not with a glow.
         Nav = d.Nav with
         {
             ItemHeight = "2rem",
-            ItemRadius = "var(--flare-shape-large)",
-            IndicatorRadius = "var(--flare-shape-large)",
-            ActiveIndicator = "var(--flare-color-primary-container)",
-            ActiveLeftBar = "none",
+            ItemRadius = "var(--flare-shape-small)",
+            IndicatorRadius = "var(--flare-shape-small)",
+            ActiveIndicator = "var(--flare-color-surface-container-high)",
+            ActiveLeftBar = "2px solid var(--flare-color-primary)",
             ActiveWeight = "600",
             BadgeWeight = "500",
             IconSize = "1.125rem",
@@ -379,19 +379,21 @@ public static class StitchFlowTheme
         },
 
         // ----------------------------------------------------------------- Layout ------------
-        // A 64px app bar over the darkest plane, a 256px rail, and 12px content gutters.
+        // A 56px app bar over the darkest plane, a 256px rail, and 12px content gutters. The bar and
+        // the rail are separated from the canvas by a shadow rather than by a rule, and the rail's
+        // shadow has no token (see layout-drawer-shadow.md), so it lives in the theme stylesheet.
         Layout = d.Layout with
         {
-            AppBarHeight = "4rem",
+            AppBarHeight = "3.5rem",
             AppBarHeightDense = "3rem",
             AppBarBg = "var(--flare-color-background)",
-            AppBarBorder = "1px solid color-mix(in srgb, var(--flare-color-outline-variant) 30%, transparent)",
-            AppBarShadow = "0 1px 12px rgba(0, 0, 0, 0.4)",
+            AppBarBorder = "none",
+            AppBarShadow = "0 1px 8px rgba(0, 0, 0, 0.4)",
             ContentPadding = "0.75rem",
             ContentPaddingMobile = "0.5rem",
             DrawerWidth = "16rem",
             DrawerRailWidth = "3.5rem",
-            DrawerBorder = "1px solid color-mix(in srgb, var(--flare-color-outline-variant) 30%, transparent)",
+            DrawerBorder = "none",
         },
 
         // ----------------------------------------------------------------- Drawer ------------
@@ -583,11 +585,11 @@ public static class StitchFlowTheme
         AppBar = d.AppBar with
         {
             Gap = "0.75rem",
-            Height = "4rem",
-            HeightDense = "3rem",
-            PaddingX = "1rem",
+            Height = "3.5rem",
+            HeightDense = "2.75rem",
+            PaddingX = "0.75rem",
             TitlePaddingX = "0.5rem",
-            Border = "1px solid color-mix(in srgb, var(--flare-color-outline-variant) 30%, transparent)",
+            Border = "none",
         },
         Scrim = d.Scrim with { Opacity = "0.7" },
     };

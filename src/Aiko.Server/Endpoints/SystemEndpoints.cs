@@ -1,4 +1,6 @@
 using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Aiko.Server.Contracts;
 
 namespace Aiko.Server.Endpoints;
@@ -29,6 +31,20 @@ internal static class SystemEndpoints
     }
 
     /// <summary>
+    /// How this daemon actually executes, as a caption for the cockpit's runtime tag.
+    /// </summary>
+    /// <remarks>
+    /// The design's mock reads "NATIVE AOT", but the release workflow publishes the daemon with
+    /// <c>-p:PublishAot=false</c> (the AOT toolchain would pull a C++ workload into the runner), so that
+    /// tag would announce something the binary does not do. <see cref="RuntimeFeature.IsDynamicCodeSupported"/>
+    /// is the honest answer: it is false only in a Native AOT build, so a source build reports JIT and an
+    /// AOT publish would report itself without anyone having to remember to change it.
+    /// </remarks>
+    internal static string RuntimeCaption =>
+        $"{RuntimeInformation.FrameworkDescription} · " +
+        (RuntimeFeature.IsDynamicCodeSupported ? "JIT" : "Native AOT");
+
+    /// <summary>
     /// Maps /health and /api/v1/system.
     /// </summary>
     /// <param name="app">The endpoint route builder.</param>
@@ -39,6 +55,7 @@ internal static class SystemEndpoints
         app.MapGet("/api/v1/system", () => TypedResults.Ok(new SystemResponse(
             "Aiko",
             DaemonVersion,
+            RuntimeCaption,
             Environment.ProcessId,
             baseUri.ToString().TrimEnd('/'),
             DateTimeOffset.UtcNow)));

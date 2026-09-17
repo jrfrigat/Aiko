@@ -14,7 +14,8 @@
  *   3. ChipTokens has no label typography, so a chip cannot be the monospaced micro-tag the design
  *      needs.                                     -> .flare-chip
  *   4. The app bar's translucency and blur are a paint effect with no token.   -> .flare-layout-appbar
- *   5. The active rail item carries an optical glow; NavTokens stops at a background.  -> .flare-nav-link--active
+ *   5. The rail is separated from the canvas by a shadow rather than by a rule, and DrawerTokens
+ *      carries no shadow.                        -> .flare-layout-drawer
  *   6. Live telemetry dots glow in their own colour; BadgeTokens has no shadow.       -> .flare-badge__indicator
  */
 
@@ -53,9 +54,9 @@
     -webkit-backdrop-filter: blur(20px);
 }
 
-/* (5) The active rail item reads as lit, not merely filled. */
-.flare-theme-stitchflow .flare-nav-link--active {
-    box-shadow: 0 0 10px color-mix(in srgb, var(--flare-color-primary-container) 25%, transparent);
+/* (5) The rail stands off the canvas by a shadow. */
+.flare-theme-stitchflow .flare-layout-drawer {
+    box-shadow: 1px 0 10px rgba(0, 0, 0, 0.3);
 }
 
 /* (6) Live dots glow: the telemetry indicator of the design. */
@@ -81,9 +82,9 @@
 
 /*
  * (8) An active item's text colour is hardcoded to on-secondary-container in core, which is the pair
- * of the second accent - not of whatever a theme put in --flare-nav-active-indicator. This theme
- * points the indicator at primary-container, so it names on-primary-container.  -> nav-active-color.md
+ * of the second accent - not of whatever a theme put in --flare-nav-active-indicator. The v2 frame
+ * paints the active label in the accent itself over a surface-container-high row.  -> nav-active-color.md
  */
 .flare-theme-stitchflow .flare-nav-link--active {
-    color: var(--flare-color-on-primary-container);
+    color: var(--flare-color-primary);
 }

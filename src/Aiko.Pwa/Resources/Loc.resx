@@ -236,4 +236,20 @@
   <data name="DisconnectAgent" xml:space="preserve"><value>Disconnect</value></data>
   <data name="AgentConnectFailed" xml:space="preserve"><value>Could not change the {0} connection: {1}</value></data>
   <data name="CardNotFound" xml:space="preserve"><value>No such card on this project's board.</value></data>
+  <data name="OverviewGroup" xml:space="preserve"><value>Overview</value></data>
+  <data name="CurrentProjectGroup" xml:space="preserve"><value>Current project ({0})</value></data>
+  <data name="GlobalSystemGroup" xml:space="preserve"><value>Global system</value></data>
+  <data name="ProjectOverviewStats" xml:space="preserve"><value>Project overview / stats</value></data>
+  <data name="DaemonMcpBridges" xml:space="preserve"><value>Daemon &amp; MCP bridges</value></data>
+  <data name="LiveTag" xml:space="preserve"><value>live</value></data>
+  <data name="QuickSearchPlaceholder" xml:space="preserve"><value>Quick search cards...</value></data>
+  <data name="QuickSearchAriaLabel" xml:space="preserve"><value>Quick search cards</value></data>
+  <data name="QuickSearchNoMatch" xml:space="preserve"><value>No card matches "{0}".</value></data>
+  <data name="NewTask" xml:space="preserve"><value>New task</value></data>
+  <data name="Online" xml:space="preserve"><value>ONLINE</value></data>
+  <data name="SseLive" xml:space="preserve"><value>SSE LIVE</value></data>
+  <data name="ActiveProjectTag" xml:space="preserve"><value>(active)</value></data>
+  <data name="OpenProjectLabel" xml:space="preserve"><value>Open project</value></data>
+  <data name="DaemonRoundTrip" xml:space="preserve"><value>round-trip</value></data>
+  <data name="ProjectLabel" xml:space="preserve"><value>Project</value></data>
 </root>

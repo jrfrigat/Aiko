@@ -61,6 +61,7 @@ internal sealed record ErrorResponse(string Message);
 internal sealed record SystemInfo(
     string Name,
     string Version,
+    string Runtime,
     int ProcessId,
     string BaseUrl,
     DateTimeOffset Time);
