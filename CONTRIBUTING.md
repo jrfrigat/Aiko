@@ -50,9 +50,11 @@ delete, because everything is rebuildable from the `.aiko` files (`aiko reindex 
 
 ## Installer scripts
 
-`scripts/install.ps1` is fetched over the network and piped straight into a shell, so CI runs
-PSScriptAnalyzer on it (and on the contributor `install.ps1`) at Error and Warning severity. Keep
-both scripts free of analyzer findings and keep the `owner/repo` constant, the release asset name
+`scripts/install.ps1` is fetched over the network and piped straight into a shell, so CI parses it first
+(and the contributor `install.ps1` with it) and then runs PSScriptAnalyzer on both at Error, Warning and
+ParseError severity. The parse step is not redundant: a syntax error is reported as `ParseError`, which is
+a severity of its own, so a filter of `Error, Warning` alone lets a script that cannot run once pass the
+gate. Keep both scripts free of analyzer findings and keep the `owner/repo` constant, the release asset name
 (`aiko-<version>-win-x64.zip`) and the layout contract in sync with
 `.github/workflows/release.yml`:
 

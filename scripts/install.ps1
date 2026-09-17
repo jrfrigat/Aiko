@@ -141,6 +141,21 @@ $assetName = "aiko-$releaseVersion-win-x64.zip"
 $escapedTag = [Uri]::EscapeDataString($tag)
 $downloadUrl = "https://github.com/$repo/releases/download/$escapedTag/$assetName"
 
+# The base project template ships with the release, and the installer is what puts it where the daemon
+# looks for it. An existing file is left alone: it is the installation's own copy by then, and an upgrade
+# must not overwrite defaults a person edited.
+function Install-BaseTemplate([string] $sourceDir, [string] $dataDir) {
+    $source = Join-Path $sourceDir 'templates\default\template.json'
+    $target = Join-Path $dataDir 'templates\default\template.json'
+    if (-not (Test-Path $source) -or (Test-Path $target)) {
+        return
+    }
+
+    New-Item -ItemType Directory -Path (Split-Path -Parent $target) -Force | Out-Null
+    Copy-Item -Path $source -Destination $target -Force
+    Write-Step 'Installed the base project template.'
+}
+
 $temp = Join-Path ([IO.Path]::GetTempPath()) ("aiko-" + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $temp | Out-Null
 try {
@@ -170,20 +185,6 @@ try {
     Copy-Item -Path (Join-Path $staging '*') -Destination $InstallDir -Recurse -Force
 }
 
-# The base project template ships with the release, and the installer is what puts it where the daemon
-# looks for it. An existing file is left alone: it is the installation's own copy by then, and an upgrade
-# must not overwrite defaults a person edited.
-function Install-BaseTemplate([string] $sourceDir, [string] $dataDir) {
-    $source = Join-Path $sourceDir 'templates\default\template.json'
-    $target = Join-Path $dataDir 'templates\default\template.json'
-    if (-not (Test-Path $source) -or (Test-Path $target)) {
-        return
-    }
-
-    New-Item -ItemType Directory -Path (Split-Path -Parent $target) -Force | Out-Null
-    Copy-Item -Path $source -Destination $target -Force
-    Write-Step 'Installed the base project template.'
-}
 finally {
     Remove-Item -Path $temp -Recurse -Force -ErrorAction SilentlyContinue
 }
