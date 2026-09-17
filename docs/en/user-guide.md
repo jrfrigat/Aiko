@@ -16,13 +16,12 @@ id existed still open.
 
 ## The board
 
-The board shows the project's cards as one section per card type the project declares:
-
-- **Combined** - every type together, one section each.
-- **Stories**, **Tasks** and so on - one type's projection.
-
-The projection switch is built from the project's workflows, so a type you added yourself appears here
-immediately and without a code change. Drag a card between columns to move it to another stage: a card is
+The board shows the project's cards as one section per card type the project declares. A **card types**
+control in its toolbar narrows the page: **Combined** means no filter at all, and one or more types may be
+picked at once, so two pipelines can be read side by side. The choice is a filter on this page and not a
+route of its own, so the address stays `/p/<project>/board` while it changes. The list is built from the
+project's workflows, so a type you added yourself appears here immediately and without a code change. Drag a
+card between columns to move it to another stage: a card is
 picked up by its handle icon, while a plain click opens the card's page. The move is saved with optimistic
 concurrency; if the card changed elsewhere, the UI asks you to reload.
 

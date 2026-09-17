@@ -1,6 +1,7 @@
 @page "/p/{ProjectId}/board"
 
-@* The full board: every card type the project defines, one section each. A card opens as its own page. *@
+@* The board: every card type the project defines, one section each, with a type filter that narrows the
+   page in place. A card opens as its own page. *@
 <PageTitle>@Loc.Get("KanbanBoard")</PageTitle>
 
 <BoardView ProjectId="@ProjectId" />

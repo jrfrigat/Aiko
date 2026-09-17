@@ -245,12 +245,9 @@
                                 <span class="aiko-tag">@DisplayFormat.Number(BoardMetrics.BacklogCount(State.Board))</span>
                             </BadgeContent>
                         </FlareNavLink>
-                        <FlareNavLink Href="@SectionHref(open.Handle, "stories")">
-                            <ChildContent>@Loc.Get("StoriesBacklog")</ChildContent>
-                            <BadgeContent>
-                                <span class="aiko-tag">@DisplayFormat.Number(BoardMetrics.CountKind(State.Board, CardKind.Story))</span>
-                            </BadgeContent>
-                        </FlareNavLink>
+                        @* A card type is not a destination: the board filters by type in place, and the
+                           address stays the board's own, so this group lists screens rather than slices of
+                           one screen. *@
                         @* Workflow moved into Project Settings: the design's rail has no separate stage
                            editor, and one place to edit a pipeline is better than two. The /workflow route
                            stays for deep links. *@

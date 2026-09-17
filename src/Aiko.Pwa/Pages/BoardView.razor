@@ -1,6 +1,6 @@
-@* One board screen, shared by every card-type route: the projection switch, the metric strip, the create
-   form and one section per card type in scope. The routes differ only by KindFilter, and the sections are
-   derived from the project's workflows, so a type the user adds appears here without a code change. *@
+@* The board: the type filter, the metric strip, the create form and one section per card type in scope.
+   The sections are derived from the project's workflows, so a type the user adds appears here without a
+   code change, and the filter narrows the same page instead of being a route of its own. *@
 @inject HttpClient Http
 @inject WorkspaceState State
 @inject NavigationManager Navigation
@@ -12,22 +12,38 @@
 else
 {
     <FlareStack Gap="FlareSpacing.Medium">
-        @* Which cards the board shows, as the design's filter row does it: one control, a projection per
-           card type, and the route follows the choice so the rail, the back button and the address bar
-           agree. *@
+        @* Which card types the board draws. It is a filter rather than a route, so a person can show two
+           types at once and the address stays the board's own; "Combined" is the absence of a filter. *@
         <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
-            <FlareToggleGroup TValue="string"
-                              Size="ButtonSize.Sm"
-                              Value="@ProjectionKey"
-                              ValueChanged="ChangeProjectionAsync">
-                <FlareToggleButton Variant="ButtonVariant.Filled" Value="@string.Empty">@Loc.Get("CombinedNav")</FlareToggleButton>
-                @foreach (var workflow in board.Workflows.OrderBy(item => item.Title, StringComparer.Ordinal))
-                {
-                    var option = workflow;
-                    <FlareToggleButton Variant="ButtonVariant.Filled" Value="@option.Id">@option.Title</FlareToggleButton>
-                }
-            </FlareToggleGroup>
-            <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant2">@ProjectionCaption</FlareText>
+            <FlareMenu AriaLabel="@Loc.Get("BoardTypesFilter")" Anchor="MenuAnchor.BottomLeft">
+                <Activator>
+                    <FlareToggleButton Variant="ButtonVariant.Tonal"
+                                       Size="ButtonSize.Sm"
+                                       Toggled="@IsFiltered"
+                                       ToggledChanged="OnFilterToggledAsync"
+                                       AriaLabel="@Loc.Get("BoardTypesFilter")">
+                        <OffIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.Tune" /></OffIcon>
+                        <ChildContent>@FilterCaption</ChildContent>
+                    </FlareToggleButton>
+                </Activator>
+                <ChildContent>
+                    @* "Combined" is not a type but the absence of a filter: every type is on. *@
+                    <FlareMenuItem AutoClose="false"
+                                   Icon="@(IsFiltered ? null : (FlareIcon)MaterialDesign3Icons.Regular.Check)"
+                                   OnClick="ClearKindsAsync">
+                        @Loc.Get("CombinedNav")
+                    </FlareMenuItem>
+                    @foreach (var workflow in TypeChoices)
+                    {
+                        var option = workflow;
+                        <FlareMenuItem AutoClose="false"
+                                       Icon="@(IsPicked(option) ? (FlareIcon)MaterialDesign3Icons.Regular.Check : null)"
+                                       OnClick="() => ToggleKindAsync(option)">
+                            @option.Title
+                        </FlareMenuItem>
+                    }
+                </ChildContent>
+            </FlareMenu>
         </FlareStack>
 
         @* The design's metric strip: a mono summary line, not a row of tiles. *@
@@ -80,29 +96,57 @@ else
 }
 
 @code {
-    /// <summary>
-    /// The card type this board draws, or null for every type the project defines.
-    /// </summary>
-    [Parameter] public string? KindFilter { get; set; }
-
-    /// <summary>
-    /// The card types in scope, taken from the project's own workflows: a section exists because a workflow
-    /// exists, so a type the user adds is drawn here without the board knowing its name.
-    /// </summary>
-    private IReadOnlyList<WorkflowDefinition> Sections =>
-        State.Board is not { } board
-            ? []
-            : board.Workflows
-                .Where(workflow => KindFilter is null ||
-                    StringComparer.OrdinalIgnoreCase.Equals(workflow.CardType, KindFilter))
-                .OrderBy(workflow => workflow.Title, StringComparer.Ordinal)
-                .ToArray();
-
-    /// <summary>The workflow id the projection switch highlights: empty is "every type".</summary>
-    private string ProjectionKey => KindFilter is null ? string.Empty : CardKind.ToWorkflowId(KindFilter);
-
     /// <summary>The project id from the route.</summary>
     [Parameter, EditorRequired] public string ProjectId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The card types the board is filtered to. Empty means no filter at all - every type is drawn, which
+    /// is what the menu's "Combined" entry restores.
+    /// </summary>
+    private readonly HashSet<string> _pickedKinds = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Whether the board is showing a subset of the project's card types.</summary>
+    private bool IsFiltered => _pickedKinds.Count > 0;
+
+    /// <summary>
+    /// The card types the board may show, from the project's own workflows: a type is a workflow, so a
+    /// type the user adds appears in the menu without the board knowing its name.
+    /// </summary>
+    private IReadOnlyList<WorkflowDefinition> TypeChoices =>
+        State.Board?.Workflows.OrderBy(workflow => workflow.Title, StringComparer.Ordinal).ToArray() ?? [];
+
+    private bool IsPicked(WorkflowDefinition type) => _pickedKinds.Contains(type.CardType);
+
+    /// <summary>What the control says the board is showing: a type's name, or how many are on.</summary>
+    private string FilterCaption => _pickedKinds.Count switch
+    {
+        0 => Loc.Get("CombinedNav"),
+        1 => TypeChoices.FirstOrDefault(IsPicked)?.Title ?? Loc.Get("CombinedNav"),
+        var count => Loc.Format("BoardTypesPicked", count)
+    };
+
+    private Task ToggleKindAsync(WorkflowDefinition type)
+    {
+        if (!_pickedKinds.Remove(type.CardType))
+        {
+            _pickedKinds.Add(type.CardType);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private Task ClearKindsAsync()
+    {
+        _pickedKinds.Clear();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Bound so the toggle is what Flare calls "controlled": its pressed state reports whether a filter is
+    /// on, and it follows the picked types rather than the click. The click itself is what opens the menu,
+    /// so there is nothing to do here - the state comes back through the menu's items.
+    /// </summary>
+    private Task OnFilterToggledAsync(bool toggled) => Task.CompletedTask;
 
     /// <summary>The route opens the project; the board itself has no other state of its own.</summary>
     protected override async Task OnParametersSetAsync() => await State.EnsureProjectAsync(ProjectId);
@@ -117,32 +161,16 @@ else
     private string ProjectHref => $"/p/{Uri.EscapeDataString(ProjectId)}";
 
     /// <summary>
-    /// The projection switch is a navigation, not local state: the choice becomes the route, so the rail,
-    /// the address bar and the back button all agree on which projection is showing. The two built-in types
-    /// keep their historical routes; any other type is addressed by its workflow id.
+    /// The card types in scope, taken from the project's own workflows: a section exists because a workflow
+    /// exists, so a type the user adds is drawn here without the board knowing its name.
     /// </summary>
-    private void ChangeProjectionAsync(string workflowId)
-    {
-        if (string.IsNullOrEmpty(workflowId))
-        {
-            Navigation.NavigateTo($"{ProjectHref}/board");
-            return;
-        }
+    private IReadOnlyList<WorkflowDefinition> Sections => TypeChoices
+        .Where(type => !IsFiltered || IsPicked(type))
+        .ToArray();
 
-        var section = workflowId switch
-        {
-            "story" => "stories",
-            "task" => "tasks",
-            _ => $"boards/{Uri.EscapeDataString(workflowId)}"
-        };
-        Navigation.NavigateTo($"{ProjectHref}/{section}");
-    }
-
-    private IReadOnlyList<Card> VisibleCards => KindFilter is null
-        ? State.Board?.Cards ?? []
-        : State.Board?.Cards
-            .Where(card => StringComparer.OrdinalIgnoreCase.Equals(card.Kind, KindFilter))
-            .ToArray() ?? [];
+    private IReadOnlyList<Card> VisibleCards => State.Board?.Cards
+        .Where(card => !IsFiltered || _pickedKinds.Contains(card.Kind))
+        .ToArray() ?? [];
 
     /// <summary>The four board metrics, as the design's mono summary line.</summary>
     private IReadOnlyList<(string Label, string Value, bool Warn)> SummaryTiles
@@ -158,35 +186,6 @@ else
                 (Loc.Get("Relations"), DisplayFormat.Number(board?.Relations.Count ?? 0), false),
                 (Loc.Get("OutOfScope"), DisplayFormat.Number(outOfScope), outOfScope > 0)
             ];
-        }
-    }
-
-    /// <summary>
-    /// The caption beside the switch: the built-in projections keep their own caption, and any other type
-    /// says in the project's words what it is for - which is the description the user wrote when they added it.
-    /// </summary>
-    private string ProjectionCaption
-    {
-        get
-        {
-            if (KindFilter is null)
-            {
-                return Loc.Get("CombinedCaption");
-            }
-
-            if (StringComparer.OrdinalIgnoreCase.Equals(KindFilter, CardKind.Story))
-            {
-                return Loc.Get("StoriesCaption");
-            }
-
-            if (StringComparer.OrdinalIgnoreCase.Equals(KindFilter, CardKind.Task))
-            {
-                return Loc.Get("TasksCaption");
-            }
-
-            var workflow = State.Board?.Workflows.FirstOrDefault(item =>
-                StringComparer.OrdinalIgnoreCase.Equals(item.CardType, KindFilter));
-            return workflow is { Description.Length: > 0 } ? workflow.Description : workflow?.Title ?? KindFilter;
         }
     }
 

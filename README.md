@@ -28,8 +28,9 @@ rate limit) hands off to another agent without losing history.
 
 - **Local daemon, one per user** - a single ASP.NET Core process serves every registered project:
   REST API, project-scoped MCP over Streamable HTTP, health endpoints and the PWA
-- **Kanban PWA** on Blazor WebAssembly ([Flare.Blazor](https://github.com/jrfrigat/Flare)) with
-  board projections (one per card type, plus Combined), a backlog screen, the card editor, artifacts
+- **Kanban PWA** on Blazor WebAssembly ([Flare.Blazor](https://github.com/jrfrigat/Flare)) with a board
+  that draws every card type as its own section and filters by type in place, a backlog screen, the card
+  editor, artifacts
   and executions; the interface language follows the browser, English and Russian ship, and any other
   language falls back to English
 - **Card types you define yourself** - a card type *is* a workflow: add an `Epic` with its own

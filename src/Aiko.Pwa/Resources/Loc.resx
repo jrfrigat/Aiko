@@ -67,6 +67,8 @@
   <data name="StoriesNav" xml:space="preserve"><value>Stories</value></data>
   <data name="TasksNav" xml:space="preserve"><value>Tasks</value></data>
   <data name="CombinedNav" xml:space="preserve"><value>Combined</value></data>
+  <data name="BoardTypesFilter" xml:space="preserve"><value>Card types</value></data>
+  <data name="BoardTypesPicked" xml:space="preserve"><value>{0} types</value></data>
   <data name="StoryFlow" xml:space="preserve"><value>Story flow</value></data>
   <data name="GitPolicyTrackKnowledge" xml:space="preserve"><value>track-project-knowledge</value></data>
   <data name="GitPolicyCustom" xml:space="preserve"><value>custom</value></data>
@@ -83,9 +85,6 @@
   <data name="InProgress" xml:space="preserve"><value>In progress</value></data>
   <data name="Relations" xml:space="preserve"><value>Relations</value></data>
   <data name="OutOfScope" xml:space="preserve"><value>Out of scope</value></data>
-  <data name="StoriesCaption" xml:space="preserve"><value>Story value and readiness</value></data>
-  <data name="TasksCaption" xml:space="preserve"><value>Task execution and actual scope</value></data>
-  <data name="CombinedCaption" xml:space="preserve"><value>Stories and tasks without duplicating cards</value></data>
   <data name="Implementation" xml:space="preserve"><value>implementation</value></data>
   <data name="ParallelSharedTitle" xml:space="preserve"><value>Parallel shared mode</value></data>
   <data name="ParallelSharedText" xml:space="preserve"><value>Agents share one working copy and one Git index. Changes from different cards, and your own local changes, can land in the same commit, conflict, or be attributed to the wrong run.</value></data>
@@ -367,7 +366,6 @@
   <data name="BridgeFiles" xml:space="preserve"><value>{0}/{1} files</value></data>
   <data name="ProjectStats" xml:space="preserve"><value>Project stats</value></data>
   <data name="ProjectOverviewNav" xml:space="preserve"><value>Project overview / stats</value></data>
-  <data name="StoriesBacklog" xml:space="preserve"><value>Stories &amp; backlog</value></data>
   <data name="ProjectSettingsNav" xml:space="preserve"><value>Project settings</value></data>
     <data name="ProjectOverviewHint" xml:space="preserve"><value>What this project is, what it is made of, and how its cards are spread across its pipelines</value></data>
   <data name="ProjectDataTitle" xml:space="preserve"><value>Project data</value></data>

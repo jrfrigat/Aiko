@@ -77,9 +77,6 @@
   <data name="InProgress" xml:space="preserve"><value>В работе</value></data>
   <data name="Relations" xml:space="preserve"><value>Связи</value></data>
   <data name="OutOfScope" xml:space="preserve"><value>Вне scope</value></data>
-  <data name="StoriesCaption" xml:space="preserve"><value>Ценность и готовность историй</value></data>
-  <data name="TasksCaption" xml:space="preserve"><value>Исполнение и фактический scope задач</value></data>
-  <data name="CombinedCaption" xml:space="preserve"><value>Story и Task без копирования карточек</value></data>
   <data name="Implementation" xml:space="preserve"><value>реализация</value></data>
   <data name="ParallelSharedTitle" xml:space="preserve"><value>Параллельный shared-режим</value></data>
   <data name="ParallelSharedText" xml:space="preserve"><value>Агенты используют общую рабочую копию и Git index. Изменения разных карточек и ваши локальные изменения могут попасть в один commit, конфликтовать или быть ошибочно отнесены к другому запуску.</value></data>
@@ -182,6 +179,8 @@
   <data name="StoriesNav" xml:space="preserve"><value>Истории</value></data>
   <data name="TasksNav" xml:space="preserve"><value>Задачи</value></data>
   <data name="CombinedNav" xml:space="preserve"><value>Общая</value></data>
+  <data name="BoardTypesFilter" xml:space="preserve"><value>Типы карточек</value></data>
+  <data name="BoardTypesPicked" xml:space="preserve"><value>Типов: {0}</value></data>
   <data name="StoryFlow" xml:space="preserve"><value>Поток историй</value></data>
   <data name="TaskFlow" xml:space="preserve"><value>Поток задач</value></data>
   <data name="WorkflowTitleRequired" xml:space="preserve"><value>Введите название workflow.</value></data>
@@ -367,7 +366,6 @@
   <data name="BridgeFiles" xml:space="preserve"><value>{0}/{1} файлов</value></data>
   <data name="ProjectStats" xml:space="preserve"><value>Статистика проекта</value></data>
   <data name="ProjectOverviewNav" xml:space="preserve"><value>Обзор и статистика проекта</value></data>
-  <data name="StoriesBacklog" xml:space="preserve"><value>Истории и бэклог</value></data>
   <data name="ProjectSettingsNav" xml:space="preserve"><value>Настройки проекта</value></data>
     <data name="ProjectOverviewHint" xml:space="preserve"><value>Что это за проект, из чего он состоит и как его карточки распределены по пайплайнам</value></data>
   <data name="ProjectDataTitle" xml:space="preserve"><value>Данные проекта</value></data>
