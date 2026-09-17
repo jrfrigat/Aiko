@@ -11,6 +11,7 @@ using Aiko.Domain.Workflow;
 using Aiko.Infrastructure.Cards;
 using Aiko.Infrastructure.Agents;
 using Aiko.Infrastructure.Execution;
+using Aiko.Infrastructure.Diagnostics;
 using Aiko.Infrastructure.Events;
 using Aiko.Infrastructure.Memory;
 using Aiko.Infrastructure.Projects;
@@ -162,6 +163,68 @@ public class InfrastructureSpecs
         {
             Directory.Delete(root, true);
         }
+    }
+
+    [Fact]
+    public void Stale_endpoint_detection_ignores_files_that_carry_no_endpoint()
+    {
+        const string current = "http://127.0.0.1:5299/mcp/projects/p1";
+
+        // A skill file carries no endpoint at all, so it is never reported as stale: an adapter also
+        // writes those, and flagging them would bury the one file that matters.
+        Assert.False(WorkshopDoctor.IsStaleProjectEndpoint("# /aiko-status\nShows the daemon status.", current));
+        Assert.False(WorkshopDoctor.IsStaleProjectEndpoint(
+            $"{{\"mcpServers\":{{\"aiko\":{{\"url\":\"{current}\"}}}}}}",
+            current));
+
+        // The project MCP configuration after a port change is exactly the drift doctor reports.
+        Assert.True(WorkshopDoctor.IsStaleProjectEndpoint(
+            "{\"mcpServers\":{\"aiko\":{\"url\":\"http://127.0.0.1:5260/mcp/projects/p1\"}}}",
+            current));
+
+        // User scope points at the daemon's own /mcp, and a project-scope file is not counted twice.
+        Assert.True(WorkshopDoctor.IsStaleUserScopeEndpoint(
+            "{\"mcpServers\":{\"aiko\":{\"url\":\"http://127.0.0.1:5260/mcp\"}}}",
+            "http://127.0.0.1:5299/mcp"));
+        Assert.False(WorkshopDoctor.IsStaleUserScopeEndpoint(
+            "{\"mcpServers\":{\"aiko\":{\"url\":\"http://127.0.0.1:5299/mcp\"}}}",
+            "http://127.0.0.1:5299/mcp"));
+        Assert.False(WorkshopDoctor.IsStaleUserScopeEndpoint(
+            $"{{\"url\":\"{current}\"}}",
+            "http://127.0.0.1:5299/mcp"));
+    }
+
+    [Fact]
+    public async Task Doctor_reports_the_installation_without_changing_it()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            var dataPaths = new AikoDataPaths(context.Database.DatabasePath);
+            var doctor = new WorkshopDoctor(
+                dataPaths,
+                context.Catalog,
+                new UnifiedAgentInstaller([], context.Catalog),
+                [],
+                new DaemonEndpointConfiguration(dataPaths));
+
+            var report = await doctor.InspectAsync(context.Project.Id, CancellationToken.None);
+
+            // The database is there, the project is registered and present, and the two things a fresh
+            // local installation is missing are named with their fix.
+            Assert.Equal(DiagnosticSeverity.Ok, Assert.Single(report.Findings, finding => finding.Area == "data").Severity);
+            Assert.Equal(DiagnosticSeverity.Ok, Assert.Single(report.Findings, finding => finding.Area == "project").Severity);
+            Assert.Equal(DiagnosticSeverity.Error, Assert.Single(report.Findings, finding => finding.Area == "token").Severity);
+            Assert.Equal(DiagnosticSeverity.Warning, Assert.Single(report.Findings, finding => finding.Area == "endpoint").Severity);
+            Assert.True(report.HasProblems);
+
+            // Nothing on disk changed: the report is the whole product of a doctor run.
+            Assert.False(File.Exists(dataPaths.AccessTokenPath));
+            Assert.False(File.Exists(dataPaths.SettingsPath));
+
+            // An unknown project is an error, not an empty success.
+            var unknown = await doctor.InspectAsync("nope", CancellationToken.None);
+            Assert.Equal(DiagnosticSeverity.Error, Assert.Single(unknown.Findings, finding => finding.Area == "project").Severity);
+        });
     }
 
     [Fact]

@@ -35,7 +35,15 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         "aiko_approve_commit",
         "aiko_search_memory",
         "aiko_store_memory",
-        "aiko_open_ui"
+        "aiko_open_ui",
+        "aiko_init_project",
+        "aiko_list_projects",
+        "aiko_create_card_in_project",
+        "aiko_doctor",
+        "aiko_reindex",
+        "aiko_backup",
+        "aiko_token",
+        "aiko_get_settings"
     ];
 
     private async Task<McpClient> ConnectAsync()
@@ -179,6 +187,26 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
                 Directory.Delete(root, true);
             }
         }
+    }
+
+    [Fact]
+    public async Task Doctor_tool_reports_the_installation()
+    {
+        await using var client = await ConnectAsync();
+
+        var result = await client.CallToolAsync(
+            "aiko_doctor",
+            cancellationToken: CancellationToken.None);
+
+        Assert.NotEqual(true, result.IsError);
+        var text = FirstText(result);
+        Assert.False(string.IsNullOrWhiteSpace(text));
+
+        // The report is the same one `aiko doctor` prints: the database, the token and the projects, each
+        // with its own verdict line.
+        Assert.Contains("Database present.", text, StringComparison.Ordinal);
+        Assert.Contains("Access token present.", text, StringComparison.Ordinal);
+        Assert.Contains("Daemon port", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -472,7 +500,18 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
 
         var doctor = await client.CallToolAsync("aiko_doctor", cancellationToken: CancellationToken.None);
         Assert.NotEqual(true, doctor.IsError);
-        Assert.Contains("Projects:", FirstText(doctor), StringComparison.Ordinal);
+        var report = FirstText(doctor);
+        Assert.Contains("Database present.", report, StringComparison.Ordinal);
+        // The daemon-level report covers every registered project, each with its own verdict.
+        Assert.Contains("registered and present.", report, StringComparison.Ordinal);
+
+        // One project can be inspected on its own.
+        var scoped = await client.CallToolAsync(
+            "aiko_doctor",
+            new Dictionary<string, object?> { ["projectId"] = fixture.ProjectId },
+            cancellationToken: CancellationToken.None);
+        Assert.NotEqual(true, scoped.IsError);
+        Assert.Contains("registered and present.", FirstText(scoped), StringComparison.Ordinal);
 
         var reindex = await client.CallToolAsync(
             "aiko_reindex",

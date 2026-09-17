@@ -73,6 +73,7 @@ irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1 | i
 ```powershell
 aiko serve     # запустить демон (только loopback; предпочитает порт 24560)
 aiko ui        # сопрячь браузер с демоном и открыть доску
+aiko doctor    # проверить установку; `aiko repair --fix` применяет найденные исправления
 ```
 
 Чтобы зафиксировать конкретный релиз или выбрать другой каталог, сначала получите скрипт в
@@ -154,9 +155,10 @@ http://127.0.0.1:<port>/mcp/projects/<projectId>
 aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<projectId>
 ```
 
-Стабильный набор инструментов (29 tools): контекст проекта, CRUD карточек и связи, взятие
+Стабильный набор инструментов (27 tools): контекст проекта, CRUD карточек и связи, взятие
 карточки, полный цикл выполнения этапа (start / report progress / request scope expansion /
-complete / pause / handoff / resume / report agent state), поиск и запись памяти, открытие UI.
+complete / pause / handoff / resume / report agent state), поиск и запись памяти, регистрация и
+список проектов, диагностика и reindex, открытие UI.
 Описания инструментов требуют сначала получать контекст проекта; установленные skills, rules и
 блоки `AGENTS.md` усиливают это для каждого агента.
 

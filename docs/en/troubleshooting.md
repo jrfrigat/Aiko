@@ -50,6 +50,19 @@ The daemon rejects non-loopback hosts and remote browser origins. Keep everythin
 3. Restart the agent so it loads the new MCP server.
 4. Check the endpoint: `GET http://127.0.0.1:<port>/health` should return `healthy`.
 
+## The agent stopped seeing Aiko after the port changed
+
+An agent's MCP configuration records the endpoint it connects to, so when the daemon moves to another
+port those files keep pointing at the old one - the JSON stays valid and nothing else notices:
+
+```powershell
+aiko doctor          # reports which files are stale, and the fix for each finding
+aiko repair --fix    # reindexes the projects and rewrites the stale configurations
+```
+
+`aiko doctor` changes nothing; `aiko repair` without `--fix` only reports. The same report is available
+to an agent through the `aiko_doctor` MCP tool.
+
 ## 409 Conflict
 
 Cards and workflows use optimistic revisions. If two clients edit the same item, one gets a

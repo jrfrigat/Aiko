@@ -159,6 +159,8 @@ This writes the project-scoped MCP configuration and the `/aiko-*` skills for th
 ## Verify
 
 - `aiko status` - daemon health, port, data directory.
+- `aiko doctor` - installation report: database, token, port, projects and agent configurations that
+  point at an old endpoint. It changes nothing; `aiko repair --fix` applies the fixes it names.
 - `GET http://127.0.0.1:<port>/health` - `healthy`.
 - `aiko ui` - opens the board.
 

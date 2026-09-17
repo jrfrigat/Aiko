@@ -22,35 +22,40 @@ internal sealed class MaintenanceTools(
     IProjectReindexer reindexer,
     IAppSettingsService settings,
     AikoDataPaths dataPaths,
-    DaemonEndpointConfiguration endpoints,
-    IEnumerable<IAgentAdapter> adapters,
+    IWorkshopDiagnostics diagnostics,
     AccessTokenStore tokenStore)
 {
     [McpServerTool(Name = "aiko_doctor", Title = "Diagnose Aiko")]
-    [Description("Returns a diagnostics summary: data directory, database, port, projects and detected agents.")]
-    public async Task<string> DoctorAsync(CancellationToken cancellationToken)
+    [Description(
+        "Returns a diagnostics report: data, access token, port, registered projects and agent " +
+        "configurations that point at an old endpoint. Pass a projectId to inspect one project. " +
+        "Changes nothing - repairs go through `aiko repair --fix`.")]
+    public async Task<string> DoctorAsync(
+        [Description("Optional project id; omit to inspect every registered project.")]
+        [Optional] string? projectId,
+        CancellationToken cancellationToken)
     {
-        var projects = await catalog.ListAsync(cancellationToken);
-        var endpoint = await endpoints.TryReadAsync(cancellationToken);
+        var report = await diagnostics.InspectAsync(projectId, cancellationToken);
 
-        var summary = new StringBuilder()
-            .AppendLine("Data directory: " + Path.GetDirectoryName(dataPaths.DatabasePath))
-            .AppendLine("Database: " + dataPaths.DatabasePath)
-            .AppendLine("Port: " + (endpoint?.Port.ToString() ?? "not started"))
-            .AppendLine("Projects: " + projects.Count);
-        foreach (var project in projects)
+        var summary = new StringBuilder();
+        foreach (var finding in report.Findings)
         {
-            summary.AppendLine($"  - {project.Name} ({project.Id}) at {project.RootPath}");
+            summary.Append(finding.Severity switch
+            {
+                DiagnosticSeverity.Error => "error   ",
+                DiagnosticSeverity.Warning => "warning ",
+                _ => "ok      "
+            });
+            summary.AppendLine(finding.Summary);
+            if (!string.IsNullOrWhiteSpace(finding.Detail))
+            {
+                summary.AppendLine("          " + finding.Detail);
+            }
         }
 
-        foreach (var adapter in adapters)
-        {
-            var installations = await adapter.DetectInstallationsAsync(cancellationToken);
-            summary.AppendLine(
-                $"{adapter.DisplayName} ({adapter.Id}): " +
-                (installations.Count == 0 ? "not found" : string.Join(", ", installations.Select(i => i.ExecutablePath))));
-        }
-
+        summary.AppendLine(report.HasProblems
+            ? "Problems found. Agent configurations are repaired with `aiko repair --fix`."
+            : "Everything looks healthy.");
         return summary.ToString();
     }
 

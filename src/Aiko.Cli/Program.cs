@@ -4,6 +4,7 @@ using System.Text.Json;
 using Aiko.Application.Agents;
 using Aiko.Application.Contracts;
 using Aiko.Infrastructure.Agents;
+using Aiko.Infrastructure.Diagnostics;
 using Aiko.Infrastructure.Projects;
 using Aiko.Infrastructure.Settings;
 using Aiko.Infrastructure.Storage;
@@ -17,6 +18,8 @@ var exitCode = command switch
     "serve" => await ServeAsync(),
     "ui" => await UiAsync(),
     "status" => await StatusAsync(),
+    "doctor" => await DoctorAsync(args),
+    "repair" => await RepairAsync(args),
     "agent" => await AgentAsync(args),
     "token" => await TokenAsync(),
     "reindex" => await ReindexAsync(args),
@@ -39,6 +42,9 @@ static int Help()
           serve                                         Start the Aiko daemon
           ui                                            Open the UI in the browser
           status                                        Daemon, data and port status
+          doctor [--project <id>]                       Check the installation and report (changes nothing)
+          repair [--fix] [--project <id>] [--agent <ids>]
+                                                        Reindex and rewrite stale agent configs
           agent list                                    List agents and detected installs
           agent install --project <id> [--agent <ids>] [--scope user]
                                                         Connect an agent to a project
@@ -398,6 +404,156 @@ static async Task<int> TokenAsync()
     var store = new AccessTokenStore(AikoDataPaths.FromEnvironment());
     Console.WriteLine(await store.GetOrCreateAsync());
     return 0;
+}
+
+// `aiko doctor` reports on the installation without changing it. Every finding names its fix, and the
+// exit code stays 0: a diagnosis that ran is a success even when it found problems.
+static async Task<int> DoctorAsync(string[] args)
+{
+    PrintFindings(await InspectAsync(ReadOption(args, "--project")));
+    return 0;
+}
+
+// `aiko repair` performs exactly what `aiko doctor` names. Without --fix it only reports, so the half
+// that rewrites files is always an explicit choice, and it prints the report again afterwards so the
+// result is visible rather than assumed.
+static async Task<int> RepairAsync(string[] args)
+{
+    var projectId = ReadOption(args, "--project");
+    var findings = await InspectAsync(projectId);
+    PrintFindings(findings);
+    if (!HasFlag(args, "--fix"))
+    {
+        if (findings.HasProblems)
+        {
+            Console.WriteLine();
+            Console.WriteLine("Run `aiko repair --fix` to apply the fixes named above.");
+        }
+
+        return 0;
+    }
+
+    var dataPaths = AikoDataPaths.FromEnvironment();
+    var database = new AikoDatabase(dataPaths);
+    await database.InitializeAsync();
+    var catalog = new SqliteProjectCatalog(database);
+    var reindexer = new ProjectReindexer(catalog, database);
+    var installer = new UnifiedAgentInstaller(CreateAdapters(), catalog);
+    var settings = await new DaemonEndpointConfiguration(dataPaths).TryReadAsync();
+
+    var registered = await catalog.ListAsync(CancellationToken.None);
+    if (projectId is { Length: > 0 } requested)
+    {
+        registered = registered
+            .Where(project => StringComparer.Ordinal.Equals(project.Id, requested))
+            .ToArray();
+    }
+
+    var requestedAdapters = (ReadOption(args, "--agent") ?? string.Empty)
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    var installedAdapters = requestedAdapters.Length > 0
+        ? requestedAdapters
+        : (await installer.DiscoverAsync(CancellationToken.None))
+            .Where(adapter => adapter.Installations.Count > 0)
+            .Select(adapter => adapter.Id)
+            .ToArray();
+
+    Console.WriteLine();
+    foreach (var project in registered)
+    {
+        if (!Directory.Exists(AikoProjectPaths.DataRoot(project.RootPath)))
+        {
+            Console.WriteLine($"{project.Name}: skipped, no .aiko directory to rebuild from.");
+            continue;
+        }
+
+        var reindexed = await reindexer.ReindexAsync(project.Id, CancellationToken.None);
+        Console.WriteLine(
+            $"Reindexed {project.Name}: {reindexed.Cards} cards, {reindexed.Relations} relations, " +
+            $"{reindexed.MemoryDocuments} memory documents.");
+
+        if (settings is null || installedAdapters.Length == 0)
+        {
+            continue;
+        }
+
+        var endpoint = $"http://127.0.0.1:{settings.Port}/mcp/projects/{project.Id}";
+        var applied = await installer.ApplyAsync(
+            project.Id,
+            endpoint,
+            installedAdapters,
+            CancellationToken.None);
+        foreach (var item in applied.AdapterResults)
+        {
+            var changed = item.Files.Count(file => file.Status is not InstallationFileStatus.Unchanged);
+            Console.WriteLine(
+                $"{project.Name}: {item.AdapterId} {(item.Succeeded ? "repaired" : "failed")}, " +
+                $"{changed} file(s) written.");
+        }
+    }
+
+    // The user-scope configurations carry the daemon endpoint too, so a port change leaves them stale
+    // everywhere, not only inside the projects.
+    if (settings is not null)
+    {
+        foreach (var adapter in CreateAdapters())
+        {
+            if ((await adapter.DetectInstallationsAsync(CancellationToken.None)).Count == 0)
+            {
+                continue;
+            }
+
+            var applied = await adapter.ApplyUserInstallAsync(CancellationToken.None);
+            var changed = applied.Files.Count(file => file.Status is not InstallationFileStatus.Unchanged);
+            Console.WriteLine(
+                $"user scope: {adapter.Id} {(applied.Succeeded ? "repaired" : "failed")}, " +
+                $"{changed} file(s) written.");
+        }
+    }
+
+    Console.WriteLine();
+    Console.WriteLine("After the repair:");
+    PrintFindings(await InspectAsync(projectId));
+    return 0;
+}
+// Wires the same services the daemon uses, locally: doctor and repair work with the daemon stopped,
+// which is the state a broken installation is usually in.
+static async Task<WorkshopDiagnostics> InspectAsync(string? projectId)
+{
+    var dataPaths = AikoDataPaths.FromEnvironment();
+    var database = new AikoDatabase(dataPaths);
+    await database.InitializeAsync();
+    var catalog = new SqliteProjectCatalog(database);
+    var installer = new UnifiedAgentInstaller(CreateAdapters(), catalog);
+    var diagnostics = new WorkshopDoctor(
+        dataPaths,
+        catalog,
+        installer,
+        CreateAdapters(),
+        new DaemonEndpointConfiguration(dataPaths));
+    return await diagnostics.InspectAsync(projectId, CancellationToken.None);
+}
+
+static void PrintFindings(WorkshopDiagnostics diagnostics)
+{
+    foreach (var finding in diagnostics.Findings)
+    {
+        var marker = finding.Severity switch
+        {
+            DiagnosticSeverity.Error => "error  ",
+            DiagnosticSeverity.Warning => "warning",
+            _ => "ok     "
+        };
+        Console.WriteLine($"{marker} {finding.Summary}");
+        if (!string.IsNullOrWhiteSpace(finding.Detail))
+        {
+            Console.WriteLine($"          {finding.Detail}");
+        }
+    }
+
+    Console.WriteLine(diagnostics.HasProblems
+        ? "Problems found."
+        : "Everything looks healthy.");
 }
 
 static async Task<int> ReindexAsync(string[] args)

@@ -140,8 +140,9 @@ internal static class AgentTemplates
 
         Aiko coordinates project work between agents. Use the global commands to register the
         current project (/aiko-init), list projects (/aiko-list-projects), check the daemon
-        (/aiko-status) and open the UI (/aiko-ui). After /aiko-init, restart this agent so the
-        project-scoped MCP configuration and skills are loaded.
+        (/aiko-status), diagnose it (/aiko-doctor), repair what the diagnosis found (/aiko-repair)
+        and open the UI (/aiko-ui). After /aiko-init, restart this agent so the project-scoped MCP
+        configuration and skills are loaded.
         """;
 
     /// <summary>
@@ -178,6 +179,29 @@ internal static class AgentTemplates
     public const string GlobalUi =
         """
         Open the Aiko UI in the browser. Run `aiko ui` in the terminal, or open the daemon URL.
+        """;
+
+    /// <summary>
+    /// Global slash command that diagnoses the local installation without changing it.
+    /// </summary>
+    public const string GlobalDoctor =
+        """
+        Diagnose the local Aiko installation. Use the daemon MCP tool aiko_doctor (it changes
+        nothing) or run `aiko doctor` in the terminal, then report every finding and the fix it
+        names. Cover the database, the access token, the daemon port, the registered projects and
+        agent configurations that point at an old endpoint.
+        """;
+
+    /// <summary>
+    /// Global slash command that repairs what the diagnosis found.
+    /// </summary>
+    public const string GlobalRepair =
+        """
+        Repair the local Aiko installation. Run `aiko doctor` in the terminal first to see the
+        findings, then `aiko repair --fix` to reindex the projects and rewrite the agent
+        configurations that point at an old endpoint; without --fix it only reports. A repair never
+        deletes project files and never removes an installation - say what it changed and show the
+        report it prints afterwards.
         """;
 
     /// <summary>
