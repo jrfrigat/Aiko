@@ -54,6 +54,8 @@ namespace Aiko.Server.Contracts;
 [JsonSerializable(typeof(IReadOnlyList<StageExecution>))]
 [JsonSerializable(typeof(AgentAdapterOption))]
 [JsonSerializable(typeof(IReadOnlyList<AgentAdapterOption>))]
+[JsonSerializable(typeof(AgentUserScope))]
+[JsonSerializable(typeof(AgentConnectionResponse))]
 [JsonSerializable(typeof(PlanAgentInstallationRequest))]
 [JsonSerializable(typeof(UnifiedInstallationPlan))]
 [JsonSerializable(typeof(InstallationFileResult))]

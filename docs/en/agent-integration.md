@@ -50,6 +50,11 @@ Global skills/commands (installed with `aiko agent install --scope user`):
 `/aiko-init`, `/aiko-list-projects`, `/aiko-status`, `/aiko-doctor`, `/aiko-repair`, `/aiko-agents`,
 `/aiko-token`, `/aiko-backup`, `/aiko-ui`.
 
+User scope is the machine-wide connection: it is what the dashboard's *Agents* card reports as
+**connected**, and its Connect / Disconnect buttons write and remove exactly these files. The
+project-scoped MCP entry is separate and per project, so an agent can be connected globally and still
+need `aiko agent install --project <id>` for a particular project.
+
 The behavior contract: any work item starts with a card; read context before acting; warn before
 changing files outside the declared scope; report progress, actual files and commits through Aiko.
 
@@ -81,7 +86,7 @@ has no path yet, the table says so rather than pretending the sets are already e
 | Repair the installation | `/aiko-repair` | — | — (`aiko repair --fix`) |
 | Back up a project | `/aiko-backup` | `aiko_backup` | — |
 | Show the access token | `/aiko-token` | `aiko_token` | — (`aiko token show`) |
-| Manage agent integrations | `/aiko-agents` | — (`aiko agent list` / `install` / `uninstall`) | — |
+| Manage agent integrations | `/aiko-agents` | — (`aiko agent list` / `install` / `uninstall`) | Dashboard - the *Agents* card: detection and Connect / Disconnect |
 
 ## What the installer writes
 

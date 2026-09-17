@@ -88,6 +88,9 @@ public sealed class AikoServerFixture : IAsyncLifetime
         startInfo.EnvironmentVariables["AIKO_PORT"] = port.ToString(CultureInfo.InvariantCulture);
         // The MCP spec suite exercises the protocol, not the local authentication layer.
         startInfo.EnvironmentVariables["AIKO_INSECURE"] = "1";
+        // User-scope agent files (the /aiko-* skills and commands) land under the home directory, so the
+        // daemon under test gets a throwaway one: a spec must not write into the machine running it.
+        startInfo.EnvironmentVariables["AIKO_USER_HOME"] = Path.Combine(_root, "home");
 
         var server = Process.Start(startInfo)
             ?? throw new InvalidOperationException("Failed to start the Aiko server process.");

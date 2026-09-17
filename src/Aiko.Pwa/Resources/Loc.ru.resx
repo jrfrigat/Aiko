@@ -180,7 +180,7 @@
   <data name="OverviewCaption" xml:space="preserve"><value>Локальный оркестратор: один демон, доска, агенты и долговременная память проекта.</value></data>
   <data name="Agents" xml:space="preserve"><value>Агенты</value></data>
   <data name="AgentsNotFound" xml:space="preserve"><value>не обнаружен</value></data>
-  <data name="AgentsHint" xml:space="preserve"><value>Подключение выполняется на проект: aiko agent install --project &lt;id&gt; --agent &lt;id&gt;</value></data>
+  <data name="AgentsHint" xml:space="preserve"><value>«Подключить» записывает глобальные скиллы и команды /aiko-* для агента. MCP-запись для проекта добавляется отдельно: aiko agent install --project &lt;id&gt;</value></data>
   <data name="QuickStart" xml:space="preserve"><value>Быстрый старт</value></data>
   <data name="QuickStartStep1" xml:space="preserve"><value>1. Запустите демон: aiko serve</value></data>
   <data name="QuickStartStep2" xml:space="preserve"><value>2. Добавьте проект ниже или выполните aiko init &lt;путь&gt;</value></data>
@@ -229,4 +229,10 @@
   <data name="Open" xml:space="preserve"><value>Открыть</value></data>
   <data name="UseThisFolder" xml:space="preserve"><value>Выбрать эту папку</value></data>
   <data name="BrowseFailed" xml:space="preserve"><value>Не удалось прочитать список папок: {0}</value></data>
+  <data name="AgentNotConnected" xml:space="preserve"><value>не подключён</value></data>
+  <data name="AgentConnected" xml:space="preserve"><value>подключён</value></data>
+  <data name="AgentPartiallyConnected" xml:space="preserve"><value>подключён частично ({0}/{1})</value></data>
+  <data name="ConnectAgent" xml:space="preserve"><value>Подключить</value></data>
+  <data name="DisconnectAgent" xml:space="preserve"><value>Отключить</value></data>
+  <data name="AgentConnectFailed" xml:space="preserve"><value>Не удалось изменить подключение {0}: {1}</value></data>
 </root>

@@ -113,15 +113,8 @@
                     <FlareList TItem="string" Dense="true">
                         @foreach (var adapter in State.Agents)
                         {
-                            var installation = adapter.Installations.FirstOrDefault();
-                            <FlareListItem Primary="@adapter.DisplayName">
-                                <Trailing>
-                                    <FlareText Element="span" Mono="true" Typo="TypographyScale.LabelSmall"
-                                               Color="@(installation is null ? FlareColor.OnSurfaceVariant2 : FlareColor.Tertiary)">
-                                        @DisplayFormat.AgentState(installation, Loc.Get("AgentsNotFound"))
-                                    </FlareText>
-                                </Trailing>
-                            </FlareListItem>
+                            var item = adapter;
+                            <AgentRow Adapter="item" OnToggle="ToggleAgentAsync" />
                         }
                     </FlareList>
                     <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
@@ -569,6 +562,31 @@
 
     private void OpenProject(string projectId) =>
         Navigation.NavigateTo($"/p/{Uri.EscapeDataString(projectId)}/board");
+
+    /// <summary>
+    /// Connects or disconnects one agent on this machine. Connecting writes Aiko's global skills and
+    /// commands for that agent; a fully connected agent is disconnected instead, so one button covers the
+    /// state it is in.
+    /// </summary>
+    private async Task ToggleAgentAsync(string adapterId)
+    {
+        var adapter = State.Agents.FirstOrDefault(item =>
+            StringComparer.Ordinal.Equals(item.Id, adapterId));
+        _error = null;
+
+        if (adapter is not null &&
+            DisplayFormat.Classify(adapter) == DisplayFormat.AgentPresence.Connected)
+        {
+            await State.DisconnectAgentAsync(adapterId);
+        }
+        else
+        {
+            await State.ConnectAgentAsync(adapterId);
+        }
+
+        _error = State.Error;
+    }
+
 
     public ValueTask DisposeAsync()
     {

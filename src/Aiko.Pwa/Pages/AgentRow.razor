@@ -1,0 +1,54 @@
+@* One row of the dashboard's agent card.
+
+   An agent is "detected" when its executable is on PATH, and "connected" when Aiko has written its
+   global /aiko-* skills and commands. Those are independent facts, so the row keeps them apart and offers
+   the action that fits the state: nothing to do when the agent is absent, Connect when it is present but
+   not configured, Disconnect when it is configured. *@
+<FlareListItem Primary="@Adapter.DisplayName"
+               Secondary="@DisplayFormat.AgentState(Adapter.Installations.FirstOrDefault(), string.Empty)">
+    <Trailing>
+        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+            <FlareText Element="span" Mono="true" Typo="TypographyScale.LabelSmall" Color="@PresenceColor">
+                @PresenceLabel
+            </FlareText>
+            @if (Presence is not DisplayFormat.AgentPresence.NotDetected)
+            {
+                <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm" OnClick="ToggleAsync">
+                    @(Presence == DisplayFormat.AgentPresence.Connected
+                        ? Loc.Get("DisconnectAgent")
+                        : Loc.Get("ConnectAgent"))
+                </FlareButton>
+            }
+        </FlareStack>
+    </Trailing>
+</FlareListItem>
+
+@code {
+    /// <summary>The adapter this row describes.</summary>
+    [Parameter, EditorRequired] public AgentAdapterOption Adapter { get; set; } = null!;
+
+    /// <summary>Asks the page to connect or disconnect <see cref="Adapter"/>.</summary>
+    [Parameter] public EventCallback<string> OnToggle { get; set; }
+
+    private DisplayFormat.AgentPresence Presence => DisplayFormat.Classify(Adapter);
+
+    private FlareColor PresenceColor => Presence switch
+    {
+        DisplayFormat.AgentPresence.NotDetected => FlareColor.OnSurfaceVariant2,
+        DisplayFormat.AgentPresence.Connected => FlareColor.Tertiary,
+        _ => FlareColor.Warning
+    };
+
+    private string PresenceLabel => Presence switch
+    {
+        DisplayFormat.AgentPresence.NotDetected => Loc.Get("AgentsNotFound"),
+        DisplayFormat.AgentPresence.NotConnected => Loc.Get("AgentNotConnected"),
+        DisplayFormat.AgentPresence.PartiallyConnected => Loc.Format(
+            "AgentPartiallyConnected",
+            Adapter.UserScope?.ConfiguredFiles ?? 0,
+            Adapter.UserScope?.ExpectedFiles ?? 0),
+        _ => Loc.Get("AgentConnected")
+    };
+
+    private Task ToggleAsync() => OnToggle.InvokeAsync(Adapter.Id);
+}

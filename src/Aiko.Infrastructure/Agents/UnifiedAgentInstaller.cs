@@ -28,10 +28,51 @@ public sealed class UnifiedAgentInstaller(
                 adapter.DisplayName,
                 adapter.Capabilities,
                 installations,
-                installations.Count > 0));
+                installations.Count > 0,
+                await ReadUserScopeAsync(adapter, cancellationToken)));
         }
 
         return options;
+    }
+
+    /// <summary>
+    /// Counts how many of the adapter's user-scope files are on disk. This is what separates "the agent is
+    /// installed" (the executable is on PATH) from "Aiko is connected to it" (the global skills and
+    /// commands are there) in the dashboard.
+    /// </summary>
+    private static async ValueTask<AgentUserScope> ReadUserScopeAsync(
+        IAgentAdapter adapter,
+        CancellationToken cancellationToken)
+    {
+        var plan = await adapter.PlanUserInstallAsync(cancellationToken);
+        var configured = plan.Changes.Count(change => File.Exists(change.Path));
+        return new AgentUserScope(configured, plan.Changes.Count);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<AgentInstallationResult?> ApplyUserInstallAsync(
+        string adapterId,
+        CancellationToken cancellationToken)
+    {
+        if (!adaptersById.TryGetValue(adapterId, out var adapter))
+        {
+            return null;
+        }
+
+        return await adapter.ApplyUserInstallAsync(cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<AgentInstallationResult?> UninstallUserAsync(
+        string adapterId,
+        CancellationToken cancellationToken)
+    {
+        if (!adaptersById.TryGetValue(adapterId, out var adapter))
+        {
+            return null;
+        }
+
+        return await adapter.UninstallUserAsync(cancellationToken);
     }
 
     /// <inheritdoc />

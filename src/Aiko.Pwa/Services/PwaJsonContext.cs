@@ -54,6 +54,8 @@ namespace Aiko.Pwa.Services;
 [JsonSerializable(typeof(DirectoryListing))]
 [JsonSerializable(typeof(AgentAdapterOption))]
 [JsonSerializable(typeof(IReadOnlyList<AgentAdapterOption>))]
+[JsonSerializable(typeof(AgentUserScope))]
+[JsonSerializable(typeof(AgentConnectionResponse))]
 [JsonSerializable(typeof(AgentInstallation))]
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,

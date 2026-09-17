@@ -349,4 +349,41 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
         Assert.Contains("claude-code", ids);
         Assert.Contains("codex", ids);
     }
+    [Fact]
+    public async Task Agent_connection_endpoints_report_the_state_they_produce()
+    {
+        using var http = CreateClient();
+
+        // Connect: the answer carries the adapter as it is now plus the per-file outcome, so a UI needs
+        // one round trip and cannot show a state older than the click.
+        using var connected = await http.PostAsync("/api/v1/agents/cursor/installation", content: null);
+        connected.EnsureSuccessStatusCode();
+        var connectedBody = await connected.Content.ReadFromJsonAsync<JsonElement>();
+        var connectedAdapter = connectedBody.GetProperty("adapter");
+        Assert.Equal("cursor", connectedAdapter.GetProperty("id").GetString());
+        var connectedScope = connectedAdapter.GetProperty("userScope");
+        Assert.Equal(
+            connectedScope.GetProperty("expectedFiles").GetInt32(),
+            connectedScope.GetProperty("configuredFiles").GetInt32());
+
+        // Disconnect: nothing of Aiko's is left in the user scope.
+        using var disconnected = await http.DeleteAsync("/api/v1/agents/cursor/installation");
+        disconnected.EnsureSuccessStatusCode();
+        var disconnectedBody = await disconnected.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(
+            0,
+            disconnectedBody
+                .GetProperty("adapter")
+                .GetProperty("userScope")
+                .GetProperty("configuredFiles")
+                .GetInt32());
+
+        // An adapter the daemon does not know is a 404 in both directions.
+        using var unknownConnect = await http.PostAsync("/api/v1/agents/nope/installation", content: null);
+        Assert.Equal(HttpStatusCode.NotFound, unknownConnect.StatusCode);
+        using var unknownDisconnect = await http.DeleteAsync("/api/v1/agents/nope/installation");
+        Assert.Equal(HttpStatusCode.NotFound, unknownDisconnect.StatusCode);
+    }
+
+
 }

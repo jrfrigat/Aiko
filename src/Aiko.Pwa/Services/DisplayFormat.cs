@@ -1,4 +1,5 @@
 using System.Globalization;
+using Aiko.Application.Agents;
 
 namespace Aiko.Pwa.Services;
 
@@ -57,6 +58,50 @@ public static class DisplayFormat
         // person needs to see when the version is unknown.
         var name = LastSegment(installation.ExecutablePath);
         return name.Length > 0 ? name : notFound;
+    }
+
+    /// <summary>How the dashboard reports one agent. Installed and connected are separate facts.</summary>
+    public enum AgentPresence
+    {
+        /// <summary>The agent's executable was not found on PATH.</summary>
+        NotDetected,
+
+        /// <summary>Installed, but Aiko has not written its global skills and commands.</summary>
+        NotConnected,
+
+        /// <summary>Connected, but only some of Aiko's files are there - an outdated or partial install.</summary>
+        PartiallyConnected,
+
+        /// <summary>Installed, with the whole global configuration in place.</summary>
+        Connected
+    }
+
+    /// <summary>
+    /// Classifies an adapter for the dashboard. Detection comes from PATH, connection from Aiko's own
+    /// files, and the two are independent: an agent can be installed without ever having been connected,
+    /// which is exactly the state a single "not found" label used to hide.
+    /// </summary>
+    public static AgentPresence Classify(AgentAdapterOption adapter)
+    {
+        if (adapter.Installations.Count == 0)
+        {
+            return AgentPresence.NotDetected;
+        }
+
+        if (adapter.UserScope is { } scope)
+        {
+            if (scope.IsConfigured())
+            {
+                return AgentPresence.Connected;
+            }
+
+            if (scope.IsPartial())
+            {
+                return AgentPresence.PartiallyConnected;
+            }
+        }
+
+        return AgentPresence.NotConnected;
     }
 
     // The last path segment, split on both separators: the client runs in a browser, where Path would

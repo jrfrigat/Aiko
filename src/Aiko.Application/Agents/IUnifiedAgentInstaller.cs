@@ -13,6 +13,23 @@ public interface IUnifiedAgentInstaller
         CancellationToken cancellationToken);
 
     /// <summary>
+    /// Applies the user-scoped Aiko configuration of a single adapter - the global <c>/aiko-*</c> skills
+    /// and commands a machine-wide connection consists of.
+    /// </summary>
+    /// <returns>The outcome, or null when the identifier is unknown to this installer.</returns>
+    ValueTask<AgentInstallationResult?> ApplyUserInstallAsync(
+        string adapterId,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Removes the user-scoped Aiko configuration of a single adapter, leaving user files alone.
+    /// </summary>
+    /// <returns>The outcome, or null when the identifier is unknown to this installer.</returns>
+    ValueTask<AgentInstallationResult?> UninstallUserAsync(
+        string adapterId,
+        CancellationToken cancellationToken);
+
+    /// <summary>
     /// Builds a combined install plan for the selected adapters without touching files.
     /// </summary>
     /// <param name="projectId">Identifier of a registered project.</param>

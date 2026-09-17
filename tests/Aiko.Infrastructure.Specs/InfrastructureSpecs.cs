@@ -1292,6 +1292,49 @@ public class InfrastructureSpecs
     }
 
     [Fact]
+    public async Task User_scope_state_says_whether_aiko_is_connected_to_an_agent()
+    {
+        var home = Path.Combine(Path.GetTempPath(), "Aiko.Specs", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(home);
+        var originalHome = Environment.GetEnvironmentVariable("AIKO_USER_HOME");
+        try
+        {
+            Environment.SetEnvironmentVariable("AIKO_USER_HOME", home);
+            await WithInitializedProjectAsync(async context =>
+            {
+                IAgentAdapter[] adapters = [new ZCodeAgentAdapter()];
+                var installer = new UnifiedAgentInstaller(adapters, context.Catalog);
+
+                // Nothing written yet: the state says "not connected" rather than pretending the adapter
+                // is absent - the two are different facts.
+                var before = Assert.Single(await installer.DiscoverAsync(CancellationToken.None));
+                Assert.True(before.UserScope is { } expected && expected.ExpectedFiles > 0);
+                Assert.Equal(0, before.UserScope?.ConfiguredFiles);
+
+                var applied = await installer.ApplyUserInstallAsync("zcode", CancellationToken.None);
+                Assert.NotNull(applied);
+                Assert.True(applied!.Succeeded);
+
+                var after = Assert.Single(await installer.DiscoverAsync(CancellationToken.None));
+                Assert.True(after.UserScope?.IsConfigured());
+
+                // Disconnect removes only Aiko's files, and an unknown adapter is not an operation.
+                Assert.NotNull(await installer.UninstallUserAsync("zcode", CancellationToken.None));
+                var uninstalled = Assert.Single(await installer.DiscoverAsync(CancellationToken.None));
+                Assert.Equal(0, uninstalled.UserScope?.ConfiguredFiles);
+                Assert.Null(await installer.ApplyUserInstallAsync("nope", CancellationToken.None));
+                Assert.Null(await installer.UninstallUserAsync("nope", CancellationToken.None));
+            });
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("AIKO_USER_HOME", originalHome);
+            Directory.Delete(home, true);
+        }
+    }
+
+
+    [Fact]
     public async Task Unified_installer_groups_selected_plans()
     {
         await WithInitializedProjectAsync(async context =>

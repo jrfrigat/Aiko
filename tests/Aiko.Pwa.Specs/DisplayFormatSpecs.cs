@@ -53,4 +53,40 @@ public sealed class DisplayFormatSpecs
         Assert.Equal("FrigaT/StitchFlow", DisplayFormat.ProjectTag("/home/me/FrigaT/StitchFlow"));
         Assert.Equal("single", DisplayFormat.ProjectTag("single"));
     }
+    [Fact]
+    public void Agent_presence_separates_detected_from_connected()
+    {
+        // Not on PATH: no action to offer.
+        Assert.Equal(DisplayFormat.AgentPresence.NotDetected, DisplayFormat.Classify(Option([])));
+
+        // On PATH with none of Aiko's files written: installed, but not connected.
+        Assert.Equal(
+            DisplayFormat.AgentPresence.NotConnected,
+            DisplayFormat.Classify(Option(Installations(), new AgentUserScope(0, 9))));
+
+        // Some of them: a partial, outdated connection - the state an upgrade leaves behind.
+        Assert.Equal(
+            DisplayFormat.AgentPresence.PartiallyConnected,
+            DisplayFormat.Classify(Option(Installations(), new AgentUserScope(3, 9))));
+
+        // All of them: connected.
+        Assert.Equal(
+            DisplayFormat.AgentPresence.Connected,
+            DisplayFormat.Classify(Option(Installations(), new AgentUserScope(9, 9))));
+
+        // An adapter without a user scope can be detected but never "connected".
+        Assert.Equal(
+            DisplayFormat.AgentPresence.NotConnected,
+            DisplayFormat.Classify(Option(Installations(), new AgentUserScope(0, 0))));
+    }
+
+    private static AgentAdapterOption Option(
+        IReadOnlyList<AgentInstallation> installations,
+        AgentUserScope? userScope = null) =>
+        new("codex", "Codex", AgentCapabilities.McpStdio, installations, false, userScope);
+
+    private static IReadOnlyList<AgentInstallation> Installations() =>
+        [new AgentInstallation("codex:/bin/codex", "codex", "/bin/codex", null)];
+
+
 }

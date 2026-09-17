@@ -221,6 +221,8 @@ internal sealed class WorkspaceState : IAsyncDisposable
         try
         {
             await ReloadProjectsAsync();
+            await ReloadAgentsAsync();
+
             await LoadBoardAsync();
         }
         finally
@@ -259,6 +261,26 @@ internal sealed class WorkspaceState : IAsyncDisposable
             return null;
         }
     }
+    /// <summary>
+    /// Re-reads the agent adapters: whether each agent is installed on this machine and whether Aiko has
+    /// connected to it.
+    /// </summary>
+    public async Task ReloadAgentsAsync()
+    {
+        try
+        {
+            Agents = await _http.GetFromJsonAsync<IReadOnlyList<AgentAdapterOption>>(
+                "api/v1/agents", PwaJson.Options) ?? [];
+        }
+        catch (Exception exception)
+        {
+            Error = FailureText.Describe(exception);
+        }
+
+        await NotifyAsync();
+    }
+
+
 
     /// <summary>Re-reads the registered project list.</summary>
     public async Task ReloadProjectsAsync()
@@ -275,6 +297,55 @@ internal sealed class WorkspaceState : IAsyncDisposable
 
         await NotifyAsync();
     }
+
+    /// <summary>
+    /// Connects Aiko to one agent on this machine: writes its global <c>/aiko-*</c> skills and commands,
+    /// then applies the state the daemon reports back so the card cannot show something older than the
+    /// click that was just made.
+    /// </summary>
+    public Task<bool> ConnectAgentAsync(string adapterId) =>
+        SendAgentCommandAsync(HttpMethod.Post, adapterId);
+
+    /// <summary>Removes Aiko's global configuration for one agent, leaving the agent itself alone.</summary>
+    public Task<bool> DisconnectAgentAsync(string adapterId) =>
+        SendAgentCommandAsync(HttpMethod.Delete, adapterId);
+
+    private async Task<bool> SendAgentCommandAsync(HttpMethod method, string adapterId)
+    {
+        try
+        {
+            using var request = new HttpRequestMessage(
+                method,
+                $"api/v1/agents/{Uri.EscapeDataString(adapterId)}/installation");
+            using var response = await _http.SendAsync(request);
+            if (!response.IsSuccessStatusCode)
+            {
+                Error = Loc.Format("AgentConnectFailed", adapterId, (int)response.StatusCode);
+                await NotifyAsync();
+                return false;
+            }
+
+            if (await response.Content.ReadFromJsonAsync<AgentConnectionResponse>(PwaJson.Options) is { } answer)
+            {
+                Agents = Agents
+                    .Select(adapter => StringComparer.Ordinal.Equals(adapter.Id, adapterId)
+                        ? answer.Adapter
+                        : adapter)
+                    .ToArray();
+            }
+
+            Error = null;
+            await NotifyAsync();
+            return true;
+        }
+        catch (Exception exception)
+        {
+            Error = Loc.Format("AgentConnectFailed", adapterId, FailureText.Describe(exception));
+            await NotifyAsync();
+            return false;
+        }
+    }
+
 
     /// <summary>
     /// Opens or closes the card detail drawer. A no-op when the selection already matches, so a board
