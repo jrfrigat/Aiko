@@ -48,6 +48,7 @@ public sealed class PwaJsonSpecs
             typeof(SystemInfo),
             typeof(ActivityDay),
             typeof(IReadOnlyList<ActivityDay>),
+            typeof(DirectoryListing),
             typeof(AgentAdapterOption),
             typeof(IReadOnlyList<AgentAdapterOption>),
             typeof(AgentInstallation)

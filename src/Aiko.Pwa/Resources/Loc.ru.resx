@@ -220,4 +220,13 @@
   <data name="Unregister" xml:space="preserve"><value>Отключить</value></data>
   <data name="UnregisterConfirm" xml:space="preserve"><value>Отключить проект? Файлы на диске останутся.</value></data>
   <data name="UnregisterFailed" xml:space="preserve"><value>Не удалось отключить проект: {0}</value></data>
+  <data name="Browse" xml:space="preserve"><value>Обзор</value></data>
+  <data name="ChooseFolder" xml:space="preserve"><value>Выбор папки</value></data>
+  <data name="Drives" xml:space="preserve"><value>Диски</value></data>
+  <data name="FolderUnreadable" xml:space="preserve"><value>Эту папку нельзя прочитать.</value></data>
+  <data name="ExistingProject" xml:space="preserve"><value>Проект Aiko</value></data>
+  <data name="Up" xml:space="preserve"><value>Вверх</value></data>
+  <data name="Open" xml:space="preserve"><value>Открыть</value></data>
+  <data name="UseThisFolder" xml:space="preserve"><value>Выбрать эту папку</value></data>
+  <data name="BrowseFailed" xml:space="preserve"><value>Не удалось прочитать список папок: {0}</value></data>
 </root>

@@ -108,11 +108,15 @@ database.
 
 ## Register a project
 
-Either in the UI (the "Add project" button on an empty board) or from the terminal:
+Either in the UI (the "Add project" button on the dashboard) or from the terminal:
 
 ```powershell
 aiko init C:\path\to\your\project --name "My Project" --git-policy local-only
 ```
+
+In the UI the form also has a **Browse** button: it opens the daemon's directory listing, so the path is
+picked instead of typed. The listing marks folders that already contain `.aiko`, and the field stays
+editable for anyone who prefers to paste a path.
 
 This creates the `.aiko` directory (workflows, projections, memory) and registers the project.
 The default git policy is `local-only` (the whole `.aiko` directory is added to `.gitignore`);

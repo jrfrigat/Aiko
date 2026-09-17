@@ -51,6 +51,7 @@ namespace Aiko.Pwa.Services;
 [JsonSerializable(typeof(SystemInfo))]
 [JsonSerializable(typeof(ActivityDay))]
 [JsonSerializable(typeof(IReadOnlyList<ActivityDay>))]
+[JsonSerializable(typeof(DirectoryListing))]
 [JsonSerializable(typeof(AgentAdapterOption))]
 [JsonSerializable(typeof(IReadOnlyList<AgentAdapterOption>))]
 [JsonSerializable(typeof(AgentInstallation))]

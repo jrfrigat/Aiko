@@ -110,6 +110,38 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
     }
 
     [Fact]
+    public async Task Directory_browser_endpoint_lists_directories_over_http()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "Aiko.Mcp.Specs", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Combine(root, "child"));
+        try
+        {
+            using var http = new HttpClient { BaseAddress = fixture.BaseUrl };
+            using var response = await http.GetAsync(
+                $"/api/v1/fs/directories?path={Uri.EscapeDataString(root)}",
+                CancellationToken.None);
+            response.EnsureSuccessStatusCode();
+
+            using var document = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
+            var entries = document.RootElement.GetProperty("entries").EnumerateArray().ToArray();
+            Assert.Equal("child", Assert.Single(entries).GetProperty("name").GetString());
+
+            // A path that is not a usable directory is a 400 with an explanation, not a stack trace.
+            using var bad = await http.GetAsync(
+                $"/api/v1/fs/directories?path={Uri.EscapeDataString(Path.Combine(root, "missing"))}",
+                CancellationToken.None);
+            Assert.Equal(HttpStatusCode.BadRequest, bad.StatusCode);
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, true);
+            }
+        }
+    }
+
+    [Fact]
     public async Task Removing_a_project_unregisters_it_and_keeps_its_files()
     {
         // A throwaway project: the fixture's own project is shared by every spec in this class.

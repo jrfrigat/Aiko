@@ -100,6 +100,71 @@ public class InfrastructureSpecs
     }
 
     [Fact]
+    public async Task Directory_browser_lists_child_directories_only()
+    {
+        var browser = new DirectoryBrowser();
+        var root = Path.Combine(Path.GetTempPath(), "Aiko.Specs", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Combine(root, "beta"));
+        Directory.CreateDirectory(Path.Combine(root, "alpha"));
+        Directory.CreateDirectory(Path.Combine(root, "alpha", AikoProjectPaths.DirectoryName));
+        await File.WriteAllTextAsync(Path.Combine(root, "notes.txt"), "not a directory");
+        try
+        {
+            var listing = await browser.ListAsync(root, CancellationToken.None);
+
+            Assert.Equal(Path.GetFullPath(root), listing.Path);
+            Assert.NotNull(listing.Parent);
+            Assert.True(listing.IsReadable);
+
+            // Files are never listed: the picker offers project roots, not a file browser.
+            Assert.Equal(
+                new[] { "alpha", "beta" },
+                listing.Entries.Select(entry => entry.Name));
+
+            // A directory that already holds .aiko is marked, so a duplicate registration is visible
+            // before it is made.
+            var project = Assert.Single(listing.Entries, entry => entry.Name == "alpha");
+            Assert.True(project.IsAikoProject);
+            Assert.False(Assert.Single(listing.Entries, entry => entry.Name == "beta").IsAikoProject);
+            Assert.True(project.IsReadable);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
+    public async Task Directory_browser_rejects_paths_it_cannot_use()
+    {
+        var browser = new DirectoryBrowser();
+        var root = Path.Combine(Path.GetTempPath(), "Aiko.Specs", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var file = Path.Combine(root, "notes.txt");
+        await File.WriteAllTextAsync(file, "not a directory");
+        try
+        {
+            // A relative path would silently resolve against the daemon's working directory, a missing
+            // one is a typo, and a file is not a project root: all three are user errors, not 500s.
+            await Assert.ThrowsAsync<ArgumentException>(async () =>
+                await browser.ListAsync("relative/path", CancellationToken.None));
+            await Assert.ThrowsAsync<ArgumentException>(async () =>
+                await browser.ListAsync(Path.Combine(root, "missing"), CancellationToken.None));
+            await Assert.ThrowsAsync<ArgumentException>(async () =>
+                await browser.ListAsync(file, CancellationToken.None));
+
+            // No path is the roots screen, which is always available.
+            var roots = await browser.ListAsync(null, CancellationToken.None);
+            Assert.Null(roots.Path);
+            Assert.NotEmpty(roots.Entries);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
     public async Task Default_project_documents_are_created()
     {
         await WithInitializedProjectAsync(context =>

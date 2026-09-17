@@ -220,4 +220,13 @@
   <data name="Unregister" xml:space="preserve"><value>Unregister</value></data>
   <data name="UnregisterConfirm" xml:space="preserve"><value>Unregister this project? Its files are kept.</value></data>
   <data name="UnregisterFailed" xml:space="preserve"><value>Could not unregister the project: {0}</value></data>
+  <data name="Browse" xml:space="preserve"><value>Browse</value></data>
+  <data name="ChooseFolder" xml:space="preserve"><value>Choose a folder</value></data>
+  <data name="Drives" xml:space="preserve"><value>Drives</value></data>
+  <data name="FolderUnreadable" xml:space="preserve"><value>This folder cannot be read.</value></data>
+  <data name="ExistingProject" xml:space="preserve"><value>Aiko project</value></data>
+  <data name="Up" xml:space="preserve"><value>Up</value></data>
+  <data name="Open" xml:space="preserve"><value>Open</value></data>
+  <data name="UseThisFolder" xml:space="preserve"><value>Use this folder</value></data>
+  <data name="BrowseFailed" xml:space="preserve"><value>Could not read the folder list: {0}</value></data>
 </root>

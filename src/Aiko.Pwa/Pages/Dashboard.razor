@@ -166,7 +166,13 @@
                     <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant">
                         @Loc.Get("AddProjectHint")
                     </FlareText>
-                    <FlareTextField Label="@Loc.Get("ProjectPath")" Immediate="true" @bind-Value="_newProjectPath" />
+                    <FlareStack Row="true" Align="FlareAlignItems.End" Gap="FlareSpacing.XSmall" StretchFirst="true">
+                        <FlareTextField Label="@Loc.Get("ProjectPath")" Immediate="true" @bind-Value="_newProjectPath" />
+                        <FlareButton Variant="ButtonVariant.Outlined" Size="ButtonSize.Sm" OnClick="OpenBrowserAsync">
+                            <LeadingIcon><FlareIconView Value="@FlareIcons.FolderOpen" /></LeadingIcon>
+                            <ChildContent>@Loc.Get("Browse")</ChildContent>
+                        </FlareButton>
+                    </FlareStack>
                     <FlareTextField Label="@Loc.Get("ProjectName")" @bind-Value="_newProjectName" />
                     <FlareSelect TValue="string" Label="@Loc.Get("GitPolicy")" @bind-Value="_newGitPolicy">
                         <option value="LocalOnly">@Loc.Get("GitPolicyLocalOnly")</option>
@@ -177,6 +183,79 @@
                         <FlareButton OnClick="AddProjectAsync">@Loc.Get("Add")</FlareButton>
                         <FlareButton Variant="ButtonVariant.Text" OnClick="CloseAddProject">@Loc.Get("Cancel")</FlareButton>
                     </FlareStack>
+
+                    @* The folder browser: the daemon lists directories, because the browser cannot hand an
+                       absolute path to the page (File System Access API exposes only the folder's name). *@
+                    @if (_browsing)
+                    {
+                        <FlareDivider />
+                        <FlareStack Gap="FlareSpacing.Small">
+                            <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XSmall">
+                                <FlareText Element="h3" Typo="TypographyScale.TitleSmall">@Loc.Get("ChooseFolder")</FlareText>
+                                <FlareIconButton Variant="ButtonVariant.Text"
+                                                 Icon="@FlareIcons.Close"
+                                                 AriaLabel="@Loc.Get("Close")"
+                                                 OnClick="CloseBrowser" />
+                            </FlareStack>
+
+                            <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant">
+                                @(_browse?.Path ?? Loc.Get("Drives"))
+                            </FlareText>
+
+                            @if (_browseError is { Length: > 0 } browseError)
+                            {
+                                <FlareAlert Severity="AlertSeverity.Error" Variant="AlertVariant.Outlined">@browseError</FlareAlert>
+                            }
+
+                            @if (_browse is { } listing)
+                            {
+                                @if (!listing.IsReadable)
+                                {
+                                    <FlareAlert Severity="AlertSeverity.Warning" Variant="AlertVariant.Text">@Loc.Get("FolderUnreadable")</FlareAlert>
+                                }
+
+                                <FlareStack Row="true" Gap="FlareSpacing.XXSmall" Wrap="true">
+                                    @if (listing.Parent is not null)
+                                    {
+                                        <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm"
+                                                     OnClick="() => BrowseAsync(listing.Parent)">
+                                            <LeadingIcon><FlareIconView Value="@FlareIcons.ArrowUpward" /></LeadingIcon>
+                                            <ChildContent>@Loc.Get("Up")</ChildContent>
+                                        </FlareButton>
+                                    }
+                                    <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm"
+                                                 OnClick="() => BrowseAsync(null)">@Loc.Get("Drives")</FlareButton>
+                                    @if (listing.Path is not null)
+                                    {
+                                        <FlareButton Size="ButtonSize.Sm" OnClick="() => ChooseFolder(listing.Path)">
+                                            <ChildContent>@Loc.Get("UseThisFolder")</ChildContent>
+                                        </FlareButton>
+                                    }
+                                </FlareStack>
+
+                                <FlareList TItem="DirectoryEntry" Dense="true">
+                                    @foreach (var entry in listing.Entries)
+                                    {
+                                        var item = entry;
+                                        <FlareListItem Primary="@item.Name" Secondary="@item.Path">
+                                            <Leading>
+                                                <FlareIconView Value="@(item.IsAikoProject ? FlareIcons.CheckCircle : FlareIcons.FolderOpen)" />
+                                            </Leading>
+                                            <Trailing>
+                                                @if (item.IsAikoProject)
+                                                {
+                                                    <span class="aiko-tag aiko-tag--accent">@Loc.Get("ExistingProject")</span>
+                                                }
+                                                <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm"
+                                                             Disabled="@(!item.IsReadable)"
+                                                             OnClick="() => BrowseAsync(item.Path)">@Loc.Get("Open")</FlareButton>
+                                            </Trailing>
+                                        </FlareListItem>
+                                    }
+                                </FlareList>
+                            }
+                        </FlareStack>
+                    }
                 </FlareStack>
             </FlareCard>
         }
@@ -246,6 +325,9 @@
     private string? _error;
     private bool _showAddProject;
     private string? _removingProjectId;
+    private bool _browsing;
+    private DirectoryListing? _browse;
+    private string? _browseError;
     private string? _newProjectPath;
     private string? _newProjectName;
     private string? _newGitPolicy = "LocalOnly";
@@ -402,7 +484,62 @@
 
     private void OpenAddProject() => _showAddProject = true;
 
-    private void CloseAddProject() => _showAddProject = false;
+    private void CloseAddProject()
+    {
+        _showAddProject = false;
+        CloseBrowser();
+    }
+
+    /// <summary>
+    /// Opens the folder browser at what is already typed, so a path that only needs one more segment
+    /// does not have to be walked from the roots again.
+    /// </summary>
+    private async Task OpenBrowserAsync()
+    {
+        _browsing = true;
+        await BrowseAsync(_newProjectPath);
+        if (_browse is null && !string.IsNullOrWhiteSpace(_newProjectPath))
+        {
+            // A typed path that is not a directory (a typo, or a file) is exactly what the browser is
+            // for: show the roots rather than an error the user cannot act on.
+            await BrowseAsync(null);
+        }
+    }
+
+    private void CloseBrowser()
+    {
+        _browsing = false;
+        _browse = null;
+        _browseError = null;
+    }
+
+    /// <summary>
+    /// Lists one level of the filesystem through the daemon. The page cannot do it itself: the File
+    /// System Access API hands out a handle whose name is only the last segment, and the daemon needs an
+    /// absolute path.
+    /// </summary>
+    private async Task BrowseAsync(string? path)
+    {
+        _browseError = null;
+        try
+        {
+            var query = string.IsNullOrWhiteSpace(path)
+                ? "api/v1/fs/directories"
+                : $"api/v1/fs/directories?path={Uri.EscapeDataString(path)}";
+            _browse = await Http.GetFromJsonAsync<DirectoryListing>(query, PwaJson.Options);
+        }
+        catch (Exception exception)
+        {
+            _browse = null;
+            _browseError = Loc.Format("BrowseFailed", FailureText.Describe(exception));
+        }
+    }
+
+    private void ChooseFolder(string path)
+    {
+        _newProjectPath = path;
+        CloseBrowser();
+    }
 
     private async Task AddProjectAsync()
     {

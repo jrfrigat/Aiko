@@ -35,6 +35,7 @@ builder.Services.AddSingleton<PairingService>();
 builder.Services.AddSingleton<DaemonEndpointConfiguration>();
 builder.Services.AddSingleton<AikoDatabase>();
 builder.Services.AddSingleton<IProjectCatalog, SqliteProjectCatalog>();
+builder.Services.AddSingleton<IDirectoryBrowser, DirectoryBrowser>();
 builder.Services.AddSingleton<IProjectInitializer, ProjectInitializer>();
 builder.Services.AddSingleton<IProjectDefinitionStore, FileProjectDefinitionStore>();
 builder.Services.AddSingleton<ICardStore, FileCardStore>();
@@ -132,6 +133,7 @@ app.MapAgentEndpoints();
 app.MapSettingsEndpoints();
 app.MapEventEndpoints();
 app.MapActivityEndpoints();
+app.MapFileSystemEndpoints();
 
 app.MapPost(
     "/api/v1/auth/pair",
