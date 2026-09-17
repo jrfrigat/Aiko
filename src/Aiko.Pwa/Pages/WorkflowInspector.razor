@@ -1,4 +1,5 @@
 @inject HttpClient Http
+@inject WorkspaceState State
 
 @* Workflow editor body. The stage sequence is a FlareChipGroup (one selectable chip per stage, in order,
    the chip label carrying the order and the title), the stage fields are Flare fields, and results are
@@ -89,13 +90,53 @@
                 <FlareTextArea Label="@Loc.Get("Instruction")"
                                Rows="5"
                                @bind-Value="stage.Instruction" />
-                <FlareTextField Label="@Loc.Get("DefaultAgent")"
-                                HelperText="@Loc.Get("DefaultAgentHelper")"
-                                @bind-Value="stage.DefaultAgentAdapterId" />
+                @* Executors: the stage's own list of adapters. An empty selection means every discovered
+                   adapter may run the stage, which is what the label says. *@
+                <FlareStack Gap="FlareSpacing.XXSmall">
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant">
+                        @Loc.Get("AllowedExecutors")
+                    </FlareText>
+                    @if (State.Agents.Count == 0)
+                    {
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Get("NoAgentsDiscovered")
+                        </FlareText>
+                    }
+                    else
+                    {
+                        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall" Wrap="true">
+                            @foreach (var agent in State.Agents)
+                            {
+                                var option = agent;
+                                <label class="aiko-check-chip">
+                                    <input type="checkbox"
+                                           checked="@stage.AllowedAgentAdapterIds.Contains(option.Id)"
+                                           @onchange="() => ToggleExecutor(stage, option.Id)" />
+                                    @option.DisplayName
+                                </label>
+                            }
+                        </FlareStack>
+                    }
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                        @Loc.Get("AllowedExecutorsHint")
+                    </FlareText>
+                </FlareStack>
+                <FlareSelect TValue="string" Label="@Loc.Get("DefaultAgent")" @bind-Value="stage.DefaultAgentAdapterId">
+                    <option value="">@Loc.Get("AnyAgent")</option>
+                    @foreach (var agent in State.Agents)
+                    {
+                        var option = agent;
+                        <option value="@option.Id">@option.DisplayName</option>
+                    }
+                </FlareSelect>
                 <FlareTextArea Label="@Loc.Get("RequiredArtifacts")"
                                HelperText="@Loc.Get("ArtifactsHelper")"
                                Rows="5"
                                @bind-Value="stage.ArtifactLines" />
+                <FlareTextArea Label="@Loc.Get("ValidationCommands")"
+                               HelperText="@Loc.Get("ValidationCommandsHelper")"
+                               Rows="3"
+                               @bind-Value="stage.CommandLines" />
             </FlareStack>
         }
 
@@ -372,6 +413,27 @@
         _hasError = true;
     }
 
+    /// <summary>
+    /// Adds or removes one adapter from a stage's executor list. The list is a plain set of adapter ids:
+    /// empty means "every adapter may run this stage", which is what the screen says next to it.
+    /// </summary>
+    private static void ToggleExecutor(StageDraft stage, string agentAdapterId)
+    {
+        if (!stage.AllowedAgentAdapterIds.Remove(agentAdapterId))
+        {
+            stage.AllowedAgentAdapterIds.Add(agentAdapterId);
+        }
+    }
+
+    /// <summary>
+    /// One verification command per line (ТЗ §11). Blank lines are dropped rather than rejected: a
+    /// trailing newline is what a textarea hands back.
+    /// </summary>
+    private static IReadOnlyList<string> ParseCommands(string? lines) =>
+        (lines ?? string.Empty)
+            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToArray();
+
     private sealed class StageDraft
     {
         public required string Id { get; set; }
@@ -380,6 +442,8 @@
         public required string Instruction { get; set; }
         public string? DefaultAgentAdapterId { get; set; }
         public string? ArtifactLines { get; set; }
+        public string? CommandLines { get; set; }
+        public List<string> AllowedAgentAdapterIds { get; init; } = [];
         public required IReadOnlyList<CardKind> AllowedCardKinds { get; init; }
         public required IReadOnlyDictionary<string, ActionPolicy> ActionPolicies { get; init; }
         public bool IsNew { get; init; }
@@ -393,6 +457,8 @@
             DefaultAgentAdapterId = stage.DefaultAgentAdapterId,
             ArtifactLines = string.Join(Environment.NewLine, stage.RequiredArtifacts.Select(artifact =>
                 $"{artifact.Path} | {artifact.MissingPolicy} | {artifact.Description}")),
+            CommandLines = string.Join(Environment.NewLine, stage.Commands),
+            AllowedAgentAdapterIds = [.. stage.AllowedAgents],
             AllowedCardKinds = stage.AllowedCardKinds,
             ActionPolicies = stage.ActionPolicies
         };
@@ -405,6 +471,10 @@
             AllowedCardKinds,
             string.IsNullOrWhiteSpace(DefaultAgentAdapterId) ? null : DefaultAgentAdapterId.Trim(),
             artifacts,
-            ActionPolicies);
+            ActionPolicies,
+            // An empty list travels as an empty list, not null: "no executors chosen" means every adapter,
+            // and null would say the same thing through a second representation.
+            AllowedAgentAdapterIds,
+            ParseCommands(CommandLines));
     }
 }

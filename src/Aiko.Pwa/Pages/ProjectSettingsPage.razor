@@ -11,9 +11,16 @@
 }
 else
 {
-    <SettingsPanel Scope="SettingsPanel.SettingsScope.Project"
-                   Project="board.Project"
-                   OnSaved="State.LoadBoardAsync" />
+    <FlareStack Gap="FlareSpacing.Medium">
+        <SettingsPanel Scope="SettingsPanel.SettingsScope.Project"
+                       Project="board.Project"
+                       OnSaved="State.LoadBoardAsync" />
+        @* The stages of this project's pipelines: the statuses a card moves through, the instruction the
+           agent gets at each one, the executors allowed to run it, the artifacts it must produce and the
+           commands that verify it. They are the project's own copy of the template's workflows, which is
+           why editing them here never reaches another project. *@
+        <WorkflowInspector Board="board" OnSaved="State.LoadBoardAsync" />
+    </FlareStack>
 }
 
 @code {

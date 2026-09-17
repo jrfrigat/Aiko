@@ -268,6 +268,12 @@
   <data name="InvalidSizeCoefficient" xml:space="preserve"><value>A size coefficient must be greater than zero.</value></data>
   <data name="DuplicateSizeId" xml:space="preserve"><value>The size step "{0}" is listed twice.</value></data>
   <data name="InvalidCriterionRange" xml:space="preserve"><value>A criterion's upper bound must be greater than its lower bound.</value></data>
+  <data name="AllowedExecutors" xml:space="preserve"><value>Allowed executors</value></data>
+  <data name="AllowedExecutorsHint" xml:space="preserve"><value>Leave every box clear to let any discovered agent run this stage.</value></data>
+  <data name="NoAgentsDiscovered" xml:space="preserve"><value>No agent adapters were discovered on this machine.</value></data>
+  <data name="AnyAgent" xml:space="preserve"><value>Any agent</value></data>
+  <data name="ValidationCommands" xml:space="preserve"><value>Validation commands</value></data>
+  <data name="ValidationCommandsHelper" xml:space="preserve"><value>One command per line. They are recorded as this stage's definition of done and shown to the agent; Aiko does not run them itself.</value></data>
   <data name="NoSize" xml:space="preserve"><value>No size</value></data>
   <data name="Template" xml:space="preserve"><value>Template</value></data>
   <data name="TemplateHint" xml:space="preserve"><value>Copied into the project at creation: it fixes the stages and their artifacts, the board projections, the starting memory and the default settings. Changing the template later affects only projects created afterwards.</value></data>

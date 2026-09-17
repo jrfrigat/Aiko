@@ -268,6 +268,12 @@
   <data name="InvalidSizeCoefficient" xml:space="preserve"><value>Коэффициент размера должен быть больше нуля.</value></data>
   <data name="DuplicateSizeId" xml:space="preserve"><value>Размер "{0}" указан дважды.</value></data>
   <data name="InvalidCriterionRange" xml:space="preserve"><value>Верхняя граница критерия должна быть больше нижней.</value></data>
+  <data name="AllowedExecutors" xml:space="preserve"><value>Разрешённые исполнители</value></data>
+  <data name="AllowedExecutorsHint" xml:space="preserve"><value>Если не выбрано ни одного агента, этап может запускать любой найденный агент.</value></data>
+  <data name="NoAgentsDiscovered" xml:space="preserve"><value>На этой машине не найдено ни одного адаптера агента.</value></data>
+  <data name="AnyAgent" xml:space="preserve"><value>Любой агент</value></data>
+  <data name="ValidationCommands" xml:space="preserve"><value>Команды проверки</value></data>
+  <data name="ValidationCommandsHelper" xml:space="preserve"><value>По одной команде в строке. Они записываются как definition of done этапа и показываются агенту; Aiko их не исполняет.</value></data>
   <data name="NoSize" xml:space="preserve"><value>Без размера</value></data>
   <data name="Template" xml:space="preserve"><value>Шаблон</value></data>
   <data name="TemplateHint" xml:space="preserve"><value>Копируется в проект при создании: он задаёт этапы и их артефакты, проекции доски, стартовую память и значения по умолчанию. Изменение шаблона позже действует только на проекты, созданные после.</value></data>

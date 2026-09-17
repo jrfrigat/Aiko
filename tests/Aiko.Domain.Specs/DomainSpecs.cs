@@ -162,6 +162,62 @@ public class DomainSpecs
     }
 
     [Fact]
+    public void A_stage_allows_its_default_adapter_whatever_the_executor_list_says()
+    {
+        var stage = new StageDefinition(
+            "analysis",
+            "Analysis",
+            20,
+            "Analyse the task.",
+            [CardKind.Task],
+            "claude",
+            [],
+            new Dictionary<string, ActionPolicy>(StringComparer.Ordinal),
+            ["codex"]);
+
+        // The default adapter is always allowed, so a stage cannot be configured into a dead end.
+        Assert.True(stage.Allows("claude"));
+        Assert.True(stage.Allows("codex"));
+        Assert.False(stage.Allows("cursor"));
+        // No adapter named means "any", which is how an unpinned run is started.
+        Assert.True(stage.Allows(null));
+
+        // An empty executor list means every discovered adapter is allowed.
+        Assert.True((stage with { AllowedAgentAdapterIds = null }).Allows("cursor"));
+
+        // With no default, the list is the only thing that decides.
+        Assert.False((stage with { DefaultAgentAdapterId = null }).Allows("cursor"));
+    }
+
+    [Fact]
+    public void Stage_executors_and_validation_commands_survive_the_workflow_json()
+    {
+        var stage = new StageDefinition(
+            "implementation",
+            "Implementation",
+            30,
+            "Implement the task.",
+            [CardKind.Task],
+            "claude",
+            [new ArtifactRequirement("implementation.md", "The outcome.", MissingArtifactPolicy.Warn)],
+            new Dictionary<string, ActionPolicy>(StringComparer.Ordinal) { ["commit"] = ActionPolicy.Ask },
+            ["claude", "codex"],
+            ["dotnet build --no-restore", "dotnet test --no-build"]);
+
+        var json = JsonSerializer.Serialize(stage, JsonSerializerOptions.Web);
+        var restored = JsonSerializer.Deserialize<StageDefinition>(json, JsonSerializerOptions.Web);
+
+        Assert.NotNull(restored);
+        Assert.Equal(stage.Id, restored!.Id);
+        Assert.Equal(stage.Instruction, restored.Instruction);
+        Assert.Equal("claude", restored.DefaultAgentAdapterId);
+        Assert.Equal(["claude", "codex"], restored.AllowedAgents);
+        Assert.Equal(["dotnet build --no-restore", "dotnet test --no-build"], restored.Commands);
+        Assert.Equal(ActionPolicy.Ask, restored.ActionPolicies["commit"]);
+        Assert.Equal(MissingArtifactPolicy.Warn, restored.RequiredArtifacts[0].MissingPolicy);
+    }
+
+    [Fact]
     public void A_size_step_must_carry_an_id_and_a_positive_coefficient()
     {
         Assert.Throws<ArgumentException>(() => new SizeDefinition(" ", "S", "Описание", 1m));

@@ -547,3 +547,28 @@
     border-radius: var(--flare-shape-extra-small);
     background: var(--flare-color-surface-container);
 }
+
+/* A checkbox chip: the stage constructor's executor picker, where the label itself is the chip.
+   FlareCheckbox draws a control with a label beside it, which is not the shape the design asks for. */
+.aiko-check-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.0625rem 0.375rem;
+    border-radius: var(--flare-shape-extra-small);
+    background: var(--flare-color-surface-container-highest);
+    color: var(--flare-color-on-surface);
+    font-family: var(--aiko-font-mono, monospace);
+    font-size: 0.6875rem;
+    line-height: 1rem;
+    cursor: pointer;
+}
+
+.aiko-check-chip:hover {
+    background: var(--flare-color-surface-container);
+}
+
+.aiko-check-chip input {
+    margin: 0;
+    accent-color: var(--flare-color-primary);
+}

@@ -200,14 +200,9 @@
                                 <span class="aiko-tag">@DisplayFormat.Number(BoardMetrics.CountKind(State.Board, CardKind.Story))</span>
                             </BadgeContent>
                         </FlareNavLink>
-                        @* Workflow has no place in the v2 rail: it becomes a section of Project Settings.
-                           It stays reachable here until that section exists, so nothing is lost meanwhile. *@
-                        <FlareNavLink Href="@SectionHref(open.Id, "workflow")">
-                            <ChildContent>@Loc.Get("Workflow")</ChildContent>
-                            <BadgeContent>
-                                <span class="aiko-tag">@DisplayFormat.Number(State.Board?.Workflows.Count ?? 0)</span>
-                            </BadgeContent>
-                        </FlareNavLink>
+                        @* Workflow moved into Project Settings: the design's rail has no separate stage
+                           editor, and one place to edit a pipeline is better than two. The /workflow route
+                           stays for deep links. *@
                         <FlareNavLink Href="@SectionHref(open.Id, "settings")">
                             <ChildContent>@Loc.Get("Settings")</ChildContent>
                         </FlareNavLink>

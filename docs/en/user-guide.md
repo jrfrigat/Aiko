@@ -35,9 +35,12 @@ executions, agent attempts, progress and artifacts.
 
 ## Workflows
 
-A workflow is an ordered list of stages. Each stage has a title, an agent instruction, the card
-kinds it accepts, a default agent, required artifacts and action policies. Edit workflows in the
-UI (the **Workflow** button). Removing a stage that still contains cards is rejected.
+A workflow is an ordered list of stages. Each stage has a title, the card kinds it accepts, the
+instruction the agent is given, the executors allowed to run it and its default agent, the artifacts it
+must produce (each with a policy for when it is missing) and the commands that verify its outcome. Edit
+them in **Project settings**, in the stages section: a project owns its own copy of the pipelines, so a
+change there never reaches another project - or a project created later from the template. Removing a
+stage that still contains cards is rejected.
 
 ## Settings
 
