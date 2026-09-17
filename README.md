@@ -60,7 +60,8 @@ rate limit) hands off to another agent without losing history.
 - **Git, read through your own client** - the branch, the changes, the log and the diff of a card's files,
   read by running the `git` executable; a machine without it says "Git client unavailable" instead of
   failing, and Aiko never writes to the repository
-- **Workflow sets you can author** - the pipelines and defaults a project starts from: captured from a
+- **Workflow sets you can author** - the pipelines and defaults a project starts from, plus what an agent
+  must do right after creating it (the structure the project should have, for instance): captured from a
   project, exported and imported between machines, and applied to an existing project by an explicit action
 - **Screens that answer questions** - a project page (cards per stage, weekly velocity, triage
   distribution, re-index), a card page (scope, acceptance criteria, live diff, discussion, runs) and a

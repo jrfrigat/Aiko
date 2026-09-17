@@ -80,7 +80,7 @@ types no longer have.
 
 Global skills/commands (installed with `aiko agent install --scope user`):
 
-`/aiko-init`, `/aiko-list-projects`, `/aiko-status`, `/aiko-doctor`, `/aiko-repair`, `/aiko-agents`,
+`/aiko-init [templateId]`, `/aiko-list-projects`, `/aiko-status`, `/aiko-doctor`, `/aiko-repair`, `/aiko-agents`,
 `/aiko-token`, `/aiko-backup`, `/aiko-ui`.
 
 User scope is the machine-wide connection: it is what the dashboard's *Agents* card reports as
@@ -91,7 +91,9 @@ need `aiko agent install --project <id>` for a particular project.
 The behavior contract: any work item starts with a card; read context before acting; warn before
 changing files outside the declared scope; report progress, actual files and commits through Aiko.
 The project context lists every card type the project defines with the stages of its pipeline, so a type
-added in the workflow editor is one an agent can create immediately.
+added in the workflow editor is one an agent can create immediately. It also carries the project's
+initialization instruction when its template came with one, which is what an `/aiko-init` run finishes by
+carrying out.
 
 ## Parity: skill, tool, UI
 
@@ -100,7 +102,7 @@ has no path yet, the table says so rather than pretending the sets are already e
 
 | Action | Agent skill | MCP tool | UI |
 | :-- | :-- | :-- | :-- |
-| Register a project from a chosen template | `/aiko-init [name] [id]` | `aiko_list_templates`, `aiko_init_project` | Dashboard - *Add project* (folder browser + template select) |
+| Register a project from a chosen template | `/aiko-init [templateId]` | `aiko_list_templates`, `aiko_init_project` | Dashboard - *Add project* (folder browser + template select) |
 | List projects | `/aiko-list-projects` | `aiko_list_projects` | Dashboard - project list |
 | Open the board | `/aiko-ui` | `aiko_open_ui` | `aiko ui`, or the URL in the app bar |
 | Create a card of any type the project defines | `/aiko-create <type> <title>`, `/aiko-create-<type>` | `aiko_create_card`, `aiko_create_card_in_project` | Board - *Create card* |

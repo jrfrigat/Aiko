@@ -117,6 +117,13 @@ and the default settings. Choose it in the dashboard's *Add project* form, with
 `aiko init <path> --template <id> --id <slug>`, or through `aiko_init_project` after listing the options with
 `aiko_list_templates` (the same list is available as `GET /api/v1/templates`).
 
+A template can also carry an **initialization instruction**: what an agent does right after a project has
+been created from it, beyond Aiko copying the files - the structure the project should have, for example.
+The field is on the Workflow screen, under the template's name. The instruction is copied into the new
+project as `.aiko/initialization.md`, and `aiko_get_project_context` hands it to the agent, so
+`/aiko-init <templateId>` ends with the project actually laid out rather than only registered. A project
+created from a template without one simply has no such document.
+
 The template is **copied** into the project, and the project owns its configuration from then on. Editing a
 template - in the UI or by editing `templates/<id>/template.json` next to the daemon's database - affects
 the projects created afterwards, never the ones that already exist. `.aiko/project.json` records

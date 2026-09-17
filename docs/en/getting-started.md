@@ -43,7 +43,7 @@ Then restart the agent so it loads the project's MCP server.
 In the agent (inside the project):
 
 ```text
-/aiko-init                # only if the project is not registered yet
+/aiko-init <templateId>   # only if the project is not registered yet; the template decides what it starts as
 /aiko-create task Add a settings page      # name the type, then what you want
 /aiko-create bug The dropdown list is empty
 ```
