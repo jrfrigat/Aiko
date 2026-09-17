@@ -67,7 +67,11 @@ internal sealed class WorkspaceState : IAsyncDisposable
     /// <summary>The open project's effective settings view, or null when no project is open.</summary>
     public AppSettingsView? SettingsView { get; private set; }
 
-    /// <summary>The id of the project the current route opened, or null on the dashboard.</summary>
+    /// <summary>
+    /// What the current route carried for the open project: its readable slug, or its id on a link that
+    /// still uses one. Both resolve everywhere - the catalog, the REST routes and the MCP route - so the
+    /// value is passed through unchanged rather than translated at every call site.
+    /// </summary>
     public string? SelectedProjectId { get; private set; }
 
     /// <summary>The last failure to show, cleared by the next successful load.</summary>
@@ -88,7 +92,9 @@ internal sealed class WorkspaceState : IAsyncDisposable
     /// <summary>The open project as registered, or null.</summary>
     public RegisteredProject? SelectedProject => SelectedProjectId is null
         ? null
-        : Projects.FirstOrDefault(project => project.Id == SelectedProjectId);
+        : Projects.FirstOrDefault(project =>
+            string.Equals(project.Id, SelectedProjectId, StringComparison.Ordinal) ||
+            string.Equals(project.Slug, SelectedProjectId, StringComparison.Ordinal));
 
     /// <summary>The local endpoint the daemon serves, as the top bar's host pill.</summary>
     public string HostCaption => _http.BaseAddress is { } address
@@ -248,7 +254,8 @@ internal sealed class WorkspaceState : IAsyncDisposable
         string rootPath,
         string? name,
         ProjectGitPolicy gitPolicy,
-        string? templateId = null)
+        string? templateId = null,
+        string? slug = null)
     {
         await EnsureInitializedAsync();
         Error = null;
@@ -256,9 +263,17 @@ internal sealed class WorkspaceState : IAsyncDisposable
         {
             using var response = await _http.PostAsJsonAsync(
                 "api/v1/projects/initialize",
-                new InitializeProjectRequest(rootPath, name, gitPolicy, templateId),
+                new InitializeProjectRequest(rootPath, name, gitPolicy, templateId, slug),
                 PwaJson.Options);
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                // A project id that is already taken comes back as a conflict carrying its own sentence.
+                // Replacing it with the status code would hide the one thing the user has to change.
+                var error = await response.Content.ReadFromJsonAsync<ErrorResponse>(PwaJson.Options);
+                Error = error?.Message ?? Loc.Format("ServerRejectedChanges", (int)response.StatusCode);
+                return null;
+            }
+
             var project = await response.Content.ReadFromJsonAsync<RegisteredProject>(PwaJson.Options);
             await ReloadProjectsAsync();
             // The first project writes the installation's default template, so the list the add-project

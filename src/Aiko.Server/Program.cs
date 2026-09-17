@@ -79,6 +79,10 @@ builder.Services
 var app = builder.Build();
 
 await app.Services.GetRequiredService<AikoDatabase>().InitializeAsync();
+// Projects created before slugs existed get their readable handle here, so their URLs become readable
+// without anyone re-registering them. A handle already stated in the project's manifest wins, so this is
+// idempotent and `aiko repair --fix` performs the same step.
+await app.Services.GetRequiredService<IProjectInitializer>().EnsureSlugsAsync(CancellationToken.None);
 var configuredUrl = builder.Configuration["AIKO_URL"];
 var serverBaseUri = !string.IsNullOrWhiteSpace(configuredUrl)
     ? ValidateExplicitServerUrl(configuredUrl)

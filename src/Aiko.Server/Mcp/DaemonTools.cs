@@ -51,6 +51,11 @@ internal sealed class DaemonTools(
         string rootPath,
         [Description("Optional project name. Defaults to the directory name.")]
         [Optional] string? name,
+        [Description(
+            "Optional project id: the short handle used in the UI's URLs, for example 'aiko'. Defaults to a "
+            + "slug derived from the name. A value that is already taken is refused; a derived one is made "
+            + "unique automatically.")]
+        [Optional] string? projectId,
         [Description("Git policy: local-only, track-project-knowledge or custom. Defaults to local-only.")]
         [Optional] string? gitPolicy,
         [Description("Template id from aiko_list_templates. Defaults to the built-in default template.")]
@@ -58,7 +63,7 @@ internal sealed class DaemonTools(
         CancellationToken cancellationToken)
     {
         var project = await initializer.InitializeAsync(
-            new InitializeProjectRequest(rootPath, name, ParseGitPolicy(gitPolicy), templateId),
+            new InitializeProjectRequest(rootPath, name, ParseGitPolicy(gitPolicy), templateId, projectId),
             cancellationToken);
         return JsonSerializer.Serialize(project, ServerJsonContext.Default.RegisteredProject);
     }

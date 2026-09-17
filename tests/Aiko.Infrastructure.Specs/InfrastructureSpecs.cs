@@ -43,6 +43,112 @@ public class InfrastructureSpecs
     }
 
     [Fact]
+    public async Task A_project_gets_a_readable_handle_from_its_name()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            // The name and the handle both exist, and the handle follows from the name; the temp directory
+            // carries a GUID, so the value itself is not predicted here, only its relationship.
+            Assert.False(string.IsNullOrWhiteSpace(context.Project.Slug));
+            Assert.Equal(ProjectSlug.Derive(context.Project.Name), context.Project.Slug);
+
+            using var manifest = JsonDocument.Parse(
+                await File.ReadAllTextAsync(Path.Combine(context.StitchRoot, "project.json")));
+            Assert.Equal(context.Project.Slug, manifest.RootElement.GetProperty("slug").GetString());
+
+            // Both identifiers resolve, which is what keeps existing id-based links working.
+            Assert.Equal(context.Project.Id,
+                (await context.Catalog.FindAsync(context.Project.Slug!, CancellationToken.None))!.Id);
+            Assert.Equal(context.Project.Id,
+                (await context.Catalog.FindAsync(context.Project.Id, CancellationToken.None))!.Id);
+        });
+    }
+
+    [Fact]
+    public async Task A_handle_the_caller_chose_is_used_as_is_or_refused()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            var chosenRoot = Path.Combine(Path.GetTempPath(), "Aiko.Specs", Guid.NewGuid().ToString("N"));
+            var clashRoot = Path.Combine(Path.GetTempPath(), "Aiko.Specs", Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(chosenRoot);
+            Directory.CreateDirectory(clashRoot);
+            try
+            {
+                var chosen = await context.Initializer.InitializeAsync(
+                    new InitializeProjectRequest(chosenRoot, "Мой пеРвыЙ проект", Slug: "moj-pervyj-proekt"),
+                    CancellationToken.None);
+                Assert.Equal("moj-pervyj-proekt", chosen.Slug);
+                Assert.Equal("Мой пеРвыЙ проект", chosen.Name);
+
+                // A value the caller typed is never silently changed: the clash is an error naming it, so
+                // the user learns which project already holds the handle.
+                var taken = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                    await context.Initializer.InitializeAsync(
+                        new InitializeProjectRequest(clashRoot, Slug: "moj-pervyj-proekt"),
+                        CancellationToken.None));
+                Assert.Contains("moj-pervyj-proekt", taken.Message, StringComparison.Ordinal);
+            }
+            finally
+            {
+                Directory.Delete(chosenRoot, true);
+                Directory.Delete(clashRoot, true);
+            }
+        });
+    }
+
+    [Fact]
+    public async Task A_derived_handle_is_made_unique_instead_of_failing()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            var secondRoot = Path.Combine(Path.GetTempPath(), "Aiko.Specs", Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(secondRoot);
+            try
+            {
+                // Same name as the first project and no handle given: the second gets "-2" rather than an
+                // error, because the user only picked a folder.
+                var second = await context.Initializer.InitializeAsync(
+                    new InitializeProjectRequest(secondRoot, context.Project.Name),
+                    CancellationToken.None);
+                Assert.Equal($"{context.Project.Slug}-2", second.Slug);
+            }
+            finally
+            {
+                Directory.Delete(secondRoot, true);
+            }
+        });
+    }
+
+    [Fact]
+    public async Task A_project_without_a_handle_gets_one_from_its_name()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            // What an installation upgraded from an older release looks like: neither the manifest nor the
+            // registration carries a handle.
+            var manifestPath = Path.Combine(context.StitchRoot, "project.json");
+            var document = System.Text.Json.Nodes.JsonNode.Parse(
+                await File.ReadAllTextAsync(manifestPath))!.AsObject();
+            document.Remove("slug");
+            await File.WriteAllTextAsync(manifestPath, document.ToJsonString());
+            await context.Catalog.SaveAsync(context.Project with { Slug = null }, CancellationToken.None);
+
+            var assigned = await context.Initializer.EnsureSlugsAsync(CancellationToken.None);
+            Assert.Equal(1, assigned);
+
+            var repaired = Assert.Single(await context.Catalog.ListAsync(CancellationToken.None));
+            Assert.Equal(ProjectSlug.Derive(repaired.Name), repaired.Slug);
+
+            // And it is idempotent: a project that already has a handle keeps it.
+            Assert.Equal(0, await context.Initializer.EnsureSlugsAsync(CancellationToken.None));
+            Assert.Equal(
+                repaired.Slug,
+                Assert.Single(await context.Catalog.ListAsync(CancellationToken.None)).Slug);
+        });
+    }
+
+    [Fact]
     public async Task Activity_report_counts_the_days_an_execution_happened()
     {
         await WithInitializedProjectAsync(async context =>

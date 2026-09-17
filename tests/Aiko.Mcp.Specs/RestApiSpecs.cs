@@ -257,6 +257,25 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
     }
 
     [Fact]
+    public async Task A_project_answers_to_its_readable_handle()
+    {
+        using var http = CreateClient();
+
+        var board = await http.GetFromJsonAsync<JsonElement>($"api/v1/projects/{fixture.ProjectId}/board");
+        var slug = board.GetProperty("project").GetProperty("slug").GetString();
+        Assert.False(string.IsNullOrWhiteSpace(slug));
+
+        // Every project route resolves the readable handle, which is what the UI links with, while the id
+        // keeps working - links saved before slugs existed still open.
+        using var bySlug = await http.GetAsync($"api/v1/projects/{slug}/board");
+        Assert.Equal(HttpStatusCode.OK, bySlug.StatusCode);
+        var bySlugBoard = await bySlug.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(
+            fixture.ProjectId,
+            bySlugBoard.GetProperty("project").GetProperty("id").GetString());
+    }
+
+    [Fact]
     public async Task A_project_can_add_its_own_card_type()
     {
         using var http = CreateClient();

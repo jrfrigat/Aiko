@@ -15,8 +15,14 @@ namespace Aiko.Application.Contracts;
 /// template is copied into the project here and never read again: a later change to a template applies to
 /// the projects created afterwards.
 /// </param>
+/// <param name="Slug">
+/// Human-readable handle for the project's URLs, or null to derive one from <paramref name="Name"/> and make
+/// it unique. A slug that was given and is already taken is an error, because the caller chose it; a derived
+/// one is never an error.
+/// </param>
 public sealed record InitializeProjectRequest(
     string RootPath,
     string? Name = null,
     ProjectGitPolicy? GitPolicy = null,
-    string? TemplateId = null);
+    string? TemplateId = null,
+    string? Slug = null);

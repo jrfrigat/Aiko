@@ -199,9 +199,13 @@
     private string? _message;
     private bool _hasError;
 
-    /// <summary>The MCP endpoint an agent connects to: the daemon plus the open project, when one is open.</summary>
-    private string McpEndpoint => State.SelectedProjectId is { } projectId && State.HostCaption is { Length: > 0 } host
-        ? $"http://{host}/mcp/projects/{projectId}"
+    /// <summary>
+    /// The MCP endpoint an agent connects to: the daemon plus the open project, when one is open. The real
+    /// project id is shown rather than its readable handle, because this is the address the written agent
+    /// configurations carry.
+    /// </summary>
+    private string McpEndpoint => State.SelectedProject is { } project && State.HostCaption is { Length: > 0 } host
+        ? $"http://{host}/mcp/projects/{project.Id}"
         : Loc.Get("SelectProjectForLocalSettings");
 
     /// <summary>The measured round-trip to the daemon, or a dash before it has answered once.</summary>

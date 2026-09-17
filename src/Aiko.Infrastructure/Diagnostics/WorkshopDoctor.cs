@@ -62,7 +62,9 @@ public sealed class WorkshopDoctor(
         if (projectId is { Length: > 0 } requested)
         {
             registered = registered
-                .Where(project => StringComparer.Ordinal.Equals(project.Id, requested))
+                .Where(project =>
+                    StringComparer.Ordinal.Equals(project.Id, requested) ||
+                    StringComparer.Ordinal.Equals(project.Slug, requested))
                 .ToArray();
             if (registered.Count == 0)
             {

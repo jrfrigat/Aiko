@@ -20,13 +20,27 @@ internal static class ProjectEndpoints
                 TypedResults.Ok(await catalog.ListAsync(cancellationToken)));
         app.MapPost(
             "/api/v1/projects/initialize",
-            async (
+            async Task<IResult> (
                 InitializeProjectRequest request,
                 IProjectInitializer initializer,
                 CancellationToken cancellationToken) =>
             {
-                var project = await initializer.InitializeAsync(request, cancellationToken);
-                return TypedResults.Created($"/api/v1/projects/{project.Id}", project);
+                try
+                {
+                    var project = await initializer.InitializeAsync(request, cancellationToken);
+                    // The Location header carries the readable handle, which is what the UI links with.
+                    return TypedResults.Created($"/api/v1/projects/{project.Handle}", project);
+                }
+                catch (InvalidOperationException exception)
+                {
+                    // A project id the user chose is already taken. The answer is a conflict naming the value,
+                    // not a silent rename: the caller typed it and has to learn it was refused.
+                    return Results.Conflict(new ErrorResponse(exception.Message));
+                }
+                catch (Exception exception) when (exception is DirectoryNotFoundException or ArgumentException)
+                {
+                    return Results.BadRequest(new ErrorResponse(exception.Message));
+                }
             });
         // The templates a project can be created from. Read-only: the only one that exists today is the
         // built-in default, and authoring templates is the post-MVP half of the feature.

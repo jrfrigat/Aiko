@@ -178,15 +178,25 @@
                         <AikoField Label="@Loc.Get("ProjectPath")"
                                    Placeholder="C:\work\project"
                                    Value="@_newProjectPath"
-                                   ValueChanged="value => _newProjectPath = value" />
+                                   ValueChanged="SetProjectPath" />
                         <FlareButton Variant="ButtonVariant.Outlined" Size="ButtonSize.Sm" OnClick="OpenBrowserAsync">
                             <LeadingIcon><FlareIconView Value="@FlareIcons.FolderOpen" /></LeadingIcon>
                             <ChildContent>@Loc.Get("Browse")</ChildContent>
                         </FlareButton>
                     </FlareStack>
-                    <AikoField Label="@Loc.Get("ProjectName")"
-                               Value="@_newProjectName"
-                               ValueChanged="value => _newProjectName = value" />
+                    <FlareStack Row="true" Align="FlareAlignItems.End" Gap="FlareSpacing.XSmall" StretchFirst="true">
+                        <AikoField Label="@Loc.Get("ProjectName")"
+                                   Value="@_newProjectName"
+                                   ValueChanged="value => _newProjectName = value" />
+                        @* The id is what the address shows, so it is filled in from the folder as soon as a
+                           path is chosen and stays editable: the derived value is a starting point, not a
+                           rule. *@
+                        <AikoField Label="@Loc.Get("ProjectIdLabel")"
+                                   Hint="@ProjectIdHint"
+                                   ErrorText="@ProjectIdError"
+                                   Value="@_newProjectSlug"
+                                   ValueChanged="value => _newProjectSlug = value" />
+                    </FlareStack>
                     <AikoSelectField Label="@Loc.Get("GitPolicy")"
                                      Value="@_newGitPolicy"
                                      ValueChanged="value => _newGitPolicy = value">
@@ -368,7 +378,7 @@
                             else
                             {
                                 <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm"
-                                             OnClick="() => OpenProject(item.Id)">@Loc.Get("OpenProject")</FlareButton>
+                                             OnClick="() => OpenProject(item.Handle)">@Loc.Get("OpenProject")</FlareButton>
                                 <FlareIconButton Variant="ButtonVariant.Text"
                                                  Icon="@FlareIcons.Delete"
                                                  AriaLabel="@Loc.Get("Unregister")"
@@ -406,6 +416,7 @@
     private string? _browseError;
     private string? _newProjectPath;
     private string? _newProjectName;
+    private string? _newProjectSlug;
     private string? _newGitPolicy = "LocalOnly";
 
     protected override async Task OnInitializedAsync()
@@ -695,8 +706,68 @@
 
     private void ChooseFolder(string path)
     {
-        _newProjectPath = path;
+        SetProjectPath(path);
         CloseBrowser();
+    }
+
+    /// <summary>
+    /// Takes the chosen or typed path and fills the name and the id in from it, so the common case is one
+    /// action. Both stay editable afterwards: the derived values are a starting point, not a rule.
+    /// </summary>
+    private void SetProjectPath(string? path)
+    {
+        _newProjectPath = path;
+        var folder = FolderName(path);
+        _newProjectName = folder;
+        _newProjectSlug = folder is { Length: > 0 } ? ProjectSlug.Derive(folder) : null;
+    }
+
+    /// <summary>
+    /// The folder a path names, with its separators trimmed so a pasted <c>C:\work\aiko\</c> gives
+    /// <c>aiko</c> rather than an empty name.
+    /// </summary>
+    private static string? FolderName(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return null;
+        }
+
+        var trimmed = path.Trim().TrimEnd('\\', '/');
+        var separator = trimmed.LastIndexOfAny(['\\', '/']);
+        return separator >= 0 ? trimmed[(separator + 1)..] : trimmed;
+    }
+
+    /// <summary>What the id field explains: where the handle shows up.</summary>
+    private string ProjectIdHint => Loc.Format("ProjectIdHint", _newProjectSlug ?? ProjectSlug.Fallback);
+
+    /// <summary>
+    /// Why the id as typed cannot be used, or null when it can.
+    /// </summary>
+    /// <remarks>
+    /// The daemon is still the authority - it answers a conflict if the value was taken between this check
+    /// and the request - but a form that waits for a round trip to say "that is not a valid id" is a form
+    /// that lets a user submit an impossible value. An empty field is not an error: it means "derive one".
+    /// </remarks>
+    private string? ProjectIdError
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(_newProjectSlug))
+            {
+                return null;
+            }
+
+            if (!ProjectSlug.IsValid(_newProjectSlug))
+            {
+                return Loc.Get("ProjectIdInvalid");
+            }
+
+            return State.Projects.Any(project =>
+                StringComparer.Ordinal.Equals(project.Slug, _newProjectSlug))
+                    ? Loc.Get("ProjectIdTaken")
+                    : null;
+        }
     }
 
     private async Task AddProjectAsync()
@@ -707,11 +778,18 @@
             return;
         }
 
+        if (ProjectIdError is { Length: > 0 } idError)
+        {
+            _error = idError;
+            return;
+        }
+
         var project = await State.InitializeProjectAsync(
             _newProjectPath.Trim(),
             string.IsNullOrWhiteSpace(_newProjectName) ? null : _newProjectName.Trim(),
             Enum.Parse<ProjectGitPolicy>(_newGitPolicy ?? nameof(ProjectGitPolicy.LocalOnly)),
-            _newTemplateId);
+            _newTemplateId,
+            string.IsNullOrWhiteSpace(_newProjectSlug) ? null : _newProjectSlug.Trim());
         if (project is null)
         {
             _error = State.Error;
@@ -721,14 +799,16 @@
         _showAddProject = false;
         _newProjectPath = null;
         _newProjectName = null;
+        _newProjectSlug = null;
         _newTemplateId = null;
-        // Land on the new project's board: registering a project is a step towards working in it.
-        OpenProject(project.Id);
+        // Land on the new project's board: registering a project is a step towards working in it, and the
+        // link uses the readable handle, which is the whole point of having one.
+        OpenProject(project.Handle);
         await Task.CompletedTask;
     }
 
-    private void OpenProject(string projectId) =>
-        Navigation.NavigateTo($"/p/{Uri.EscapeDataString(projectId)}/board");
+    private void OpenProject(string projectHandle) =>
+        Navigation.NavigateTo($"/p/{Uri.EscapeDataString(projectHandle)}/board");
 
     /// <summary>
     /// Connects or disconnects one agent on this machine. Connecting writes Aiko's global skills and

@@ -541,4 +541,9 @@
   <data name="DeleteCardTypeConfirm" xml:space="preserve"><value>Remove this card type? Its pipeline goes with it; cards already created are not touched.</value></data>
   <data name="DeleteCardTypeHasCards" xml:space="preserve"><value>The type still holds cards, so it cannot be removed yet.</value></data>
 
+  <data name="ProjectIdLabel" xml:space="preserve"><value>Project ID</value></data>
+  <data name="ProjectIdHint" xml:space="preserve"><value>Used in the project's address: /p/{0}/board</value></data>
+  <data name="ProjectIdInvalid" xml:space="preserve"><value>The id may contain lower-case latin letters, digits and dashes.</value></data>
+  <data name="ProjectIdTaken" xml:space="preserve"><value>Another project already uses this id.</value></data>
+
 </root>

@@ -195,9 +195,14 @@ internal static class AgentTemplates
         `aiko_list_templates` and ask the user which template to create the project from - the template
         fixes the stages, their agent instructions, the required artifacts, the board projections, the
         starting memory and the default settings, and a later change to it does not reach this project.
-        Then run `aiko init <path> [--name <n>] [--git-policy <p>] [--template <id>]` in the terminal
-        (Aiko is installed and on PATH), or call `aiko_init_project` with the chosen templateId, and
-        restart this agent so the project-scoped MCP configuration and skills are loaded.
+        The project's name defaults to the directory name, and its id - the short handle the UI's URLs use,
+        for example 'aiko' for /p/aiko/board - defaults to a slug derived from that name. Ask the user for
+        both only if they want something other than the defaults; a name or id they give is used as-is,
+        and an id that is already taken is refused.
+        Then run `aiko init <path> [--name <n>] [--id <slug>] [--git-policy <p>] [--template <id>]` in the
+        terminal (Aiko is installed and on PATH), or call `aiko_init_project` with the chosen templateId,
+        name and projectId, and restart this agent so the project-scoped MCP configuration and skills are
+        loaded.
         """;
 
     /// <summary>

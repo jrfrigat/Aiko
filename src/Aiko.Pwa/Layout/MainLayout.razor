@@ -78,7 +78,7 @@
                             @foreach (var project in State.Projects)
                             {
                                 var item = project;
-                                <button type="button" class="aiko-menu-item" @onclick="() => OpenProject(item.Id)">
+                                <button type="button" class="aiko-menu-item" @onclick="() => OpenProject(item.Handle)">
                                     <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
                                         <FlareAvatar Text="@DisplayFormat.Initials(item.Name)"
                                                      Size="AvatarSize.Xs"
@@ -227,7 +227,7 @@
                         <FlareNavLink Href="@ProjectHref">
                             <ChildContent>@Loc.Get("ProjectOverviewNav")</ChildContent>
                         </FlareNavLink>
-                        <FlareNavLink Href="@BoardHref(open.Id)">
+                        <FlareNavLink Href="@BoardHref(open.Handle)">
                             <ChildContent>@Loc.Get("KanbanBoard")</ChildContent>
                             <BadgeContent>
                                 <span class="aiko-tag aiko-tag--accent">@DisplayFormat.Number(State.Board?.Cards.Count ?? 0)</span>
@@ -235,13 +235,13 @@
                         </FlareNavLink>
                         @* The backlog is the list of cards nobody has taken into work yet, so it sits right
                            next to the board: it is the same cards, read as a queue instead of as columns. *@
-                        <FlareNavLink Href="@SectionHref(open.Id, "backlog")">
+                        <FlareNavLink Href="@SectionHref(open.Handle, "backlog")">
                             <ChildContent>@Loc.Get("BacklogNav")</ChildContent>
                             <BadgeContent>
                                 <span class="aiko-tag">@DisplayFormat.Number(BoardMetrics.BacklogCount(State.Board))</span>
                             </BadgeContent>
                         </FlareNavLink>
-                        <FlareNavLink Href="@SectionHref(open.Id, "stories")">
+                        <FlareNavLink Href="@SectionHref(open.Handle, "stories")">
                             <ChildContent>@Loc.Get("StoriesBacklog")</ChildContent>
                             <BadgeContent>
                                 <span class="aiko-tag">@DisplayFormat.Number(BoardMetrics.CountKind(State.Board, CardKind.Story))</span>
@@ -250,7 +250,7 @@
                         @* Workflow moved into Project Settings: the design's rail has no separate stage
                            editor, and one place to edit a pipeline is better than two. The /workflow route
                            stays for deep links. *@
-                        <FlareNavLink Href="@SectionHref(open.Id, "settings")">
+                        <FlareNavLink Href="@SectionHref(open.Handle, "settings")">
                             <ChildContent>@Loc.Get("ProjectSettingsNav")</ChildContent>
                         </FlareNavLink>
                     }
@@ -364,14 +364,18 @@
     private void OnLocationChanged(object? sender, LocationChangedEventArgs args) =>
         InvokeAsync(StateHasChanged);
 
-    private static string BoardHref(string projectId) =>
-        $"/p/{Uri.EscapeDataString(projectId)}/board";
+    private static string BoardHref(string projectHandle) =>
+        $"/p/{Uri.EscapeDataString(projectHandle)}/board";
 
-    private static string SectionHref(string projectId, string section) =>
-        $"/p/{Uri.EscapeDataString(projectId)}/{section}";
+    private static string SectionHref(string projectHandle, string section) =>
+        $"/p/{Uri.EscapeDataString(projectHandle)}/{section}";
 
-    private string ProjectHref => State.SelectedProjectId is { } projectId
-        ? $"/p/{Uri.EscapeDataString(projectId)}"
+    /// <summary>
+    /// The project's readable address. The handle is used rather than the id, so a link a user copies out
+    /// of the address bar reads like the project's name.
+    /// </summary>
+    private string ProjectHref => State.SelectedProject is { } project
+        ? $"/p/{Uri.EscapeDataString(project.Handle)}"
         : "/";
 
     /// <summary>"Project: name (active)", or the invitation to open one.</summary>

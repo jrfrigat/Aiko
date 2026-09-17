@@ -29,6 +29,7 @@ public sealed class AikoDatabase(AikoDataPaths paths)
         await connection.OpenAsync(cancellationToken);
 
         await ExecuteSchemaAsync(connection, cancellationToken);
+        await MigrateProjectSlugsAsync(connection, cancellationToken);
         await MigrateMemoryToFtsAsync(connection, cancellationToken);
     }
 
@@ -70,6 +71,7 @@ public sealed class AikoDatabase(AikoDataPaths paths)
                 id TEXT PRIMARY KEY,
                 name TEXT NOT NULL,
                 root_path TEXT NOT NULL UNIQUE,
+                slug TEXT,
                 updated_utc TEXT NOT NULL
             );
 
@@ -179,6 +181,46 @@ public sealed class AikoDatabase(AikoDataPaths paths)
             VALUES (6, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
             """;
         await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Adds the project slug column to a database created before slugs existed, and the unique index that
+    /// keeps two projects from claiming the same readable handle.
+    /// </summary>
+    /// <remarks>
+    /// The column is in the schema for a fresh database; this is the upgrade path for an existing one, where
+    /// the old table already exists and <c>CREATE TABLE IF NOT EXISTS</c> does nothing. SQLite has no
+    /// <c>ADD COLUMN IF NOT EXISTS</c>, so the column list is probed first.
+    /// </remarks>
+    private static async ValueTask MigrateProjectSlugsAsync(
+        SqliteConnection connection,
+        CancellationToken cancellationToken)
+    {
+        await using (var probe = connection.CreateCommand())
+        {
+            probe.CommandText = "SELECT COUNT(*) FROM pragma_table_info('projects') WHERE name = 'slug';";
+            var hasSlug = (long)(await probe.ExecuteScalarAsync(cancellationToken) ?? 0L) > 0;
+            if (!hasSlug)
+            {
+                await using var alter = connection.CreateCommand();
+                alter.CommandText = "ALTER TABLE projects ADD COLUMN slug TEXT;";
+                await alter.ExecuteNonQueryAsync(cancellationToken);
+            }
+        }
+
+        await using (var index = connection.CreateCommand())
+        {
+            // SQLite treats NULLs as distinct in a unique index, so every project that has no slug yet can
+            // coexist while the backfill works through them.
+            index.CommandText = "CREATE UNIQUE INDEX IF NOT EXISTS ix_projects_slug ON projects(slug);";
+            await index.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        await using var record = connection.CreateCommand();
+        record.CommandText =
+            "INSERT OR IGNORE INTO schema_migrations(version, applied_utc) " +
+            "VALUES (7, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));";
+        await record.ExecuteNonQueryAsync(cancellationToken);
     }
 
     private static async ValueTask MigrateMemoryToFtsAsync(

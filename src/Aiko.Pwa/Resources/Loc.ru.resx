@@ -541,4 +541,9 @@
   <data name="DeleteCardTypeConfirm" xml:space="preserve"><value>Удалить этот тип карточек? Его конвейер будет удалён; уже созданные карточки не затрагиваются.</value></data>
   <data name="DeleteCardTypeHasCards" xml:space="preserve"><value>В типе ещё есть карточки, поэтому удалить его пока нельзя.</value></data>
 
+  <data name="ProjectIdLabel" xml:space="preserve"><value>ID проекта</value></data>
+  <data name="ProjectIdHint" xml:space="preserve"><value>Используется в адресе проекта: /p/{0}/board</value></data>
+  <data name="ProjectIdInvalid" xml:space="preserve"><value>ID может содержать строчные латинские буквы, цифры и дефисы.</value></data>
+  <data name="ProjectIdTaken" xml:space="preserve"><value>Этот ID уже занят другим проектом.</value></data>
+
 </root>

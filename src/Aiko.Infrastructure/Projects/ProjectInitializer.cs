@@ -55,6 +55,95 @@ public sealed class ProjectInitializer(
         }
     }
 
+    /// <inheritdoc />
+    public async ValueTask<int> EnsureSlugsAsync(CancellationToken cancellationToken)
+    {
+        var registered = await catalog.ListAsync(cancellationToken);
+        var taken = registered
+            .Select(project => project.Slug)
+            .Where(slug => !string.IsNullOrWhiteSpace(slug))
+            .Select(slug => slug!)
+            .ToHashSet(StringComparer.Ordinal);
+        var assigned = 0;
+
+        foreach (var project in registered.Where(item => string.IsNullOrWhiteSpace(item.Slug)))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var manifestPath = Path.Combine(AikoProjectPaths.DataRoot(project.RootPath), "project.json");
+            var manifest = await ReadManifestAsync(manifestPath, cancellationToken);
+
+            // The manifest is read first: a project that already states its handle keeps it, so re-registering
+            // a path after the database was deleted does not silently move every link to a new address.
+            var preferred = string.IsNullOrWhiteSpace(manifest?.Slug)
+                ? ProjectSlug.Derive(project.Name)
+                : manifest!.Slug!;
+            var slug = ProjectSlug.MakeUnique(preferred, taken.Contains);
+            taken.Add(slug);
+
+            await catalog.SaveAsync(project with { Slug = slug }, cancellationToken);
+            if (manifest is not null)
+            {
+                await WriteJsonIfChangedAsync(
+                    manifestPath,
+                    manifest with { Slug = slug },
+                    ProjectJsonContext.Default.ProjectManifest,
+                    cancellationToken);
+            }
+
+            assigned++;
+        }
+
+        return assigned;
+    }
+
+    /// <summary>
+    /// Decides which readable handle the project gets.
+    /// </summary>
+    /// <remarks>
+    /// Three cases, and the difference between them is the point. A project that already has a slug keeps it,
+    /// because re-running an init must not break a link someone published. A slug the caller typed is used
+    /// as-is or refused when it is taken: quietly changing what a person typed is worse than saying no. A
+    /// slug Aiko derived itself is made unique, because a user who only picked a folder should never be told
+    /// their project cannot be created.
+    /// </remarks>
+    private async ValueTask<string> ResolveSlugAsync(
+        InitializeProjectRequest request,
+        ProjectManifest manifest,
+        CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(manifest.Slug))
+        {
+            return manifest.Slug;
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Slug))
+        {
+            var requested = request.Slug.Trim().ToLowerInvariant();
+            if (!ProjectSlug.IsValid(requested))
+            {
+                throw new ArgumentException(
+                    $"The project id is not usable as a slug: {request.Slug}",
+                    nameof(request));
+            }
+
+            if (await catalog.IsSlugTakenAsync(requested, manifest.Id, cancellationToken))
+            {
+                throw new InvalidOperationException($"The project id '{requested}' is already taken.");
+            }
+
+            return requested;
+        }
+
+        var taken = (await catalog.ListAsync(cancellationToken))
+            .Where(project => !StringComparer.Ordinal.Equals(project.Id, manifest.Id))
+            .Select(project => project.Slug)
+            .Where(slug => !string.IsNullOrWhiteSpace(slug))
+            .Select(slug => slug!)
+            .ToHashSet(StringComparer.Ordinal);
+
+        return ProjectSlug.MakeUnique(ProjectSlug.Derive(manifest.Name), taken.Contains);
+    }
+
     private async ValueTask<RegisteredProject> InitializeCoreAsync(
         InitializeProjectRequest request,
         string rootPath,
@@ -81,7 +170,15 @@ public sealed class ProjectInitializer(
                 template.Id,
                 template.Version);
 
-        await WriteNewJsonAsync(
+        // The readable handle is settled before anything is written, so a slug that is already taken is
+        // refused rather than recorded and discovered later.
+        var slug = await ResolveSlugAsync(request, manifest, cancellationToken);
+        if (!StringComparer.Ordinal.Equals(manifest.Slug, slug))
+        {
+            manifest = manifest with { Slug = slug };
+        }
+
+        await WriteJsonIfChangedAsync(
             manifestPath,
             manifest,
             ProjectJsonContext.Default.ProjectManifest,
@@ -95,7 +192,7 @@ public sealed class ProjectInitializer(
             cancellationToken);
         await ApplyGitPolicyAsync(rootPath, manifest.GitPolicy, AikoProjectPaths.DirectoryName, cancellationToken);
 
-        var project = new RegisteredProject(manifest.Id, manifest.Name, rootPath);
+        var project = new RegisteredProject(manifest.Id, manifest.Name, rootPath, slug);
         await catalog.SaveAsync(project, cancellationToken);
 
         // The settings snapshot is taken once, at init: afterwards the project's own file is authoritative
@@ -300,6 +397,46 @@ public sealed class ProjectInitializer(
         catch (IOException) when (File.Exists(path))
         {
             File.Delete(temporaryPath);
+        }
+    }
+
+    /// <summary>
+    /// Writes a JSON document atomically when its content differs from what is already on disk.
+    /// </summary>
+    /// <remarks>
+    /// Used for the manifest, the one file an init may update rather than only fill in: the readable handle
+    /// has to be recorded on a project created before slugs existed, and that field belongs to Aiko.
+    /// Everything else in the document is carried over unchanged, so a re-run still cannot clobber a working
+    /// project.
+    /// </remarks>
+    private static async ValueTask WriteJsonIfChangedAsync<T>(
+        string path,
+        T value,
+        JsonTypeInfo<T> typeInfo,
+        CancellationToken cancellationToken)
+    {
+        var desired = JsonSerializer.Serialize(value, typeInfo);
+        if (File.Exists(path) &&
+            string.Equals(
+                await File.ReadAllTextAsync(path, cancellationToken),
+                desired,
+                StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        var temporaryPath = $"{path}.{Guid.NewGuid():N}.tmp";
+        try
+        {
+            await File.WriteAllTextAsync(temporaryPath, desired, cancellationToken);
+            File.Move(temporaryPath, path, true);
+        }
+        finally
+        {
+            if (File.Exists(temporaryPath))
+            {
+                File.Delete(temporaryPath);
+            }
         }
     }
 

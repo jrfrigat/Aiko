@@ -38,8 +38,9 @@ static int Help()
         Usage: aiko <command> [options]
 
         Commands:
-          init <path> [--name <n>] [--git-policy <p>] [--template <id>]
-                                                        Register a project (.aiko)
+          init <path> [--name <n>] [--id <slug>] [--git-policy <p>] [--template <id>]
+                                                        Register a project (.aiko); --id is the readable
+                                                        handle used in the UI's URLs
           templates                                     List the project templates to create from
           project remove <id> [--yes]                   Unregister a project (keeps its files)
           serve                                         Start the Aiko daemon
@@ -98,7 +99,8 @@ static async Task<int> InitAsync(string[] args)
     var path = args.Length > 1 ? args[1] : null;
     if (string.IsNullOrWhiteSpace(path))
     {
-        Console.Error.WriteLine("Usage: aiko init <path> [--name <n>] [--git-policy <p>] [--template <id>]");
+        Console.Error.WriteLine(
+            "Usage: aiko init <path> [--name <n>] [--id <slug>] [--git-policy <p>] [--template <id>]");
         return 2;
     }
 
@@ -118,13 +120,16 @@ static async Task<int> InitAsync(string[] args)
     {
         var project = await initializer.InitializeAsync(
             // --template picks what the project is created from; without it the default template is used.
+            // --id is the readable handle the UI's URLs use; without it one is derived from the name and
+            // made unique, so only a value the user typed can be refused.
             new InitializeProjectRequest(
                 path,
                 ReadOption(args, "--name"),
                 policy,
-                ReadOption(args, "--template")),
+                ReadOption(args, "--template"),
+                ReadOption(args, "--id")),
             CancellationToken.None);
-        Console.WriteLine($"Registered project {project.Id} at {project.RootPath}");
+        Console.WriteLine($"Registered project {project.Handle} ({project.Id}) at {project.RootPath}");
         return 0;
     }
     catch (Exception exception) when (exception is IOException or UnauthorizedAccessException
@@ -489,11 +494,26 @@ static async Task<int> RepairAsync(string[] args)
     // configurations carry it, and a repair that dropped it would leave agents at 401.
     var accessToken = await new AccessTokenStore(dataPaths).GetOrCreateAsync();
 
+    // A project created before slugs existed gets its readable handle here too, so a repair restores readable
+    // URLs without waiting for the daemon to start. Idempotent: a project that already has one keeps it.
+    var initializer = new ProjectInitializer(
+        catalog,
+        reindexer,
+        new FileAppSettingsStore(catalog),
+        new FileProjectTemplateStore(dataPaths));
+    var slugsAssigned = await initializer.EnsureSlugsAsync(CancellationToken.None);
+    if (slugsAssigned > 0)
+    {
+        Console.WriteLine($"Assigned a readable project id to {slugsAssigned} project(s).");
+    }
+
     var registered = await catalog.ListAsync(CancellationToken.None);
     if (projectId is { Length: > 0 } requested)
     {
         registered = registered
-            .Where(project => StringComparer.Ordinal.Equals(project.Id, requested))
+            .Where(project =>
+                StringComparer.Ordinal.Equals(project.Id, requested) ||
+                StringComparer.Ordinal.Equals(project.Slug, requested))
             .ToArray();
     }
 

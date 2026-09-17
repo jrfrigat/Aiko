@@ -11,9 +11,30 @@ public interface IProjectCatalog
     ValueTask<IReadOnlyList<RegisteredProject>> ListAsync(CancellationToken cancellationToken);
 
     /// <summary>
-    /// Finds a project by identifier or returns null.
+    /// Finds a project by its stable id or by its human-readable slug, or returns null when neither matches.
     /// </summary>
-    ValueTask<RegisteredProject?> FindAsync(string projectId, CancellationToken cancellationToken);
+    /// <remarks>
+    /// Accepting both is what lets links carry the readable handle while every card file, relation and agent
+    /// MCP endpoint keeps the immutable id. The id is tried first, so nothing that resolved before stops
+    /// resolving, and a project without a slug is still reachable by id.
+    /// </remarks>
+    ValueTask<RegisteredProject?> FindAsync(string projectIdOrSlug, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Whether a slug already belongs to a project, ignoring the one named by
+    /// <paramref name="exceptProjectId"/>.
+    /// </summary>
+    /// <remarks>
+    /// The check a create performs before writing anything: a slug the user typed must be reported as taken
+    /// rather than silently changed, which is the opposite of what a derived slug does.
+    /// </remarks>
+    /// <param name="slug">Slug to test.</param>
+    /// <param name="exceptProjectId">Project allowed to keep it, or null when none is.</param>
+    /// <param name="cancellationToken">Cancellation token for the operation.</param>
+    ValueTask<bool> IsSlugTakenAsync(
+        string slug,
+        string? exceptProjectId,
+        CancellationToken cancellationToken);
 
     /// <summary>
     /// Creates or updates a project registration.
