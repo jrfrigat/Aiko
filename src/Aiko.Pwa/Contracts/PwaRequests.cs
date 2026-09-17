@@ -83,6 +83,15 @@ internal sealed record CreateTemplateRequest(string SourceId, string TemplateId,
 /// <summary>Creates a template out of a project, which is how an installation captures a project it likes.</summary>
 internal sealed record CreateTemplateFromProjectRequest(string ProjectId, string TemplateId, string? Name = null);
 
+/// <summary>
+/// Updates what a template says about itself: its name, what it is for, and what an agent must do right after
+/// creating a project from it. A field left null keeps the value the template already has.
+/// </summary>
+internal sealed record UpdateTemplateRequest(
+    string? Name = null,
+    string? Description = null,
+    string? InitializationInstruction = null);
+
 /// <summary>Writes a template's document to a file, so another installation can import it.</summary>
 internal sealed record ExportTemplateRequest(string Path);
 

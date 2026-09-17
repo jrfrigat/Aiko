@@ -257,6 +257,37 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
     }
 
     [Fact]
+    public async Task A_template_carries_an_initialization_instruction()
+    {
+        using var http = CreateClient();
+
+        using var saved = await http.PutAsJsonAsync(
+            "api/v1/templates/default",
+            new { initializationInstruction = "Create src/, tests/ and docs/." });
+        Assert.Equal(HttpStatusCode.OK, saved.StatusCode);
+        var template = await saved.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(
+            "Create src/, tests/ and docs/.",
+            template.GetProperty("initializationInstruction").GetString());
+
+        // A field left out keeps what the template already has, an empty value clears it: the two answers
+        // differ, which is what makes "remove the instruction" expressible.
+        using var kept = await http.PutAsJsonAsync("api/v1/templates/default", new { name = (string?)null });
+        Assert.Equal(HttpStatusCode.OK, kept.StatusCode);
+        var afterKept = await kept.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(
+            "Create src/, tests/ and docs/.",
+            afterKept.GetProperty("initializationInstruction").GetString());
+
+        using var cleared = await http.PutAsJsonAsync(
+            "api/v1/templates/default",
+            new { initializationInstruction = string.Empty });
+        Assert.Equal(HttpStatusCode.OK, cleared.StatusCode);
+        var afterClear = await cleared.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(JsonValueKind.Null, afterClear.GetProperty("initializationInstruction").ValueKind);
+    }
+
+    [Fact]
     public async Task A_project_answers_to_its_readable_handle()
     {
         using var http = CreateClient();

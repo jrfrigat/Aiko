@@ -546,4 +546,9 @@
   <data name="ProjectIdInvalid" xml:space="preserve"><value>ID может содержать строчные латинские буквы, цифры и дефисы.</value></data>
   <data name="ProjectIdTaken" xml:space="preserve"><value>Этот ID уже занят другим проектом.</value></data>
 
+  <data name="InitializationTitle" xml:space="preserve"><value>Инициализация проекта</value></data>
+  <data name="InitializationHint" xml:space="preserve"><value>Что агент делает сразу после создания проекта по этому шаблону - например структура, которая должна быть у проекта. Копируется в проект как .aiko/initialization.md и остаётся там.</value></data>
+  <data name="SaveTemplate" xml:space="preserve"><value>Сохранить шаблон</value></data>
+  <data name="TemplateSaved" xml:space="preserve"><value>Шаблон сохранён.</value></data>
+
 </root>

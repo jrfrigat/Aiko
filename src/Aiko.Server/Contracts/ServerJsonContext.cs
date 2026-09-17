@@ -21,6 +21,7 @@ namespace Aiko.Server.Contracts;
 [JsonSerializable(typeof(IReadOnlyList<ProjectTemplateSummary>))]
 [JsonSerializable(typeof(CreateTemplateRequest))]
 [JsonSerializable(typeof(CreateTemplateFromProjectRequest))]
+[JsonSerializable(typeof(UpdateTemplateRequest))]
 [JsonSerializable(typeof(ExportTemplateRequest))]
 [JsonSerializable(typeof(ImportTemplateRequest))]
 [JsonSerializable(typeof(ApplyTemplateRequest))]

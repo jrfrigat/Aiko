@@ -96,6 +96,42 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
     }
 
     [Fact]
+    public async Task Project_context_carries_the_initialization_instruction_of_the_project()
+    {
+        // The fixture project was created from a template that asks for nothing, so the document an init
+        // copies is written here: what is under test is that the context hands it to the agent, and that it
+        // stops doing so once there is nothing to hand over.
+        var document = Path.Combine(fixture.ProjectRoot, ".aiko", "initialization.md");
+        await File.WriteAllTextAsync(document, "Create src/, tests/ and docs/, and add an .editorconfig.\n");
+        try
+        {
+            await using var client = await ConnectAsync();
+            var context = await client.CallToolAsync(
+                "aiko_get_project_context",
+                cancellationToken: CancellationToken.None);
+            var text = FirstText(context);
+            Assert.Contains("## Project initialization instruction", text, StringComparison.Ordinal);
+            Assert.Contains("Create src/, tests/ and docs/", text, StringComparison.Ordinal);
+
+            File.Delete(document);
+            var after = await client.CallToolAsync(
+                "aiko_get_project_context",
+                cancellationToken: CancellationToken.None);
+            Assert.DoesNotContain(
+                "## Project initialization instruction",
+                FirstText(after),
+                StringComparison.Ordinal);
+        }
+        finally
+        {
+            if (File.Exists(document))
+            {
+                File.Delete(document);
+            }
+        }
+    }
+
+    [Fact]
     public async Task Project_context_describes_a_card_type_the_project_added()
     {
         using var http = new HttpClient { BaseAddress = fixture.BaseUrl };

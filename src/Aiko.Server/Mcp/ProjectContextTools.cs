@@ -4,6 +4,7 @@ using ModelContextProtocol.Server;
 using Aiko.Application.Contracts;
 using Aiko.Domain.Prioritization;
 using Aiko.Domain.Workflow;
+using Aiko.Infrastructure.Storage;
 
 namespace Aiko.Server.Mcp;
 
@@ -31,6 +32,7 @@ internal sealed class ProjectContextTools(
         // Read from the project's own workflows rather than from a fixed pair of files: the set of card types
         // is project data, and an agent that never learns about a type cannot create one.
         var workflows = (await definitions.ReadAsync(project.Id, cancellationToken)).Workflows;
+        var initialization = await DescribeInitializationAsync(project.RootPath, cancellationToken);
 
         return $"""
             # Aiko project context
@@ -51,6 +53,40 @@ internal sealed class ProjectContextTools(
             {DescribePriority(priority)}
 
             {DescribeCardTypes(workflows)}
+            {initialization}
+            """;
+    }
+
+    /// <summary>
+    /// The project's own copy of what its template asked for before work starts, or an empty string.
+    /// </summary>
+    /// <remarks>
+    /// Read from the project rather than from the template it came from: the project owns the copy, so editing
+    /// a template never changes what an existing project was asked to become. A project created from a
+    /// template without an instruction has no file, and then this contributes nothing at all.
+    /// </remarks>
+    private static async ValueTask<string> DescribeInitializationAsync(
+        string projectRoot,
+        CancellationToken cancellationToken)
+    {
+        var path = AikoProjectPaths.InitializationDocument(projectRoot);
+        if (!File.Exists(path))
+        {
+            return string.Empty;
+        }
+
+        var instruction = (await File.ReadAllTextAsync(path, cancellationToken)).Trim();
+        return instruction.Length == 0
+            ? string.Empty
+            : $"""
+
+            ## Project initialization instruction
+
+            The template this project was created from asks for the following before work starts. Carry it out
+            if it is not done yet, report what you created or changed, and do nothing when the project already
+            matches - then say so.
+
+            {instruction}
             """;
     }
 

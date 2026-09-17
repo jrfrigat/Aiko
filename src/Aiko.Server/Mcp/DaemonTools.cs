@@ -45,7 +45,9 @@ internal sealed class DaemonTools(
         "Registers a local directory as an Aiko project by copying the chosen template into it: the .aiko "
         + "structure, the workflows with their stages and artifacts, the board projections, the starting "
         + "memory and the default settings. A later change to a template does not reach a project created "
-        + "before it.")]
+        + "before it. The template may also carry an initialization instruction (for example the structure "
+        + "the project should have): after creating the project, read aiko_get_project_context and carry "
+        + "that instruction out before starting work.")]
     public async Task<string> InitProjectAsync(
         [Description("Absolute path to the project root directory.")]
         string rootPath,

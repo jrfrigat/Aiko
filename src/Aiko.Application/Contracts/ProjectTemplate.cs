@@ -33,6 +33,17 @@ public sealed record TemplateDocument(string RelativePath, string Content);
 /// the settings are: what a project starts as is one decision, not five, and an init that has to be told the
 /// policy separately is an init that can disagree with the template it chose.
 /// </param>
+/// <param name="InitializationInstruction">
+/// What an agent must do right after a project has been created from this template, or null when the copy of
+/// the template's content is all that is needed.
+/// </param>
+/// <remarks>
+/// The instruction is the template's answer to "a project of this kind is more than files": the module
+/// layout to create, the lint config to add, the directories this team expects. It is copied into the new
+/// project as <c>.aiko/initialization.md</c> - so the project owns it, exactly as it owns the workflows and
+/// the starting memory - and the agent reads it from the project context. A later edit to the template never
+/// changes it for a project that already took its copy.
+/// </remarks>
 public sealed record ProjectTemplate(
     string Id,
     string Name,
@@ -42,7 +53,8 @@ public sealed record ProjectTemplate(
     IReadOnlyList<WorkflowDefinition> Workflows,
     IReadOnlyList<BoardProjectionDefinition> Projections,
     IReadOnlyList<TemplateDocument> MemoryFiles,
-    ProjectGitPolicy GitPolicy = ProjectGitPolicy.LocalOnly)
+    ProjectGitPolicy GitPolicy = ProjectGitPolicy.LocalOnly,
+    string? InitializationInstruction = null)
 {
     /// <summary>The template every installation has, and the one an init without a choice uses.</summary>
     public const string DefaultId = "default";

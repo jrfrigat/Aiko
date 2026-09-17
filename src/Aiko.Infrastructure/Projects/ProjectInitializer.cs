@@ -185,6 +185,7 @@ public sealed class ProjectInitializer(
             cancellationToken);
 
         await ApplyTemplateAsync(stitchRoot, template, cancellationToken);
+        await WriteInitializationInstructionAsync(rootPath, template, cancellationToken);
         await WriteNewJsonAsync(
             Path.Combine(stitchRoot, "relations.json"),
             new RelationDocument(CurrentSchemaVersion, 0, []),
@@ -240,6 +241,31 @@ public sealed class ProjectInitializer(
 
             await WriteNewTextAsync(path, document.Content, cancellationToken);
         }
+    }
+
+    /// <summary>
+    /// Copies the template's initialization instruction into the project, where an agent reads it.
+    /// </summary>
+    /// <remarks>
+    /// Written once and never overwritten, like the rest of the template's content: the project owns its copy,
+    /// and a later edit to the template does not reach back into a project that already started from it. A
+    /// template without an instruction writes no file, so a project created from the built-in default has
+    /// nothing to read and nothing to ignore.
+    /// </remarks>
+    private static async ValueTask WriteInitializationInstructionAsync(
+        string rootPath,
+        ProjectTemplate template,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(template.InitializationInstruction))
+        {
+            return;
+        }
+
+        await WriteNewTextAsync(
+            AikoProjectPaths.InitializationDocument(rootPath),
+            $"{template.InitializationInstruction.Trim()}{Environment.NewLine}",
+            cancellationToken);
     }
 
     /// <summary>

@@ -187,18 +187,22 @@ internal static class AgentTemplates
     /// </remarks>
     public const string Init =
         """
-        Register the current directory as an Aiko project. First call the daemon MCP tool
-        `aiko_list_templates` and ask the user which template to create the project from - the template
-        fixes the stages, their agent instructions, the required artifacts, the board projections, the
-        starting memory and the default settings, and a later change to it does not reach this project.
+        Register the current directory as an Aiko project. The template is the whole answer to what the
+        project starts as, so this command takes its id: /aiko-init <templateId>. If the user did not name
+        one, call the daemon MCP tool `aiko_list_templates` and ask which to use - the template fixes the
+        stages with their agent instructions and required artifacts, the board projections, the starting
+        memory and the default settings, and a later change to it does not reach a project created before it.
         The project's name defaults to the directory name, and its id - the short handle the UI's URLs use,
         for example 'aiko' for /p/aiko/board - defaults to a slug derived from that name. Ask the user for
-        both only if they want something other than the defaults; a name or id they give is used as-is,
-        and an id that is already taken is refused.
+        both only if they want something other than the defaults; a name or id they give is used as-is, and
+        an id that is already taken is refused.
         Then run `aiko init <path> [--name <n>] [--id <slug>] [--git-policy <p>] [--template <id>]` in the
         terminal (Aiko is installed and on PATH), or call `aiko_init_project` with the chosen templateId,
-        name and projectId, and restart this agent so the project-scoped MCP configuration and skills are
-        loaded.
+        name and projectId.
+        Once the project exists, read aiko_get_project_context and carry out its project initialization
+        instruction if it has one: that is what the template asks for beyond copying its files, such as the
+        structure the project should have. Report what you created or changed. Then restart this agent so
+        the project-scoped MCP configuration and skills are loaded.
         """;
 
     /// <summary>

@@ -35,6 +35,11 @@ public sealed class AikoServerFixture : IAsyncLifetime
     /// </summary>
     public string ProjectId { get; private set; } = null!;
 
+    /// <summary>
+    /// Root directory of the initialized test project, for specs that need to look at its own files.
+    /// </summary>
+    public string ProjectRoot => Path.Combine(_root, "project");
+
     public async Task InitializeAsync()
     {
         Directory.CreateDirectory(Path.Combine(_root, "project"));

@@ -10,6 +10,42 @@
 
 <SettingsEditor>
     <ExtraNarrowContent>
+        @* What the template asks for beyond copying its files: the structure a project of this kind should
+           have. It is copied into the project at init, and the agent carries it out then - so it belongs
+           here, next to the pipelines, and not on the project. *@
+        @if (_template is not null)
+        {
+            <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
+                <FlareStack Gap="FlareSpacing.Small">
+                    <FlareStack Gap="FlareSpacing.XXSmall">
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
+                            @Loc.Get("InitializationTitle")
+                        </FlareText>
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Get("InitializationHint")
+                        </FlareText>
+                    </FlareStack>
+                    <AikoField Rows="6"
+                               Value="@_initializationInstruction"
+                               ValueChanged="value => _initializationInstruction = value" />
+                    @if (!string.IsNullOrWhiteSpace(_templateMessage))
+                    {
+                        <FlareAlert Severity="@(_templateHasError ? AlertSeverity.Error : AlertSeverity.Success)"
+                                    Variant="AlertVariant.Outlined">@_templateMessage</FlareAlert>
+                    }
+                    <FlareStack Row="true" Gap="FlareSpacing.XSmall">
+                        <FlareButton Variant="ButtonVariant.Filled"
+                                     Size="ButtonSize.Sm"
+                                     Loading="@_savingTemplate"
+                                     OnClick="SaveTemplateAsync">
+                            <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.Check" /></LeadingIcon>
+                            <ChildContent>@Loc.Get("SaveTemplate")</ChildContent>
+                        </FlareButton>
+                    </FlareStack>
+                </FlareStack>
+            </FlarePaper>
+        }
+
         @if (_template is not { } template || template.Workflows.Count == 0)
         {
             <FlareAlert Severity="AlertSeverity.Info" Variant="AlertVariant.Text">
@@ -34,6 +70,10 @@
     [Parameter] public string? TemplateId { get; set; }
 
     private ProjectTemplate? _template;
+    private string? _initializationInstruction;
+    private string? _templateMessage;
+    private bool _templateHasError;
+    private bool _savingTemplate;
 
     private string EditingTemplateId => string.IsNullOrWhiteSpace(TemplateId)
         ? ProjectTemplate.DefaultId
@@ -147,7 +187,52 @@
         }
     }
 
-    private async Task ReloadTemplateAsync() =>
+    /// <summary>
+    /// Writes what the template says about itself. An empty instruction travels as an empty string so that it
+    /// clears the stored one: the route reads null as "leave it alone", and the two have to differ.
+    /// </summary>
+    private async Task SaveTemplateAsync()
+    {
+        _templateMessage = null;
+        _templateHasError = false;
+        _savingTemplate = true;
+        try
+        {
+            using var response = await Http.PutAsJsonAsync(
+                $"api/v1/templates/{Uri.EscapeDataString(EditingTemplateId)}",
+                new UpdateTemplateRequest(
+                    Name: null,
+                    Description: null,
+                    InitializationInstruction: _initializationInstruction ?? string.Empty),
+                PwaJson.Options);
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadFromJsonAsync<ErrorResponse>(PwaJson.Options);
+                _templateHasError = true;
+                _templateMessage = error?.Message ??
+                    Loc.Format("ServerRejectedChanges", (int)response.StatusCode);
+                return;
+            }
+
+            await ReloadTemplateAsync();
+            _templateMessage = Loc.Get("TemplateSaved");
+        }
+        catch (Exception exception)
+        {
+            _templateHasError = true;
+            _templateMessage = Loc.Format("SaveWorkflowFailed", exception.Message);
+        }
+        finally
+        {
+            _savingTemplate = false;
+        }
+    }
+
+    private async Task ReloadTemplateAsync()
+    {
         _template = await Http.GetFromJsonAsync<ProjectTemplate>(
             $"api/v1/templates/{Uri.EscapeDataString(EditingTemplateId)}", PwaJson.Options);
+        // The field starts from what the template says and is the working copy until it is saved.
+        _initializationInstruction = _template?.InitializationInstruction;
+    }
 }

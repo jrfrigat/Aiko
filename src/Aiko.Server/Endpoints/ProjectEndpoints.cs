@@ -119,6 +119,49 @@ internal static class ProjectEndpoints
                     cancellationToken);
                 return Results.Ok(await templates.ReadAsync(templateId, cancellationToken));
             });
+        // What a template says about itself: separate from the settings write because it is a different
+        // question - the settings are what a project runs with, this is what the template is.
+        app.MapPut(
+            "/api/v1/templates/{templateId}",
+            async Task<IResult> (
+                string templateId,
+                UpdateTemplateRequest request,
+                IProjectTemplateStore templates,
+                CancellationToken cancellationToken) =>
+            {
+                ProjectTemplate template;
+                try
+                {
+                    template = await templates.ReadAsync(templateId, cancellationToken);
+                }
+                catch (FileNotFoundException)
+                {
+                    return Results.NotFound();
+                }
+
+                var name = request.Name is null ? template.Name : request.Name.Trim();
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    return Results.BadRequest(new ErrorResponse("A template name is required."));
+                }
+
+                var updated = template with
+                {
+                    Name = name,
+                    Description = request.Description is null
+                        ? template.Description
+                        : request.Description.Trim(),
+                    InitializationInstruction = request.InitializationInstruction is null
+                        ? template.InitializationInstruction
+                        : NormalizeInstruction(request.InitializationInstruction),
+                    Version = template.Version + 1
+                };
+                await templates.WriteAsync(updated, cancellationToken);
+
+                // Re-read rather than returning the object that was written: on a built-in template the write
+                // creates a file, and the answer should say what the store now holds.
+                return Results.Ok(await templates.ReadAsync(templateId, cancellationToken));
+            });
         app.MapPut(
             "/api/v1/templates/{templateId}/workflows/{workflowId}",
             async (
@@ -400,4 +443,11 @@ internal static class ProjectEndpoints
                 return removed ? TypedResults.NoContent() : TypedResults.NotFound();
             });
     }
+
+    /// <summary>
+    /// Trims an instruction and turns the empty string into null, so "no instruction" has one representation
+    /// rather than two.
+    /// </summary>
+    private static string? NormalizeInstruction(string? instruction) =>
+        string.IsNullOrWhiteSpace(instruction) ? null : instruction.Trim();
 }

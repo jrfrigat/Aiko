@@ -347,6 +347,60 @@ public sealed class TemplateSpecs
         }
     }
 
+    [Fact]
+    public async Task A_template_initialization_instruction_is_copied_into_the_new_project()
+    {
+        var root = NewRoot();
+        try
+        {
+            var paths = new AikoDataPaths(Path.Combine(root, "data", "aiko.db"));
+            var database = new AikoDatabase(paths);
+            await database.InitializeAsync();
+            var catalog = new SqliteProjectCatalog(database);
+            var templates = new FileProjectTemplateStore(paths);
+
+            // A template of this installation that asks for something beyond the files Aiko copies: the
+            // structure a project of this kind should have.
+            var origin = await templates.ReadAsync(ProjectTemplate.DefaultId, CancellationToken.None);
+            await templates.WriteAsync(
+                origin with
+                {
+                    Id = "structured",
+                    Name = "Structured",
+                    InitializationInstruction = "Create src/, tests/ and docs/, and add an .editorconfig."
+                },
+                CancellationToken.None);
+
+            var projectRoot = Path.Combine(root, "project");
+            Directory.CreateDirectory(projectRoot);
+            await NewInitializer(paths, database, catalog).InitializeAsync(
+                new InitializeProjectRequest(projectRoot, TemplateId: "structured"),
+                CancellationToken.None);
+
+            // The project owns its copy as a document, so a person can read why the project was scaffolded
+            // this way, and a later edit to the template never reaches back into it.
+            var document = Path.Combine(projectRoot, ".aiko", "initialization.md");
+            Assert.True(File.Exists(document));
+            Assert.Contains(
+                "Create src/, tests/ and docs/",
+                await File.ReadAllTextAsync(document),
+                StringComparison.Ordinal);
+
+            // A template without one writes nothing, so a project created from the built-in default has no
+            // empty instruction to read and none to ignore.
+            var plainRoot = Path.Combine(root, "plain");
+            Directory.CreateDirectory(plainRoot);
+            await NewInitializer(paths, database, catalog).InitializeAsync(
+                new InitializeProjectRequest(plainRoot, TemplateId: ProjectTemplate.DefaultId),
+                CancellationToken.None);
+            Assert.False(File.Exists(Path.Combine(plainRoot, ".aiko", "initialization.md")));
+        }
+        finally
+        {
+            Cleanup(root);
+        }
+    }
+
     private static ProjectInitializer NewInitializer(
         AikoDataPaths paths,
         AikoDatabase database,

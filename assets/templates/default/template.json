@@ -311,5 +311,6 @@
       "content": "# Lessons learned\n\n"
     }
   ],
-  "gitPolicy": "LocalOnly"
+  "gitPolicy": "LocalOnly",
+  "initializationInstruction": null
 }
