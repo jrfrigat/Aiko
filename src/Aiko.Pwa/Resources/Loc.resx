@@ -301,6 +301,12 @@
   <data name="ResolvedOf" xml:space="preserve"><value>{0} / {1} resolved</value></data>
   <data name="StageSkills" xml:space="preserve"><value>Stage skills</value></data>
   <data name="CodeChanges" xml:space="preserve"><value>Code changes</value></data>
+  <data name="LoadingCodeChanges" xml:space="preserve"><value>Reading the diff from git...</value></data>
+  <data name="DiffNoChanges" xml:space="preserve"><value>Nothing to show: the card's files and HEAD are the same.</value></data>
+  <data name="DiffBinaryOrEmpty" xml:space="preserve"><value>A binary file, or no line-level change.</value></data>
+  <data name="GitClientUnavailable" xml:space="preserve"><value>Git client unavailable</value></data>
+  <data name="GitNoRepository" xml:space="preserve"><value>not a repository</value></data>
+  <data name="GitBranch" xml:space="preserve"><value>Git branch</value></data>
   <data name="CodeChangesHint" xml:space="preserve"><value>Where the diff of this card's commits will appear</value></data>
   <data name="CodeChangesPending" xml:space="preserve"><value>A diff of this card's commits appears here.</value></data>
   <data name="CodeChangesPlan" xml:space="preserve"><value>It waits for the git integration: the block will list the commits reported for this card - sha, message, the files they touched - and the diff of each, hunk by hunk.</value></data>

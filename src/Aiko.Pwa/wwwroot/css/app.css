@@ -865,6 +865,7 @@
         minmax(3.5rem, 0.5fr)
         minmax(3.5rem, 0.5fr)
         minmax(7rem, 0.8fr)
+        minmax(6rem, 0.7fr)
         minmax(9rem, auto);
     gap: 0.75rem;
     align-items: center;
@@ -905,7 +906,9 @@
     .aiko-table__head > :nth-child(2),
     .aiko-table__row > :nth-child(2),
     .aiko-table__head > :nth-child(5),
-    .aiko-table__row > :nth-child(5) {
+    .aiko-table__row > :nth-child(5),
+    .aiko-table__head > :nth-child(6),
+    .aiko-table__row > :nth-child(6) {
         display: none;
     }
 }
@@ -941,6 +944,43 @@
     background: var(--flare-color-surface-container-high);
     color: var(--flare-color-primary);
     font-weight: 600;
+}
+
+/* The code-changes block: the design's patch, one line per row. Additions and removals carry a tinted
+   ground, headers stay quiet, and context reads as the file's own text. */
+.aiko-diff__lines {
+    display: flex;
+    flex-direction: column;
+    overflow-x: auto;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--flare-shape-large);
+    background: var(--flare-color-surface-container-lowest);
+    font-family: var(--aiko-font-mono, monospace);
+    font-size: 0.75rem;
+    line-height: 1.4;
+}
+
+.aiko-diff__line {
+    display: block;
+    white-space: pre;
+}
+
+.aiko-diff__line--context {
+    color: var(--flare-color-on-surface-variant);
+}
+
+.aiko-diff__line--meta {
+    color: var(--flare-color-outline-variant);
+}
+
+.aiko-diff__line--add {
+    background: color-mix(in srgb, var(--flare-color-tertiary) 14%, transparent);
+    color: var(--flare-color-tertiary);
+}
+
+.aiko-diff__line--remove {
+    background: color-mix(in srgb, var(--flare-color-error) 16%, transparent);
+    color: var(--flare-color-error);
 }
 
 .aiko-code-row input,

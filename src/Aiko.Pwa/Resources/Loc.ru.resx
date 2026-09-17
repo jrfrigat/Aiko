@@ -301,6 +301,12 @@
   <data name="ResolvedOf" xml:space="preserve"><value>{0} / {1} выполнено</value></data>
   <data name="StageSkills" xml:space="preserve"><value>Скиллы этапа</value></data>
   <data name="CodeChanges" xml:space="preserve"><value>Изменения кода</value></data>
+  <data name="LoadingCodeChanges" xml:space="preserve"><value>Читаю дифф из git...</value></data>
+  <data name="DiffNoChanges" xml:space="preserve"><value>Показывать нечего: файлы карточки совпадают с HEAD.</value></data>
+  <data name="DiffBinaryOrEmpty" xml:space="preserve"><value>Бинарный файл или построчных изменений нет.</value></data>
+  <data name="GitClientUnavailable" xml:space="preserve"><value>Git клиент недоступен</value></data>
+  <data name="GitNoRepository" xml:space="preserve"><value>не репозиторий</value></data>
+  <data name="GitBranch" xml:space="preserve"><value>Git-ветка</value></data>
   <data name="CodeChangesHint" xml:space="preserve"><value>Здесь появится дифф коммитов этой карточки</value></data>
   <data name="CodeChangesPending" xml:space="preserve"><value>Здесь появится дифф коммитов этой карточки.</value></data>
   <data name="CodeChangesPlan" xml:space="preserve"><value>Блок ждёт git-интеграцию: здесь будут коммиты, заявленные по карточке — sha, сообщение, затронутые файлы — и дифф каждого, по хункам.</value></data>

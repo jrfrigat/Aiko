@@ -310,6 +310,7 @@
                     <span>@Loc.Get("StatCards")</span>
                     <span>@Loc.Get("StatInProgress")</span>
                     <span>@Loc.Get("TableStatus")</span>
+                    <span>@Loc.Get("GitBranch")</span>
                     <span>@Loc.Get("TableActions")</span>
                 </div>
                 @foreach (var project in State.Projects)
@@ -329,6 +330,23 @@
                         <span class="aiko-tag @(board is null ? "aiko-tag--warn" : "aiko-tag--live")">
                             @(board is null ? Loc.Get("NoBoardData") : Loc.Get("StatLive"))
                         </span>
+                        @* The branch the project sits on, or why there is none: a missing git client and a
+                           directory that is not a repository are different answers and read differently. *@
+                        @{
+                            var git = GitOf(item.Id);
+                        }
+                        @if (git is { IsRepository: true, Branch.Length: > 0 } onBranch)
+                        {
+                            <span class="aiko-tag aiko-tag--accent aiko-tag--clip" title="@onBranch.Branch">@onBranch.Branch</span>
+                        }
+                        else if (git is { Available: false })
+                        {
+                            <span class="aiko-tag aiko-tag--warn">@Loc.Get("GitClientUnavailable")</span>
+                        }
+                        else
+                        {
+                            <span class="aiko-tag aiko-tag--quiet">@Loc.Get("GitNoRepository")</span>
+                        }
                         <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
                             @if (_removingProjectId == item.Id)
                             {
@@ -364,6 +382,9 @@
     private sealed record ActivityCell(DateOnly Date, int Count, int Level);
 
     private IReadOnlyList<ProjectBoardSnapshot> _boards = [];
+
+    /// <summary>What git says about each project, keyed by project id; read with the boards.</summary>
+    private IReadOnlyDictionary<string, GitStatus> _git = new Dictionary<string, GitStatus>(StringComparer.Ordinal);
     private IReadOnlyList<ActivityDay> _activity = [];
     private IReadOnlyList<ActivityCell> _cells = [];
     private int _activityTotal;
@@ -402,6 +423,13 @@
             // endpoint duplicating what the board already answers.
             var boards = await Task.WhenAll(State.Projects.Select(LoadBoardAsync));
             _boards = boards.Where(board => board is not null).Select(board => board!).ToArray();
+            // Git statuses are read with the boards, in parallel: the table shows a branch per row, and a
+            // row must never spawn a process while rendering.
+            var git = await Task.WhenAll(State.Projects.Select(LoadGitAsync));
+            _git = State.Projects
+                .Select((project, index) => (project.Id, Status: git[index]))
+                .Where(entry => entry.Status is not null)
+                .ToDictionary(entry => entry.Id, entry => entry.Status!, StringComparer.Ordinal);
             _activity = await Http.GetFromJsonAsync<IReadOnlyList<ActivityDay>>(
                 $"api/v1/activity?days={HeatmapDays}", PwaJson.Options) ?? [];
             BuildHeatmap();
@@ -430,8 +458,33 @@
         }
     }
 
+    /// <summary>
+    /// Reads what git says about one project. A failure is null rather than an error: a dashboard that
+    /// cannot show a branch is still a dashboard.
+    /// </summary>
+    private async Task<GitStatus?> LoadGitAsync(RegisteredProject project)
+    {
+        try
+        {
+            var overview = await Http.GetFromJsonAsync<GitOverview>(
+                $"api/v1/projects/{Uri.EscapeDataString(project.Id)}/git", PwaJson.Options);
+            return overview?.Status;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     private ProjectBoardSnapshot? BoardOf(string projectId) =>
         _boards.FirstOrDefault(board => StringComparer.Ordinal.Equals(board.Project.Id, projectId));
+
+    /// <summary>
+    /// What git says about one project, or null while it has not been read yet. The statuses are read once
+    /// with the boards: a table row must not spawn a process per render.
+    /// </summary>
+    private GitStatus? GitOf(string projectId) =>
+        _git.TryGetValue(projectId, out var status) ? status : null;
 
     /// <summary>
     /// The workshop's five numbers, as the design's tiles: what is on the boards, what is in flight, and

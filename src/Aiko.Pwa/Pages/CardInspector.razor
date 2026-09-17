@@ -248,16 +248,69 @@
                 </ChildContent>
                 </FlareTab>
 
-                @* Where the design puts its code-diff viewer. Aiko has no diff yet - the commits will come
-                   from git once that integration lands - so the tab states what will fill it rather than
-                   pretending. *@
+                @* Where the design puts its code-diff viewer: the card's files, with the patch the git
+                   client of this machine reports. Aiko does not reimplement git - the client is the
+                   authority - so when there is none the block says exactly that. *@
                 <FlareTab Label="@Loc.Get("CodeChanges")">
                     <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.Difference" /></LeadingIcon>
                     <ChildContent>
-                        <div class="aiko-placeholder">
-                            <span>@Loc.Get("CodeChangesPending")</span>
-                            <span>@Loc.Get("CodeChangesPlan")</span>
-                        </div>
+                        @if (_loadingDiff)
+                        {
+                            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                                <FlareProgressCircular Size="TrackSize.Xs" />
+                                <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant">
+                                    @Loc.Get("LoadingCodeChanges")
+                                </FlareText>
+                            </FlareStack>
+                        }
+                        else if (DiffIsReady)
+                        {
+                            <FlareStack Gap="FlareSpacing.Small">
+                                @foreach (var file in _diff!.Files)
+                                {
+                                    var entry = file;
+                                    <FlareStack Gap="FlareSpacing.XXSmall">
+                                        <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small" Wrap="true">
+                                            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                                                <FlareIconView Value="@MaterialDesign3Icons.Regular.Description" Color="FlareColor.Secondary" />
+                                                <FlareText Element="span" Mono="true" Typo="TypographyScale.LabelMedium">@entry.Path</FlareText>
+                                                @if (entry.Added > 0)
+                                                {
+                                                    <span class="aiko-tag aiko-tag--live">@($"+{entry.Added}")</span>
+                                                }
+                                                @if (entry.Removed > 0)
+                                                {
+                                                    <span class="aiko-tag aiko-tag--warn">@($"-{entry.Removed}")</span>
+                                                }
+                                            </FlareStack>
+                                        </FlareStack>
+                                        @if (entry.Patch is { Length: > 0 } patch)
+                                        {
+                                            <div class="aiko-diff__lines">
+                                                @foreach (var line in PatchLines(patch))
+                                                {
+                                                    var text = line;
+                                                    <span class="aiko-diff__line aiko-diff__line--@DiffLineKind(text)">@text</span>
+                                                }
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                                @Loc.Get("DiffBinaryOrEmpty")
+                                            </FlareText>
+                                        }
+                                    </FlareStack>
+                                }
+                            </FlareStack>
+                        }
+                        else
+                        {
+                            <div class="aiko-placeholder">
+                                <span>@DiffStatusCaption</span>
+                                <span>@Loc.Get("CodeChangesPlan")</span>
+                            </div>
+                        }
                     </ChildContent>
                 </FlareTab>
 
@@ -672,6 +725,8 @@
     private int _activeTab;
     private IReadOnlyList<StageExecution> _executions = [];
     private IReadOnlyList<CardArtifactSummary> _artifacts = [];
+    private GitCardDiff? _diff;
+    private bool _loadingDiff;
     private readonly Dictionary<string, decimal?> _criterionValues = new(StringComparer.Ordinal);
 
     /// <summary>
@@ -737,6 +792,42 @@
     private string AgentName(string adapterId) => State.Agents
         .FirstOrDefault(agent => StringComparer.Ordinal.Equals(agent.Id, adapterId))
         ?.DisplayName ?? adapterId;
+
+    /// <summary>Whether the diff was read and has something to show.</summary>
+    private bool DiffIsReady => _diff is { Available: true, Files.Count: > 0 };
+
+    /// <summary>
+    /// What the code-changes block says when there is no diff to draw: the git client's own reason
+    /// ("Git client unavailable", "not a git repository"), or the fact that the card's files are unchanged.
+    /// </summary>
+    private string DiffStatusCaption => _diff switch
+    {
+        { Available: false, Failure: { Length: > 0 } failure } when
+            string.Equals(failure, "Git client unavailable", StringComparison.Ordinal) =>
+            Loc.Get("GitClientUnavailable"),
+        { Available: false, Failure: { Length: > 0 } failure } => failure,
+        _ => Loc.Get("DiffNoChanges")
+    };
+
+    /// <summary>The patch as lines, so each one can carry the class its first character asks for.</summary>
+    private static IEnumerable<string> PatchLines(string patch) => patch.Split('\n');
+
+    /// <summary>
+    /// How one patch line reads: an addition, a removal, a hunk or file header, or context. The class
+    /// carries the design's colour, and the marker character stays in the text because it is what the
+    /// reader scans for.
+    /// </summary>
+    private static string DiffLineKind(string line) => line switch
+    {
+        _ when line.StartsWith("diff ", StringComparison.Ordinal) ||
+               line.StartsWith("index ", StringComparison.Ordinal) ||
+               line.StartsWith("--- ", StringComparison.Ordinal) ||
+               line.StartsWith("+++ ", StringComparison.Ordinal) ||
+               line.StartsWith("@@", StringComparison.Ordinal) => "meta",
+        ['+', ..] => "add",
+        ['-', ..] => "remove",
+        _ => "context"
+    };
 
     /// <summary>Whether the card already carries an artifact the stage asked for.</summary>
     private bool HasArtifact(string path) => _artifacts.Any(artifact =>
@@ -953,6 +1044,13 @@
             _artifacts = await Http.GetFromJsonAsync<IReadOnlyList<CardArtifactSummary>>(
                 $"api/v1/projects/{Uri.EscapeDataString(Card.Reference.ProjectId)}/cards/{Uri.EscapeDataString(Card.Reference.CardId)}/artifacts",
                 PwaJson.Options) ?? [];
+            // The diff runs the machine's git, which is a process per card: read it with the runs rather
+            // than on every render.
+            _loadingDiff = true;
+            _diff = await Http.GetFromJsonAsync<GitCardDiff>(
+                $"api/v1/projects/{Uri.EscapeDataString(Card.Reference.ProjectId)}/cards/{Uri.EscapeDataString(Card.Reference.CardId)}/diff",
+                PwaJson.Options);
+            _loadingDiff = false;
         }
         catch (Exception exception)
         {
