@@ -131,6 +131,10 @@ A Blazor WebAssembly PWA on Flare.Blazor:
 - workflow, agent, security and Git settings;
 - the initialization wizard.
 
+The interface language follows the browser: the UI culture is resolved from the browser's language
+preferences at startup, and the neutral resources are English, so a language Aiko does not translate
+falls back to English rather than to another translation.
+
 ## 7. Storage
 
 ### 7.1 Separation of responsibilities

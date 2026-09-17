@@ -4,9 +4,15 @@ using System.Resources;
 namespace Aiko.Pwa.Resources;
 
 /// <summary>
-/// Accessor for the localized UI strings. The neutral Loc.resx is the fallback (empty for now);
-/// Loc.ru.resx carries the Russian strings, which is the default UI language.
+/// Accessor for the localized UI strings.
 /// </summary>
+/// <remarks>
+/// The neutral <c>Loc.resx</c> is English and is the fallback for every language we do not translate;
+/// <c>Loc.ru.resx</c> carries the Russian strings. The UI culture is chosen from the browser's
+/// language preferences at startup (see <c>Program.cs</c>), so the keys added here are all that is
+/// needed to add a language: drop in <c>Loc.&lt;culture&gt;.resx</c> and list it in
+/// <c>SatelliteResourceLanguages</c>.
+/// </remarks>
 public static class Loc
 {
     private static readonly ResourceManager Manager = new("Aiko.Pwa.Resources.Loc", typeof(Loc).Assembly);

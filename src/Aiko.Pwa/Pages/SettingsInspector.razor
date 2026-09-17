@@ -79,9 +79,7 @@
                     <FlareAlert Severity="AlertSeverity.Warning"
                                 Variant="AlertVariant.Outlined"
                                 Title="@Loc.Get("ParallelSharedOn")">
-                        Агенты используют общую рабочую копию и Git index. Изменения разных карточек
-                        и ваши локальные изменения могут попасть в один commit, конфликтовать или быть
-                        ошибочно отнесены к другому запуску.
+                        @Loc.Get("ParallelSharedText")
                     </FlareAlert>
                 }
             </FlareStack>

@@ -71,9 +71,9 @@
                                   ValueChanged="ChangeProjectionAsync">
                     @* Value is object-typed, so the enum member must be written as an expression - a bare
                        literal would arrive at the group as the string "Projection.Stories". *@
-                    <FlareToggleButton Variant="ButtonVariant.Filled" Value="@Projection.Stories">Stories</FlareToggleButton>
-                    <FlareToggleButton Variant="ButtonVariant.Filled" Value="@Projection.Tasks">Tasks</FlareToggleButton>
-                    <FlareToggleButton Variant="ButtonVariant.Filled" Value="@Projection.Combined">Общая</FlareToggleButton>
+                    <FlareToggleButton Variant="ButtonVariant.Filled" Value="@Projection.Stories">@Loc.Get("StoriesNav")</FlareToggleButton>
+                    <FlareToggleButton Variant="ButtonVariant.Filled" Value="@Projection.Tasks">@Loc.Get("TasksNav")</FlareToggleButton>
+                    <FlareToggleButton Variant="ButtonVariant.Filled" Value="@Projection.Combined">@Loc.Get("CombinedNav")</FlareToggleButton>
                 </FlareToggleGroup>
             }
 
@@ -105,7 +105,7 @@
     <FlareLayoutDrawer @bind-Open="_railOpen"
                        Variant="DrawerVariant.Persistent"
                        Width="16rem"
-                       AriaLabel="Проекты Aiko">
+                       AriaLabel="@Loc.Get("RailAriaLabel")">
         <FlareNavMenu>
             <HeaderContent>
                 <FlareStack Class="aiko-rail__head" Gap="FlareSpacing.XXSmall">
@@ -121,13 +121,13 @@
                     <FlareNavLink Active="@(_projection == Projection.Stories)"
                                   OnClick="() => ShowProjectionAsync(Projection.Stories)">
                         <IconContent><FlareIconView Value="@FlareIcons.FolderOpen" /></IconContent>
-                        <ChildContent>Stories</ChildContent>
+                        <ChildContent>@Loc.Get("StoriesNav")</ChildContent>
                         <BadgeContent><span class="aiko-tag">@StoryCount</span></BadgeContent>
                     </FlareNavLink>
                     <FlareNavLink Active="@(_projection == Projection.Tasks)"
                                   OnClick="() => ShowProjectionAsync(Projection.Tasks)">
                         <IconContent><FlareIconView Value="@FlareIcons.ViewColumn" /></IconContent>
-                        <ChildContent>Tasks</ChildContent>
+                        <ChildContent>@Loc.Get("TasksNav")</ChildContent>
                         <BadgeContent><span class="aiko-tag">@TaskCount</span></BadgeContent>
                     </FlareNavLink>
                     <FlareNavLink Active="@_editingWorkflow" OnClick="OpenWorkflow">
@@ -213,7 +213,7 @@
             else if (_projects.Count == 0)
             {
                 <FlareEmptyState Title="@Loc.Get("EmptyStateTitle")"
-                                 Description="Инициализируйте проект через Aiko, и он появится в этой панели.">
+                                 Description="@Loc.Get("EmptyStateHint")">
                     <IconContent><FlareIconView Size="3rem" Value="@FlareIcons.FolderOpen" /></IconContent>
                     <ActionContent>
                         <FlareButton OnClick="OpenAddProject">@Loc.Get("AddProject")</FlareButton>
@@ -247,7 +247,7 @@
 
                 @if (_projection is Projection.Stories or Projection.Combined)
                 {
-                    <BoardSection Title="Story flow"
+                    <BoardSection Title="@Loc.Get("StoryFlow")"
                                   Kind="CardKind.Story"
                                   Board="_board"
                                   OnCardMoved="move => MoveCardAsync(CardKind.Story, move)" />
@@ -260,7 +260,7 @@
 
                 @if (_projection is Projection.Tasks or Projection.Combined)
                 {
-                    <BoardSection Title="Task flow"
+                    <BoardSection Title="@Loc.Get("TaskFlow")"
                                   Kind="CardKind.Task"
                                   Board="_board"
                                   OnCardMoved="move => MoveCardAsync(CardKind.Task, move)" />
@@ -338,7 +338,7 @@
                        Width="26rem"
                        Open="InspectorOpen"
                        OpenChanged="OnInspectorOpenChanged"
-                       AriaLabel="Инспектор Aiko">
+                       AriaLabel="@Loc.Get("InspectorAriaLabel")">
         @if (SelectedCard is { } selectedCard && _board is { } cardBoard)
         {
             <CardInspector Card="selectedCard"

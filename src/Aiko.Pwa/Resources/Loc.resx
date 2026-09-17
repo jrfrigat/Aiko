@@ -12,4 +12,168 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="EmptyStateTitle" xml:space="preserve"><value>No projects registered</value></data>
+  <data name="EmptyStateHint" xml:space="preserve"><value>Initialize a project through Aiko and it will appear in this panel.</value></data>
+  <data name="AddProject" xml:space="preserve"><value>Add project</value></data>
+  <data name="AddProjectHint" xml:space="preserve"><value>Point at the project folder. Aiko creates the .aiko directory and the default workflows.</value></data>
+  <data name="CreateCard" xml:space="preserve"><value>Card</value></data>
+  <data name="CreateCardTitle" xml:space="preserve"><value>Create card</value></data>
+  <data name="Add" xml:space="preserve"><value>Add</value></data>
+  <data name="Create" xml:space="preserve"><value>Create</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Close" xml:space="preserve"><value>Close</value></data>
+  <data name="Refresh" xml:space="preserve"><value>Refresh</value></data>
+  <data name="Workflow" xml:space="preserve"><value>Workflow</value></data>
+  <data name="Settings" xml:space="preserve"><value>Settings</value></data>
+  <data name="Title" xml:space="preserve"><value>Title</value></data>
+  <data name="ProjectPath" xml:space="preserve"><value>Project path</value></data>
+  <data name="ProjectName" xml:space="preserve"><value>Name (optional)</value></data>
+  <data name="CardId" xml:space="preserve"><value>ID (for example TASK-001)</value></data>
+  <data name="Stage" xml:space="preserve"><value>Stage (for example backlog)</value></data>
+  <data name="Priority" xml:space="preserve"><value>Priority (number)</value></data>
+  <data name="Scope" xml:space="preserve"><value>Scope (comma separated)</value></data>
+  <data name="Choose" xml:space="preserve"><value>Choose...</value></data>
+  <data name="GitPolicyLocalOnly" xml:space="preserve"><value>local-only (default)</value></data>
+  <data name="GitPolicy" xml:space="preserve"><value>Git policy</value></data>
+  <data name="CardKind" xml:space="preserve"><value>Card kind</value></data>
+  <data name="CardFilter" xml:space="preserve"><value>Filter</value></data>
+  <data name="WorkspaceFlow" xml:space="preserve"><value>Workspace</value></data>
+  <data name="KanbanBoard" xml:space="preserve"><value>Kanban board</value></data>
+  <data name="Projects" xml:space="preserve"><value>Projects</value></data>
+  <data name="OrchestrationLoad" xml:space="preserve"><value>ORCHESTRATION LOAD</value></data>
+  <data name="ContextEngine" xml:space="preserve"><value>Event stream</value></data>
+  <data name="NativeAot" xml:space="preserve"><value>NATIVE AOT</value></data>
+  <data name="Host" xml:space="preserve"><value>host</value></data>
+  <data name="Unassigned" xml:space="preserve"><value>unassigned</value></data>
+  <data name="DropHere" xml:space="preserve"><value>Drop tasks into</value></data>
+  <data name="RailAriaLabel" xml:space="preserve"><value>Aiko projects</value></data>
+  <data name="InspectorAriaLabel" xml:space="preserve"><value>Aiko inspector</value></data>
+  <data name="StoriesNav" xml:space="preserve"><value>Stories</value></data>
+  <data name="TasksNav" xml:space="preserve"><value>Tasks</value></data>
+  <data name="CombinedNav" xml:space="preserve"><value>Combined</value></data>
+  <data name="StoryFlow" xml:space="preserve"><value>Story flow</value></data>
+  <data name="GitPolicyTrackKnowledge" xml:space="preserve"><value>track-project-knowledge</value></data>
+  <data name="GitPolicyCustom" xml:space="preserve"><value>custom</value></data>
+  <data name="TaskKind" xml:space="preserve"><value>Task</value></data>
+  <data name="StoryKind" xml:space="preserve"><value>Story</value></data>
+  <data name="PathRequired" xml:space="preserve"><value>Enter the project path.</value></data>
+  <data name="IdTitleRequired" xml:space="preserve"><value>Enter the card ID and title.</value></data>
+  <data name="AddProjectFailed" xml:space="preserve"><value>Could not add the project: {0}</value></data>
+  <data name="CreateCardFailed" xml:space="preserve"><value>Could not create the card: {0}</value></data>
+  <data name="MoveFailed" xml:space="preserve"><value>Move {0} was not saved: {1}</value></data>
+  <data name="BoardCaption" xml:space="preserve"><value>Project board</value></data>
+  <data name="LoadingContext" xml:space="preserve"><value>Assembling the project context...</value></data>
+  <data name="BoardUpdateFailed" xml:space="preserve"><value>Could not update the board</value></data>
+  <data name="Cards" xml:space="preserve"><value>Cards</value></data>
+  <data name="InProgress" xml:space="preserve"><value>In progress</value></data>
+  <data name="Relations" xml:space="preserve"><value>Relations</value></data>
+  <data name="OutOfScope" xml:space="preserve"><value>Out of scope</value></data>
+  <data name="StoriesCaption" xml:space="preserve"><value>Story value and readiness</value></data>
+  <data name="TasksCaption" xml:space="preserve"><value>Task execution and actual scope</value></data>
+  <data name="CombinedCaption" xml:space="preserve"><value>Stories and tasks without duplicating cards</value></data>
+  <data name="Implementation" xml:space="preserve"><value>implementation</value></data>
+  <data name="ParallelSharedTitle" xml:space="preserve"><value>Parallel shared mode</value></data>
+  <data name="ParallelSharedText" xml:space="preserve"><value>Agents share one working copy and one Git index. Changes from different cards, and your own local changes, can land in the same commit, conflict, or be attributed to the wrong run.</value></data>
+  <data name="CardsStagesCount" xml:space="preserve"><value>{0} cards - {1} stages</value></data>
+  <data name="WorkflowNotFound" xml:space="preserve"><value>No workflow found for {0}.</value></data>
+  <data name="ScopeNotSet" xml:space="preserve"><value>scope not set</value></data>
+  <data name="FilesCount" xml:space="preserve"><value>{0}/{1} files</value></data>
+  <data name="OutOfScopeCount" xml:space="preserve"><value>out of scope: {0}</value></data>
+  <data name="Parameters" xml:space="preserve"><value>Parameters</value></data>
+  <data name="PriorityLabel" xml:space="preserve"><value>Score / priority</value></data>
+  <data name="ScopeHelper" xml:space="preserve"><value>One path or glob per line</value></data>
+  <data name="SaveCard" xml:space="preserve"><value>Save card</value></data>
+  <data name="FilesTitle" xml:space="preserve"><value>Files</value></data>
+  <data name="NoRelations" xml:space="preserve"><value>No relations yet.</value></data>
+  <data name="LoadingHistory" xml:space="preserve"><value>Loading history...</value></data>
+  <data name="NoExecutions" xml:space="preserve"><value>No runs yet.</value></data>
+  <data name="ArtifactsLabel" xml:space="preserve"><value>Artifacts: {0}</value></data>
+  <data name="HistoryUnavailable" xml:space="preserve"><value>Execution history is unavailable: {0}</value></data>
+  <data name="InvalidPriority" xml:space="preserve"><value>Enter a non-negative number.</value></data>
+  <data name="TitleRequired" xml:space="preserve"><value>A card title is required.</value></data>
+  <data name="CardConflict" xml:space="preserve"><value>Another agent has already changed the card. The board has been refreshed.</value></data>
+  <data name="ChangesSaved" xml:space="preserve"><value>Changes saved.</value></data>
+  <data name="SaveCardFailed" xml:space="preserve"><value>Could not save the card: {0}</value></data>
+  <data name="TaskFlow" xml:space="preserve"><value>Task flow</value></data>
+  <data name="DocumentsTitle" xml:space="preserve"><value>Documents</value></data>
+  <data name="NewMarkdown" xml:space="preserve"><value>New Markdown file</value></data>
+  <data name="AddDocHint" xml:space="preserve"><value>Add a Markdown file for the request, the analysis or the result.</value></data>
+  <data name="NewFile" xml:space="preserve"><value>New file</value></data>
+  <data name="SavedFile" xml:space="preserve"><value>Saved file</value></data>
+  <data name="SaveDocument" xml:space="preserve"><value>Save document</value></data>
+  <data name="ListFailed" xml:space="preserve"><value>Could not load the document list: {0}</value></data>
+  <data name="ServerEmptyDoc" xml:space="preserve"><value>The server returned an empty document.</value></data>
+  <data name="OpenFailed" xml:space="preserve"><value>Could not open the document: {0}</value></data>
+  <data name="InvalidPath" xml:space="preserve"><value>Enter a relative path to a .md file.</value></data>
+  <data name="NewDocPrepared" xml:space="preserve"><value>The new document is ready. Fill it in and save it.</value></data>
+  <data name="FileNotCreatedYet" xml:space="preserve"><value>The file does not exist yet. Saving adds it to the card folder.</value></data>
+  <data name="FileChanged" xml:space="preserve"><value>Another agent or editor changed the file. Refresh the document before saving.</value></data>
+  <data name="ServerRejected" xml:space="preserve"><value>The server rejected the document: {0}.</value></data>
+  <data name="ServerNoDoc" xml:space="preserve"><value>The server did not return the saved document.</value></data>
+  <data name="DocSaved" xml:space="preserve"><value>Document saved.</value></data>
+  <data name="SaveDocFailed" xml:space="preserve"><value>Could not save the document: {0}</value></data>
+  <data name="ArtifactSaved" xml:space="preserve"><value>saved</value></data>
+  <data name="ArtifactRequired" xml:space="preserve"><value>required</value></data>
+  <data name="ArtifactNew" xml:space="preserve"><value>new</value></data>
+  <data name="WorkflowTitle" xml:space="preserve"><value>Workflow title</value></data>
+  <data name="StagesTitle" xml:space="preserve"><value>Stages</value></data>
+  <data name="AddStage" xml:space="preserve"><value>Add stage</value></data>
+  <data name="Remove" xml:space="preserve"><value>Remove</value></data>
+  <data name="SelectedStage" xml:space="preserve"><value>Selected stage</value></data>
+  <data name="StableId" xml:space="preserve"><value>Stable id</value></data>
+  <data name="StableIdHelper" xml:space="preserve"><value>Used by agents and cards</value></data>
+  <data name="Instruction" xml:space="preserve"><value>Agent instruction</value></data>
+  <data name="DefaultAgent" xml:space="preserve"><value>Default agent</value></data>
+  <data name="DefaultAgentHelper" xml:space="preserve"><value>For example: codex; may be left empty</value></data>
+  <data name="RequiredArtifacts" xml:space="preserve"><value>Required artifacts</value></data>
+  <data name="ArtifactsHelper" xml:space="preserve"><value>path | policy | description - one per line</value></data>
+  <data name="MoveUp" xml:space="preserve"><value>Up</value></data>
+  <data name="MoveDown" xml:space="preserve"><value>Down</value></data>
+  <data name="SaveWorkflow" xml:space="preserve"><value>Save workflow</value></data>
+  <data name="WorkflowHint" xml:space="preserve"><value>Changes apply to the board and to the next agent runs.</value></data>
+  <data name="NewStage" xml:space="preserve"><value>New stage</value></data>
+  <data name="NewStageInstruction" xml:space="preserve"><value>Describe what the agent should do at this stage.</value></data>
+  <data name="OneStageRequired" xml:space="preserve"><value>A workflow needs at least one stage.</value></data>
+  <data name="MoveCardFirst" xml:space="preserve"><value>Move card {0} out of this stage first.</value></data>
+  <data name="ArtifactLineInvalid" xml:space="preserve"><value>invalid artifact line "{0}".</value></data>
+  <data name="SaveWorkflowFailed" xml:space="preserve"><value>Could not save the workflow: {0}</value></data>
+  <data name="WorkflowTitleRequired" xml:space="preserve"><value>Enter a workflow title.</value></data>
+  <data name="StageIdTitleRequired" xml:space="preserve"><value>Every stage needs an id and a title.</value></data>
+  <data name="StageIdUnique" xml:space="preserve"><value>Stage id must be unique: {0}.</value></data>
+  <data name="WorkflowConflict" xml:space="preserve"><value>Another agent has already changed the workflow. The board has been refreshed.</value></data>
+  <data name="ServerRejectedChanges" xml:space="preserve"><value>The server rejected the changes: {0}.</value></data>
+  <data name="WorkflowSaved" xml:space="preserve"><value>Workflow saved.</value></data>
+  <data name="SettingsTitle" xml:space="preserve"><value>Settings</value></data>
+  <data name="LoadingSettings" xml:space="preserve"><value>Loading settings...</value></data>
+  <data name="Daemon" xml:space="preserve"><value>Daemon</value></data>
+  <data name="Version" xml:space="preserve"><value>Version</value></data>
+  <data name="Address" xml:space="preserve"><value>Address</value></data>
+  <data name="EffectiveConfig" xml:space="preserve"><value>Effective execution configuration</value></data>
+  <data name="Source" xml:space="preserve"><value>Source</value></data>
+  <data name="Workspace" xml:space="preserve"><value>Workspace</value></data>
+  <data name="MaxRuns" xml:space="preserve"><value>Concurrent runs</value></data>
+  <data name="ScopeOverlap" xml:space="preserve"><value>Scope overlap</value></data>
+  <data name="CommitPolicy" xml:space="preserve"><value>Commits in a shared checkout</value></data>
+  <data name="ParallelSharedOn" xml:space="preserve"><value>Parallel shared mode is on</value></data>
+  <data name="ProjectSettings" xml:space="preserve"><value>Project</value></data>
+  <data name="WorkspaceOption" xml:space="preserve"><value>Shared checkout</value></data>
+  <data name="WorktreeOption" xml:space="preserve"><value>Separate worktree (soon)</value></data>
+  <data name="MaxRunsLabel" xml:space="preserve"><value>Concurrent runs (1 or more)</value></data>
+  <data name="PolicyAsk" xml:space="preserve"><value>Ask</value></data>
+  <data name="PolicyAllow" xml:space="preserve"><value>Allow</value></data>
+  <data name="PolicyDeny" xml:space="preserve"><value>Deny</value></data>
+  <data name="ScopePolicy" xml:space="preserve"><value>Scope overlap policy</value></data>
+  <data name="SaveProjectSettings" xml:space="preserve"><value>Save project settings</value></data>
+  <data name="GlobalSettings" xml:space="preserve"><value>Application</value></data>
+  <data name="GlobalHint" xml:space="preserve"><value>Applied to every project that has no settings of its own.</value></data>
+  <data name="SaveGlobalSettings" xml:space="preserve"><value>Save global settings</value></data>
+  <data name="SelectProjectForLocalSettings" xml:space="preserve"><value>Project settings become available once a project is selected. The global settings below apply to every project.</value></data>
+  <data name="SourceProject" xml:space="preserve"><value>project</value></data>
+  <data name="SourceGlobal" xml:space="preserve"><value>global</value></data>
+  <data name="SourceDefault" xml:space="preserve"><value>default</value></data>
+  <data name="LoadSettingsFailed" xml:space="preserve"><value>Could not load the settings: {0}</value></data>
+  <data name="SaveSettingsFailed" xml:space="preserve"><value>Saving failed: {0}</value></data>
+  <data name="SettingsSaved" xml:space="preserve"><value>Settings saved.</value></data>
+  <data name="InvalidMaxRuns" xml:space="preserve"><value>Enter a whole number of 1 or more.</value></data>
+  <data name="InvalidSettingValue" xml:space="preserve"><value>Invalid setting value.</value></data>
 </root>

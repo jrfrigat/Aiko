@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -32,9 +32,13 @@
         <strong>Aiko <small>AI kanban orchestrator</small></strong>
     </div>
     <div id="app"></div>
+    <!-- Blazor's error bar is filled by js/aiko-i18n.js, which is the only layer that can localize a
+         static page: it runs before this markup matters and knows the browser's languages. -->
     <div id="blazor-error-ui">
-        Интерфейс остановлен. <a class="reload" href=".">Перезагрузить</a>
+        <span data-aiko-error-text></span>
+        <a class="reload" href="." data-aiko-error-action></a>
     </div>
+    <script src="js/aiko-i18n.js"></script>
     <script src="js/aiko-events.js"></script>
     <script src="_framework/blazor.webassembly.js"></script>
 </body>

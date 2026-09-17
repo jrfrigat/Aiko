@@ -2,6 +2,11 @@
   <PropertyGroup>
     <StaticWebAssetProjectMode>Default</StaticWebAssetProjectMode>
     <ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
+    <!-- The UI language follows the browser, so the client must be able to name any culture the
+         visitor has - not just the one it was built with. The daemon serves this app over loopback,
+         where the extra ICU data costs nothing that matters. -->
+    <BlazorWebAssemblyLoadAllGlobalizationData>true</BlazorWebAssemblyLoadAllGlobalizationData>
+    <!-- Satellite resources are the languages we translate; the neutral Loc.resx is English. -->
     <SatelliteResourceLanguages>ru</SatelliteResourceLanguages>
   </PropertyGroup>
   <ItemGroup>

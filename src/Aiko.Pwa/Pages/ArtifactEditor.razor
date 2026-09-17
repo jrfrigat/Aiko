@@ -179,13 +179,13 @@
             {
                 _content = $"# {Path.GetFileNameWithoutExtension(path)}{Environment.NewLine}{Environment.NewLine}";
                 _version = null;
-                _message = "Файл ещё не создан. Сохранение добавит его в папку карточки.";
+                _message = Loc.Get("FileNotCreatedYet");
                 return;
             }
 
             response.EnsureSuccessStatusCode();
             var document = await response.Content.ReadFromJsonAsync<CardArtifactDocument>(PwaJson.Options)
-                ?? throw new InvalidDataException("Сервер вернул пустой документ.");
+                ?? throw new InvalidDataException(Loc.Get("ServerEmptyDoc"));
             _content = document.Content;
             _version = document.Version;
         }

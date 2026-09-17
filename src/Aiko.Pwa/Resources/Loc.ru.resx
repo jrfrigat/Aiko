@@ -162,4 +162,18 @@
   <data name="InvalidMaxRuns" xml:space="preserve"><value>Введите целое число от 1 и больше.</value></data>
   <data name="InvalidSettingValue" xml:space="preserve"><value>Недопустимое значение настройки.</value></data>
   <data name="ScopePolicy" xml:space="preserve"><value>Политика пересечения scope</value></data>
+  <data name="RailAriaLabel" xml:space="preserve"><value>Проекты Aiko</value></data>
+  <data name="InspectorAriaLabel" xml:space="preserve"><value>Инспектор Aiko</value></data>
+  <data name="StoriesNav" xml:space="preserve"><value>Истории</value></data>
+  <data name="TasksNav" xml:space="preserve"><value>Задачи</value></data>
+  <data name="CombinedNav" xml:space="preserve"><value>Общая</value></data>
+  <data name="StoryFlow" xml:space="preserve"><value>Поток историй</value></data>
+  <data name="TaskFlow" xml:space="preserve"><value>Поток задач</value></data>
+  <data name="WorkflowTitleRequired" xml:space="preserve"><value>Введите название workflow.</value></data>
+  <data name="StageIdTitleRequired" xml:space="preserve"><value>У каждого статуса должны быть id и название.</value></data>
+  <data name="StageIdUnique" xml:space="preserve"><value>Id статуса должен быть уникальным: {0}.</value></data>
+  <data name="WorkflowConflict" xml:space="preserve"><value>Workflow уже изменён другим агентом. Данные доски обновлены.</value></data>
+  <data name="ServerRejectedChanges" xml:space="preserve"><value>Сервер отклонил изменения: {0}.</value></data>
+  <data name="WorkflowSaved" xml:space="preserve"><value>Workflow сохранён.</value></data>
+  <data name="FileNotCreatedYet" xml:space="preserve"><value>Файл ещё не создан. Сохранение добавит его в папку карточки.</value></data>
 </root>
