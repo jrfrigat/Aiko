@@ -57,23 +57,24 @@ the UI with the **Card** button on the board.
 
 ## 5. Work through the stages
 
-The agent reads the project context first, then works stage by stage:
+The agent reads the project context first, then runs the card:
 
 ```text
-/aiko-next-stage   # move the card to the next stage
-/aiko-analyze      # analysis
-/aiko-implement    # implementation
-/aiko-review       # review
-/aiko-complete     # done
+/aiko-run TASK-1              # do what the card's current stage asks for
+/aiko-run TASK-1 review       # move the card to "review" first, then run it
 ```
 
-Drag cards between columns on the board for the same effect. When work needs files outside the
-card's scope, the agent calls `aiko_request_scope_expansion` and waits for your approval.
+There is no per-stage command: `/aiko-run` reads the stage from the card and its instruction from the
+project, so it works in a pipeline you edited or invented yourself. Drag cards between columns on the
+board for the same effect. When work needs files outside the card's scope, the agent calls
+`aiko_request_scope_expansion` and waits for your approval.
 
 ## 6. Finish and store knowledge
 
+`/aiko-run` completes the stage it started, recording the actual changed files and the artifacts, so the
+knowledge step is the one left:
+
 ```text
-/aiko-complete     # record the actual changed files and artifacts
 /aiko-memory       # store durable decisions and lessons
 ```
 

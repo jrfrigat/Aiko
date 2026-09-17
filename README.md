@@ -184,11 +184,9 @@ Written by `aiko agent install`. Project scope (`--project <id>`):
 | Skill | Does |
 | :-- | :-- |
 | `/aiko-create <type> <title>`, `/aiko-create-<type>` | Create a card of any type this project defines |
-| `/aiko-next-stage` | Move the current card to its next stage |
-| `/aiko-analyze`, `/aiko-implement`, `/aiko-review` | Run a pipeline stage and report progress |
+| `/aiko-run <cardId> [stageId]` | Run a card: do what its current stage asks for, report progress and complete it; a stage id moves it there first |
 | `/aiko-scope` | Ask for a scope expansion |
 | `/aiko-handoff` | Hand the stage over to another agent |
-| `/aiko-complete` | Complete the stage with its files and artifacts |
 | `/aiko-memory` | Store and search project memory |
 | `/aiko-status` | Summarize what is in progress |
 | `/aiko-ui` | Open the board for this project |

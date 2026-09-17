@@ -61,8 +61,7 @@ policy already covers); for a project initialized earlier, add the lines by hand
 
 Project-scoped skills/commands (installed with `aiko agent install --project <id>`):
 
-`/aiko-create`, `/aiko-next-stage`, `/aiko-analyze`,
-`/aiko-implement`, `/aiko-review`, `/aiko-complete`, `/aiko-scope`, `/aiko-handoff`,
+`/aiko-create`, `/aiko-run`, `/aiko-scope`, `/aiko-handoff`,
 `/aiko-memory`, `/aiko-status`, `/aiko-ui`.
 
 `/aiko-create` takes the card type as its argument (`/aiko-create bug The dropdown is empty`) and reads
@@ -71,6 +70,13 @@ daemon installs one `/aiko-create-<type>` per card type the project defines - `/
 `/aiko-create-task`, and one for every type you add in the workflow editor. Those per-type commands are a
 projection of the project's workflows: they are re-written when a type is created or removed, and only for
 the agents already connected to that project.
+
+`/aiko-run <cardId> [stageId]` runs a card: it reads the card's own stage and that stage's instruction from
+the project context, does the work, reports progress and completes the stage. A stage id moves the card
+there first, which is why there is no separate move command. Nothing about it names a stage, so it works in
+any pipeline - the per-stage commands it replaces (`/aiko-analyze`, `/aiko-implement`, `/aiko-review`,
+`/aiko-complete`) and `/aiko-next-stage` all named stages of the default template, the same hardcoding card
+types no longer have.
 
 Global skills/commands (installed with `aiko agent install --scope user`):
 
@@ -100,12 +106,12 @@ has no path yet, the table says so rather than pretending the sets are already e
 | Create a card of any type the project defines | `/aiko-create <type> <title>`, `/aiko-create-<type>` | `aiko_create_card`, `aiko_create_card_in_project` | Board - *Create card* |
 | Read the board | `/aiko-status` | `aiko_list_cards`, `aiko_get_card` | Board, and the card as its own page |
 | Edit a card | — | `aiko_update_card` | Card page - *Save card* |
-| Move a card between stages | `/aiko-next-stage` | `aiko_move_card` | Drag a card between columns |
+| Move a card between stages | `/aiko-run <cardId> <stageId>` | `aiko_move_card` | Drag a card between columns |
 | Start a stage | — | `aiko_start_stage` | — (the board shows the resulting state) |
-| Report progress | `/aiko-analyze`, `/aiko-implement`, `/aiko-review` | `aiko_report_progress` | Card page - execution history |
+| Report progress | `/aiko-run` | `aiko_report_progress` | Card page - execution history |
 | Request scope expansion | `/aiko-scope` | `aiko_request_scope_expansion` | Card page - declared vs actual files |
 | Hand off to another agent | `/aiko-handoff` | `aiko_handoff_execution` | Card page - execution history |
-| Complete a stage | `/aiko-complete` | `aiko_complete_stage` | Drag to the next column |
+| Complete a stage | `/aiko-run` | `aiko_complete_stage` | Drag to the next column |
 | Record and search memory | `/aiko-memory` | `aiko_store_memory`, `aiko_search_memory` | — (not in the UI yet) |
 | Edit the pipeline | — | — | Workflow page |
 | Read settings | — | `aiko_get_settings` | Settings page |

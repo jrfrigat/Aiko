@@ -42,8 +42,7 @@ aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<projectId>
 
 Project-scoped скиллы/команды (устанавливаются `aiko agent install --project <id>`):
 
-`/aiko-create`, `/aiko-next-stage`, `/aiko-analyze`,
-`/aiko-implement`, `/aiko-review`, `/aiko-complete`, `/aiko-scope`, `/aiko-handoff`,
+`/aiko-create`, `/aiko-run`, `/aiko-scope`, `/aiko-handoff`,
 `/aiko-memory`, `/aiko-status`, `/aiko-ui`.
 
 `/aiko-create` принимает тип карточки аргументом (`/aiko-create bug Не работает выпадающий список`) и
@@ -52,6 +51,13 @@ Project-scoped скиллы/команды (устанавливаются `aiko
 `/aiko-create-task` и по одной на каждый тип, добавленный в редакторе workflow. Эти команды - проекция
 workflow проекта: они перезаписываются при создании и удалении типа, и только для агентов, уже
 подключённых к этому проекту.
+
+`/aiko-run <cardId> [stageId]` запускает карточку: берёт её текущий этап и инструкцию этого этапа из
+контекста проекта, выполняет работу, отчитывается о прогрессе и завершает этап. Указанный `stageId`
+сначала переводит карточку туда - поэтому отдельной команды перевода больше нет. Ничего в ней не называет
+этап по имени, поэтому она работает в любом конвейере: заменённые ею команды (`/aiko-analyze`,
+`/aiko-implement`, `/aiko-review`, `/aiko-complete` и `/aiko-next-stage`) называли этапы шаблона по
+умолчанию - то же зашивание, которого у типов карточек больше нет.
 
 Глобальные скиллы/команды (устанавливаются `aiko agent install --scope user`):
 
@@ -100,12 +106,12 @@ UI пока нет, таблица говорит это прямо, а не д�
 | Создать карточку любого типа проекта | `/aiko-create <тип> <заголовок>`, `/aiko-create-<тип>` | `aiko_create_card`, `aiko_create_card_in_project` | Доска - *Создать карточку* |
 | Прочитать доску | `/aiko-status` | `aiko_list_cards`, `aiko_get_card` | Доска, и карточка как отдельная страница |
 | Изменить карточку | — | `aiko_update_card` | Страница карточки - *Сохранить* |
-| Перевести карточку по этапам | `/aiko-next-stage` | `aiko_move_card` | Перетаскивание между колонками |
+| Перевести карточку по этапам | `/aiko-run <cardId> <stageId>` | `aiko_move_card` | Перетаскивание между колонками |
 | Запустить этап | — | `aiko_start_stage` | — (доска покажет результат) |
-| Отчитаться о прогрессе | `/aiko-analyze`, `/aiko-implement`, `/aiko-review` | `aiko_report_progress` | Страница карточки - история исполнения |
+| Отчитаться о прогрессе | `/aiko-run` | `aiko_report_progress` | Страница карточки - история исполнения |
 | Запросить расширение scope | `/aiko-scope` | `aiko_request_scope_expansion` | Страница карточки - declared и actual файлы |
 | Передать этап другому агенту | `/aiko-handoff` | `aiko_handoff_execution` | Страница карточки - история исполнения |
-| Завершить этап | `/aiko-complete` | `aiko_complete_stage` | Перетаскивание в следующую колонку |
+| Завершить этап | `/aiko-run` | `aiko_complete_stage` | Перетаскивание в следующую колонку |
 | Записать и найти память | `/aiko-memory` | `aiko_store_memory`, `aiko_search_memory` | — (в UI пока нет) |
 | Изменить конвейер | — | — | Страница Workflow |
 | Прочитать настройки | — | `aiko_get_settings` | Страница Settings |
