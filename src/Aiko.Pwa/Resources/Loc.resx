@@ -311,9 +311,9 @@
   <data name="TaskNote" xml:space="preserve"><value>Note or command</value></data>
   <data name="TaskNoteHint" xml:space="preserve"><value>A note is stored with the card, in its own folder; a command waits for the agent that runs this stage</value></data>
   <data name="Comment" xml:space="preserve"><value>Comment</value></data>
-  <data name="CodeChangesHint" xml:space="preserve"><value>Where the diff of this card's commits will appear</value></data>
-  <data name="CodeChangesPending" xml:space="preserve"><value>A diff of this card's commits appears here.</value></data>
-  <data name="CodeChangesPlan" xml:space="preserve"><value>It waits for the git integration: the block will list the commits reported for this card - sha, message, the files they touched - and the diff of each, hunk by hunk.</value></data>
+  <data name="CodeChangesHint" xml:space="preserve"><value>The card's files, with the patch the git client reports</value></data>
+  <data name="CodeChangesPending" xml:space="preserve"><value>The files this card declared or touched appear here, with git's own patch for each.</value></data>
+  <data name="CodeChangesPlan" xml:space="preserve"><value>It needs a git client on PATH and a repository: without either, this block says which of the two is missing instead of showing an empty viewer.</value></data>
   <data name="ArtifactsTitle" xml:space="preserve"><value>Artifacts</value></data>
   <data name="ArtifactsHint" xml:space="preserve"><value>The files this card owns, edited as Markdown</value></data>
   <data name="RunsTitle" xml:space="preserve"><value>Runs</value></data>

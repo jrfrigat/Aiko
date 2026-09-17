@@ -666,7 +666,7 @@ read as a description of a finished product where it is not one.
 | § | Section | Status |
 | :-- | :-- | :-- |
 | 1-6 | Purpose, goals, scope, terms, context, components | Implemented |
-| 7 | Storage | Implemented: `.aiko` files plus the SQLite index and `reindex`. FileSystemWatcher and reconciliation are post-MVP |
+| 7 | Storage | Implemented: `.aiko` files plus the SQLite projections (cards, relations, memory, stage transitions, daemon runs) and `reindex`. FileSystemWatcher and reconciliation are post-MVP |
 | 8 | Card model | Implemented |
 | 9 | Relation graph | Implemented inside a project; cross-project relations are out of scope (see §3) |
 | 10 | Priority | Implemented, including recursion through parent stories |
@@ -679,11 +679,11 @@ read as a description of a finished product where it is not one.
 | 17 | REST, SSE and the local UI | Implemented; SSE with watermark, replay and project checking |
 | 18 | Kanban projections | Implemented (Tasks / Stories / Combined) |
 | 19 | Memory | Implemented on FTS5 |
-| 20 | Git | Commit policies implemented; push is post-MVP |
+| 20 | Git | Implemented: reading the repository (branch, changes, log, the diff of a card's files) by running the `git` client, plus the commit policies; push and branch handling are post-MVP |
 | 21 | Security | Implemented: loopback binding, access token, browser pairing, `Host`/`Origin` checks |
 | 22 | Installation | Implemented: `install.ps1`, user-scope skills and MCP configuration, binary update and removal. The interactive TUI installer and autostart are post-MVP |
 | 23 | Reliability and audit | Partial: event journal, replay and health exist; log rotation does not |
-| 24 | Configuration | Implemented: global settings as defaults, project overrides, the effective source in the response |
+| 24 | Configuration | Implemented: templates (workflow sets) as the source of defaults - copied at init, captured from a project, imported/exported and applied explicitly; project overrides and the effective source in the response |
 | 25-27 | MVP, acceptance criteria, assumptions | Met, except for what is marked post-MVP above |
 | 28 | Requirements history | - |
 

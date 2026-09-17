@@ -311,9 +311,9 @@
   <data name="TaskNote" xml:space="preserve"><value>Заметка или команда</value></data>
   <data name="TaskNoteHint" xml:space="preserve"><value>Заметка хранится вместе с карточкой, в её папке; команду ждёт агент, который запускает этот этап</value></data>
   <data name="Comment" xml:space="preserve"><value>Комментировать</value></data>
-  <data name="CodeChangesHint" xml:space="preserve"><value>Здесь появится дифф коммитов этой карточки</value></data>
-  <data name="CodeChangesPending" xml:space="preserve"><value>Здесь появится дифф коммитов этой карточки.</value></data>
-  <data name="CodeChangesPlan" xml:space="preserve"><value>Блок ждёт git-интеграцию: здесь будут коммиты, заявленные по карточке — sha, сообщение, затронутые файлы — и дифф каждого, по хункам.</value></data>
+  <data name="CodeChangesHint" xml:space="preserve"><value>Файлы карточки и патч, который отдаёт git-клиент</value></data>
+  <data name="CodeChangesPending" xml:space="preserve"><value>Здесь появляются файлы, которые карточка заявила или затронула, и патч из git по каждому.</value></data>
+  <data name="CodeChangesPlan" xml:space="preserve"><value>Нужен git в PATH и репозиторий: без любого из них блок скажет, чего не хватает, вместо пустого просмотрщика.</value></data>
   <data name="ArtifactsTitle" xml:space="preserve"><value>Артефакты</value></data>
   <data name="ArtifactsHint" xml:space="preserve"><value>Файлы этой карточки, редактируемые как Markdown</value></data>
   <data name="RunsTitle" xml:space="preserve"><value>Запуски</value></data>

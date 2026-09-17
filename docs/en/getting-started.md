@@ -67,8 +67,9 @@ card's scope, the agent calls `aiko_request_scope_expansion` and waits for your 
 ```
 
 Commits follow the project's commit policy (`deny` by default - you commit; `ask` - the agent asks
-first; `allow` - the agent commits). The UI shows cards, artifacts, workflow and settings, all
-updated live over SSE.
+first; `allow` - the agent commits). The UI shows the board, the project page (statistics, velocity,
+distribution), a card (scope, acceptance criteria, the diff from git, discussion, runs) and the
+workflow sets - all updated live over SSE.
 
 ## What next
 

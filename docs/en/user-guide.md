@@ -84,7 +84,7 @@ Currently configured: execution (workspace mode, max concurrent runs, scope-over
 and the priority model - blending weights, the criteria with their ranges and agent instructions, and the
 size grid.
 
-## Project templates
+## Workflow sets
 
 A project is created from a **template**, and the template decides what it starts with: the stages of each
 pipeline with their agent instructions and required artifacts, the board projections, the starting memory
@@ -123,6 +123,40 @@ Editing one template is the same defaults screen as before: `/templates/<id>` (a
 Each card can have stage executions. An execution owns the workspace and keeps a history of
 `AgentAttempt`s (one per agent run). Progress, scope changes, artifacts, commits and handoffs are
 recorded. A rate-limited agent hands the execution to another agent without losing history.
+
+## Git
+
+Aiko does not reimplement git: it runs the `git` client on your machine as a command and reads what it says.
+A missing client is reported as **"Git client unavailable"**; a directory that is not a repository says so
+too. Both are answers, not errors - a screen has to be able to draw them.
+
+What is read: the branch, the remote, the number of changed files, HEAD (short sha and subject), the recent
+commits and the **diff of the card's files** - what the card declared in its scope or actually touched. The
+diff comes from the working tree, and from the last commit that changed the files when they are committed
+already.
+
+Where it shows: the branch in the dashboard's project table, the diff in the card's **Code changes** tab
+(the file, `+N`/`-N`, and the coloured patch). Aiko never writes to the repository - no commits, no branches:
+commits stay under the policy below, and push is post-MVP.
+
+## Discussion & commands
+
+Every card has a feed: notes from people and reports from agents. A note is authored content, so it lives
+with the card, in its own folder: `.aiko/<stories|tasks>/<cardId>/discussion.json`, next to `card.json`. The
+**Discussion & commands** tab shows the feed (who, when, what) and a box for a new note; the `/benchmark` and
+`/leak-check` chips add a command to the text. Nothing is launched from here: the daemon records work, you run
+the agent - a command in the text is addressed to whoever opens the stage.
+
+## Analytics
+
+The project page carries two charts computed from what the daemon observed rather than from what you wrote:
+**pipeline velocity** (cards that entered a stage, per week - every week of the window, quiet ones included)
+and the **distribution** (by card kind and by size step). The daemon screen reports **uptime, runs, runs
+without a clean stop, working set and managed heap**.
+
+Those numbers live in SQLite on purpose: a stage transition is something the daemon observed, not authored
+content. Losing the table costs a chart, not a card. Everything that matters - cards, settings, templates,
+memory, discussion - is files, in the project and in Aiko's own directory.
 
 ## Commits
 

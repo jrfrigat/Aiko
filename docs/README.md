@@ -8,7 +8,7 @@
 | :-- | :-- |
 | [Installation](en/installation.md) | Install, run, configure, update and uninstall Aiko |
 | [Getting Started](en/getting-started.md) | First project in a few minutes |
-| [User Guide](en/user-guide.md) | Board, cards, workflows, settings, executions, memory |
+| [User Guide](en/user-guide.md) | Board, cards, workflows, git, discussion, analytics, executions, memory |
 | [Agent Integration](en/agent-integration.md) | MCP endpoints, tools, skills, installer output |
 | [Troubleshooting](en/troubleshooting.md) | Common problems and fixes |
 | [Technical Specification](en/technical-specification.md) | Normative MVP specification |
@@ -21,7 +21,7 @@
 | :-- | :-- |
 | [Установка](ru/installation.md) | Установка, запуск, настройка, обновление и удаление |
 | [Быстрый старт](ru/getting-started.md) | Первый проект за несколько минут |
-| [Руководство пользователя](ru/user-guide.md) | Доска, карточки, workflow, настройки, executions, память |
+| [Руководство пользователя](ru/user-guide.md) | Доска, карточки, workflow, git, обсуждение, аналитика, executions, память |
 | [Интеграция агентов](ru/agent-integration.md) | MCP-эндпоинты, инструменты, скиллы, вывод установщика |
 | [Решение проблем](ru/troubleshooting.md) | Типовые проблемы и решения |
 | [Техническая спецификация](ru/technical-specification.md) | Нормативная спецификация MVP |

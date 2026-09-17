@@ -49,6 +49,14 @@ rate limit) hands off to another agent without losing history.
   deleting it is safe, `reindex` rebuilds everything from `.aiko` files
 - **Security by default** - loopback bind only, `Host`/`Origin` validation against DNS rebinding
   and remote-browser origins, no wildcard CORS
+- **Git, read through your own client** - the branch, the changes, the log and the diff of a card's files,
+  read by running the `git` executable; a machine without it says "Git client unavailable" instead of
+  failing, and Aiko never writes to the repository
+- **Workflow sets you can author** - the pipelines and defaults a project starts from: captured from a
+  project, exported and imported between machines, and applied to an existing project by an explicit action
+- **Screens that answer questions** - a project page (cards per stage, weekly velocity, triage
+  distribution, re-index), a card page (scope, acceptance criteria, live diff, discussion, runs) and a
+  daemon page (uptime, runs and crashes, memory, agent bridges)
 
 ---
 
@@ -101,7 +109,7 @@ directories and the database are never deleted automatically.
 dotnet test Aiko.slnx
 ```
 
-108 xUnit facts across four suites: domain rules, infrastructure/file/SQLite behavior, daemon
+113 xUnit facts across four suites: domain rules, infrastructure/file/SQLite behavior, daemon
 integration (MCP tools plus the REST API, its status codes and the loopback/Host/Origin guard) and the
 client JSON contract. The integration suite boots its own daemon on a random port with an isolated
 database - no manual orchestration needed.
@@ -216,7 +224,7 @@ what the UI cannot do yet.
 
 - [Installation](docs/en/installation.md) - install, run, configure, update and uninstall
 - [Getting Started](docs/en/getting-started.md) - first project in a few minutes
-- [User Guide](docs/en/user-guide.md) - board, cards, workflows, settings, executions, memory
+- [User Guide](docs/en/user-guide.md) - board, cards, workflows, git, discussion, analytics, executions, memory
 - [Agent Integration](docs/en/agent-integration.md) - MCP endpoints, tools, skills, installer output
 - [Troubleshooting](docs/en/troubleshooting.md) - common problems and fixes
 - [Technical Specification](docs/en/technical-specification.md) - the normative MVP specification
@@ -229,6 +237,12 @@ what the UI cannot do yet.
 
 ## Status
 
-MVP foundation under active development (see the [MVP stages](docs/en/technical-specification.md#25-mvp)
-in the spec). The daemon, storage, MCP layer, installer and the self-contained test suites are in
-place; the PWA board and the automatic execution loop are being built out next.
+Implemented and covered by the test suites: the daemon (REST, project-scoped and daemon-level MCP, SSE),
+file-first storage with rebuildable SQLite projections, the typed card graph with effective priorities, the
+execution loop (attempts, handoffs, pause/resume, commit policies), durable memory, the unified agent
+installer, and the PWA - board, project page, card page (scope, acceptance criteria, live diff, discussion,
+runs), workflow sets, agent bridges and analytics.
+
+Post-MVP, as tracked in §29 of the [specification](docs/en/technical-specification.md#29-implementation-status):
+git push and branch handling, `WorkspaceMode.Worktree`, filesystem watching and reconciliation, agent
+autolaunch, the interactive installer, and the memory and journal screens in the UI.
