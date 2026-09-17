@@ -80,8 +80,15 @@ aiko agent install --scope user
 Start the daemon (it listens on loopback only):
 
 ```powershell
-aiko serve
+aiko serve        # in this terminal: its log is here, Ctrl+C stops it
+aiko serve -d     # in the background: it outlives this terminal
 ```
+
+`-d` (or `--detached`) starts the daemon with a console of its own that nobody sees and a log file, so
+closing the terminal - or the Ctrl+C that ends it - no longer takes the daemon with it. The command reports
+the pid, the port and the log path, and returns as soon as the daemon answers `/health`; the log defaults to
+`daemon.log` next to the database and can be moved with `AIKO_LOG_FILE`. Only one daemon runs per
+installation: a second start says which port the running one holds instead of failing on a taken port.
 
 Stop it again from any terminal:
 
@@ -99,7 +106,12 @@ Open the UI - this pairs the browser with the daemon using a one-time code and o
 aiko ui
 ```
 
-`aiko status` shows the data directory, database path, port and daemon health.
+The UI needs a daemon, so `aiko ui` starts one in the background first when none is answering: being told to
+start a service and come back is not an answer to "open the board".
+
+`aiko status` shows the data directory, database path, port and daemon health; when the daemon is not
+running it also prints how to start one and the tail of the last background log, which is where a daemon that
+stopped says why.
 
 ## Configuration
 
@@ -108,6 +120,7 @@ aiko ui
 | `AIKO_PORT` | Explicit port for the next start; validated and persisted |
 | `AIKO_URL` | Explicit loopback origin (overrides port selection) |
 | `AIKO_DATABASE` | Path to the SQLite database (default `%LOCALAPPDATA%\Aiko\aiko.db`) |
+| `AIKO_LOG_FILE` | File a daemon logs to; set to `<data>\daemon.log` by `aiko serve -d` |
 | `AIKO_TOKEN` | Fixed access token (otherwise generated and persisted in `access-token`) |
 | `AIKO_PAIR_CODE` | Fixed pairing code (used by tests/scripts) |
 | `AIKO_INSECURE` | Set to `1` to disable authentication (local debugging only) |

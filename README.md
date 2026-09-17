@@ -93,9 +93,10 @@ global MCP entry, `/aiko-*` skills and shared memory; answering with Enter skips
 it non-interactively with `-Agents claude-code,codex`, or skip it with `-NoAgentSetup`.
 
 ```powershell
-aiko serve     # start the daemon (loopback only; prefers port 24560)
+aiko serve     # start the daemon in this terminal (loopback only; prefers port 24560)
+aiko serve -d  # the same, in the background: it survives closing this terminal
 aiko serve stop                    # stop the daemon again, from any terminal
-aiko ui        # pair the browser with the daemon and open the board
+aiko ui        # pair the browser with the daemon and open the board (starts one if none runs)
 aiko doctor    # check the installation; `aiko repair --fix` applies the fixes it names
 ```
 
@@ -117,6 +118,7 @@ directories and the database are never deleted automatically.
 | `AIKO_PORT` | Explicit port for this launch; validated and persisted |
 | `AIKO_URL` | Explicit loopback origin (overrides port selection) |
 | `AIKO_DATABASE` | Path to the SQLite database (default `%LocalAppData%/Aiko/aiko.db`) |
+| `AIKO_LOG_FILE` | File a background daemon logs to (set by `aiko serve -d`; default `<data>/daemon.log`) |
 
 ### Tests
 

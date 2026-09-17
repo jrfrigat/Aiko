@@ -34,6 +34,25 @@ configs may be stale - reinstall them:
 aiko agent install --project <projectId>
 ```
 
+## The daemon stopped by itself
+
+Aiko never stops its own daemon. There are exactly two ways out: `aiko serve stop` asks it to stop through
+its own token-guarded endpoint, and the process being killed from outside. Which one happened is in its log:
+
+```powershell
+aiko status      # prints how to start one, plus the tail of the last background log
+```
+
+- A log that ends with `Application is shutting down...` means the daemon was *asked* to stop - by
+  `aiko serve stop`, or by Ctrl+C in the terminal that started it.
+- A log that ends mid-request, with no such line, means it was *killed*: Task Manager, `taskkill`, a logoff,
+  or the console it shared being closed.
+
+That second case is why backgrounds exist: a foreground daemon shares the terminal that started it, so
+whatever ends that terminal - a closed window, a Ctrl+C pressed to copy text - ends the daemon too. Started
+with `aiko serve -d`, it gets its own console and a log file (`daemon.log` next to the database, or the path
+in `AIKO_LOG_FILE`) and outlives the shell.
+
 ## 401 Unauthorized
 
 The daemon requires the access token (or the pairing session cookie) for `/api/v1/*` and `/mcp/*`.

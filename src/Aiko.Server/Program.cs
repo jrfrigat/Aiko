@@ -14,6 +14,7 @@ using Aiko.Infrastructure.Relations;
 using Aiko.Infrastructure.Settings;
 using Aiko.Infrastructure.Storage;
 using Aiko.Server.Contracts;
+using Aiko.Server.Diagnostics;
 using Aiko.Server.Endpoints;
 using Aiko.Server.ErrorHandling;
 using Aiko.Server.Mcp;
@@ -27,6 +28,14 @@ var builder = WebApplication.CreateSlimBuilder(new WebApplicationOptions
 #if DEBUG
 builder.WebHost.UseStaticWebAssets();
 #endif
+
+// A daemon started in the background has no console: AIKO_LOG_FILE gives it a file instead, so the
+// question "why did it stop?" has an answer in the daemon's own words - including the host's own
+// "Application is shutting down", which is the difference between being asked to stop and being killed.
+if (Environment.GetEnvironmentVariable("AIKO_LOG_FILE") is { Length: > 0 } logFilePath)
+{
+    builder.Logging.AddProvider(new FileLoggerProvider(logFilePath));
+}
 
 builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.TypeInfoResolverChain.Insert(0, ServerJsonContext.Default));

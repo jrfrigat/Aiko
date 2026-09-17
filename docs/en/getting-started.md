@@ -5,11 +5,12 @@ Follow this path to go from a fresh install to a completed task in a few minutes
 ## 1. Start the daemon and open the UI
 
 ```powershell
-aiko serve     # in one terminal
-aiko ui        # in another (opens the browser, pairs it with the daemon)
+aiko ui        # opens the browser, pairs it with the daemon, and starts one if none is running
 ```
 
-Stop it again with `aiko serve stop` - from any terminal, whether or not that one started it.
+`aiko ui` starts the daemon in the background when none is answering, so there is nothing to start first.
+Run `aiko serve` instead when you would rather keep its log in front of you in the terminal you are in.
+Either way, stop it again with `aiko serve stop` - from any terminal, whether or not that one started it.
 
 ## 2. Register your project
 

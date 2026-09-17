@@ -92,9 +92,10 @@ irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1 | i
 диалога: `-Agents claude-code,codex`, пропустить: `-NoAgentSetup`.
 
 ```powershell
-aiko serve     # запустить демон (только loopback; предпочитает порт 24560)
+aiko serve     # запустить демон в этом терминале (только loopback; предпочитает порт 24560)
+aiko serve -d  # то же, но в фоне: переживёт закрытие этого терминала
 aiko serve stop                    # остановить демон из любого терминала
-aiko ui        # сопрячь браузер с демоном и открыть доску
+aiko ui        # сопрячь браузер с демоном и открыть доску (запустит демон, если его нет)
 aiko doctor    # проверить установку; `aiko repair --fix` применяет найденные исправления
 ```
 
@@ -117,6 +118,7 @@ scriptblock:
 | `AIKO_PORT` | Явный порт для запуска; проверяется и сохраняется |
 | `AIKO_URL` | Явный loopback-origin (переопределяет выбор порта) |
 | `AIKO_DATABASE` | Путь к базе SQLite (по умолчанию `%LocalAppData%/Aiko/aiko.db`) |
+| `AIKO_LOG_FILE` | Файл, в который пишет лог фоновый демон (задаётся `aiko serve -d`; по умолчанию `<data>/daemon.log`) |
 
 ### Тесты
 

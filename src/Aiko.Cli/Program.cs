@@ -44,9 +44,13 @@ static int Help()
                                                         handle used in the UI's URLs
           templates                                     List the project templates to create from
           project remove <id> [--yes]                   Unregister a project (keeps its files)
-          serve [stop] [--port <p>]                       Start the Aiko daemon, or ask a running one to
-                                                        stop (the port it saved, or one given with --port)
-          ui                                            Open the UI in the browser
+          serve [-d|--detached] [--port <p>]              Start the Aiko daemon: in this terminal by
+                                                        default, in the background with -d (its log goes
+                                                        to the data directory)
+          serve stop [--port <p>]                       Ask a running daemon to stop (the port it saved,
+                                                        or one given with --port)
+          ui                                            Open the UI in the browser, starting a background
+                                                        daemon when none is running
           status                                        Daemon, data and port status
           doctor [--project <id>]                       Check the installation and report (changes nothing)
           repair [--fix] [--project <id>] [--agent <ids>]
@@ -202,20 +206,23 @@ static bool Confirm(string question)
 static bool HasFlag(string[] args, params string[] flags) =>
     args.Any(arg => flags.Any(flag => string.Equals(arg, flag, StringComparison.Ordinal)));
 
-// `aiko serve` runs the daemon in the foreground; `aiko serve stop` asks a running one to stop. The stop
-// goes through the daemon's own endpoint rather than to the process table, because the daemon owns its
-// shutdown: it can finish what it is doing, and the caller is told the request was accepted.
+// `aiko serve` runs the daemon in this terminal; `-d`/`--detached` leaves it running without this console;
+// `aiko serve stop` asks a running one to stop. The stop goes through the daemon's own endpoint rather than
+// to the process table, because the daemon owns its shutdown: it can finish what it is doing, and the caller
+// is told the request was accepted.
 static async Task<int> ServeAsync(string[] args)
 {
-    if (args.Length > 1 && string.Equals(args[1], "stop", StringComparison.OrdinalIgnoreCase))
+    var rest = args.Skip(1).ToArray();
+    if (rest.Any(argument => string.Equals(argument, "stop", StringComparison.OrdinalIgnoreCase)))
     {
         return await StopDaemonAsync(ReadOption(args, "--port"));
     }
 
-    if (args.Length > 1)
+    var unknown = rest.FirstOrDefault(argument => !IsServeFlag(argument));
+    if (unknown is not null)
     {
         Console.Error.WriteLine(
-            $"Unknown argument for `aiko serve`: {args[1]}. Use `aiko serve` to start a daemon or `aiko serve stop` to stop one.");
+            $"Unknown argument for `aiko serve`: {unknown}. Use `aiko serve [-d]` to start a daemon, or `aiko serve stop` to stop one.");
         return 2;
     }
 
@@ -227,15 +234,81 @@ static async Task<int> ServeAsync(string[] args)
         return 1;
     }
 
-    var startInfo = new ProcessStartInfo(server.Value.FileName, server.Value.Arguments)
+    // One daemon per installation is the design, so a second start is refused rather than left to fail on a
+    // port that is already taken - and `aiko ui` reaches the same answer through EnsureDaemonAsync.
+    if (await FindRunningPortAsync() is { } running)
+    {
+        Console.WriteLine($"An Aiko daemon is already running on port {running}.");
+        Console.WriteLine("Stop it with `aiko serve stop`.");
+        return 0;
+    }
+
+    if (!HasFlag(args, "-d", "--detached"))
+    {
+        return await StartForegroundAsync(server.Value);
+    }
+
+    if (await StartDetachedAsync(server.Value) is not { } started)
+    {
+        return 1;
+    }
+
+    PrintStartedInBackground(started);
+    return 0;
+}
+
+// The flags `aiko serve` accepts when it starts a daemon rather than stopping one.
+static bool IsServeFlag(string argument) =>
+    string.Equals(argument, "-d", StringComparison.Ordinal) ||
+    string.Equals(argument, "--detached", StringComparison.OrdinalIgnoreCase);
+
+// Runs the daemon in this console: its log is right here and Ctrl+C stops it. That is also the weakness -
+// whatever happens to this terminal happens to the daemon - which is what `-d` is for.
+static async Task<int> StartForegroundAsync((string FileName, string Arguments) server)
+{
+    var startInfo = new ProcessStartInfo(server.FileName, server.Arguments)
     {
         UseShellExecute = false
     };
     using var process = Process.Start(startInfo)
         ?? throw new InvalidOperationException("Failed to start the Aiko daemon.");
-    Console.WriteLine($"Started Aiko daemon (pid {process.Id}). Press Ctrl+C to stop.");
+    Console.WriteLine(
+        $"Started Aiko daemon (pid {process.Id}). Press Ctrl+C to stop it; `aiko serve -d` runs it in the background instead.");
     await process.WaitForExitAsync();
     return process.ExitCode;
+}
+
+// Starts the daemon with a console of its own that nobody sees (CREATE_NO_WINDOW) and a log file, so closing
+// the terminal that started it - or the Ctrl+C that ends it - no longer takes the daemon with it. Returns the
+// pid, the port and the log path once the daemon answers /health; null when it never did, with the tail of its
+// log printed, because "started" that nothing can connect to is not an answer.
+static async Task<(int Pid, int Port, string LogPath)?> StartDetachedAsync((string FileName, string Arguments) server)
+{
+    var logPath = ResolveLogPath();
+    var startInfo = new ProcessStartInfo(server.FileName, server.Arguments)
+    {
+        UseShellExecute = false,
+        CreateNoWindow = true
+    };
+    startInfo.EnvironmentVariables["AIKO_LOG_FILE"] = logPath;
+
+    using var process = Process.Start(startInfo)
+        ?? throw new InvalidOperationException("Failed to start the Aiko daemon.");
+    if (await WaitForHealthAsync(TimeSpan.FromSeconds(30)) is { } port)
+    {
+        return (process.Id, port, logPath);
+    }
+
+    Console.Error.WriteLine($"The daemon (pid {process.Id}) did not answer on its port within 30 seconds.");
+    PrintLogTail(logPath);
+    return null;
+}
+
+static void PrintStartedInBackground((int Pid, int Port, string LogPath) started)
+{
+    Console.WriteLine($"Started Aiko daemon in the background (pid {started.Pid}, port {started.Port}).");
+    Console.WriteLine($"Log:    {started.LogPath}");
+    Console.WriteLine("Stop:   aiko serve stop");
 }
 
 // Stops the daemon through its own endpoint. The port is the one the daemon saved when it started, or the one
@@ -325,6 +398,127 @@ static async Task<int> StopDaemonAsync(string? requestedPort)
     return 1;
 }
 
+// Waits for a daemon to answer /health and returns the port it did, or null when none did in time.
+static async Task<int?> WaitForHealthAsync(TimeSpan timeout)
+{
+    var deadline = DateTime.UtcNow + timeout;
+    while (DateTime.UtcNow < deadline)
+    {
+        await Task.Delay(250);
+        if (await FindRunningPortAsync() is { } port)
+        {
+            return port;
+        }
+    }
+
+    return null;
+}
+
+// The port of a daemon that answers: the one AIKO_PORT names, or the one saved when it started. A daemon
+// started with an explicit port never writes the settings file, so the environment is read first.
+static async Task<int?> FindRunningPortAsync()
+{
+    if (RequestedPort() is { } requested && await IsHealthyAsync(requested))
+    {
+        return requested;
+    }
+
+    if (await new DaemonEndpointConfiguration(AikoDataPaths.FromEnvironment()).TryReadAsync() is { } settings &&
+        await IsHealthyAsync(settings.Port))
+    {
+        return settings.Port;
+    }
+
+    return null;
+}
+
+// The port AIKO_PORT names, or null when the environment does not name one.
+static int? RequestedPort() =>
+    int.TryParse(Environment.GetEnvironmentVariable("AIKO_PORT"), out var port) ? port : null;
+
+static async Task<bool> IsHealthyAsync(int port)
+{
+    try
+    {
+        using var http = new HttpClient
+        {
+            BaseAddress = new Uri($"http://127.0.0.1:{port}"),
+            Timeout = TimeSpan.FromSeconds(2)
+        };
+        using var health = await http.GetAsync("/health");
+        return health.IsSuccessStatusCode;
+    }
+    catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException)
+    {
+        return false;
+    }
+}
+
+// The port of a daemon that answers, starting one in the background when none does. Asking for a project or
+// the UI is asking to see the board, so a missing daemon is something to fix here rather than something to
+// report back: the same start path as `aiko serve -d` runs, and only a daemon that never answers is a failure.
+static async Task<int?> EnsureDaemonAsync()
+{
+    if (await FindRunningPortAsync() is { } running)
+    {
+        return running;
+    }
+
+    if (ResolveServerCommand() is not { } server)
+    {
+        Console.Error.WriteLine(
+            $"No daemon is running, and the Aiko daemon was not found next to the aiko CLI ({AppContext.BaseDirectory}). Run the installer first.");
+        return null;
+    }
+
+    Console.WriteLine("No daemon is running; starting one in the background.");
+    if (await StartDetachedAsync(server) is not { } started)
+    {
+        return null;
+    }
+
+    PrintStartedInBackground(started);
+    return started.Port;
+}
+
+// Where a background daemon writes its log: AIKO_LOG_FILE when set, beside the database otherwise. The server
+// reads the same variable, so the path the CLI prints is the path the daemon uses.
+static string ResolveLogPath()
+{
+    if (Environment.GetEnvironmentVariable("AIKO_LOG_FILE") is { Length: > 0 } configured)
+    {
+        return configured;
+    }
+
+    var directory = Path.GetDirectoryName(AikoDataPaths.FromEnvironment().DatabasePath)
+        ?? throw new InvalidOperationException("The database path must include a directory.");
+    return Path.Combine(directory, "daemon.log");
+}
+
+// The tail of a daemon log, printed when one fails to start: the reason is almost always in the last lines of
+// the daemon's own account.
+static void PrintLogTail(string logPath)
+{
+    try
+    {
+        if (!File.Exists(logPath))
+        {
+            Console.Error.WriteLine($"No log was written to {logPath}.");
+            return;
+        }
+
+        Console.Error.WriteLine($"Last lines of {logPath}:");
+        foreach (var line in File.ReadLines(logPath).TakeLast(15))
+        {
+            Console.Error.WriteLine($"  {line}");
+        }
+    }
+    catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+    {
+        Console.Error.WriteLine($"The log at {logPath} could not be read: {exception.Message}");
+    }
+}
+
 // The release layout ships the daemon as a self-contained executable (Aiko.Server.exe) either next
 // to the CLI or in a `server` subdirectory. A source build publishes it framework-dependent, and
 // then the daemon is a managed assembly started through `dotnet`.
@@ -357,15 +551,16 @@ static (string FileName, string Arguments)? ResolveServerCommand()
 static async Task<int> UiAsync()
 {
     var dataPaths = AikoDataPaths.FromEnvironment();
-    var settings = await new DaemonEndpointConfiguration(dataPaths).TryReadAsync();
-    if (settings is null)
+    // The UI needs a daemon to talk to. Starting one is what the person meant by asking to see the board,
+    // and being told to start a service first is not an answer to that.
+    if (await EnsureDaemonAsync() is not { } port)
     {
-        Console.Error.WriteLine("Start the daemon once first, so the port is known.");
+        Console.Error.WriteLine("The UI was not opened because no daemon is answering. Run `aiko serve` to see why.");
         return 1;
     }
 
     var token = await new AccessTokenStore(dataPaths).GetOrCreateAsync();
-    using var http = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{settings.Port}") };
+    using var http = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{port}") };
     using var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/auth/pair-request");
     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
     using var response = await http.SendAsync(request);
@@ -374,7 +569,7 @@ static async Task<int> UiAsync()
     var code = document.RootElement.GetProperty("code").GetString()
         ?? throw new InvalidOperationException("The daemon returned no pairing code.");
 
-    var url = $"http://127.0.0.1:{settings.Port}/#pair={Uri.EscapeDataString(code)}";
+    var url = $"http://127.0.0.1:{port}/#pair={Uri.EscapeDataString(code)}";
     Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
     Console.WriteLine($"Opened {url}");
     return 0;
@@ -390,6 +585,8 @@ static async Task<int> StatusAsync()
     if (settings is null)
     {
         Console.WriteLine("Daemon:          not started yet (no saved port)");
+        WriteStartHint();
+        WriteDaemonLogTail();
         return 0;
     }
 
@@ -403,15 +600,44 @@ static async Task<int> StatusAsync()
     catch (HttpRequestException)
     {
         Console.WriteLine("Daemon:          not running");
+        WriteStartHint();
+        WriteDaemonLogTail();
     }
     catch (OperationCanceledException)
     {
         // A daemon that does not answer within the timeout is stopped as far as the user is concerned;
         // an escaping TaskCanceledException here prints a stack trace instead of saying so.
         Console.WriteLine("Daemon:          not running (no answer)");
+        WriteStartHint();
+        WriteDaemonLogTail();
     }
 
     return 0;
+}
+
+// How a daemon is started, in the two ways it can be run.
+static void WriteStartHint()
+{
+    Console.WriteLine("Start it with `aiko serve -d` (background) or `aiko serve` (this terminal); `aiko ui` starts one too.");
+}
+
+// The tail of the daemon's log, printed when it is not running: what a daemon said on its way out is the
+// answer to "why did it stop?", and a log file only exists for one that was started in the background. The
+// write time is shown with it so an older run's file is not read as this one's.
+static void WriteDaemonLogTail()
+{
+    var logPath = ResolveLogPath();
+    var file = new FileInfo(logPath);
+    if (!file.Exists)
+    {
+        return;
+    }
+
+    Console.WriteLine($"Last log lines ({logPath}, written {file.LastWriteTime:yyyy-MM-dd HH:mm}):");
+    foreach (var line in File.ReadLines(logPath).TakeLast(8))
+    {
+        Console.WriteLine($"  {line}");
+    }
 }
 
 static async Task<int> AgentAsync(string[] args)
