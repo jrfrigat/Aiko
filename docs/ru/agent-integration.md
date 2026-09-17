@@ -22,7 +22,7 @@ http://127.0.0.1:<port>/mcp
 aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<projectId>
 ```
 
-## Набор инструментов (29 tools)
+## Набор инструментов (27 tools)
 
 - **Контекст проекта** - `aiko_get_project_context`, `aiko_open_ui`.
 - **Карточки** - `aiko_list_cards`, `aiko_get_card`, `aiko_create_card`, `aiko_update_card`,
@@ -48,11 +48,40 @@ Project-scoped скиллы/команды (устанавливаются `aiko
 
 Глобальные скиллы/команды (устанавливаются `aiko agent install --scope user`):
 
-`/aiko-init`, `/aiko-list-projects`, `/aiko-status`, `/aiko-ui`.
+`/aiko-init`, `/aiko-list-projects`, `/aiko-status`, `/aiko-doctor`, `/aiko-repair`, `/aiko-ui`.
 
 Контракт поведения: любая работа начинается с карточки; читайте контекст перед действиями;
 предупреждайте об изменениях вне declared scope; сообщайте прогресс, фактические файлы и коммиты
 через Aiko.
+
+## Паритет: скилл, tool, UI
+
+Одну и ту же работу можно выполнить из агента, через MCP и - большую часть - с доски. Там, где пути в
+UI пока нет, таблица говорит это прямо, а не делает вид, что наборы уже совпадают.
+
+| Действие | Скилл агента | MCP tool | UI |
+| :-- | :-- | :-- | :-- |
+| Зарегистрировать проект | `/aiko-init` | `aiko_init_project` | Дашборд - *Добавить проект* (с обзором папок) |
+| Список проектов | `/aiko-list-projects` | `aiko_list_projects` | Дашборд - список проектов |
+| Открыть доску | `/aiko-ui` | `aiko_open_ui` | `aiko ui` или адрес в верхней панели |
+| Создать story / task | `/aiko-story-create`, `/aiko-task-create` | `aiko_create_card`, `aiko_create_card_in_project` | Доска - *Создать карточку* |
+| Прочитать доску | `/aiko-status` | `aiko_list_cards`, `aiko_get_card` | Доска и карточка |
+| Изменить карточку | — | `aiko_update_card` | Карточка - *Сохранить* |
+| Перевести карточку по этапам | `/aiko-next-stage` | `aiko_move_card` | Перетаскивание между колонками |
+| Запустить этап | — | `aiko_start_stage` | — (доска покажет результат) |
+| Отчитаться о прогрессе | `/aiko-analyze`, `/aiko-implement`, `/aiko-review` | `aiko_report_progress` | Карточка - история исполнения |
+| Запросить расширение scope | `/aiko-scope` | `aiko_request_scope_expansion` | Карточка - declared и actual файлы |
+| Передать этап другому агенту | `/aiko-handoff` | `aiko_handoff_execution` | Карточка - история исполнения |
+| Завершить этап | `/aiko-complete` | `aiko_complete_stage` | Перетаскивание в следующую колонку |
+| Записать и найти память | `/aiko-memory` | `aiko_store_memory`, `aiko_search_memory` | — (в UI пока нет) |
+| Изменить конвейер | — | — | Страница Workflow |
+| Прочитать настройки | — | `aiko_get_settings` | Страница Settings |
+| Изменить настройки | — (планируется `/aiko-settings`) | — (планируется `aiko_update_settings`) | Страница Settings |
+| Перестроить проекции | — | `aiko_reindex` | — (`aiko reindex`) |
+| Диагностика установки | `/aiko-doctor` | `aiko_doctor` | — (`aiko doctor`) |
+| Починка установки | `/aiko-repair` | — | — (`aiko repair --fix`) |
+| Резервная копия проекта | — | `aiko_backup` | — |
+| Показать токен доступа | — | `aiko_token` | — (`aiko token show`) |
 
 ## Что пишет установщик
 

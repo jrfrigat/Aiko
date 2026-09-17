@@ -22,7 +22,7 @@ Clients without reliable Streamable HTTP use the stdio proxy:
 aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<projectId>
 ```
 
-## The tool set (29 tools)
+## The tool set (27 tools)
 
 - **Project context** - `aiko_get_project_context`, `aiko_open_ui`.
 - **Cards** - `aiko_list_cards`, `aiko_get_card`, `aiko_create_card`, `aiko_update_card`,
@@ -47,10 +47,39 @@ Project-scoped skills/commands (installed with `aiko agent install --project <id
 
 Global skills/commands (installed with `aiko agent install --scope user`):
 
-`/aiko-init`, `/aiko-list-projects`, `/aiko-status`, `/aiko-ui`.
+`/aiko-init`, `/aiko-list-projects`, `/aiko-status`, `/aiko-doctor`, `/aiko-repair`, `/aiko-ui`.
 
 The behavior contract: any work item starts with a card; read context before acting; warn before
 changing files outside the declared scope; report progress, actual files and commits through Aiko.
+
+## Parity: skill, tool, UI
+
+The same work is reachable from an agent, over MCP and - for most of it - from the board. Where the UI
+has no path yet, the table says so rather than pretending the sets are already equal.
+
+| Action | Agent skill | MCP tool | UI |
+| :-- | :-- | :-- | :-- |
+| Register a project | `/aiko-init` | `aiko_init_project` | Dashboard - *Add project* (with the folder browser) |
+| List projects | `/aiko-list-projects` | `aiko_list_projects` | Dashboard - project list |
+| Open the board | `/aiko-ui` | `aiko_open_ui` | `aiko ui`, or the URL in the app bar |
+| Create a story / task | `/aiko-story-create`, `/aiko-task-create` | `aiko_create_card`, `aiko_create_card_in_project` | Board - *Create card* |
+| Read the board | `/aiko-status` | `aiko_list_cards`, `aiko_get_card` | Board and card drawer |
+| Edit a card | — | `aiko_update_card` | Card drawer - *Save card* |
+| Move a card between stages | `/aiko-next-stage` | `aiko_move_card` | Drag a card between columns |
+| Start a stage | — | `aiko_start_stage` | — (the board shows the resulting state) |
+| Report progress | `/aiko-analyze`, `/aiko-implement`, `/aiko-review` | `aiko_report_progress` | Card drawer - execution history |
+| Request scope expansion | `/aiko-scope` | `aiko_request_scope_expansion` | Card drawer - declared vs actual files |
+| Hand off to another agent | `/aiko-handoff` | `aiko_handoff_execution` | Card drawer - execution history |
+| Complete a stage | `/aiko-complete` | `aiko_complete_stage` | Drag to the next column |
+| Record and search memory | `/aiko-memory` | `aiko_store_memory`, `aiko_search_memory` | — (not in the UI yet) |
+| Edit the pipeline | — | — | Workflow page |
+| Read settings | — | `aiko_get_settings` | Settings page |
+| Change settings | — (planned `/aiko-settings`) | — (planned `aiko_update_settings`) | Settings page |
+| Rebuild projections | — | `aiko_reindex` | — (`aiko reindex`) |
+| Diagnose the installation | `/aiko-doctor` | `aiko_doctor` | — (`aiko doctor`) |
+| Repair the installation | `/aiko-repair` | — | — (`aiko repair --fix`) |
+| Back up a project | — | `aiko_backup` | — |
+| Show the access token | — | `aiko_token` | — (`aiko token show`) |
 
 ## What the installer writes
 

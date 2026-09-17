@@ -101,7 +101,7 @@ directories and the database are never deleted automatically.
 dotnet test Aiko.slnx
 ```
 
-81 xUnit facts across four suites: domain rules, infrastructure/file/SQLite behavior, daemon
+84 xUnit facts across four suites: domain rules, infrastructure/file/SQLite behavior, daemon
 integration (MCP tools plus the REST API, its status codes and the loopback/Host/Origin guard) and the
 client JSON contract. The integration suite boots its own daemon on a random port with an isolated
 database - no manual orchestration needed.
@@ -160,6 +160,36 @@ handoff / resume / report agent state), memory search and store, project registr
 diagnostics and reindex, and opening the UI. Tool
 descriptions instruct agents to fetch the project context first; installed skills, rules and
 `AGENTS.md` blocks reinforce it per agent.
+
+### Skills
+
+Written by `aiko agent install`. Project scope (`--project <id>`):
+
+| Skill | Does |
+| :-- | :-- |
+| `/aiko-story-create`, `/aiko-task-create` | Create a story or a task card |
+| `/aiko-next-stage` | Move the current card to its next stage |
+| `/aiko-analyze`, `/aiko-implement`, `/aiko-review` | Run a pipeline stage and report progress |
+| `/aiko-scope` | Ask for a scope expansion |
+| `/aiko-handoff` | Hand the stage over to another agent |
+| `/aiko-complete` | Complete the stage with its files and artifacts |
+| `/aiko-memory` | Store and search project memory |
+| `/aiko-status` | Summarize what is in progress |
+| `/aiko-ui` | Open the board for this project |
+
+User scope (`--scope user`), available without a project open:
+
+| Skill | Does |
+| :-- | :-- |
+| `/aiko-init` | Register the current directory as a project |
+| `/aiko-list-projects` | List the registered projects |
+| `/aiko-status` | Daemon health, data directory, port |
+| `/aiko-doctor` | Diagnose the installation (changes nothing) |
+| `/aiko-repair` | Apply the fixes the diagnosis named |
+| `/aiko-ui` | Open the UI |
+
+[Agent Integration](docs/en/agent-integration.md) has the full skill → MCP tool → UI table, including
+what the UI cannot do yet.
 
 ---
 
