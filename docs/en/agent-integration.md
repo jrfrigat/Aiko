@@ -61,9 +61,16 @@ policy already covers); for a project initialized earlier, add the lines by hand
 
 Project-scoped skills/commands (installed with `aiko agent install --project <id>`):
 
-`/aiko-story-create`, `/aiko-task-create`, `/aiko-next-stage`, `/aiko-analyze`,
+`/aiko-create`, `/aiko-next-stage`, `/aiko-analyze`,
 `/aiko-implement`, `/aiko-review`, `/aiko-complete`, `/aiko-scope`, `/aiko-handoff`,
 `/aiko-memory`, `/aiko-status`, `/aiko-ui`.
+
+`/aiko-create` takes the card type as its argument (`/aiko-create bug The dropdown is empty`) and reads
+the project context to resolve it, so it covers every type without being regenerated. Alongside it the
+daemon installs one `/aiko-create-<type>` per card type the project defines - `/aiko-create-story`,
+`/aiko-create-task`, and one for every type you add in the workflow editor. Those per-type commands are a
+projection of the project's workflows: they are re-written when a type is created or removed, and only for
+the agents already connected to that project.
 
 Global skills/commands (installed with `aiko agent install --scope user`):
 
@@ -77,6 +84,8 @@ need `aiko agent install --project <id>` for a particular project.
 
 The behavior contract: any work item starts with a card; read context before acting; warn before
 changing files outside the declared scope; report progress, actual files and commits through Aiko.
+The project context lists every card type the project defines with the stages of its pipeline, so a type
+added in the workflow editor is one an agent can create immediately.
 
 ## Parity: skill, tool, UI
 
@@ -88,7 +97,7 @@ has no path yet, the table says so rather than pretending the sets are already e
 | Register a project from a chosen template | `/aiko-init` | `aiko_list_templates`, `aiko_init_project` | Dashboard - *Add project* (folder browser + template select) |
 | List projects | `/aiko-list-projects` | `aiko_list_projects` | Dashboard - project list |
 | Open the board | `/aiko-ui` | `aiko_open_ui` | `aiko ui`, or the URL in the app bar |
-| Create a story / task | `/aiko-story-create`, `/aiko-task-create` | `aiko_create_card`, `aiko_create_card_in_project` | Board - *Create card* |
+| Create a card of any type the project defines | `/aiko-create <type> <title>`, `/aiko-create-<type>` | `aiko_create_card`, `aiko_create_card_in_project` | Board - *Create card* |
 | Read the board | `/aiko-status` | `aiko_list_cards`, `aiko_get_card` | Board, and the card as its own page |
 | Edit a card | — | `aiko_update_card` | Card page - *Save card* |
 | Move a card between stages | `/aiko-next-stage` | `aiko_move_card` | Drag a card between columns |

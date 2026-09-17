@@ -180,7 +180,7 @@ complete / pause / handoff / resume / report agent state), поиск и зап�
 
 | Скилл | Что делает |
 | :-- | :-- |
-| `/aiko-story-create`, `/aiko-task-create` | Создать story или task-карточку |
+| `/aiko-create <тип> <заголовок>`, `/aiko-create-<тип>` | Создать карточку любого типа, объявленного в проекте |
 | `/aiko-next-stage` | Перевести текущую карточку на следующий этап |
 | `/aiko-analyze`, `/aiko-implement`, `/aiko-review` | Выполнить этап конвейера и отчитаться о прогрессе |
 | `/aiko-scope` | Запросить расширение scope |

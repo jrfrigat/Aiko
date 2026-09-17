@@ -180,7 +180,7 @@ Written by `aiko agent install`. Project scope (`--project <id>`):
 
 | Skill | Does |
 | :-- | :-- |
-| `/aiko-story-create`, `/aiko-task-create` | Create a story or a task card |
+| `/aiko-create <type> <title>`, `/aiko-create-<type>` | Create a card of any type this project defines |
 | `/aiko-next-stage` | Move the current card to its next stage |
 | `/aiko-analyze`, `/aiko-implement`, `/aiko-review` | Run a pipeline stage and report progress |
 | `/aiko-scope` | Ask for a scope expansion |

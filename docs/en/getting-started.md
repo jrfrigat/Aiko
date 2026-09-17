@@ -31,15 +31,19 @@ aiko agent install --project <projectId>
 
 Then restart the agent so it loads the project's MCP server.
 
-## 4. Create a story and a task
+## 4. Create a card
 
 In the agent (inside the project):
 
 ```text
 /aiko-init                # only if the project is not registered yet
-/aiko-story-create        # create a story
-/aiko-task-create         # create a task
+/aiko-create task Add a settings page      # name the type, then what you want
+/aiko-create bug The dropdown list is empty
 ```
+
+The types are the project's own: every workflow in **Project settings - Workflow** is a card type, so a
+type you add there (an *Epic*, a *Bug*) is creatable at once - `/aiko-create` reads the project context
+instead of naming types, and `/aiko-create-<type>` is generated for each of them.
 
 Or use plain language: *"Create a task to add a settings page."* The same cards can be created in
 the UI with the **Card** button on the board.
