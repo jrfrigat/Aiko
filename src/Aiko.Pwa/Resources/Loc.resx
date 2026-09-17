@@ -550,4 +550,6 @@
   <data name="SaveTemplate" xml:space="preserve"><value>Save template</value></data>
   <data name="TemplateSaved" xml:space="preserve"><value>Template saved.</value></data>
 
+  <data name="CardTypeRevision" xml:space="preserve"><value>Card type · rev {0}</value></data>
+
 </root>

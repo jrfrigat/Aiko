@@ -10,7 +10,7 @@
         <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XSmall">
             <FlareStack Gap="FlareSpacing.None">
                 <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
-                    Workflow · rev @SelectedWorkflow.Revision
+                    @Loc.Format("CardTypeRevision", SelectedWorkflow.Revision)
                 </FlareText>
                 <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@SelectedWorkflow.Title</FlareText>
             </FlareStack>
@@ -31,21 +31,36 @@
 
         <FlareDivider />
 
-        @* The pipeline pair, as the design's identifier rows: the workflow that is being edited on the
-           narrow side and its display name beside it. Raw markup rather than FlareSelect/FlareTextField:
-           the design draws an unlabelled recessed strip with a mono accent value, and FlareField has no
-           bare variant to ask for (see code-field-variant.md in the Flare issues). *@
+        @* The card types of the project as tabs, with the "+" at the end for a new one: a type is a whole
+           pipeline, so switching between them is switching what this panel edits rather than picking a field
+           value from a list. *@
+        <FlareTabs ActiveIndex="@ActiveTypeIndex" ActiveIndexChanged="OnTypeTabChanged">
+            <ChildContent>
+                @foreach (var type in Workflows)
+                {
+                    var tab = type;
+                    <FlareTab Label="@tab.Title" LeadingIcon="@TabIcon(tab)" />
+                }
+            </ChildContent>
+            <HeaderEnd>
+                @if (Create is not null)
+                {
+                    <FlareIconButton Variant="ButtonVariant.Text"
+                                     Icon="@MaterialDesign3Icons.Regular.Add"
+                                     AriaLabel="@Loc.Get("NewCardTypeTitle")"
+                                     OnClick="() => _newTypePanelOpen = !_newTypePanelOpen" />
+                }
+            </HeaderEnd>
+        </FlareTabs>
+
+        @* The pipeline pair, as the design's identifier rows: the type's own id on the narrow side and its
+           display name beside it. Raw markup rather than FlareSelect/FlareTextField: the design draws an
+           unlabelled recessed strip with a mono accent value, and FlareField has no bare variant to ask for
+           (see code-field-variant.md in the Flare issues). *@
         <div class="aiko-code-pair">
-            <div class="aiko-code-row" title="@Loc.Get("Workflow")">
+            <div class="aiko-code-row aiko-code-row--quiet" title="@Loc.Get("Workflow")">
                 <FlareIconView Value="@MaterialDesign3Icons.Regular.AccountTree" Color="FlareColor.OnSurfaceVariant2" />
-                <select aria-label="@Loc.Get("Workflow")"
-                        value="@_workflowId"
-                        @onchange="OnWorkflowPicked">
-                    @foreach (var workflow in Workflows)
-                    {
-                        <option value="@workflow.Id">@workflow.Id</option>
-                    }
-                </select>
+                <span class="aiko-value">@_workflowId</span>
             </div>
             <div class="aiko-code-row aiko-code-row--quiet" title="@Loc.Get("WorkflowTitle")">
                 <FlareIconView Value="@MaterialDesign3Icons.Regular.Edit" Color="FlareColor.OnSurfaceVariant2" />
@@ -122,7 +137,7 @@
             </FlareText>
         }
 
-        @if (Create is not null)
+        @if (Create is not null && _newTypePanelOpen)
         {
             <FlarePaper Elevation="0" Padding="FlareSpacing.Medium" Square="true" Class="aiko-panel">
                 <FlareStack Gap="FlareSpacing.Small">
@@ -549,6 +564,12 @@
     private bool _deleteTypeConfirm;
 
     /// <summary>
+    /// Whether the "new card type" form is open. It is behind the tabs' "+" rather than always on screen: a
+    /// form for adding something should not take the room of the thing being edited.
+    /// </summary>
+    private bool _newTypePanelOpen;
+
+    /// <summary>
     /// The pipeline to open after the next reload. Creating a type rebuilds the list, and without this the
     /// editor would jump back to the first pipeline instead of following the type that was just added.
     /// </summary>
@@ -591,21 +612,53 @@
     }
 
     /// <summary>
-    /// A raw &lt;select&gt; hands back a change event rather than a typed value, so the picker adapter keeps
-    /// the typed method the single place that knows how to switch pipelines.
+    /// The tab of the type this panel edits: the tabs and the editor are one selection, so the tab that is
+    /// open and the pipeline on screen can never disagree.
     /// </summary>
-    private async Task OnWorkflowPicked(ChangeEventArgs args) =>
-        await SelectWorkflowAsync(args.Value?.ToString());
-
-    private Task SelectWorkflowAsync(string? id)
+    private int ActiveTypeIndex
     {
-        var workflow = Workflows.FirstOrDefault(item => item.Id == id);
-        if (workflow is not null)
+        get
         {
-            LoadWorkflow(workflow);
+            for (var index = 0; index < Workflows.Count; index++)
+            {
+                if (StringComparer.Ordinal.Equals(Workflows[index].Id, _workflowId))
+                {
+                    return index;
+                }
+            }
+
+            return 0;
+        }
+    }
+
+    /// <summary>
+    /// The type's icon as its tab draws it, or null when the type chose none. FlareTab takes a fragment rather
+    /// than an icon, so the icon is wrapped here - and only when there is one, because a type without an icon
+    /// has none on the board either.
+    /// </summary>
+    private static RenderFragment? TabIcon(WorkflowDefinition type)
+    {
+        if (CardAppearance.Icon(type.Icon) is not { } icon)
+        {
+            return null;
         }
 
-        return Task.CompletedTask;
+        return @<FlareIconView Value="icon" />;
+    }
+
+    /// <summary>Switching tabs switches the pipeline, so the stages follow the type that was picked.</summary>
+    private void OnTypeTabChanged(int index)
+    {
+        if (index < 0 || index >= Workflows.Count)
+        {
+            return;
+        }
+
+        var picked = Workflows[index];
+        if (!StringComparer.Ordinal.Equals(picked.Id, _workflowId))
+        {
+            LoadWorkflow(picked);
+        }
     }
 
     private static string StageLabel(StageDraft stage) => $"{stage.Order}. {stage.Title}";
@@ -877,6 +930,7 @@
 
             _message = Loc.Format("CardTypeCreated", workflow.Title);
             _pendingWorkflowId = workflow.Id;
+            _newTypePanelOpen = false;
             _newTypeId = null;
             _newTypeTitle = null;
             _newTypeDescription = null;

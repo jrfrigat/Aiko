@@ -550,4 +550,6 @@
   <data name="SaveTemplate" xml:space="preserve"><value>Сохранить шаблон</value></data>
   <data name="TemplateSaved" xml:space="preserve"><value>Шаблон сохранён.</value></data>
 
+  <data name="CardTypeRevision" xml:space="preserve"><value>Тип карточек · rev {0}</value></data>
+
 </root>
