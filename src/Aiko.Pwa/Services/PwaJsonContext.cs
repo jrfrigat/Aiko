@@ -63,6 +63,8 @@ namespace Aiko.Pwa.Services;
 [JsonSerializable(typeof(GitOverview))]
 [JsonSerializable(typeof(IReadOnlyList<GitCommit>))]
 [JsonSerializable(typeof(GitCardDiff))]
+[JsonSerializable(typeof(DaemonTelemetry))]
+[JsonSerializable(typeof(ProjectAnalytics))]
 [JsonSerializable(typeof(WorkshopDiagnostics))]
 [JsonSerializable(typeof(DiagnosticFinding))]
 [JsonSerializable(typeof(IReadOnlyList<DiagnosticFinding>))]

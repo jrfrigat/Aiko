@@ -76,6 +76,29 @@ public sealed class AikoDatabase(AikoDataPaths paths)
             INSERT OR IGNORE INTO schema_migrations(version, applied_utc)
             VALUES (1, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
 
+            CREATE TABLE IF NOT EXISTS card_stage_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                project_id TEXT NOT NULL,
+                card_id TEXT NOT NULL,
+                from_stage_id TEXT,
+                to_stage_id TEXT NOT NULL,
+                kind TEXT NOT NULL,
+                occurred_utc TEXT NOT NULL,
+                FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS ix_card_stage_events_project
+                ON card_stage_events(project_id, occurred_utc);
+
+            CREATE TABLE IF NOT EXISTS daemon_runs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                started_utc TEXT NOT NULL,
+                stopped_utc TEXT
+            );
+
+            INSERT OR IGNORE INTO schema_migrations(version, applied_utc)
+            VALUES (2, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+
             CREATE TABLE IF NOT EXISTS cards (
                 project_id TEXT NOT NULL,
                 card_id TEXT NOT NULL,

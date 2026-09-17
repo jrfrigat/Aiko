@@ -267,6 +267,16 @@ internal static class ProjectEndpoints
                     return Results.BadRequest(new ErrorResponse(exception.Message));
                 }
             });
+        // The project's derived numbers: stage transitions per week and what the board is made of. Read
+        // from SQLite, where the daemon records what it observed - never from the files it owns.
+        app.MapGet(
+            "/api/v1/projects/{projectId}/analytics",
+            async (
+                string projectId,
+                int? weeks,
+                IProjectAnalytics analytics,
+                CancellationToken cancellationToken) =>
+                TypedResults.Ok(await analytics.ReadAsync(projectId, weeks ?? 8, cancellationToken)));
         app.MapPost(
             "/api/v1/projects/{projectId}/reindex",
             async (

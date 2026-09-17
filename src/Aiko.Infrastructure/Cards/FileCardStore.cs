@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Aiko.Application.Contracts;
+using Microsoft.Data.Sqlite;
 using Aiko.Domain.Cards;
 using Aiko.Infrastructure.Projects;
 using Aiko.Infrastructure.Storage;
@@ -15,7 +16,8 @@ namespace Aiko.Infrastructure.Cards;
 public sealed class FileCardStore(
     IProjectCatalog projects,
     AikoDatabase database,
-    IAikoEventPublisher? events = null) : ICardStore
+    IAikoEventPublisher? events = null,
+    IProjectAnalytics? analytics = null) : ICardStore
 {
     /// <summary>
     /// Reference-counted per-card locks; idle keys are dropped automatically.
@@ -226,6 +228,22 @@ public sealed class FileCardStore(
         }
     }
 
+    /// <summary>
+    /// The stage the card store currently has projected for this card, or null when it has none - which is
+    /// how a card that did not exist until this save is told apart from one that moved.
+    /// </summary>
+    private static async ValueTask<string?> ReadProjectedStageAsync(
+        SqliteConnection connection,
+        Card card,
+        CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT stage_id FROM cards WHERE project_id = $projectId AND card_id = $cardId";
+        command.Parameters.AddWithValue("$projectId", card.Reference.ProjectId);
+        command.Parameters.AddWithValue("$cardId", card.Reference.CardId);
+        return await command.ExecuteScalarAsync(cancellationToken) as string;
+    }
+
     private async ValueTask UpsertProjectionAsync(
         Card card,
         CancellationToken cancellationToken)
@@ -233,6 +251,33 @@ public sealed class FileCardStore(
         var json = JsonSerializer.Serialize(card, ProjectJsonContext.Default.Card);
         await using var connection = database.CreateConnection();
         await connection.OpenAsync(cancellationToken);
+
+        // The stage a card was in before this save is what makes a transition worth recording: an edit that
+        // leaves the stage alone is not a move and does not belong on the throughput chart.
+        if (analytics is not null)
+        {
+            var previous = await ReadProjectedStageAsync(connection, card, cancellationToken);
+            if (previous is null)
+            {
+                await analytics.RecordStageAsync(
+                    card.Reference.ProjectId,
+                    card.Reference.CardId,
+                    fromStageId: null,
+                    card.StageId,
+                    card.Kind.ToString(),
+                    cancellationToken);
+            }
+            else if (!string.Equals(previous, card.StageId, StringComparison.Ordinal))
+            {
+                await analytics.RecordStageAsync(
+                    card.Reference.ProjectId,
+                    card.Reference.CardId,
+                    previous,
+                    card.StageId,
+                    card.Kind.ToString(),
+                    cancellationToken);
+            }
+        }
 
         await using var command = connection.CreateCommand();
         command.CommandText =

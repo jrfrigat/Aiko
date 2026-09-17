@@ -53,13 +53,17 @@ internal static class SystemEndpoints
     public static void MapSystemEndpoints(this IEndpointRouteBuilder app, Uri baseUri)
     {
         app.MapGet("/health", () => TypedResults.Ok(new HealthResponse("healthy")));
-        app.MapGet("/api/v1/system", () => TypedResults.Ok(new SystemResponse(
-            "Aiko",
-            DaemonVersion,
-            RuntimeCaption,
-            Environment.ProcessId,
-            baseUri.ToString().TrimEnd('/'),
-            DateTimeOffset.UtcNow)));
+        app.MapGet(
+            "/api/v1/system",
+            async (IDaemonTelemetry telemetry, CancellationToken cancellationToken) => TypedResults.Ok(
+                new SystemResponse(
+                    "Aiko",
+                    DaemonVersion,
+                    RuntimeCaption,
+                    Environment.ProcessId,
+                    baseUri.ToString().TrimEnd('/'),
+                    DateTimeOffset.UtcNow,
+                    await telemetry.ReadAsync(cancellationToken))));
         // The same inspection `aiko doctor` prints, so the settings screen can report the installation's
         // own health without a terminal. Read-only by contract: IWorkshopDiagnostics changes nothing.
         app.MapGet(

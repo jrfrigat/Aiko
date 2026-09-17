@@ -372,6 +372,16 @@
   <data name="ReindexFailed" xml:space="preserve"><value>Не удалось переиндексировать проект: {0}</value></data>
   <data name="ProjectStatsHint" xml:space="preserve"><value>Как карточки проекта распределены по его конвейерам, по данным доски от демона</value></data>
   <data name="StageLoad" xml:space="preserve"><value>Карточки по этапам</value></data>
+  <data name="VelocityTitle" xml:space="preserve"><value>Скорость конвейера</value></data>
+  <data name="VelocityHint" xml:space="preserve"><value>Сколько карточек вошло в этап, по неделям, за последние {0} недель</value></data>
+  <data name="VelocityTotal" xml:space="preserve"><value>переходов за окно: {0}</value></data>
+  <data name="VelocityNone" xml:space="preserve"><value>Переходов пока нет: они считаются по мере работы с доской.</value></data>
+  <data name="TriageTitle" xml:space="preserve"><value>Распределение по типам</value></data>
+  <data name="TriageHint" xml:space="preserve"><value>Из чего состоят карточки проекта</value></data>
+  <data name="UptimeLabel" xml:space="preserve"><value>Аптайм</value></data>
+  <data name="RunsAndCrashes" xml:space="preserve"><value>запусков: {0} · без чистого останова: {1}</value></data>
+  <data name="MemoryProfile" xml:space="preserve"><value>Профиль памяти</value></data>
+  <data name="ManagedHeap" xml:space="preserve"><value>managed heap {0}</value></data>
   <data name="StageLoadHint" xml:space="preserve"><value>Каждая полоса - доля этапа от самого нагруженного этапа его конвейера</value></data>
   <data name="GitHubRepository" xml:space="preserve"><value>Aiko на GitHub</value></data>
   <data name="TemplateScope" xml:space="preserve"><value>Шаблон по умолчанию</value></data>

@@ -372,6 +372,16 @@
   <data name="ReindexFailed" xml:space="preserve"><value>Could not re-index the project: {0}</value></data>
   <data name="ProjectStatsHint" xml:space="preserve"><value>How this project's cards are spread across its pipelines, read from the board the daemon serves</value></data>
   <data name="StageLoad" xml:space="preserve"><value>Cards per stage</value></data>
+  <data name="VelocityTitle" xml:space="preserve"><value>Pipeline velocity &amp; throughput</value></data>
+  <data name="VelocityHint" xml:space="preserve"><value>Cards that entered a stage, per week, over the last {0} weeks</value></data>
+  <data name="VelocityTotal" xml:space="preserve"><value>{0} transitions in the window</value></data>
+  <data name="VelocityNone" xml:space="preserve"><value>No transitions recorded yet: they are counted as the board is worked.</value></data>
+  <data name="TriageTitle" xml:space="preserve"><value>Triage distribution</value></data>
+  <data name="TriageHint" xml:space="preserve"><value>What the project's cards are made of</value></data>
+  <data name="UptimeLabel" xml:space="preserve"><value>Uptime</value></data>
+  <data name="RunsAndCrashes" xml:space="preserve"><value>{0} runs · {1} without a clean stop</value></data>
+  <data name="MemoryProfile" xml:space="preserve"><value>Memory profile</value></data>
+  <data name="ManagedHeap" xml:space="preserve"><value>managed heap {0}</value></data>
   <data name="StageLoadHint" xml:space="preserve"><value>Each bar is a stage's share of the busiest stage of its own pipeline</value></data>
   <data name="GitHubRepository" xml:space="preserve"><value>Aiko on GitHub</value></data>
   <data name="TemplateScope" xml:space="preserve"><value>Default template</value></data>

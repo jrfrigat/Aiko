@@ -1,3 +1,4 @@
+using Aiko.Application.Contracts;
 using Aiko.Domain.Cards;
 using Aiko.Domain.Workflow;
 
@@ -91,7 +92,8 @@ internal sealed record SystemInfo(
     string Runtime,
     int ProcessId,
     string BaseUrl,
-    DateTimeOffset Time);
+    DateTimeOffset Time,
+    DaemonTelemetry Telemetry);
 
 /// <summary>
 /// A freshly issued one-time pairing code. The browser builds the self-pairing URL from it

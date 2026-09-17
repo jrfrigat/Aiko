@@ -44,6 +44,8 @@ builder.Services.AddSingleton<IProjectInitializer, ProjectInitializer>();
 builder.Services.AddSingleton<IProjectTemplateStore, FileProjectTemplateStore>();
 builder.Services.AddSingleton<IProjectTemplateApplier, ProjectTemplateApplier>();
 builder.Services.AddSingleton<IGitClient, GitClient>();
+builder.Services.AddSingleton<IProjectAnalytics, SqliteProjectAnalytics>();
+builder.Services.AddSingleton<IDaemonTelemetry, SqliteDaemonTelemetry>();
 builder.Services.AddSingleton<IProjectDefinitionStore, FileProjectDefinitionStore>();
 builder.Services.AddSingleton<ICardStore, FileCardStore>();
 builder.Services.AddSingleton<ICardArtifactStore, FileCardArtifactStore>();
@@ -174,6 +176,13 @@ app.Map("/api/{**rest}", () => Results.NotFound());
 app.MapFallbackToFile("index.html");
 
 app.Urls.Add(serverBaseUri.ToString());
+
+// The daemon's own run is recorded before it serves and closed when it stops: a row left open is what
+// "crashed last time" looks like, and the daemon screen reports those counts.
+var telemetry = app.Services.GetRequiredService<IDaemonTelemetry>();
+await telemetry.StartAsync(CancellationToken.None);
+app.Lifetime.ApplicationStopping.Register(() =>
+    telemetry.StopAsync(CancellationToken.None).AsTask().GetAwaiter().GetResult());
 
 await app.RunAsync();
 

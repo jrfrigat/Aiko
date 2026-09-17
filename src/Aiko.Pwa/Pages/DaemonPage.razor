@@ -49,6 +49,28 @@
                             @($"PID {system.ProcessId} · {LatencyCaption}")
                         </FlareText>
                     </FlareStack>
+
+                    @* The daemon's own run: how long it has been up, how many runs this installation has
+                       seen and how many of them ended without a clean stop. *@
+                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                            @Loc.Get("UptimeLabel")
+                        </FlareText>
+                        <span class="aiko-value">@UptimeCaption(system.Telemetry)</span>
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Format("RunsAndCrashes", system.Telemetry.Runs, system.Telemetry.Crashes)
+                        </FlareText>
+                    </FlareStack>
+
+                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                            @Loc.Get("MemoryProfile")
+                        </FlareText>
+                        <span class="aiko-value">@Megabytes(system.Telemetry.WorkingSetBytes)</span>
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Format("ManagedHeap", Megabytes(system.Telemetry.ManagedHeapBytes))
+                        </FlareText>
+                    </FlareStack>
                 }
 
                 <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
@@ -186,6 +208,21 @@
     private string LatencyCaption => State.DaemonLatencyMs is { } milliseconds
         ? $"{milliseconds}ms"
         : "—";
+
+    /// <summary>How long the daemon has been up, in the units a person reads at a glance.</summary>
+    private static string UptimeCaption(DaemonTelemetry telemetry)
+    {
+        var uptime = telemetry.Uptime;
+        return uptime.TotalDays >= 1
+            ? $"{(int)uptime.TotalDays}d {uptime.Hours}h {uptime.Minutes}m"
+            : uptime.TotalHours >= 1
+                ? $"{(int)uptime.TotalHours}h {uptime.Minutes}m"
+                : $"{uptime.Minutes}m {uptime.Seconds}s";
+    }
+
+    /// <summary>A byte count as megabytes with one decimal: the unit the design's memory block uses.</summary>
+    private static string Megabytes(long bytes) =>
+        $"{bytes / 1024d / 1024d:0.0} MB";
 
     /// <summary>Whether an agent is reachable and configured, in the one word the card has room for.</summary>
     private static string BridgeCaption(DisplayFormat.AgentPresence presence) => presence switch

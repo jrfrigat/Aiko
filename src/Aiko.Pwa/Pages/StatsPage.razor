@@ -163,12 +163,102 @@ else
                 }
             </FlareStack>
         </FlarePaper>
+        @* The project's own history, as the design's two analytics blocks: how many cards moved per week,
+           and what the board is made of. Both come from the daemon's projection of stage transitions -
+           observed facts, kept in the database, never in the files the project owns. *@
+        <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
+            <FlareStack Gap="FlareSpacing.Medium">
+                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
+                    <span class="aiko-panel__icon aiko-panel__icon--primary">
+                        <FlareIconView Value="@MaterialDesign3Icons.Regular.TrendingUp" />
+                    </span>
+                    <FlareStack Gap="FlareSpacing.None">
+                        <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("VelocityTitle")</FlareText>
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Format("VelocityHint", AnalyticsWindow)
+                        </FlareText>
+                    </FlareStack>
+                </FlareStack>
+                @if (_analytics is { Weekly.Count: > 0 } velocity)
+                {
+                    <FlareStack Gap="FlareSpacing.XXSmall">
+                        @foreach (var week in velocity.Weekly)
+                        {
+                            var bucket = week;
+                            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                                <span class="aiko-value aiko-stage__label">@bucket.Label</span>
+                                <span class="aiko-bar"><span class="aiko-bar__fill" style="@($"width: {Share(bucket, velocity.Weekly)}%")"></span></span>
+                                <span class="aiko-tag @(bucket.Count == 0 ? "aiko-tag--quiet" : "aiko-tag--accent")">
+                                    @DisplayFormat.Number(bucket.Count)
+                                </span>
+                            </FlareStack>
+                        }
+                    </FlareStack>
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                        @Loc.Format("VelocityTotal", velocity.Weekly.Sum(bucket => bucket.Count))
+                    </FlareText>
+                }
+                else
+                {
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                        @Loc.Get("VelocityNone")
+                    </FlareText>
+                }
+            </FlareStack>
+        </FlarePaper>
+
+        <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
+            <FlareStack Gap="FlareSpacing.Medium">
+                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
+                    <span class="aiko-panel__icon aiko-panel__icon--tertiary">
+                        <FlareIconView Value="@MaterialDesign3Icons.Regular.PieChart" />
+                    </span>
+                    <FlareStack Gap="FlareSpacing.None">
+                        <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("TriageTitle")</FlareText>
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Get("TriageHint")
+                        </FlareText>
+                    </FlareStack>
+                </FlareStack>
+                @if (_analytics is { } triage)
+                {
+                    <FlareStack Gap="FlareSpacing.XSmall">
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">@Loc.Get("CardKind")</FlareText>
+                        @foreach (var bucket in triage.ByKind)
+                        {
+                            var item = bucket;
+                            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                                <span class="aiko-value aiko-stage__label">@KindLabel(item.Label)</span>
+                                <span class="aiko-bar"><span class="aiko-bar__fill" style="@($"width: {Share(item, triage.ByKind)}%")"></span></span>
+                                <span class="aiko-tag aiko-tag--accent">@DisplayFormat.Number(item.Count)</span>
+                            </FlareStack>
+                        }
+                    </FlareStack>
+                    <FlareStack Gap="FlareSpacing.XSmall">
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">@Loc.Get("SizeIdLabel")</FlareText>
+                        @foreach (var bucket in triage.BySize)
+                        {
+                            var item = bucket;
+                            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                                <span class="aiko-value aiko-stage__label">@SizeLabel(item.Label)</span>
+                                <span class="aiko-bar"><span class="aiko-bar__fill" style="@($"width: {Share(item, triage.BySize)}%")"></span></span>
+                                <span class="aiko-tag aiko-tag--accent">@DisplayFormat.Number(item.Count)</span>
+                            </FlareStack>
+                        }
+                    </FlareStack>
+                }
+            </FlareStack>
+        </FlarePaper>
     </FlareStack>
 }
 
 @code {
+    /// <summary>How many weeks the velocity chart covers.</summary>
+    private const int AnalyticsWindow = 8;
+
     [Parameter] public string ProjectId { get; set; } = string.Empty;
 
+    private ProjectAnalytics? _analytics;
     private bool _reindexing;
     private string? _message;
     private bool _hasError;
@@ -265,5 +355,46 @@ else
         }
     }
 
-    protected override async Task OnParametersSetAsync() => await State.EnsureProjectAsync(ProjectId);
+    /// <summary>Where one bucket's bar ends: its share of the tallest bar in its own chart.</summary>
+    private static int Share(AnalyticsBucket bucket, IReadOnlyList<AnalyticsBucket> all)
+    {
+        var peak = all.Count == 0 ? 0 : all.Max(item => item.Count);
+        return peak == 0 ? 0 : Math.Max(4, (int)Math.Round(bucket.Count * 100d / peak));
+    }
+
+    /// <summary>A card kind's own name, falling back to the raw value the daemon stored.</summary>
+    private static string KindLabel(string kind) => kind switch
+    {
+        nameof(CardKind.Story) => Loc.Get("StoryKind"),
+        nameof(CardKind.Task) => Loc.Get("TaskKind"),
+        _ => kind
+    };
+
+    /// <summary>A size step, or the fact that the card has none.</summary>
+    private static string SizeLabel(string size) =>
+        string.IsNullOrWhiteSpace(size) ? Loc.Get("NoSize") : size;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await State.EnsureProjectAsync(ProjectId);
+        await LoadAnalyticsAsync();
+    }
+
+    /// <summary>
+    /// Reads the project's charts. A failure leaves them empty rather than blanking the screen: the numbers
+    /// above are computed from the board, which is already loaded.
+    /// </summary>
+    private async Task LoadAnalyticsAsync()
+    {
+        try
+        {
+            _analytics = await Http.GetFromJsonAsync<ProjectAnalytics>(
+                $"api/v1/projects/{Uri.EscapeDataString(ProjectId)}/analytics?weeks={AnalyticsWindow}",
+                PwaJson.Options);
+        }
+        catch
+        {
+            _analytics = null;
+        }
+    }
 }
