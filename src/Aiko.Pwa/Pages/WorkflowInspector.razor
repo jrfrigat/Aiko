@@ -32,18 +32,30 @@
 
         <FlareDivider />
 
-        <FlareStack Gap="FlareSpacing.Small">
-            <FlareSelect TValue="string"
-                         Label="@Loc.Get("Workflow")"
-                         Value="@_workflowId"
-                         ValueChanged="SelectWorkflowAsync">
-                @foreach (var workflow in Board.Workflows)
-                {
-                    <option value="@workflow.Id">@workflow.Title</option>
-                }
-            </FlareSelect>
-            <FlareTextField Label="@Loc.Get("WorkflowTitle")" @bind-Value="_workflowTitle" />
-        </FlareStack>
+        @* The pipeline pair, as the design's identifier rows: the workflow that is being edited on the
+           narrow side and its display name beside it. Raw markup rather than FlareSelect/FlareTextField:
+           the design draws an unlabelled recessed strip with a mono accent value, and FlareField has no
+           bare variant to ask for (see code-field-variant.md in the Flare issues). *@
+        <div class="aiko-code-pair">
+            <div class="aiko-code-row" title="@Loc.Get("Workflow")">
+                <FlareIconView Value="@MaterialDesign3Icons.Regular.AccountTree" Color="FlareColor.OnSurfaceVariant2" />
+                <select aria-label="@Loc.Get("Workflow")"
+                        value="@_workflowId"
+                        @onchange="OnWorkflowPicked">
+                    @foreach (var workflow in Board.Workflows)
+                    {
+                        <option value="@workflow.Id">@workflow.Id</option>
+                    }
+                </select>
+            </div>
+            <div class="aiko-code-row aiko-code-row--quiet" title="@Loc.Get("WorkflowTitle")">
+                <FlareIconView Value="@MaterialDesign3Icons.Regular.Edit" Color="FlareColor.OnSurfaceVariant2" />
+                <input type="text"
+                       aria-label="@Loc.Get("WorkflowTitle")"
+                       placeholder="@Loc.Get("WorkflowTitle")"
+                       @bind="_workflowTitle" />
+            </div>
+        </div>
 
         <FlareDivider />
 
@@ -179,24 +191,62 @@
         @if (SelectedStage is { } stage)
         {
             <FlareStack Gap="FlareSpacing.Small">
-                <FlareTextField Label="@Loc.Get("StableId")"
-                                HelperText="@Loc.Get("StableIdHelper")"
-                                ReadOnly="@(!stage.IsNew)"
-                                @bind-Value="stage.Id" />
+                @* The stage id is an identifier, so it wears the design's identifier row. *@
+                <div class="aiko-code-row" title="@Loc.Get("StableIdHelper")">
+                    <FlareIconView Value="@MaterialDesign3Icons.Regular.Tag" Color="FlareColor.OnSurfaceVariant2" />
+                    <input type="text"
+                           aria-label="@Loc.Get("StableId")"
+                           placeholder="@Loc.Get("StableIdHelper")"
+                           readonly="@(!stage.IsNew)"
+                           @bind="stage.Id" />
+                </div>
                 <FlareTextField Label="@Loc.Get("Title")" @bind-Value="stage.Title" />
-                <FlareTextArea Label="@Loc.Get("Instruction")"
-                               Rows="5"
-                               @bind-Value="stage.Instruction" />
-                @* The skills around the instruction: what the agent invokes before it starts, and what it
-                   invokes once the work is done. The order is the point, so they are two fields and not one. *@
-                <FlareTextArea Label="@Loc.Get("SkillsBefore")"
-                               HelperText="@Loc.Get("SkillsBeforeHelper")"
-                               Rows="3"
-                               @bind-Value="stage.BeforeSkillLines" />
-                <FlareTextArea Label="@Loc.Get("SkillsAfter")"
-                               HelperText="@Loc.Get("SkillsAfterHelper")"
-                               Rows="3"
-                               @bind-Value="stage.AfterSkillLines" />
+                @* The instruction and the two skill lists as the design's prompt editor: a dark plane with a
+                   header bar (the window dots, the file-like name, what it holds) over a borderless code
+                   area. One block per list, because what goes before the instruction is not what goes after. *@
+                <div class="aiko-terminal">
+                    <div class="aiko-terminal__bar">
+                        <span class="aiko-terminal__dots">
+                            <span class="aiko-terminal__dot" style="background: var(--flare-color-error)"></span>
+                            <span class="aiko-terminal__dot" style="background: var(--flare-color-secondary)"></span>
+                            <span class="aiko-terminal__dot" style="background: var(--flare-color-tertiary)"></span>
+                            <span class="aiko-terminal__name">@($"{stage.Id}.instruction")</span>
+                        </span>
+                        <span>@Loc.Get("Instruction")</span>
+                    </div>
+                    <textarea rows="7"
+                              aria-label="@Loc.Get("Instruction")"
+                              @bind="stage.Instruction"
+                              @bind:event="oninput"></textarea>
+                </div>
+
+                <div class="aiko-terminal">
+                    <div class="aiko-terminal__bar">
+                        <span class="aiko-terminal__dots">
+                            <span class="aiko-terminal__dot" style="background: var(--flare-color-tertiary)"></span>
+                            <span class="aiko-terminal__name">@($"{stage.Id}.skills-before")</span>
+                        </span>
+                        <span>@Loc.Get("SkillsBefore")</span>
+                    </div>
+                    <textarea rows="3"
+                              aria-label="@Loc.Get("SkillsBefore")"
+                              placeholder="@Loc.Get("SkillsBeforeHelper")"
+                              @bind="stage.BeforeSkillLines"></textarea>
+                </div>
+
+                <div class="aiko-terminal">
+                    <div class="aiko-terminal__bar">
+                        <span class="aiko-terminal__dots">
+                            <span class="aiko-terminal__dot" style="background: var(--flare-color-primary)"></span>
+                            <span class="aiko-terminal__name">@($"{stage.Id}.skills-after")</span>
+                        </span>
+                        <span>@Loc.Get("SkillsAfter")</span>
+                    </div>
+                    <textarea rows="3"
+                              aria-label="@Loc.Get("SkillsAfter")"
+                              placeholder="@Loc.Get("SkillsAfterHelper")"
+                              @bind="stage.AfterSkillLines"></textarea>
+                </div>
                 @* Executors: the stage's own list of adapters. An empty selection means every discovered
                    adapter may run the stage, which is what the label says. *@
                 <FlareStack Gap="FlareSpacing.XXSmall">
@@ -236,14 +286,33 @@
                         <option value="@option.Id">@option.DisplayName</option>
                     }
                 </FlareSelect>
-                <FlareTextArea Label="@Loc.Get("RequiredArtifacts")"
-                               HelperText="@Loc.Get("ArtifactsHelper")"
-                               Rows="5"
-                               @bind-Value="stage.ArtifactLines" />
-                <FlareTextArea Label="@Loc.Get("ValidationCommands")"
-                               HelperText="@Loc.Get("ValidationCommandsHelper")"
-                               Rows="3"
-                               @bind-Value="stage.CommandLines" />
+                <div class="aiko-terminal">
+                    <div class="aiko-terminal__bar">
+                        <span class="aiko-terminal__dots">
+                            <span class="aiko-terminal__dot" style="background: var(--flare-color-secondary)"></span>
+                            <span class="aiko-terminal__name">@($"{stage.Id}.artifacts")</span>
+                        </span>
+                        <span>@Loc.Get("RequiredArtifacts")</span>
+                    </div>
+                    <textarea rows="4"
+                              aria-label="@Loc.Get("RequiredArtifacts")"
+                              placeholder="@Loc.Get("ArtifactsHelper")"
+                              @bind="stage.ArtifactLines"></textarea>
+                </div>
+
+                <div class="aiko-terminal">
+                    <div class="aiko-terminal__bar">
+                        <span class="aiko-terminal__dots">
+                            <span class="aiko-terminal__dot" style="background: var(--flare-color-warning)"></span>
+                            <span class="aiko-terminal__name">@($"{stage.Id}.validate")</span>
+                        </span>
+                        <span>@Loc.Get("ValidationCommands")</span>
+                    </div>
+                    <textarea rows="3"
+                              aria-label="@Loc.Get("ValidationCommands")"
+                              placeholder="@Loc.Get("ValidationCommandsHelper")"
+                              @bind="stage.CommandLines"></textarea>
+                </div>
             </FlareStack>
         }
 
@@ -300,6 +369,13 @@
             : null;
         LoadWorkflow(requested ?? Board.Workflows.First());
     }
+
+    /// <summary>
+    /// A raw &lt;select&gt; hands back a change event rather than a typed value, so the picker adapter keeps
+    /// the typed method the single place that knows how to switch pipelines.
+    /// </summary>
+    private async Task OnWorkflowPicked(ChangeEventArgs args) =>
+        await SelectWorkflowAsync(args.Value?.ToString());
 
     private Task SelectWorkflowAsync(string? id)
     {
