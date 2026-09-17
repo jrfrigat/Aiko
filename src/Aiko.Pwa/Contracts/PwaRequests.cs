@@ -16,7 +16,8 @@ internal sealed record CreateCardRequest(
     string StageId,
     decimal OwnPriority,
     IReadOnlyList<string>? DeclaredScopeFiles,
-    IReadOnlyDictionary<string, decimal>? CriterionValues);
+    IReadOnlyDictionary<string, decimal>? CriterionValues,
+    string? Size = null);
 
 /// <summary>
 /// Moves a card to another workflow stage.
@@ -32,7 +33,8 @@ internal sealed record UpdateCardRequest(
     string Title,
     decimal OwnPriority,
     IReadOnlyList<string> DeclaredScopeFiles,
-    long ExpectedRevision);
+    long ExpectedRevision,
+    string? Size = null);
 
 /// <summary>
 /// Writes a card artifact. A null version creates or overwrites without a conflict check.

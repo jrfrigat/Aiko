@@ -85,6 +85,7 @@ internal static class CardEndpoints
                 {
                     Title = request.Title.Trim(),
                     OwnPriority = request.OwnPriority,
+                    Size = NormalizeSize(request.Size),
                     DeclaredScopeFiles = (request.DeclaredScopeFiles ?? [])
                         .Where(path => !string.IsNullOrWhiteSpace(path))
                         .Select(path => path.Trim())
@@ -145,7 +146,8 @@ internal static class CardEndpoints
                     [],
                     new Dictionary<string, string>(StringComparer.Ordinal),
                     null,
-                    request.CriterionValues);
+                    request.CriterionValues,
+                    NormalizeSize(request.Size));
 
                 var stage = await CardStageValidation.FindValidStageAsync(
                     card,
@@ -161,4 +163,13 @@ internal static class CardEndpoints
                 return Results.Created($"/api/v1/projects/{projectId}/cards/{request.CardId}", card);
             });
     }
+
+    /// <summary>
+    /// Trims a size step and turns the empty string into null, so "no size" has one representation rather
+    /// than two. The value is not checked against the project's grid here: the grid is editable, a card
+    /// outliving the step it was sized with must not become unreadable, and the formula treats an unknown
+    /// step as neutral anyway.
+    /// </summary>
+    private static string? NormalizeSize(string? size) =>
+        string.IsNullOrWhiteSpace(size) ? null : size.Trim();
 }

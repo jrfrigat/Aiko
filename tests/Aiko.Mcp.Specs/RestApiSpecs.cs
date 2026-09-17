@@ -182,6 +182,73 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
     }
 
     [Fact]
+    public async Task A_card_keeps_its_size_step_and_can_be_cleared()
+    {
+        using var http = CreateClient();
+        var project = fixture.ProjectId;
+        const string cardId = "REST-SIZE-1";
+
+        using var created = await http.PostAsJsonAsync($"api/v1/projects/{project}/cards", new
+        {
+            cardId,
+            kind = "Task",
+            title = "Sized card",
+            workflowId = "task",
+            stageId = "backlog",
+            ownPriority = 2,
+            declaredScopeFiles = Array.Empty<string>(),
+            size = "L"
+        });
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        Assert.Equal(
+            "L",
+            (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("size").GetString());
+
+        // A PUT replaces the editable fields, size included: omitting it clears the step, exactly as an
+        // empty declared scope list replaces the scope. (The MCP tool is the one that treats an absent
+        // size as "leave it alone", because an agent calls it with a subset of the fields.)
+        using var updated = await http.PutAsJsonAsync($"api/v1/projects/{project}/cards/{cardId}", new
+        {
+            title = "Sized card updated",
+            ownPriority = 3,
+            declaredScopeFiles = Array.Empty<string>(),
+            expectedRevision = 1
+        });
+        Assert.Equal(HttpStatusCode.OK, updated.StatusCode);
+        Assert.Equal(
+            JsonValueKind.Null,
+            (await updated.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("size").ValueKind);
+
+        // Setting another step is the same field, and a blank value means no size rather than a step named
+        // by whitespace.
+        using var resized = await http.PutAsJsonAsync($"api/v1/projects/{project}/cards/{cardId}", new
+        {
+            title = "Sized card resized",
+            ownPriority = 3,
+            declaredScopeFiles = Array.Empty<string>(),
+            expectedRevision = 2,
+            size = "S"
+        });
+        Assert.Equal(HttpStatusCode.OK, resized.StatusCode);
+        Assert.Equal(
+            "S",
+            (await resized.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("size").GetString());
+
+        using var cleared = await http.PutAsJsonAsync($"api/v1/projects/{project}/cards/{cardId}", new
+        {
+            title = "Sized card cleared",
+            ownPriority = 3,
+            declaredScopeFiles = Array.Empty<string>(),
+            expectedRevision = 3,
+            size = " "
+        });
+        Assert.Equal(HttpStatusCode.OK, cleared.StatusCode);
+        Assert.Equal(
+            JsonValueKind.Null,
+            (await cleared.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("size").ValueKind);
+    }
+
+    [Fact]
     public async Task Artifacts_round_trip_and_reject_a_stale_version()
     {
         using var http = CreateClient();

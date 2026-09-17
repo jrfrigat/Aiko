@@ -268,6 +268,7 @@
   <data name="InvalidSizeCoefficient" xml:space="preserve"><value>A size coefficient must be greater than zero.</value></data>
   <data name="DuplicateSizeId" xml:space="preserve"><value>The size step "{0}" is listed twice.</value></data>
   <data name="InvalidCriterionRange" xml:space="preserve"><value>A criterion's upper bound must be greater than its lower bound.</value></data>
+  <data name="NoSize" xml:space="preserve"><value>No size</value></data>
   <data name="Template" xml:space="preserve"><value>Template</value></data>
   <data name="TemplateHint" xml:space="preserve"><value>Copied into the project at creation: it fixes the stages and their artifacts, the board projections, the starting memory and the default settings. Changing the template later affects only projects created afterwards.</value></data>
   <data name="TemplateFirstProjectHint" xml:space="preserve"><value>This installation has no templates yet; the first project is created from the built-in default template, which is written next to the daemon's database.</value></data>

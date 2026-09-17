@@ -268,6 +268,7 @@
   <data name="InvalidSizeCoefficient" xml:space="preserve"><value>Коэффициент размера должен быть больше нуля.</value></data>
   <data name="DuplicateSizeId" xml:space="preserve"><value>Размер "{0}" указан дважды.</value></data>
   <data name="InvalidCriterionRange" xml:space="preserve"><value>Верхняя граница критерия должна быть больше нижней.</value></data>
+  <data name="NoSize" xml:space="preserve"><value>Без размера</value></data>
   <data name="Template" xml:space="preserve"><value>Шаблон</value></data>
   <data name="TemplateHint" xml:space="preserve"><value>Копируется в проект при создании: он задаёт этапы и их артефакты, проекции доски, стартовую память и значения по умолчанию. Изменение шаблона позже действует только на проекты, созданные после.</value></data>
   <data name="TemplateFirstProjectHint" xml:space="preserve"><value>В этой установке шаблонов пока нет; первый проект создаётся из встроенного шаблона по умолчанию, который записывается рядом с базой демона.</value></data>

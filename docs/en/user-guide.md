@@ -22,6 +22,13 @@ Every card is a folder in `.aiko` with a `card.json` and Markdown artifacts. A c
   maximum parent value using the project's priority weights);
 - `declaredScopeFiles` (the intended files/globs) and `actualChangedFiles` (what was really
   changed). Files outside the declared scope are flagged as out-of-scope.
+- `size` - the step of the project's size grid the card was given, for example `M`. The agent assigns
+  it from the grid's descriptions, and the step's coefficient multiplies the card's score.
+- `criterionValues` - the card's scores per criterion, when the project defines criteria.
+
+A card's own score is the weighted average of its normalized criterion values, or its own priority when
+the project defines no criteria; the size coefficient multiplies either. A task then blends that with the
+highest parent value using the project's weights (ТЗ §10).
 
 Open a card to edit the title, priority and declared scope, and to view relations,
 executions, agent attempts, progress and artifacts.

@@ -1,4 +1,5 @@
 @inject HttpClient Http
+@inject WorkspaceState State
 
 @* The inspector body. The surrounding FlareLayoutDrawer (owned by the shell) supplies the panel surface
    and the scroll, so this component is a plain FlareStack of sections separated by FlareDividers. *@
@@ -38,6 +39,23 @@
                                Label="@Loc.Get("PriorityLabel")"
                                ErrorText="@_priorityError"
                                @bind-Value="_priority" />
+            @* The size step the agent assigns from the project's grid, and what it does to the score. *@
+            <FlareStack Gap="FlareSpacing.None">
+                <FlareSelect TValue="string" Label="@Loc.Get("SizeIdLabel")" @bind-Value="_size">
+                    <option value="">@Loc.Get("NoSize")</option>
+                    @foreach (var step in SizeGrid)
+                    {
+                        var option = step;
+                        <option value="@option.Id">@SizeOption(option)</option>
+                    }
+                </FlareSelect>
+                @if (SelectedSize is { } selected)
+                {
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                        @($"x{selected.Coefficient} · {selected.Description}")
+                    </FlareText>
+                }
+            </FlareStack>
             <FlareTextArea Label="Declared scope"
                            HelperText="@Loc.Get("ScopeHelper")"
                            Rows="4"
@@ -155,6 +173,7 @@
     private int _lastRefreshTick;
     private string? _title;
     private decimal? _priority;
+    private string? _size;
     private string? _scope;
     private string? _priorityError;
     private string? _message;
@@ -162,6 +181,17 @@
     private bool _saving;
     private bool _loadingExecutions;
     private IReadOnlyList<StageExecution> _executions = [];
+
+    /// <summary>The project's size grid: what the human may choose from, same ladder the agent reads.</summary>
+    private IReadOnlyList<SizeDefinition> SizeGrid => State.SettingsView?.EffectivePriority.Grid ?? [];
+
+    /// <summary>The chosen step, so the form can show what it does to the score.</summary>
+    private SizeDefinition? SelectedSize => string.IsNullOrWhiteSpace(_size)
+        ? null
+        : SizeGrid.FirstOrDefault(step => StringComparer.Ordinal.Equals(step.Id, _size));
+
+    /// <summary>A step as the select shows it.</summary>
+    private static string SizeOption(SizeDefinition step) => $"{step.Id} (x{step.Coefficient})";
 
     private IReadOnlyList<CardRelation> Relations => Board.Relations
         .Where(relation => relation.Source.CardId == Card.Reference.CardId ||
@@ -177,6 +207,7 @@
             _loadedCardKey = key;
             _title = Card.Title;
             _priority = Card.OwnPriority;
+            _size = Card.Size;
             _scope = string.Join(Environment.NewLine, Card.DeclaredScopeFiles);
             _message = null;
             _hasError = false;
@@ -236,7 +267,7 @@
         {
             using var response = await Http.PutAsJsonAsync(
                 $"api/v1/projects/{Uri.EscapeDataString(Card.Reference.ProjectId)}/cards/{Uri.EscapeDataString(Card.Reference.CardId)}",
-                new UpdateCardRequest(_title, priority, scopeFiles, Card.Revision),
+                new UpdateCardRequest(_title, priority, scopeFiles, Card.Revision, _size),
                 PwaJson.Options);
             if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
             {

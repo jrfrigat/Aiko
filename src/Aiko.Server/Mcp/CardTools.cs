@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using ModelContextProtocol.Server;
 using Aiko.Application.Contracts;
@@ -79,6 +80,10 @@ internal sealed class CardTools(
         decimal ownPriority,
         [Description("Initial declared scope file patterns.")]
         string[] declaredScopeFiles,
+        [Description(
+            "Size step from the project's size grid (see aiko_get_project_context). Pick the step whose "
+            + "description matches the work; a large step is a plan to split rather than something to start.")]
+        [Optional] string? size,
         CancellationToken cancellationToken)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(ownPriority);
@@ -92,7 +97,8 @@ internal sealed class CardTools(
             ownPriority,
             declaredScopeFiles,
             [],
-            new Dictionary<string, string>(StringComparer.Ordinal));
+            new Dictionary<string, string>(StringComparer.Ordinal),
+            Size: string.IsNullOrWhiteSpace(size) ? null : size.Trim());
         await cards.SaveAsync(card, 0, cancellationToken);
         return JsonSerializer.Serialize(card, ServerJsonContext.Default.Card);
     }
@@ -113,6 +119,10 @@ internal sealed class CardTools(
         string[] declaredScopeFiles,
         [Description("Complete actual changed file list.")]
         string[] actualChangedFiles,
+        [Description(
+            "Size step from the project's size grid. Pass an empty string to clear it, or leave it out to "
+            + "keep the card's current size.")]
+        [Optional] string? size,
         CancellationToken cancellationToken)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(ownPriority);
@@ -125,7 +135,9 @@ internal sealed class CardTools(
             Revision = expectedRevision + 1,
             OwnPriority = ownPriority,
             DeclaredScopeFiles = declaredScopeFiles,
-            ActualChangedFiles = actualChangedFiles
+            ActualChangedFiles = actualChangedFiles,
+            // Absent means "leave it alone"; an empty string is how a caller clears the size.
+            Size = size is null ? existing.Size : string.IsNullOrWhiteSpace(size) ? null : size.Trim()
         };
         await cards.SaveAsync(updated, expectedRevision, cancellationToken);
         return JsonSerializer.Serialize(updated, ServerJsonContext.Default.Card);
