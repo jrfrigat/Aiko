@@ -80,7 +80,7 @@ Pin a specific release or choose another directory by fetching the script into a
 
 ```powershell
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1))) `
-    -Version v0.1.0 -InstallDir D:\Tools\Aiko
+    -Version v0.3.0 -InstallDir D:\Tools\Aiko
 ```
 
 Re-running the installer is the update path: binaries are replaced, project data and settings are

@@ -13,7 +13,7 @@
 
     To pass options, fetch the script into a scriptblock first:
 
-        & ([scriptblock]::Create((irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1))) -Version v0.1.0
+        & ([scriptblock]::Create((irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1))) -Version v0.3.0
 
 .PARAMETER Version
     The release tag to install, for example "v0.1.0". Defaults to the latest release.

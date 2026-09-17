@@ -6,6 +6,10 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <Deterministic>true</Deterministic>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- A source build reports a version that cannot be mistaken for a release. The release workflow
+         overrides it from the tag (`-p:Version=0.3.0`), and without any value the SDK default would be
+         1.0.0 - which a build from a clone would announce as its version. -->
+    <Version>0.0.0-dev</Version>
     <!-- Positional record properties are not documented one by one; types and contracts carry summaries. -->
     <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>

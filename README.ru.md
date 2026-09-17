@@ -81,7 +81,7 @@ scriptblock:
 
 ```powershell
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1))) `
-    -Version v0.1.0 -InstallDir D:\Tools\Aiko
+    -Version v0.3.0 -InstallDir D:\Tools\Aiko
 ```
 
 Повторный запуск установщика - это и есть обновление: бинари перезаписываются, данные проектов и

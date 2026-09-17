@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -33,6 +34,22 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
             "http://127.0.0.1:",
             system.GetProperty("baseUrl").GetString()!,
             StringComparison.Ordinal);
+
+        // The version is the running binary's own, not a literal: a released build announces its tag, and
+        // the build metadata suffix ("0.0.0-dev+abc1234") is trimmed for the reader.
+        var serverDll = AikoServerFixture.FindRepositoryBinary("Aiko.Server", "Aiko.Server.dll");
+        var expected = FileVersionInfo.GetVersionInfo(serverDll).ProductVersion ?? string.Empty;
+        var plus = expected.IndexOf('+', StringComparison.Ordinal);
+        if (plus > 0)
+        {
+            expected = expected[..plus];
+        }
+
+        var reported = system.GetProperty("version").GetString();
+        Assert.False(string.IsNullOrWhiteSpace(expected));
+        Assert.Equal(expected, reported);
+        // The literal this endpoint used to answer with, whatever the build actually was.
+        Assert.NotEqual("0.1.0-dev", reported);
     }
 
     [Fact]
