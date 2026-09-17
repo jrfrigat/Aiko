@@ -100,9 +100,10 @@ directories and the database are never deleted automatically.
 dotnet test Aiko.slnx
 ```
 
-58 xUnit facts across four suites: domain rules, infrastructure/file/SQLite behavior, MCP
-integration and the client JSON contract. The MCP suite boots its own daemon on a random port with an
-isolated database - no manual orchestration needed.
+81 xUnit facts across four suites: domain rules, infrastructure/file/SQLite behavior, daemon
+integration (MCP tools plus the REST API, its status codes and the loopback/Host/Origin guard) and the
+client JSON contract. The integration suite boots its own daemon on a random port with an isolated
+database - no manual orchestration needed.
 
 ---
 

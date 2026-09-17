@@ -176,17 +176,36 @@ public sealed class AikoServerFixture : IAsyncLifetime
             typeof(AikoServerFixture).Assembly.Location);
     }
 
+    /// <summary>
+    /// Resolves a built binary of another project, pinned to the configuration this test assembly was
+    /// built with.
+    /// </summary>
+    /// <remarks>
+    /// The previous "newest file under <c>bin/**</c>" rule looked convenient and was wrong twice over: it
+    /// could pick a stale Release build over the Debug one just built, and when a rebuild failed
+    /// silently - a daemon still holding the dll - the test then ran the old binary and reported a
+    /// missing endpoint instead of a failed build.
+    /// </remarks>
     public static string FindRepositoryBinary(string projectName, string fileName)
     {
-        var binRoot = Path.Combine(FindRepositoryRoot(), "src", projectName, "bin");
-        return Directory
-            .EnumerateFiles(binRoot, fileName, SearchOption.AllDirectories)
-            .OrderByDescending(File.GetLastWriteTimeUtc)
-            .FirstOrDefault()
+        var binRoot = Path.Combine(FindRepositoryRoot(), "src", projectName, "bin", BuildConfiguration);
+        string[] candidates =
+        [
+            Path.Combine(binRoot, "net10.0", fileName),
+            Path.Combine(binRoot, "net10.0", "win-x64", fileName)
+        ];
+
+        return candidates.FirstOrDefault(File.Exists)
             ?? throw new FileNotFoundException(
-                $"Build {projectName} before the MCP specs: dotnet build Aiko.slnx",
-                Path.Combine(binRoot, "**", fileName));
+                $"Build {projectName} ({BuildConfiguration}) before the specs: dotnet build Aiko.slnx",
+                string.Join(" or ", candidates));
     }
+
+#if DEBUG
+    private const string BuildConfiguration = "Debug";
+#else
+    private const string BuildConfiguration = "Release";
+#endif
 
     private void DeleteRootSafely()
     {
