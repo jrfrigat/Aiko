@@ -27,10 +27,16 @@ internal static class ExecutableDetector
                 foreach (var extension in extensions)
                 {
                     var candidate = Path.Combine(directory, executableName + extension);
-                    if (File.Exists(candidate))
+                    if (!File.Exists(candidate))
                     {
-                        found.Add(Path.GetFullPath(candidate));
+                        continue;
                     }
+
+                    // One entry per name and directory. An npm install on Windows leaves an
+                    // extensionless shell shim next to its .cmd, and reporting the same executable twice
+                    // made one agent look like two installations in the UI.
+                    found.Add(Path.GetFullPath(candidate));
+                    break;
                 }
             }
         }

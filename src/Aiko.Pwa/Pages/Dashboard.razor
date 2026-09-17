@@ -118,7 +118,7 @@
                                 <Trailing>
                                     <FlareText Element="span" Mono="true" Typo="TypographyScale.LabelSmall"
                                                Color="@(installation is null ? FlareColor.OnSurfaceVariant2 : FlareColor.Tertiary)">
-                                        @(installation?.Version ?? Loc.Get("AgentsNotFound"))
+                                        @DisplayFormat.AgentState(installation, Loc.Get("AgentsNotFound"))
                                     </FlareText>
                                 </Trailing>
                             </FlareListItem>

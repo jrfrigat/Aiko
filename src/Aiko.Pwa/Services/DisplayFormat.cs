@@ -31,6 +31,42 @@ public static class DisplayFormat
         };
     }
 
+    /// <summary>
+    /// What the agent card shows for one adapter: the reported version when there is one, otherwise the
+    /// executable that was found, and <paramref name="notFound"/> when nothing was found at all.
+    /// </summary>
+    /// <remarks>
+    /// The fallback is the point. Adapters discover an installation by scanning PATH for the executable
+    /// and do not run it, so <see cref="Aiko.Application.Agents.AgentInstallation.Version"/> is null on
+    /// every adapter today - and `installation?.Version ?? notFound` then printed "not found" for agents
+    /// that were present. "Found, version unknown" and "not found" are different states.
+    /// </remarks>
+    public static string AgentState(Aiko.Application.Agents.AgentInstallation? installation, string notFound)
+    {
+        if (installation is null)
+        {
+            return notFound;
+        }
+
+        if (!string.IsNullOrWhiteSpace(installation.Version))
+        {
+            return installation.Version;
+        }
+
+        // The executable's own name is the honest answer to "where did you find it?", and it is what a
+        // person needs to see when the version is unknown.
+        var name = LastSegment(installation.ExecutablePath);
+        return name.Length > 0 ? name : notFound;
+    }
+
+    // The last path segment, split on both separators: the client runs in a browser, where Path would
+    // not treat a Windows backslash as one.
+    private static string LastSegment(string path)
+    {
+        var parts = path.Split(['/', '\\'], StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length == 0 ? string.Empty : parts[^1];
+    }
+
     /// <summary>An invariant-culture integer, for the mono counters in the chrome.</summary>
     public static string Number(int value) => value.ToString(CultureInfo.InvariantCulture);
 

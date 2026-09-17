@@ -1262,6 +1262,36 @@ public class InfrastructureSpecs
     }
 
     [Fact]
+    public async Task Agent_detection_reports_one_executable_per_name()
+    {
+        // An npm install on Windows leaves an extensionless shell shim next to its .cmd, and the detector
+        // reported both: one agent looked like two installations in the UI.
+        var directory = Path.Combine(Path.GetTempPath(), "Aiko.Specs", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        await File.WriteAllTextAsync(Path.Combine(directory, "zcode"), string.Empty);
+        await File.WriteAllTextAsync(Path.Combine(directory, "zcode.cmd"), string.Empty);
+
+        var originalPath = Environment.GetEnvironmentVariable("PATH");
+        try
+        {
+            // PATH is replaced rather than prepended, so the result does not depend on whether the machine
+            // running the tests happens to have a real zcode installed.
+            Environment.SetEnvironmentVariable("PATH", directory);
+            var installations = await new ZCodeAgentAdapter().DetectInstallationsAsync(CancellationToken.None);
+
+            var installation = Assert.Single(installations);
+            Assert.Equal(Path.Combine(directory, "zcode.cmd"), installation.ExecutablePath);
+            // Discovery scans PATH; it does not run the agent, so the version stays unknown.
+            Assert.Null(installation.Version);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("PATH", originalPath);
+            Directory.Delete(directory, true);
+        }
+    }
+
+    [Fact]
     public async Task Unified_installer_groups_selected_plans()
     {
         await WithInitializedProjectAsync(async context =>
