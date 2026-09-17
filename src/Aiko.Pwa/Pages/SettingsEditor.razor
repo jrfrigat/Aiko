@@ -63,86 +63,6 @@
 
     <div class="aiko-settings">
         <FlareStack Class="aiko-settings__narrow" Gap="FlareSpacing.Medium">
-            @* Panel 1: the loopback transport and the credential every REST and MCP call is checked against. *@
-            <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
-                <FlareStack Gap="FlareSpacing.Medium">
-                    <FlareStack Row="true" Align="FlareAlignItems.Start" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small">
-                        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
-                            <span class="aiko-panel__icon aiko-panel__icon--secondary">
-                                <FlareIconView Value="@MaterialDesign3Icons.Regular.Security" />
-                            </span>
-                            <FlareStack Gap="FlareSpacing.None">
-                                <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("DaemonHostSecurity")</FlareText>
-                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                                    @Loc.Get("DaemonHostSecurityHint")
-                                </FlareText>
-                            </FlareStack>
-                        </FlareStack>
-                        <span class="aiko-tag aiko-tag--live">
-                            <span class="aiko-dot"></span>@Loc.Get("LoopbackSafe")
-                        </span>
-                    </FlareStack>
-
-                    <div class="aiko-tiles">
-                        <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
-                            <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween">
-                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
-                                    @Loc.Get("LocalPortLabel")
-                                </FlareText>
-                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                                    @Loc.Get("LocalPortHint")
-                                </FlareText>
-                            </FlareStack>
-                            <span class="aiko-value">@LocalPort</span>
-                        </FlareStack>
-
-                        <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
-                            <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween">
-                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
-                                    @Loc.Get("ListenAddressLabel")
-                                </FlareText>
-                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                                    @Loc.Get("ListenAddressHint")
-                                </FlareText>
-                            </FlareStack>
-                            <span class="aiko-value">127.0.0.1</span>
-                        </FlareStack>
-                    </div>
-
-                    @* The credential itself never reaches the browser: the screen issues a one-time pairing
-                       code instead, which is the same handshake `aiko pair` prints for another machine. *@
-                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.XSmall">
-                        <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small" Wrap="true">
-                            <FlareStack Gap="FlareSpacing.None">
-                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
-                                    @Loc.Get("PairingTokenLabel")
-                                </FlareText>
-                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                                    @Loc.Get("PairingTokenHint")
-                                </FlareText>
-                            </FlareStack>
-                            <FlareButton Variant="ButtonVariant.Tonal"
-                                         Size="ButtonSize.Sm"
-                                         Loading="@_pairing"
-                                         OnClick="CreatePairingLinkAsync">
-                                <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.Key" /></LeadingIcon>
-                                <ChildContent>@Loc.Get("CreatePairingLink")</ChildContent>
-                            </FlareButton>
-                        </FlareStack>
-                        @if (_pairingUrl is { Length: > 0 })
-                        {
-                            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
-                                <span class="aiko-value aiko-value--clip" title="@_pairingUrl">@_pairingUrl</span>
-                                <FlareClipboard Text="@_pairingUrl" Variant="ButtonVariant.Text" />
-                            </FlareStack>
-                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                                @Loc.Get("PairingLinkHint")
-                            </FlareText>
-                        }
-                    </FlareStack>
-                </FlareStack>
-            </FlarePaper>
-
             @* Panel 2: what a new project starts from. The workspace mode is stated rather than offered:
                Aiko implements the shared checkout only, and a control with one usable option is noise. *@
             <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
@@ -237,6 +157,10 @@
         </FlareStack>
 
         <FlareStack Class="aiko-settings__wide" Gap="FlareSpacing.Medium">
+            @* What a template asks for beyond its files, when the screen has something to say there. It sits
+               first because it is the level a person reads the rest of the screen at: a project starts as this
+               document says, and everything below it is a default that document leans on. *@
+            @LeadingContent
             @* Panel 3: the model the board is actually ranked with, printed as the daemon computes it
                (a weighted average of the card's own value and the highest parent value). *@
             <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
@@ -535,6 +459,87 @@
                     </FlareStack>
                 </FlareStack>
             </FlarePaper>
+
+            @* Panel 1: the loopback transport and the credential every REST and MCP call is checked against. *@
+            <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
+                <FlareStack Gap="FlareSpacing.Medium">
+                    <FlareStack Row="true" Align="FlareAlignItems.Start" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small">
+                        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
+                            <span class="aiko-panel__icon aiko-panel__icon--secondary">
+                                <FlareIconView Value="@MaterialDesign3Icons.Regular.Security" />
+                            </span>
+                            <FlareStack Gap="FlareSpacing.None">
+                                <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("DaemonHostSecurity")</FlareText>
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                    @Loc.Get("DaemonHostSecurityHint")
+                                </FlareText>
+                            </FlareStack>
+                        </FlareStack>
+                        <span class="aiko-tag aiko-tag--live">
+                            <span class="aiko-dot"></span>@Loc.Get("LoopbackSafe")
+                        </span>
+                    </FlareStack>
+
+                    <div class="aiko-tiles">
+                        <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                            <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween">
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                                    @Loc.Get("LocalPortLabel")
+                                </FlareText>
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                    @Loc.Get("LocalPortHint")
+                                </FlareText>
+                            </FlareStack>
+                            <span class="aiko-value">@LocalPort</span>
+                        </FlareStack>
+
+                        <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                            <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween">
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                                    @Loc.Get("ListenAddressLabel")
+                                </FlareText>
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                    @Loc.Get("ListenAddressHint")
+                                </FlareText>
+                            </FlareStack>
+                            <span class="aiko-value">127.0.0.1</span>
+                        </FlareStack>
+                    </div>
+
+                    @* The credential itself never reaches the browser: the screen issues a one-time pairing
+                       code instead, which is the same handshake `aiko pair` prints for another machine. *@
+                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.XSmall">
+                        <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small" Wrap="true">
+                            <FlareStack Gap="FlareSpacing.None">
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                                    @Loc.Get("PairingTokenLabel")
+                                </FlareText>
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                    @Loc.Get("PairingTokenHint")
+                                </FlareText>
+                            </FlareStack>
+                            <FlareButton Variant="ButtonVariant.Tonal"
+                                         Size="ButtonSize.Sm"
+                                         Loading="@_pairing"
+                                         OnClick="CreatePairingLinkAsync">
+                                <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.Key" /></LeadingIcon>
+                                <ChildContent>@Loc.Get("CreatePairingLink")</ChildContent>
+                            </FlareButton>
+                        </FlareStack>
+                        @if (_pairingUrl is { Length: > 0 })
+                        {
+                            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                                <span class="aiko-value aiko-value--clip" title="@_pairingUrl">@_pairingUrl</span>
+                                <FlareClipboard Text="@_pairingUrl" Variant="ButtonVariant.Text" />
+                            </FlareStack>
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                @Loc.Get("PairingLinkHint")
+                            </FlareText>
+                        }
+                    </FlareStack>
+                </FlareStack>
+            </FlarePaper>
+
         </FlareStack>
     </div>
 </FlareStack>
@@ -562,6 +567,12 @@
     /// under the defaults; the global screen passes nothing.
     /// </summary>
     [Parameter] public RenderFragment? ExtraNarrowContent { get; set; }
+
+    /// <summary>
+    /// Content at the top of the wide column, above every panel this screen owns; the template screen puts the
+    /// project's initialization instruction there.
+    /// </summary>
+    [Parameter] public RenderFragment? LeadingContent { get; set; }
 
     /// <summary>
     /// The project whose settings are edited, or null for the installation's default template. It is one

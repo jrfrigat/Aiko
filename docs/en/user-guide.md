@@ -121,7 +121,8 @@ and the default settings. Choose it in the dashboard's *Add project* form, with
 
 A template can also carry an **initialization instruction**: what an agent does right after a project has
 been created from it, beyond Aiko copying the files - the structure the project should have, for example.
-The field is on the Workflow screen, under the template's name. The instruction is copied into the new
+The field is on the Workflow screen, in the **Project initialization** panel at the top of the right
+column. The instruction is copied into the new
 project as `.aiko/initialization.md`, and `aiko_get_project_context` hands it to the agent, so
 `/aiko-init <templateId>` ends with the project actually laid out rather than only registered. A project
 created from a template without one simply has no such document.

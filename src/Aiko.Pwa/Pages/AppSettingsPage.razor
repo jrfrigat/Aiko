@@ -9,31 +9,26 @@
 <PageTitle>@($"{Loc.Get("TemplatesHeading")} · {_template?.Name ?? string.Empty}")</PageTitle>
 
 <SettingsEditor>
-    <ExtraNarrowContent>
+    <LeadingContent>
         @* What the template asks for beyond copying its files: the structure a project of this kind should
-           have. It is copied into the project at init, and the agent carries it out then - so it belongs
-           here, next to the pipelines, and not on the project. *@
+           have. It is copied into the project at init and the agent carries it out then, so it belongs with
+           the defaults - and first, because everything below it is a default that document leans on. *@
         @if (_template is not null)
         {
             <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
-                <FlareStack Gap="FlareSpacing.Small">
-                    <FlareStack Gap="FlareSpacing.XXSmall">
-                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
-                            @Loc.Get("InitializationTitle")
-                        </FlareText>
-                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                            @Loc.Get("InitializationHint")
-                        </FlareText>
-                    </FlareStack>
-                    <AikoField Rows="6"
-                               Value="@_initializationInstruction"
-                               ValueChanged="value => _initializationInstruction = value" />
-                    @if (!string.IsNullOrWhiteSpace(_templateMessage))
-                    {
-                        <FlareAlert Severity="@(_templateHasError ? AlertSeverity.Error : AlertSeverity.Success)"
-                                    Variant="AlertVariant.Outlined">@_templateMessage</FlareAlert>
-                    }
-                    <FlareStack Row="true" Gap="FlareSpacing.XSmall">
+                <FlareStack Gap="FlareSpacing.Medium">
+                    <FlareStack Row="true" Align="FlareAlignItems.Start" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small">
+                        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
+                            <span class="aiko-panel__icon aiko-panel__icon--primary">
+                                <FlareIconView Value="@MaterialDesign3Icons.Regular.Layers" />
+                            </span>
+                            <FlareStack Gap="FlareSpacing.None">
+                                <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("InitializationTitle")</FlareText>
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                    @Loc.Get("InitializationHint")
+                                </FlareText>
+                            </FlareStack>
+                        </FlareStack>
                         <FlareButton Variant="ButtonVariant.Filled"
                                      Size="ButtonSize.Sm"
                                      Loading="@_savingTemplate"
@@ -42,10 +37,23 @@
                             <ChildContent>@Loc.Get("SaveTemplate")</ChildContent>
                         </FlareButton>
                     </FlareStack>
+                    @* The block is named after the file it becomes in the project: what a person writes here is
+                       what the agent reads as .aiko/initialization.md. *@
+                    <PromptField Name="initialization.md"
+                                 Title="@Loc.Get("InitializationTitle")"
+                                 Rows="6"
+                                 Value="@_initializationInstruction"
+                                 ValueChanged="value => _initializationInstruction = value" />
+                    @if (!string.IsNullOrWhiteSpace(_templateMessage))
+                    {
+                        <FlareAlert Severity="@(_templateHasError ? AlertSeverity.Error : AlertSeverity.Success)"
+                                    Variant="AlertVariant.Outlined">@_templateMessage</FlareAlert>
+                    }
                 </FlareStack>
             </FlarePaper>
         }
-
+    </LeadingContent>
+    <ExtraNarrowContent>
         @if (_template is not { } template || template.Workflows.Count == 0)
         {
             <FlareAlert Severity="AlertSeverity.Info" Variant="AlertVariant.Text">
