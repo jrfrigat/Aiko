@@ -72,51 +72,47 @@ internal static class AgentTemplates
     }
 
     /// <summary>
-    /// Slash command that moves a card to the next workflow stage.
+    /// Slash command that runs a card: the work its current stage asks for, whichever stage and whichever card
+    /// type the project defines.
     /// </summary>
-    public const string NextStage =
-        """
-        Move the current card to the next stage of its workflow. Read the card with aiko_get_card to
-        get its current stage and revision, determine the next stage, then call aiko_move_card with
-        that stage and the card's revision.
-        """;
+    /// <remarks>
+    /// The stage is read from the card rather than named here, and that is the whole point: stages and card
+    /// types are project data, so a command saying "run the implementation stage" is as wrong in a project
+    /// with a different pipeline as "create a task" is in a project without tasks. Moving the card to a named
+    /// stage first is the same operation, which is why this replaces the separate move command and the
+    /// per-stage ones: analyze, implement and review were one instruction with a different stage name in it.
+    /// </remarks>
+    /// <param name="agentAdapterId">
+    /// The adapter this file is installed for, written into the text. <c>aiko_start_stage</c> records which
+    /// agent is responsible, and a file that belongs to one adapter already knows the answer.
+    /// </param>
+    public static string Run(string agentAdapterId) => $"""
+        Run a card in Aiko. The user named the card: its id is the first argument, and an optional stage id
+        may follow as the second.
 
-    /// <summary>
-    /// Slash command for the analysis stage.
-    /// </summary>
-    public const string Analyze =
-        """
-        Analyze the current card. Read the project context and the card, start the analysis stage
-        with aiko_start_stage, produce the required analysis artifact, report progress with
-        aiko_report_progress and finish with aiko_complete_stage.
-        """;
+        Read aiko_get_project_context and aiko_get_card for that card. The context lists the card's type, its
+        pipeline and what each stage demands; the card says which stage it is in right now.
 
-    /// <summary>
-    /// Slash command for the implementation stage.
-    /// </summary>
-    public const string Implement =
-        """
-        Implement the current card. Start the implementation stage with aiko_start_stage, make the
-        changes within the declared scope, record actual changed files with aiko_report_progress and
-        finish with aiko_complete_stage.
-        """;
+        If a stage id was given and is not the card's current stage, call aiko_move_card to put the card
+        there first and re-read it - moving the card is the only way it changes stage.
 
-    /// <summary>
-    /// Slash command for the review stage.
-    /// </summary>
-    public const string Review =
-        """
-        Review the current card. Start the review stage with aiko_start_stage, check the tests and the
-        deviations from the declared scope, report progress and finish with aiko_complete_stage.
-        """;
+        Then start the stage with aiko_start_stage, passing the card id, the id of the stage the card is now
+        in, and "{agentAdapterId}" as the agent adapter id. Do what the stage's instruction asks for, and
+        honour its beforeSkills and afterSkills. Never start a second execution for a card that already has
+        one: if aiko_start_stage refuses because the card has an active execution, continue, complete or hand
+        off that execution instead of starting another.
 
-    /// <summary>
-    /// Slash command for completing the current card.
-    /// </summary>
-    public const string Complete =
-        """
-        Complete the current card's stage. Record the actual changed files and produced artifacts, then
-        call aiko_complete_stage. Store durable conclusions with aiko_store_memory where useful.
+        Keep aiko_report_progress updated with the summary, the steps done and left, and the complete current
+        list of the files you changed. If the work needs files outside the card's declaredScopeFiles, call
+        aiko_request_scope_expansion and wait for the user's decision before touching them.
+
+        Finish with aiko_complete_stage, recording the files you changed, the artifacts you produced and how
+        you verified the result, and keep durable conclusions with aiko_store_memory. If you cannot finish - a
+        rate limit, a failure - report the state with aiko_report_agent_state and hand the execution to
+        another agent with aiko_handoff_execution rather than dropping it.
+
+        Report at the end: the card, the stage you ran, what changed, what is left, and whether the card is
+        ready for its next stage.
         """;
 
     /// <summary>

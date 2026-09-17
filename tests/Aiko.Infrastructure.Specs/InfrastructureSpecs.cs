@@ -1474,13 +1474,22 @@ public class InfrastructureSpecs
             Assert.Contains("kind=Story", story, StringComparison.Ordinal);
             Assert.Contains("workflowId=story", story, StringComparison.Ordinal);
 
-            // A command an older Aiko wrote for a fixed pair of types is no longer part of the plan, so the
-            // next install sweeps it instead of leaving two ways to create the same card.
+            // Commands an older Aiko wrote are no longer part of the plan, so the next install sweeps them
+            // instead of leaving two ways to do the same thing.
             var legacy = Path.Combine(commands, "aiko-story-create.md");
+            var perStage = Path.Combine(commands, "aiko-analyze.md");
             await File.WriteAllTextAsync(legacy, "<!-- Managed by Aiko -->\nlegacy");
+            await File.WriteAllTextAsync(perStage, "<!-- Managed by Aiko -->\nper stage");
             await installer.ApplyAsync(
                 context.Project.Id, endpoint, "test-token", ["claude-code"], CancellationToken.None);
             Assert.False(File.Exists(legacy));
+            Assert.False(File.Exists(perStage));
+
+            // One command runs a card whatever its pipeline says, and it names the adapter it was installed
+            // for so aiko_start_stage records the right one.
+            var run = await File.ReadAllTextAsync(Path.Combine(commands, "aiko-run.md"));
+            Assert.Contains("aiko_start_stage", run, StringComparison.Ordinal);
+            Assert.Contains("claude-code", run, StringComparison.Ordinal);
 
             // A type the project adds gets a command of its own.
             var store = new FileProjectDefinitionStore(context.Catalog);

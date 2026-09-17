@@ -62,11 +62,7 @@ public sealed class ClaudeCodeAgentAdapter : BuiltInAgentAdapter
             .. cardTypes.Select(type => Command(
                 $"aiko-create-{type.Id}",
                 AgentTemplates.CreateCard(type))),
-            Command("aiko-next-stage", AgentTemplates.NextStage),
-            Command("aiko-analyze", AgentTemplates.Analyze),
-            Command("aiko-implement", AgentTemplates.Implement),
-            Command("aiko-review", AgentTemplates.Review),
-            Command("aiko-complete", AgentTemplates.Complete),
+            Command("aiko-run", AgentTemplates.Run(Id)),
             Command("aiko-scope", AgentTemplates.Scope),
             Command("aiko-handoff", AgentTemplates.Handoff),
             Command("aiko-memory", AgentTemplates.Memory),
