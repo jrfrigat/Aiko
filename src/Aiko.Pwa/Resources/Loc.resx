@@ -258,6 +258,14 @@
   <data name="AiInstructionHint" xml:space="preserve"><value>What the agent should look at to score this criterion</value></data>
   <data name="CharactersCount" xml:space="preserve"><value>Characters: {0}</value></data>
   <data name="TokensEstimate" xml:space="preserve"><value>Tokens ~{0}</value></data>
+  <data name="ScopeTitle" xml:space="preserve"><value>Scope &amp; requirements</value></data>
+  <data name="FilesDeclared" xml:space="preserve"><value>Declared</value></data>
+  <data name="FilesActual" xml:space="preserve"><value>Actually changed</value></data>
+  <data name="DefinitionOfDone" xml:space="preserve"><value>Definition of done</value></data>
+  <data name="NoRequiredArtifacts" xml:space="preserve"><value>This stage asks for no artifacts.</value></data>
+  <data name="CompletedOutcomes" xml:space="preserve"><value>Completed outcomes &amp; report</value></data>
+  <data name="ReportedCommits" xml:space="preserve"><value>Reported commits</value></data>
+  <data name="CommitPending" xml:space="preserve"><value>awaiting approval</value></data>
   <data name="RevisionTag" xml:space="preserve"><value>rev {0}</value></data>
   <data name="DaemonRuntime" xml:space="preserve"><value>Daemon runtime</value></data>
   <data name="DaemonRuntimeHint" xml:space="preserve"><value>What is running and where it listens</value></data>

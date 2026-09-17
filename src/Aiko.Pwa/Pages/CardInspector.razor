@@ -67,13 +67,66 @@
 
         <FlareDivider />
 
+        @* What the stage asks for, and what the card declared: together they are the card's scope, and the
+           out-of-scope list is the part an agent changed without saying so. *@
         <FlareStack Gap="FlareSpacing.Small">
-            <FlareText Element="h3" Typo="TypographyScale.TitleSmall">@Loc.Get("FilesTitle")</FlareText>
-            <FileGroup Title="Declared" Files="Card.DeclaredScopeFiles" />
-            <FileGroup Title="Actual" Files="Card.ActualChangedFiles" />
+            <FlareText Element="h3" Typo="TypographyScale.TitleSmall">@Loc.Get("ScopeTitle")</FlareText>
+            @if (Stage is { Instruction.Length: > 0 } asked)
+            {
+                <span class="aiko-tile">@asked.Instruction</span>
+            }
+            <FileGroup Title="@Loc.Get("FilesDeclared")" Files="Card.DeclaredScopeFiles" />
+            <FileGroup Title="@Loc.Get("FilesActual")" Files="Card.ActualChangedFiles" />
             <FileGroup Title="@Loc.Get("OutOfScope")"
                        Files="@BoardSection.FindOutOfScopeFiles(Card)"
                        Warning="true" />
+        </FlareStack>
+
+        <FlareDivider />
+
+        @* The stage's own definition of done: the artifacts it expects, marked by whether the card already
+           carries them, and the commands that verify the result. *@
+        <FlareStack Gap="FlareSpacing.Small">
+            <FlareText Element="h3" Typo="TypographyScale.TitleSmall">@Loc.Get("DefinitionOfDone")</FlareText>
+            @if (Stage is not { } required || required.RequiredArtifacts.Count == 0)
+            {
+                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                    @Loc.Get("NoRequiredArtifacts")
+                </FlareText>
+            }
+            else
+            {
+                @foreach (var requirement in required.RequiredArtifacts)
+                {
+                    var item = requirement;
+                    var present = HasArtifact(item.Path);
+                    <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween"
+                                Gap="FlareSpacing.XSmall" Class="aiko-check">
+                        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                            <FlareIconView Value="@(present ? MaterialDesign3Icons.Regular.CheckCircle : MaterialDesign3Icons.Regular.Pending)"
+                                           Color="@(present ? FlareColor.Tertiary : FlareColor.OnSurfaceVariant2)" />
+                            <FlareText Element="span" Mono="true" Typo="TypographyScale.LabelMedium">@item.Path</FlareText>
+                        </FlareStack>
+                        <span class="aiko-tag aiko-tag--quiet">@item.MissingPolicy</span>
+                    </FlareStack>
+                    @if (item.Description is { Length: > 0 } description)
+                    {
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @description
+                        </FlareText>
+                    }
+                }
+            }
+            @if (Stage is { Commands.Count: > 0 } verified)
+            {
+                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                    @Loc.Get("ValidationCommands")
+                </FlareText>
+                @foreach (var command in verified.Commands)
+                {
+                    <span class="aiko-value aiko-value--clip" title="@command">@command</span>
+                }
+            }
         </FlareStack>
 
         <FlareDivider />
@@ -100,6 +153,49 @@
                 </FlareList>
             }
         </FlareStack>
+
+        @* What the last run reported: its summary, the steps it finished, what is left and the commits it
+           says it made. The design's "completed outcomes" block, read from the execution record. *@
+        @if (LatestExecution is { } run)
+        {
+            <FlareDivider />
+
+            <FlareStack Gap="FlareSpacing.Small">
+                <FlareText Element="h3" Typo="TypographyScale.TitleSmall">@Loc.Get("CompletedOutcomes")</FlareText>
+                @if (run.ProgressSummary is { Length: > 0 } summary)
+                {
+                    <span class="aiko-tile">@summary</span>
+                }
+                @foreach (var step in run.CompletedSteps)
+                {
+                    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                        <FlareIconView Value="@MaterialDesign3Icons.Regular.CheckCircle" Color="FlareColor.Tertiary" />
+                        <FlareText Element="span" Typo="TypographyScale.LabelMedium">@step</FlareText>
+                    </FlareStack>
+                }
+                @foreach (var step in run.RemainingSteps)
+                {
+                    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                        <FlareIconView Value="@MaterialDesign3Icons.Regular.Pending" Color="FlareColor.OnSurfaceVariant2" />
+                        <FlareText Element="span" Typo="TypographyScale.LabelMedium">@step</FlareText>
+                    </FlareStack>
+                }
+                @if (run.Commits.Count > 0)
+                {
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                        @Loc.Get("ReportedCommits")
+                    </FlareText>
+                    @foreach (var commit in run.Commits)
+                    {
+                        var reported = commit;
+                        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                            <span class="aiko-tag aiko-tag--accent">@(reported.Sha ?? Loc.Get("CommitPending"))</span>
+                            <FlareText Element="span" Typo="TypographyScale.LabelMedium">@reported.Message</FlareText>
+                        </FlareStack>
+                    }
+                }
+            </FlareStack>
+        }
 
         <FlareDivider />
 
@@ -181,6 +277,24 @@
     private bool _saving;
     private bool _loadingExecutions;
     private IReadOnlyList<StageExecution> _executions = [];
+    private IReadOnlyList<CardArtifactSummary> _artifacts = [];
+
+    /// <summary>
+    /// The stage the card sits in, from its own workflow: it carries what the stage asks for (the
+    /// instruction), what it expects to be produced (the artifacts) and how the result is verified.
+    /// </summary>
+    private StageDefinition? Stage => Board.Workflows
+        .FirstOrDefault(workflow => StringComparer.Ordinal.Equals(workflow.Id, Card.WorkflowId))
+        ?.Stages.FirstOrDefault(stage => StringComparer.Ordinal.Equals(stage.Id, Card.StageId));
+
+    /// <summary>The most recent execution, which is the run whose outcomes the card reports.</summary>
+    private StageExecution? LatestExecution => _executions
+        .OrderByDescending(execution => execution.UpdatedAt)
+        .FirstOrDefault();
+
+    /// <summary>Whether the card already carries an artifact the stage asked for.</summary>
+    private bool HasArtifact(string path) => _artifacts.Any(artifact =>
+        string.Equals(artifact.Path, path, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>The project's size grid: what the human may choose from, same ladder the agent reads.</summary>
     private IReadOnlyList<SizeDefinition> SizeGrid => State.SettingsView?.EffectivePriority.Grid ?? [];
@@ -228,6 +342,11 @@
         {
             _executions = await Http.GetFromJsonAsync<IReadOnlyList<StageExecution>>(
                 $"api/v1/projects/{Uri.EscapeDataString(Card.Reference.ProjectId)}/cards/{Uri.EscapeDataString(Card.Reference.CardId)}/executions",
+                PwaJson.Options) ?? [];
+            // The artifacts are what the definition-of-done checklist is checked against: the card either
+            // carries the file the stage asked for or it does not.
+            _artifacts = await Http.GetFromJsonAsync<IReadOnlyList<CardArtifactSummary>>(
+                $"api/v1/projects/{Uri.EscapeDataString(Card.Reference.ProjectId)}/cards/{Uri.EscapeDataString(Card.Reference.CardId)}/artifacts",
                 PwaJson.Options) ?? [];
         }
         catch (Exception exception)
