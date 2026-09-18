@@ -115,6 +115,14 @@ public static class DisplayFormat
     /// <summary>An invariant-culture integer, for the mono counters in the chrome.</summary>
     public static string Number(int value) => value.ToString(CultureInfo.InvariantCulture);
 
+    /// <summary>
+    /// A caption with how much sits behind it: <c>Title (N)</c>. The count is always printed, zero included -
+    /// a zero is a fact about the card, and a caption that drops it reads as "not loaded yet" rather than
+    /// "nothing here". Parentheses and digits read the same in every language, so the shape needs no key.
+    /// </summary>
+    public static string Counted(string title, int count) =>
+        $"{title} ({count.ToString(CultureInfo.InvariantCulture)})";
+
     /// <summary>A number with at most two decimals, invariant, for priorities and scores.</summary>
     public static string Score(decimal value) => value.ToString("0.##", CultureInfo.InvariantCulture);
 

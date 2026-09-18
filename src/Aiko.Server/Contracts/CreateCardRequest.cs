@@ -19,6 +19,10 @@ namespace Aiko.Server.Contracts;
 /// <param name="CriterionValues">Per-criterion values, when the project scores by criteria.</param>
 /// <param name="Size">Size step of the project's grid (ТЗ §10), for example <c>M</c>.</param>
 /// <param name="Requirements">What the card is asked to do, stored in its metadata; null for none.</param>
+/// <param name="Request">
+/// What the user asked for, in their own words, stored in the card's metadata; null for none. It is the raw
+/// wording rather than the reworked task, and the card stops being able to change it once it leaves the backlog.
+/// </param>
 public sealed record CreateCardRequest(
     string? CardId,
     string Kind,
@@ -29,4 +33,5 @@ public sealed record CreateCardRequest(
     IReadOnlyList<string>? DeclaredScopeFiles,
     IReadOnlyDictionary<string, decimal>? CriterionValues,
     string? Size = null,
-    string? Requirements = null);
+    string? Requirements = null,
+    string? Request = null);

@@ -23,6 +23,8 @@
   <data name="Requirements" xml:space="preserve"><value>Требования</value></data>
   <data name="ScopeAndRequirementsHint" xml:space="preserve"><value>Что должна сделать карточка и какие файлы она может тронуть</value></data>
   <data name="RequirementsHelper" xml:space="preserve"><value>Что должна сделать эта карточка, вашими словами</value></data>
+  <data name="Request" xml:space="preserve"><value>Запрос</value></data>
+  <data name="RequestHelper" xml:space="preserve"><value>О чём попросил пользователь, его словами</value></data>
   <data name="BacklogStageNote" xml:space="preserve"><value>Карточка создаётся в бэклоге и уходит оттуда.</value></data>
   <data name="EstimateAfterCreateHint" xml:space="preserve"><value>Если оставить пустым, размер и оценки посчитает агент — после создания запустите /aiko-estimate.</value></data>
   <data name="EstimateTitle" xml:space="preserve"><value>Оценка</value></data>
@@ -505,6 +507,14 @@
   <data name="CommitAskHint" xml:space="preserve"><value>Агент спрашивает и ждёт; выполнение приостанавливается до подтверждения</value></data>
   <data name="CommitAllowTitle" xml:space="preserve"><value>Коммитит агент</value></data>
   <data name="CommitAllowHint" xml:space="preserve"><value>Агент коммитит и сообщает SHA</value></data>
+  <data name="PushPolicy" xml:space="preserve"><value>Push в общий checkout</value></data>
+  <data name="PushPolicyHint" xml:space="preserve"><value>Кто пушит из общего checkout - правило, которое агент читает: своего push у Aiko нет</value></data>
+  <data name="PushDenyTitle" xml:space="preserve"><value>Пушите вы</value></data>
+  <data name="PushDenyHint" xml:space="preserve"><value>Агент не пушит</value></data>
+  <data name="PushAskTitle" xml:space="preserve"><value>Подтверждать каждый push</value></data>
+  <data name="PushAskHint" xml:space="preserve"><value>Агент спрашивает перед пушем и ждёт вашего ответа</value></data>
+  <data name="PushAllowTitle" xml:space="preserve"><value>Пушит агент</value></data>
+  <data name="PushAllowHint" xml:space="preserve"><value>Агент может пушить и сообщает, что запушил</value></data>
   <data name="PriorityFormulaTitle" xml:space="preserve"><value>Формула приоритета</value></data>
   <data name="OwnWeightLabel" xml:space="preserve"><value>Вес собственной оценки</value></data>
   <data name="ParentWeightLabel" xml:space="preserve"><value>Вес родительской оценки</value></data>

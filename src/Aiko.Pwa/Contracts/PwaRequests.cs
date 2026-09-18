@@ -75,6 +75,11 @@ internal sealed record MoveCardRequest(
 /// <param name="Requirements">
 /// What the card is asked to do, or null to leave the stored text alone. An empty string clears it.
 /// </param>
+/// <param name="Request">
+/// The original request, or null to leave the stored text alone. The daemon refuses a change to it once the card
+/// has left the backlog, so the form may send it and be told no. The form never sends a reason: the person
+/// editing the requirements is the one the note would quote.
+/// </param>
 internal sealed record UpdateCardRequest(
     string Title,
     decimal OwnPriority,
@@ -82,7 +87,8 @@ internal sealed record UpdateCardRequest(
     long ExpectedRevision,
     string? Size = null,
     IReadOnlyDictionary<string, decimal>? CriterionValues = null,
-    string? Requirements = null);
+    string? Requirements = null,
+    string? Request = null);
 
 /// <summary>
 /// Writes a card artifact. A null version creates or overwrites without a conflict check.

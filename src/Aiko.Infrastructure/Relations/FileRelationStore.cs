@@ -37,6 +37,11 @@ public sealed class FileRelationStore(
     {
         ArgumentNullException.ThrowIfNull(relation);
         var project = await FindProjectAsync(relation.Source.ProjectId, cancellationToken);
+        // What goes into the document is the project's immutable id, however the caller addressed the project.
+        // An agent's MCP endpoint carries the readable handle, so a relation built from the route value would
+        // be filed under the handle - and the reindexer refuses the whole project over one relation it cannot
+        // resolve against its cards, which is how a single edge froze every projection.
+        relation = WithProjectId(relation, project.Id);
         await EnsureCardExistsAsync(relation.Source, cancellationToken);
         await EnsureCardExistsAsync(relation.Target, cancellationToken);
 
@@ -111,6 +116,22 @@ public sealed class FileRelationStore(
             }
         }
     }
+
+    /// <summary>
+    /// The relation with both references filed under <paramref name="projectId"/>: the file holds one project's
+    /// edges, and every reference in it has to be the id the cards and the projections are keyed by.
+    /// </summary>
+    /// <remarks>
+    /// A fresh relation rather than <c>with</c>, because <see cref="CardReference"/> exposes its parts as
+    /// read-only: a reference names a card, and rebuilding it is the only way to change what it names.
+    /// </remarks>
+    private static CardRelation WithProjectId(CardRelation relation, string projectId) =>
+        new(
+            relation.Id,
+            new CardReference(projectId, relation.Source.CardId),
+            new CardReference(projectId, relation.Target.CardId),
+            relation.Type,
+            relation.CreatedAt);
 
     private async ValueTask<RegisteredProject> FindProjectAsync(
         string projectId,

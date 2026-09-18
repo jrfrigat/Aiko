@@ -62,6 +62,20 @@ public sealed class DisplayFormatSpecs
     }
 
     [Fact]
+    public void A_caption_with_a_count_always_prints_the_count()
+    {
+        // The tab captions say how much sits behind them, and a zero is a fact about the card: a caption that
+        // dropped it read as "not loaded yet", which is what the discussion tab used to do.
+        Assert.Equal("Artifacts (0)", DisplayFormat.Counted("Artifacts", 0));
+        Assert.Equal("Runs (2)", DisplayFormat.Counted("Runs", 2));
+
+        // The shape carries no language: parentheses and digits read the same, so a translated title needs no
+        // separate format key, and the digits stay invariant whatever the browser's locale is.
+        Assert.Equal("Обсуждение (12)", DisplayFormat.Counted("Обсуждение", 12));
+        Assert.Equal("Название (1000)", DisplayFormat.Counted("Название", 1000));
+    }
+
+    [Fact]
     public void Project_tag_shows_the_last_two_segments()
     {
         Assert.Equal("FrigaT/StitchFlow", DisplayFormat.ProjectTag(@"C:\Job\Projects\FrigaT\StitchFlow"));

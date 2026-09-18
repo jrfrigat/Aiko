@@ -98,6 +98,11 @@ internal sealed class CardTools(
         [Optional] string? size,
         [Description("What the card is asked to do, when the title alone is not enough.")]
         [Optional] string? requirements,
+        [Description(
+            "What the user asked for, in their own words - verbatim, or as close as you can get without "
+            + "tidying it up into a task. It records what was asked and is fixed once the card leaves the "
+            + "backlog, while the requirements go on describing the work.")]
+        [Optional] string? request,
         CancellationToken cancellationToken)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(ownPriority);
@@ -118,11 +123,9 @@ internal sealed class CardTools(
         var resolvedId = string.IsNullOrWhiteSpace(cardId)
             ? await CardIdGenerator.NextAsync(cards, project.Id, canonicalKind, cancellationToken)
             : cardId.Trim();
-        var metadata = new Dictionary<string, string>(StringComparer.Ordinal);
-        if (!string.IsNullOrWhiteSpace(requirements))
-        {
-            metadata[Card.RequirementsMetadataKey] = requirements.Trim();
-        }
+        IReadOnlyDictionary<string, string> metadata = new Dictionary<string, string>(StringComparer.Ordinal);
+        metadata = Card.WithText(metadata, Card.RequirementsMetadataKey, requirements);
+        metadata = Card.WithText(metadata, Card.RequestMetadataKey, request);
 
         var card = new Card(
             new CardReference(project.Id, resolvedId),
@@ -214,12 +217,45 @@ internal sealed class CardTools(
             "Size step from the project's size grid. Pass an empty string to clear it, or leave it out to "
             + "keep the card's current size.")]
         [Optional] string? size,
+        [Description(
+            "What the card is asked to do, or leave it out to keep the stored text. Pass an empty string to "
+            + "clear it.")]
+        [Optional] string? requirements,
+        [Description(
+            "The original request. Only a card still in the backlog accepts a change here, clearing included: "
+            + "once work has started the request records what was asked and stays as it is.")]
+        [Optional] string? request,
+        [Description(
+            "Why the description changed, so the card's discussion can say what the change came from. Leave it "
+            + "out and the note is written without the quote.")]
+        [Optional] string? requirementsReason,
+        [Description("Who is writing, for example the agent adapter id; left out, the note is signed 'agent'.")]
+        [Optional] string? author,
         CancellationToken cancellationToken)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(ownPriority);
         var reference = new CardReference(GetProjectId(), cardId);
         var existing = await cards.FindAsync(reference, cancellationToken)
             ?? throw new KeyNotFoundException($"Card '{cardId}' was not found.");
+
+        var metadata = existing.Metadata;
+        if (request is { } nextRequest)
+        {
+            // The request records what was asked for, so only the backlog may still correct it.
+            if (Card.RefuseRequestChange(cardId, existing.StageId) is { } refusal)
+            {
+                throw new InvalidOperationException(refusal);
+            }
+
+            metadata = Card.WithText(metadata, Card.RequestMetadataKey, nextRequest);
+        }
+
+        var requirementsBefore = existing.Requirements;
+        if (requirements is { } nextRequirements)
+        {
+            metadata = Card.WithText(metadata, Card.RequirementsMetadataKey, nextRequirements);
+        }
+
         var updated = existing with
         {
             Title = title,
@@ -228,10 +264,50 @@ internal sealed class CardTools(
             DeclaredScopeFiles = declaredScopeFiles,
             ActualChangedFiles = actualChangedFiles,
             // Absent means "leave it alone"; an empty string is how a caller clears the size.
-            Size = size is null ? existing.Size : string.IsNullOrWhiteSpace(size) ? null : size.Trim()
+            Size = size is null ? existing.Size : string.IsNullOrWhiteSpace(size) ? null : size.Trim(),
+            // The card's two texts were already folded in above.
+            Metadata = metadata
         };
         await cards.SaveAsync(updated, expectedRevision, cancellationToken);
+        await ExplainRequirementsChangeAsync(
+            updated,
+            requirementsBefore,
+            requirementsReason,
+            author,
+            cancellationToken);
         return JsonSerializer.Serialize(updated, ServerJsonContext.Default.Card);
+    }
+
+    /// <summary>
+    /// Records in the card's discussion why its requirements changed, when they actually did.
+    /// </summary>
+    /// <remarks>
+    /// Best effort on purpose: the card is already saved when this runs, and failing the tool call over the note
+    /// would only invite a retry that applies the same change twice.
+    /// </remarks>
+    private async ValueTask ExplainRequirementsChangeAsync(
+        Card updated,
+        string? before,
+        string? reason,
+        string? author,
+        CancellationToken cancellationToken)
+    {
+        if (Card.RequirementsChangeNote(before, updated.Requirements, reason) is not { } note)
+        {
+            return;
+        }
+
+        try
+        {
+            await discussion.AppendAsync(
+                updated.Reference,
+                string.IsNullOrWhiteSpace(author) ? "agent" : author,
+                note,
+                cancellationToken);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+        }
     }
 
     [McpServerTool(Name = "aiko_move_card", Title = "Move Aiko card")]
@@ -300,11 +376,13 @@ internal sealed class CardTools(
         string relationType,
         CancellationToken cancellationToken)
     {
-        var projectId = GetProjectId();
+        // The relation is built from the project's own id, not from the route value: an agent connects through
+        // the readable handle, and a handle written into relations.json is a reference nothing else resolves.
+        var project = await GetProjectAsync(cancellationToken);
         var relation = new CardRelation(
             Guid.CreateVersion7().ToString("N"),
-            new CardReference(projectId, sourceCardId),
-            new CardReference(projectId, targetCardId),
+            new CardReference(project.Id, sourceCardId),
+            new CardReference(project.Id, targetCardId),
             relationType,
             DateTimeOffset.UtcNow);
         await relations.SaveAsync(relation, cancellationToken);

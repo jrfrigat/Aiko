@@ -43,6 +43,11 @@ Every card is a folder in `.aiko` with a `card.json` and Markdown artifacts. A c
   in that type's `backlog` stage, because a card nobody has worked out should not start anywhere else;
 - `requirements` - what the card is asked to do, in the words of whoever wrote it, kept in the card's
   metadata;
+- `request` - what the user asked for, in their own words, kept in the same metadata. It records what was
+  asked rather than what the work became, so a card that has left the backlog refuses to change it (a typo
+  may still be corrected while the card sits in the backlog), and a later change to `requirements` is written
+  into the card's discussion with the reason it came from. A card written before this key existed simply has
+  no request;
 - `revision` - the optimistic revision;
 - `ownPriority` and the computed effective priority (the task blends its own value with the
   maximum parent value using the project's priority weights);
@@ -230,6 +235,10 @@ with the card, in its own folder: `.aiko/<stories|tasks>/<cardId>/discussion.jso
 `/leak-check` chips add a command to the text. Nothing is launched from here: the daemon records work, you run
 the agent - a command in the text is addressed to whoever opens the stage.
 
+The feed is the notebook between stages, not a chat: an agent reads it before it works a stage and writes its
+outcome there before completing it - including what the next stage or agent will need - and signs the note with
+its own adapter id, so the feed says which agent wrote what.
+
 ## Analytics
 
 The project page opens with the project's own **activity**: the same contribution calendar the dashboard
@@ -253,6 +262,11 @@ The project's commit policy controls who commits:
 - `ask` - the agent reports a commit and waits for your approval (the execution becomes
   `waiting-for-user`; approve with `aiko_approve_commit` or in the UI).
 - `allow` - the agent commits and reports the SHA.
+
+The project's push policy answers the same question for pushing from the shared checkout, with the same three
+answers. It is a rule the agent reads rather than one Aiko enforces: Aiko has no push of its own, so nothing
+can pause an execution until you approve - the context the agent reads first states it, and the `/aiko-run`
+procedure repeats it.
 
 ## Memory
 

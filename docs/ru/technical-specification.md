@@ -371,9 +371,14 @@ REST-эндпоинт переноса доски правилу намерен�
   "workspaceMode": "shared",
   "maxConcurrentRuns": 1,
   "scopeOverlapPolicy": "ask",
-  "sharedCheckoutCommitPolicy": "deny"
+  "sharedCheckoutCommitPolicy": "deny",
+  "sharedCheckoutPushPolicy": "deny"
 }
 ```
+
+Политика push говорит агенту, а не применяется принудительно: своего push у Aiko нет (`IGitClient` читает
+status, log и diff), поэтому выполнение на ней не останавливается. Поле необязательно при чтении, поэтому
+документ настроек, записанный до его появления, читается и даёт `deny`.
 
 Пользователь может включить параллельный shared-режим. UI постоянно предупреждает, что working tree и
 Git index общие, изменения могут конфликтовать, смешиваться в commit и ошибочно атрибутироваться.

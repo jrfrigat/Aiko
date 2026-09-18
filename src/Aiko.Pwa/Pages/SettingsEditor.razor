@@ -250,6 +250,23 @@
                             }
                         </div>
                     </FlareStack>
+
+                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.XSmall">
+                        <FlareStack Gap="FlareSpacing.None">
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                                @Loc.Get("PushPolicy")
+                            </FlareText>
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                @Loc.Get("PushPolicyHint")
+                            </FlareText>
+                        </FlareStack>
+                        <div class="aiko-choices">
+                            @foreach (var option in PushOptions)
+                            {
+                                @Choice("push", option, _pushPolicy, policy => _pushPolicy = policy)
+                            }
+                        </div>
+                    </FlareStack>
                 </FlareStack>
             </FlarePaper>
             @* A screen can add a panel to this column: the project screen puts the pipeline there, under the
@@ -665,6 +682,17 @@
     ];
 
     /// <summary>
+    /// The push policy's options. Same three answers as the commits above, and the hints say what an agent does
+    /// rather than what Aiko enforces: there is no push action to pause, so the policy is a rule the agent reads.
+    /// </summary>
+    private static readonly PolicyOption[] PushOptions =
+    [
+        new(nameof(ActionPolicy.Deny), "PushDenyTitle", "PushDenyHint"),
+        new(nameof(ActionPolicy.Ask), "PushAskTitle", "PushAskHint"),
+        new(nameof(ActionPolicy.Allow), "PushAllowTitle", "PushAllowHint"),
+    ];
+
+    /// <summary>
     /// A panel rendered at the bottom of the narrow column. The project screen puts the pipeline there,
     /// under the defaults; the global screen passes nothing.
     /// </summary>
@@ -714,6 +742,7 @@
     private int _maxRuns = 1;
     private ActionPolicy _scopePolicy = ActionPolicy.Ask;
     private ActionPolicy _commitPolicy = ActionPolicy.Deny;
+    private ActionPolicy _pushPolicy = ActionPolicy.Deny;
     private List<CriterionDraft> _criteria = [];
     private List<SizeDraft> _sizes = [];
     private SizeDraft? _selectedSize;
@@ -804,6 +833,7 @@
         _maxRuns = execution.MaxConcurrentRuns;
         _scopePolicy = execution.ScopeOverlapPolicy;
         _commitPolicy = execution.SharedCheckoutCommitPolicy;
+        _pushPolicy = execution.SharedCheckoutPushPolicy;
 
         var priority = own?.Priority ?? view.EffectivePriority;
         _ownWeight = (double)priority.Weights.TaskWeight;
@@ -933,7 +963,7 @@
         _hasError = false;
         try
         {
-            var execution = new ExecutionSettings(_workspaceMode, _maxRuns, _scopePolicy, _commitPolicy);
+            var execution = new ExecutionSettings(_workspaceMode, _maxRuns, _scopePolicy, _commitPolicy, _pushPolicy);
             var priority = new PrioritySettings(
                 new PriorityWeights(OwnWeight, ParentWeight),
                 _criteria.Select(criterion => new PriorityCriterion(

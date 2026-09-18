@@ -44,6 +44,15 @@ public class DomainSpecs
         Assert.Equal(WorkspaceMode.Shared, ExecutionSettings.SafeDefault.WorkspaceMode);
         Assert.Equal(1, ExecutionSettings.SafeDefault.MaxConcurrentRuns);
         Assert.Equal(ActionPolicy.Deny, ExecutionSettings.SafeDefault.SharedCheckoutCommitPolicy);
+        // The same answer for push: a project that never stated one does not push from the shared checkout.
+        Assert.Equal(ActionPolicy.Deny, ExecutionSettings.SafeDefault.SharedCheckoutPushPolicy);
+
+        // The push policy is optional in the constructor, and that is what makes a settings document written
+        // before it existed readable: a missing field has to land on the safe value rather than fail the load.
+        Assert.Equal(
+            ActionPolicy.Deny,
+            new ExecutionSettings(
+                WorkspaceMode.Shared, 1, ActionPolicy.Ask, ActionPolicy.Allow).SharedCheckoutPushPolicy);
     }
 
     [Fact]
@@ -274,6 +283,83 @@ public class DomainSpecs
             new Dictionary<string, ActionPolicy>(StringComparer.Ordinal),
             null);
     }
+
+    [Fact]
+    public void The_request_and_the_requirements_are_two_texts_read_from_the_metadata()
+    {
+        var card = TextCard("backlog") with
+        {
+            Metadata = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                [Card.RequestMetadataKey] = "the dropdown is empty on Fridays",
+                [Card.RequirementsMetadataKey] = "Make the dropdown list every value."
+            }
+        };
+
+        Assert.Equal("the dropdown is empty on Fridays", card.Request);
+        Assert.Equal("Make the dropdown list every value.", card.Requirements);
+
+        // A card written before the request existed has none, and none is invented for it: "not recorded" and
+        // "nothing was asked" are different facts.
+        var old = TextCard("analysis");
+        Assert.Null(old.Request);
+        Assert.Null(old.Requirements);
+
+        // Text is written trimmed, and a blank one removes the key rather than storing an empty string, so
+        // "nothing is written" has exactly one representation.
+        var written = Card.WithText(card.Metadata, Card.RequestMetadataKey, "  spaced out  ");
+        Assert.Equal("spaced out", written[Card.RequestMetadataKey]);
+        var cleared = Card.WithText(written, Card.RequestMetadataKey, "   ");
+        Assert.False(cleared.ContainsKey(Card.RequestMetadataKey));
+        Assert.True(cleared.ContainsKey(Card.RequirementsMetadataKey));
+    }
+
+    [Fact]
+    public void The_original_request_is_fixed_once_the_card_leaves_the_backlog()
+    {
+        // A card nobody has taken into work can still be corrected: a typo, a clarification.
+        Assert.Null(Card.RefuseRequestChange("TASK-1", "backlog"));
+
+        // Once the card is in its pipeline the request records what was asked, and the refusal names the stage
+        // and points at the text that may change instead.
+        var refusal = Card.RefuseRequestChange("TASK-1", "analysis");
+        Assert.NotNull(refusal);
+        Assert.Contains("fixed", refusal, StringComparison.Ordinal);
+        Assert.Contains("analysis", refusal, StringComparison.Ordinal);
+        Assert.Contains("requirements", refusal, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_requirements_change_explains_itself_in_a_note()
+    {
+        // Nothing changed: no note, so the feed is not filled with non-events.
+        Assert.Null(Card.RequirementsChangeNote("same text", "same text", "anything"));
+        Assert.Null(Card.RequirementsChangeNote(null, null, "anything"));
+
+        // A change carries the reason the caller gave, quoted.
+        var explained = Card.RequirementsChangeNote("old", "new", "the list was unsorted");
+        Assert.NotNull(explained);
+        Assert.Contains("\"the list was unsorted\"", explained, StringComparison.Ordinal);
+
+        // Clearing the text is a change too - the card no longer asks what it asked a moment ago - and without
+        // a reason the note is still written, just without the quote.
+        var cleared = Card.RequirementsChangeNote("old", null, null);
+        Assert.NotNull(cleared);
+        Assert.Contains("changed", cleared, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"", cleared, StringComparison.Ordinal);
+    }
+
+    private static Card TextCard(string stageId) => new(
+        new CardReference("project", "TASK-1"),
+        CardKind.Task,
+        "Fix the dropdown",
+        "task",
+        stageId,
+        1,
+        1m,
+        [],
+        [],
+        new Dictionary<string, string>(StringComparer.Ordinal));
 
     [Fact]
     public void Stage_executors_and_validation_commands_survive_the_workflow_json()

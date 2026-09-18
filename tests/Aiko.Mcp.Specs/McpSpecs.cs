@@ -103,6 +103,18 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         Assert.Contains("aiko_complete_stage", text, StringComparison.Ordinal);
         Assert.Contains("One run is one stage", text, StringComparison.Ordinal);
         Assert.Contains("--all", text, StringComparison.Ordinal);
+        // An order is still only a request: creating the card is the answer, and the run waits for the ask.
+        Assert.Contains("An order is still a request", text, StringComparison.Ordinal);
+        // The git rules the project states include push, and they say plainly that Aiko cannot enforce it: the
+        // agent follows the rule because it read it, not because something would stop it.
+        Assert.Contains("Push policy:", text, StringComparison.Ordinal);
+        Assert.Contains("no push of its own", text, StringComparison.Ordinal);
+        // The feed is stated as what it is: a notebook one stage leaves for the next, read before the work and
+        // written before the stage is completed, with the agent's own id on the note.
+        Assert.Contains("notebook one stage leaves for the next", text, StringComparison.Ordinal);
+        Assert.Contains("aiko_list_comments", text, StringComparison.Ordinal);
+        Assert.Contains("aiko_add_comment", text, StringComparison.Ordinal);
+        Assert.Contains("adapter id", text, StringComparison.Ordinal);
         // The context names the project's git and commit policies: an agent told neither cannot know whether
         // to commit, which is how a commit lands in a repository that asked to stay local.
         Assert.Contains("## Git and commits", text, StringComparison.Ordinal);
@@ -1114,6 +1126,128 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
     }
 
     [Fact]
+    public async Task A_cards_request_and_description_carry_their_own_rules_through_mcp()
+    {
+        await using var client = await ConnectAsync();
+        var cardId = $"TASK-TEXTS-{Guid.NewGuid():N}";
+        await client.CallToolAsync(
+            "aiko_create_card",
+            new Dictionary<string, object?>
+            {
+                ["cardId"] = cardId,
+                ["kind"] = "task",
+                ["title"] = "Fix the dropdown",
+                ["ownPriority"] = 1,
+                ["declaredScopeFiles"] = new[] { "src/**" },
+                ["requirements"] = "Make the dropdown list every value.",
+                ["request"] = "the dropdown is empty on Fridays"
+            },
+            cancellationToken: CancellationToken.None);
+
+        using var created = JsonDocument.Parse(FirstText(await client.CallToolAsync(
+            "aiko_get_card",
+            new Dictionary<string, object?> { ["cardId"] = cardId },
+            cancellationToken: CancellationToken.None)) ?? "{}");
+        Assert.Equal(
+            "the dropdown is empty on Fridays",
+            created.RootElement.GetProperty("metadata").GetProperty("request").GetString());
+
+        // A description that actually changed is explained in the card's own feed, signed by the agent that
+        // changed it - and the tool can change that text at all, which it could not before.
+        var changed = await UpdateCardAsync(
+            client,
+            cardId,
+            expectedRevision: 1,
+            requirements: "Make the dropdown list every value, ordered.",
+            requirementsReason: "the list was unsorted",
+            author: "claude-code");
+        Assert.False(changed.IsError == true, $"aiko_update_card failed: {FirstText(changed)}");
+
+        using var comments = JsonDocument.Parse(FirstText(await client.CallToolAsync(
+            "aiko_list_comments",
+            new Dictionary<string, object?> { ["cardId"] = cardId },
+            cancellationToken: CancellationToken.None)) ?? "[]");
+        var note = Assert.Single(comments.RootElement.EnumerateArray().ToArray());
+        Assert.Equal("claude-code", note.GetProperty("author").GetString());
+        Assert.Contains(
+            "the list was unsorted",
+            note.GetProperty("body").GetString()!,
+            StringComparison.Ordinal);
+
+        // The board may move a card by hand - that path is deliberately free of the pipeline rule - and once the
+        // card is out of the backlog its request is a record, not a description.
+        using var http = new HttpClient { BaseAddress = fixture.BaseUrl };
+        using var moved = await http.PutAsJsonAsync(
+            $"api/v1/projects/{fixture.ProjectId}/cards/{cardId}/stage",
+            new { stageId = "analysis", expectedRevision = 2 },
+            CancellationToken.None);
+        Assert.Equal(HttpStatusCode.OK, moved.StatusCode);
+
+        var refused = await UpdateCardAsync(
+            client,
+            cardId,
+            expectedRevision: 3,
+            request: "something else entirely");
+        Assert.True(refused.IsError);
+        var reason = FirstText(refused) ?? string.Empty;
+        Assert.Contains("fixed", reason, StringComparison.Ordinal);
+        Assert.Contains("analysis", reason, StringComparison.Ordinal);
+
+        // The requirements are the text that keeps changing, so the same call without a request goes through.
+        var later = await UpdateCardAsync(
+            client,
+            cardId,
+            expectedRevision: 3,
+            requirements: "Make the dropdown list every value, ordered, with a search box.");
+        Assert.False(later.IsError == true, $"aiko_update_card failed: {FirstText(later)}");
+    }
+
+    /// <summary>
+    /// Updates a card through MCP with only the texts this spec cares about; the rest of the card is sent as it
+    /// already stands.
+    /// </summary>
+    private static ValueTask<CallToolResult> UpdateCardAsync(
+        McpClient client,
+        string cardId,
+        long expectedRevision,
+        string? requirements = null,
+        string? request = null,
+        string? requirementsReason = null,
+        string? author = null)
+    {
+        var arguments = new Dictionary<string, object?>
+        {
+            ["cardId"] = cardId,
+            ["expectedRevision"] = expectedRevision,
+            ["title"] = "Fix the dropdown",
+            ["ownPriority"] = 1,
+            ["declaredScopeFiles"] = new[] { "src/**" },
+            ["actualChangedFiles"] = Array.Empty<string>()
+        };
+        if (requirements is not null)
+        {
+            arguments["requirements"] = requirements;
+        }
+
+        if (request is not null)
+        {
+            arguments["request"] = request;
+        }
+
+        if (requirementsReason is not null)
+        {
+            arguments["requirementsReason"] = requirementsReason;
+        }
+
+        if (author is not null)
+        {
+            arguments["author"] = author;
+        }
+
+        return client.CallToolAsync("aiko_update_card", arguments, cancellationToken: CancellationToken.None);
+    }
+
+    [Fact]
     public async Task An_agent_starts_a_stage_through_the_projects_readable_handle()
     {
         // A project of its own, because the fixture's shared project allows one run at a time and another
@@ -1191,6 +1325,51 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         using var runsDocument = JsonDocument.Parse(
             await runs.Content.ReadAsStringAsync(CancellationToken.None));
         Assert.Single(runsDocument.RootElement.EnumerateArray());
+
+        // The same route value must not reach a durable object either. A relation filed under the handle is an
+        // edge the reindexer refuses, and it refuses the whole project rather than the one edge.
+        var siblingId = $"TASK-HANDLE-SIBLING-{Guid.NewGuid():N}";
+        var sibling = await client.CallToolAsync(
+            "aiko_create_card",
+            new Dictionary<string, object?>
+            {
+                ["cardId"] = siblingId,
+                ["kind"] = "task",
+                ["title"] = "Linked through the handle",
+                ["ownPriority"] = 1,
+                ["declaredScopeFiles"] = new[] { "src/**" }
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.NotEqual(true, sibling.IsError);
+
+        var linked = await client.CallToolAsync(
+            "aiko_link_cards",
+            new Dictionary<string, object?>
+            {
+                ["sourceCardId"] = cardId,
+                ["targetCardId"] = siblingId,
+                ["relationType"] = "parent-child"
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.False(
+            linked.IsError == true,
+            $"aiko_link_cards through the handle failed: {FirstText(linked)}");
+        using var linkedDocument = JsonDocument.Parse(FirstText(linked) ?? "{}");
+        Assert.Equal(
+            projectId,
+            linkedDocument.RootElement.GetProperty("source").GetProperty("projectId").GetString());
+
+        // And what the file holds - what the board and the projections read - is the id too.
+        using var storedRelations = JsonDocument.Parse(
+            await File.ReadAllTextAsync(Path.Combine(root, ".aiko", "relations.json")));
+        var storedRelation = Assert.Single(
+            storedRelations.RootElement.GetProperty("relations").EnumerateArray().ToArray());
+        Assert.Equal(
+            projectId,
+            storedRelation.GetProperty("source").GetProperty("projectId").GetString());
+        Assert.Equal(
+            projectId,
+            storedRelation.GetProperty("target").GetProperty("projectId").GetString());
 
         // Unregister the throwaway project so the rest of this class sees the fixture's own project only;
         // its files sit under the fixture's temp root and go away with it.

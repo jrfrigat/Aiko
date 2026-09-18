@@ -619,6 +619,44 @@ public class InfrastructureSpecs
     }
 
     [Fact]
+    public async Task A_relation_saved_through_the_readable_handle_is_stored_under_the_project_id()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            // The setup only means something while the handle and the id differ: they do here, and an agent's
+            // MCP endpoint carries the handle.
+            Assert.NotEqual(context.Project.Id, context.Project.Handle);
+
+            var parent = CreateCard(context.Project.Id, "TASK-PARENT", 1);
+            var child = CreateCard(context.Project.Id, "TASK-CHILD", 1);
+            await context.Cards.SaveAsync(parent, 0, CancellationToken.None);
+            await context.Cards.SaveAsync(child, 0, CancellationToken.None);
+
+            // A caller that addressed the project the way the endpoint does - by its readable handle. What lands
+            // in relations.json must still be the immutable id: a handle there is a reference the reindexer
+            // cannot resolve against the cards, and it refuses the whole project over that one edge.
+            var relation = new CardRelation(
+                Guid.CreateVersion7().ToString("N"),
+                new CardReference(context.Project.Handle, parent.Reference.CardId),
+                new CardReference(context.Project.Handle, child.Reference.CardId),
+                RelationTypes.ParentChild,
+                DateTimeOffset.UtcNow);
+            await context.Relations.SaveAsync(relation, CancellationToken.None);
+
+            var stored = Assert.Single(
+                await context.Relations.ListAsync(context.Project.Id, CancellationToken.None));
+            Assert.Equal(context.Project.Id, stored.Source.ProjectId);
+            Assert.Equal(context.Project.Id, stored.Target.ProjectId);
+
+            // The point of the fix: the projections can be rebuilt again.
+            var reindexed = await context.Reindexer.ReindexAsync(
+                context.Project.Id,
+                CancellationToken.None);
+            Assert.Equal(1, reindexed.Relations);
+        });
+    }
+
+    [Fact]
     public async Task The_working_contract_requires_a_started_stage_before_files_change()
     {
         await WithInitializedProjectAsync(async context =>
@@ -648,6 +686,9 @@ public class InfrastructureSpecs
             Assert.Contains("and stop", contract, StringComparison.Ordinal);
             Assert.Contains("One run is one stage", contract, StringComparison.Ordinal);
             Assert.Contains("--all", contract, StringComparison.Ordinal);
+            // An order is still only a request. The incident this line closes was an agent that read "fix X" as
+            // "run X" and did the work before the user had asked for it.
+            Assert.Contains("An order is still a request", contract, StringComparison.Ordinal);
 
             var run = await File.ReadAllTextAsync(
                 Path.Combine(context.Project.RootPath, ".cline", "skills", "aiko-run", "SKILL.md"));
@@ -657,6 +698,79 @@ public class InfrastructureSpecs
             // The old claim - that moving the card is the only way it changes stage - was wrong and told an
             // agent to move a card it was about to start anyway.
             Assert.DoesNotContain("only way it changes stage", run, StringComparison.Ordinal);
+            // The run procedure states the project's git rules before an agent gets a chance to push: Aiko has
+            // no push of its own, so the rule is all there is.
+            Assert.Contains("Do not push", run, StringComparison.Ordinal);
+
+            // The card's feed is a notebook between stages: the contract and the run procedure both say to read it
+            // before the work and to leave the outcome - signed with the agent's own id - before completing.
+            Assert.Contains("notebook between stages", contract, StringComparison.Ordinal);
+            Assert.Contains("aiko_list_comments", contract, StringComparison.Ordinal);
+            Assert.Contains("Read the card's feed", run, StringComparison.Ordinal);
+            Assert.Contains("adapter id", run, StringComparison.Ordinal);
+
+            // A create procedure can be the only text an agent reads, so it says out loud that the card is the
+            // whole answer: a procedure ending at "estimate it" reads as "now do the work".
+            var create = await File.ReadAllTextAsync(
+                Path.Combine(context.Project.RootPath, ".cline", "skills", "aiko-create", "SKILL.md"));
+            Assert.Contains("Then stop. Creating the card", create, StringComparison.Ordinal);
+            Assert.Contains("aiko-run <cardId>", create, StringComparison.Ordinal);
+        });
+    }
+
+    [Fact]
+    public async Task Settings_written_before_the_push_policy_read_as_deny()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            // A project configured before push had a policy: its document carries no such field. The effective
+            // settings have to answer Deny rather than fail on a shape the daemon no longer writes.
+            var path = Path.Combine(context.StitchRoot, "settings.json");
+            await File.WriteAllTextAsync(
+                path,
+                """
+                {
+                  "schemaVersion": 1,
+                  "execution": {
+                    "workspaceMode": "Shared",
+                    "maxConcurrentRuns": 1,
+                    "scopeOverlapPolicy": "Ask",
+                    "sharedCheckoutCommitPolicy": "Allow"
+                  }
+                }
+                """);
+            var settings = new AppSettingsService(new FileAppSettingsStore(context.Catalog));
+
+            var effective = await settings.GetEffectiveExecutionAsync(
+                context.Project.Id,
+                CancellationToken.None);
+            // What the file does state is read as it stands ...
+            Assert.Equal(ActionPolicy.Allow, effective.SharedCheckoutCommitPolicy);
+            // ... and what it does not state falls back to the safe answer.
+            Assert.Equal(ActionPolicy.Deny, effective.SharedCheckoutPushPolicy);
+        });
+    }
+
+    [Fact]
+    public async Task A_card_keeps_both_of_its_texts_through_the_card_file()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            // The two texts are prose in the metadata, and the file is what a card is: if a key did not survive
+            // the round-trip, the request would look unrecorded on a card that plainly has one.
+            var card = CreateCard(context.Project.Id, "TASK-TEXTS", 1) with
+            {
+                Metadata = new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    [Card.RequestMetadataKey] = "the dropdown is empty on Fridays",
+                    [Card.RequirementsMetadataKey] = "Make the dropdown list every value."
+                }
+            };
+            await context.Cards.SaveAsync(card, 0, CancellationToken.None);
+
+            var stored = await context.Cards.FindAsync(card.Reference, CancellationToken.None);
+            Assert.Equal("the dropdown is empty on Fridays", stored?.Request);
+            Assert.Equal("Make the dropdown list every value.", stored?.Requirements);
         });
     }
 

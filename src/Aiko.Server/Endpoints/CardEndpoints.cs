@@ -62,6 +62,7 @@ internal static class CardEndpoints
                 string cardId,
                 UpdateCardRequest request,
                 ICardStore cards,
+                ICardDiscussionStore discussion,
                 CancellationToken cancellationToken) =>
             {
                 if (string.IsNullOrWhiteSpace(request.Title) || request.OwnPriority < 0)
@@ -83,16 +84,33 @@ internal static class CardEndpoints
                         card.Revision));
                 }
 
+                var metadata = card.Metadata;
+                if (request.Request is { } nextRequest)
+                {
+                    // The request records what was asked for, so it stops being editable once the card is taken
+                    // into work; from then on a clarification belongs in the requirements.
+                    if (Card.RefuseRequestChange(cardId, card.StageId) is { } refusal)
+                    {
+                        return Results.Conflict(new ErrorResponse(refusal));
+                    }
+
+                    metadata = Card.WithText(metadata, Card.RequestMetadataKey, nextRequest);
+                }
+
                 // Requirements follow the same rule: null leaves the text alone, a blank string clears it. A
                 // request that writes criterion scores is an estimate, so it also records when it was made -
                 // that moment is what lets a stage's completion tell a fresh readiness from a stale one.
-                var metadata = request.Requirements is { } requirements
-                    ? WithRequirements(card.Metadata, requirements)
-                    : card.Metadata;
+                if (request.Requirements is { } requirements)
+                {
+                    metadata = Card.WithText(metadata, Card.RequirementsMetadataKey, requirements);
+                }
+
                 if (request.CriterionValues is not null)
                 {
                     metadata = WithEstimatedAt(metadata, DateTimeOffset.UtcNow);
                 }
+
+                var requirementsBefore = card.Requirements;
 
                 var updated = card with
                 {
@@ -117,6 +135,12 @@ internal static class CardEndpoints
                     Revision = card.Revision + 1
                 };
                 await cards.SaveAsync(updated, request.ExpectedRevision, cancellationToken);
+                await ExplainRequirementsChangeAsync(
+                    discussion,
+                    updated,
+                    requirementsBefore,
+                    request.RequirementsReason,
+                    cancellationToken);
 
                 return Results.Ok(updated);
             });
@@ -227,7 +251,7 @@ internal static class CardEndpoints
                         .Distinct(StringComparer.OrdinalIgnoreCase)
                         .ToArray(),
                     [],
-                    BuildMetadata(request.Requirements),
+                    BuildMetadata(request.Requirements, request.Request),
                     null,
                     request.CriterionValues,
                     NormalizeSize(request.Size));
@@ -284,42 +308,46 @@ internal static class CardEndpoints
     private const string EstimateRequestedAtMetadataKey = "estimateRequestedAt";
 
     /// <summary>
-    /// The metadata a new card starts with: its requirements, when the caller wrote any.
+    /// The metadata a new card starts with: its two texts, when the caller wrote any.
     /// </summary>
     /// <remarks>
-    /// Requirements are prose, so they live in the card's metadata rather than as a field of their own.
-    /// A card created without any holds no key at all, which keeps its document as small as the card is.
+    /// Both are prose, so they live in the card's metadata rather than as fields of their own. A card created
+    /// without one holds no key at all, which keeps its document as small as the card is.
     /// </remarks>
-    private static Dictionary<string, string> BuildMetadata(string? requirements)
+    private static IReadOnlyDictionary<string, string> BuildMetadata(string? requirements, string? request)
     {
-        var metadata = new Dictionary<string, string>(StringComparer.Ordinal);
-        if (!string.IsNullOrWhiteSpace(requirements))
-        {
-            metadata[Card.RequirementsMetadataKey] = requirements.Trim();
-        }
-
-        return metadata;
+        IReadOnlyDictionary<string, string> metadata = new Dictionary<string, string>(StringComparer.Ordinal);
+        metadata = Card.WithText(metadata, Card.RequirementsMetadataKey, requirements);
+        return Card.WithText(metadata, Card.RequestMetadataKey, request);
     }
 
     /// <summary>
-    /// The card's metadata with its requirements replaced: the text is trimmed and stored, and a blank
-    /// string removes the key rather than storing an empty one, so "no requirements" has one representation.
+    /// Records in the card's discussion why its requirements changed, when they actually did.
     /// </summary>
-    private static IReadOnlyDictionary<string, string> WithRequirements(
-        IReadOnlyDictionary<string, string> metadata,
-        string requirements)
+    /// <remarks>
+    /// Best effort on purpose: the card is already saved when this runs, and failing the request over the note
+    /// would only invite a retry that applies the same change twice. A failure here loses the explanation, not
+    /// the change.
+    /// </remarks>
+    private static async ValueTask ExplainRequirementsChangeAsync(
+        ICardDiscussionStore discussion,
+        Card updated,
+        string? before,
+        string? reason,
+        CancellationToken cancellationToken)
     {
-        var updated = new Dictionary<string, string>(metadata, StringComparer.Ordinal);
-        if (string.IsNullOrWhiteSpace(requirements))
+        if (Card.RequirementsChangeNote(before, updated.Requirements, reason) is not { } note)
         {
-            updated.Remove(Card.RequirementsMetadataKey);
-        }
-        else
-        {
-            updated[Card.RequirementsMetadataKey] = requirements.Trim();
+            return;
         }
 
-        return updated;
+        try
+        {
+            await discussion.AppendAsync(updated.Reference, "you", note, cancellationToken);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+        }
     }
 
     /// <summary>

@@ -16,6 +16,14 @@ namespace Aiko.Server.Contracts;
 /// <param name="Requirements">
 /// What the card is asked to do, or null to leave the stored text untouched. An empty string clears it.
 /// </param>
+/// <param name="Request">
+/// The original request, or null to leave the stored text untouched. A card that has left the backlog refuses
+/// any change here, clearing included; null is the only accepted value for such a card.
+/// </param>
+/// <param name="RequirementsReason">
+/// What the change came from, so the discussion can say why the description moved. Null writes the note without
+/// the quote.
+/// </param>
 internal sealed record UpdateCardRequest(
     string Title,
     decimal OwnPriority,
@@ -23,4 +31,6 @@ internal sealed record UpdateCardRequest(
     long ExpectedRevision,
     string? Size = null,
     IReadOnlyDictionary<string, decimal>? CriterionValues = null,
-    string? Requirements = null);
+    string? Requirements = null,
+    string? Request = null,
+    string? RequirementsReason = null);

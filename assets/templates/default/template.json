@@ -2,14 +2,15 @@
   "id": "default",
   "name": "Default",
   "description": "The set Aiko starts from: story and task pipelines with their statuses, artifacts and per-status instructions, the app point / user point / complete scoring criteria, two board projections and the empty project memory.",
-  "version": 3,
+  "version": 4,
   "settings": {
     "schemaVersion": 1,
     "execution": {
       "workspaceMode": "Shared",
       "maxConcurrentRuns": 1,
       "scopeOverlapPolicy": "Ask",
-      "sharedCheckoutCommitPolicy": "Deny"
+      "sharedCheckoutCommitPolicy": "Deny",
+      "sharedCheckoutPushPolicy": "Deny"
     },
     "priority": {
       "weights": {

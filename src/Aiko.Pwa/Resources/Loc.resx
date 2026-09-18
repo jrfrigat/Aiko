@@ -23,6 +23,8 @@
   <data name="Requirements" xml:space="preserve"><value>Requirements</value></data>
   <data name="ScopeAndRequirementsHint" xml:space="preserve"><value>What the card must do, and the files it may touch</value></data>
   <data name="RequirementsHelper" xml:space="preserve"><value>What this card must do, in your words</value></data>
+  <data name="Request" xml:space="preserve"><value>Request</value></data>
+  <data name="RequestHelper" xml:space="preserve"><value>What the user asked for, in their own words</value></data>
   <data name="BacklogStageNote" xml:space="preserve"><value>The card starts in backlog and moves from there.</value></data>
   <data name="EstimateAfterCreateHint" xml:space="preserve"><value>Left blank, the size and the scores are the agent's estimate - run /aiko-estimate afterwards.</value></data>
   <data name="EstimateTitle" xml:space="preserve"><value>Estimate</value></data>
@@ -506,6 +508,14 @@
   <data name="CommitAskHint" xml:space="preserve"><value>The agent asks and waits; the execution pauses until you approve</value></data>
   <data name="CommitAllowTitle" xml:space="preserve"><value>The agent commits</value></data>
   <data name="CommitAllowHint" xml:space="preserve"><value>The agent commits and reports the SHA</value></data>
+  <data name="PushPolicy" xml:space="preserve"><value>Push in a shared checkout</value></data>
+  <data name="PushPolicyHint" xml:space="preserve"><value>Who pushes from the shared checkout - a rule the agent reads, because Aiko has no push of its own</value></data>
+  <data name="PushDenyTitle" xml:space="preserve"><value>You push</value></data>
+  <data name="PushDenyHint" xml:space="preserve"><value>The agent does not push</value></data>
+  <data name="PushAskTitle" xml:space="preserve"><value>Approve each push</value></data>
+  <data name="PushAskHint" xml:space="preserve"><value>The agent asks before pushing and waits for your answer</value></data>
+  <data name="PushAllowTitle" xml:space="preserve"><value>The agent pushes</value></data>
+  <data name="PushAllowHint" xml:space="preserve"><value>The agent may push and reports what it pushed</value></data>
   <data name="PriorityFormulaTitle" xml:space="preserve"><value>Priority formula</value></data>
   <data name="OwnWeightLabel" xml:space="preserve"><value>Own value weight</value></data>
   <data name="ParentWeightLabel" xml:space="preserve"><value>Parent value weight</value></data>

@@ -55,7 +55,8 @@ own board, and `aiko doctor` reports the cards that were pushed past a stage any
 
 **One run is one stage.** A request in the chat is not a run: it creates a card in the backlog
 (`aiko_create_card`, or `/aiko-create`) and stops there - the work begins when the user asks for it ("выполни",
-`/aiko-run <cardId>`). That run performs exactly one stage: `aiko_start_stage` for the stage the card is in,
+`/aiko-run <cardId>`). An order is still a request: «поправь X» earns a card, not a run. That run performs
+exactly one stage: `aiko_start_stage` for the stage the card is in,
 the work, `aiko_complete_stage`, then stop. Running the card again while its stage is unfinished continues
 that same run, so a half-finished stage is never stepped over, and starting the next stage is refused until
 the current one is completed. `/aiko-run <cardId> --all` is the explicit exception: it walks the pipeline by
@@ -75,6 +76,11 @@ agent reported it, not that its process is alive: Aiko never starts agents.
 `Custom` leaves `.gitignore` to the person) - and its **commit policy** for the shared checkout: `Allow`
 (make the commit and record it with `aiko_report_commit`), `Ask` (propose it and wait for the answer) or `Deny`
 (do not commit). Aiko never runs git itself and never creates a commit; it only records what an agent reports.
+
+The card's feed is the notebook between stages: the project context asks the agent to read it with
+`aiko_list_comments` before it works a stage and to post the outcome with `aiko_add_comment` before it completes
+it - including what the next stage or agent will need - signed with its own adapter id, so what one stage
+learned is not lost on the next.
 
 ## Authentication
 
@@ -115,7 +121,10 @@ dropdown is empty`) and reads the project context to resolve it, so it covers ev
 regenerated. The card is named by Aiko - a person never invents an id - and it is always created in that
 type's backlog stage, because a card nobody has worked out has no business starting anywhere else. In the
 same pass the agent estimates the card: it judges the size step and every criterion from the description
-and calls `aiko_estimate_card`, so a card created from a command is never left unranked. Alongside
+and calls `aiko_estimate_card`, so a card created from a command is never left unranked. The card also carries
+the user's own wording in `request` - the raw request, not the reworked task - and the agent's description of
+the work in `requirements`: the first is fixed once the card leaves the backlog, the second keeps changing and
+every change is explained in the card's discussion. Alongside
 `/aiko-create` the daemon installs one `/aiko-create-<type>` per card type the project defines -
 `/aiko-create-story`, `/aiko-create-task`, and one for every type you add in the workflow editor. Those
 per-type commands are a projection of the project's workflows: they are re-written when a type is created

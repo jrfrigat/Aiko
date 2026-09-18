@@ -375,9 +375,14 @@ Safe MVP defaults:
   "workspaceMode": "shared",
   "maxConcurrentRuns": 1,
   "scopeOverlapPolicy": "ask",
-  "sharedCheckoutCommitPolicy": "deny"
+  "sharedCheckoutCommitPolicy": "deny",
+  "sharedCheckoutPushPolicy": "deny"
 }
 ```
+
+The push policy is stated for the agent rather than enforced: Aiko has no push of its own (`IGitClient` reads
+status, log and diff), so no execution waits on it. The field is optional on read, so a settings document
+written before it existed still loads and answers `deny`.
 
 The user can enable parallel shared mode. The UI keeps warning that the working tree and the Git
 index are shared, changes may conflict, mix into a commit and be misattributed.

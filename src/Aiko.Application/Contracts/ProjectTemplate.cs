@@ -63,5 +63,5 @@ public sealed record ProjectTemplate(
     /// The version the built-in default template is written with. Bumped whenever its content changes, so a
     /// project's manifest says which revision of the defaults it was created from.
     /// </summary>
-    public const int DefaultVersion = 3;
+    public const int DefaultVersion = 4;
 }

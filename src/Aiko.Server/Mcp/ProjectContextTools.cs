@@ -47,7 +47,9 @@ internal sealed class ProjectContextTools(
             Project ID: {project.Id}
             Root: {project.RootPath}
 
-            Work happens inside a stage execution, not beside the pipeline. A card in its backlog stage has no
+            An order is still a request: "поправь X" earns a card, not a run, and the run begins when the user
+            asks for it (aiko-run <cardId> or "выполни <cardId>"). Work happens inside a stage execution, not
+            beside the pipeline. A card in its backlog stage has no
             work in it yet: do not create or change files for a card before you have started the stage you are
             working in with aiko_start_stage - the start moves the card into that stage and leaves the record
             of the work. Do what the stage's instruction asks for, produce its required artifacts, and complete
@@ -60,6 +62,12 @@ internal sealed class ProjectContextTools(
             --all, which walks the pipeline and still stops on a question to the user, a failure or a forbidden
             action.
 
+            The card's feed is the notebook one stage leaves for the next: read it with aiko_list_comments
+            before you start the stage - it may hold what an earlier stage learned, what the user asked for, or
+            a note left for you - and post the outcome with aiko_add_comment before you complete it, including
+            what the next stage or agent will need. Sign with your own adapter id as the author, so the feed
+            says which agent wrote what.
+
             Before changing files, read the selected card and its current stage instruction.
             A stage's beforeSkills are what to invoke before you read its instruction, and its afterSkills
             are what to invoke once the instruction is done.
@@ -67,7 +75,7 @@ internal sealed class ProjectContextTools(
             and report actualChangedFiles when completing work.
             Use aiko_store_memory for durable decisions, conventions and lessons.
 
-            {DescribeGit(gitPolicy, execution.SharedCheckoutCommitPolicy)}
+            {DescribeGit(gitPolicy, execution.SharedCheckoutCommitPolicy, execution.SharedCheckoutPushPolicy)}
 
             ## How this project scores and sizes a card
 
@@ -186,7 +194,11 @@ internal sealed class ProjectContextTools(
     /// </remarks>
     /// <param name="gitPolicy">The project's git policy, or null when its manifest could not be read.</param>
     /// <param name="commitPolicy">Whether the shared checkout may be committed.</param>
-    private static string DescribeGit(ProjectGitPolicy? gitPolicy, ActionPolicy commitPolicy)
+    /// <param name="pushPolicy">Whether the shared checkout may be pushed from.</param>
+    private static string DescribeGit(
+        ProjectGitPolicy? gitPolicy,
+        ActionPolicy commitPolicy,
+        ActionPolicy pushPolicy)
     {
         var builder = new StringBuilder();
         builder.AppendLine("## Git and commits");
@@ -214,7 +226,19 @@ internal sealed class ProjectContextTools(
             _ =>
                 "Commit policy: Deny - do not commit; aiko_report_commit is rejected."
         });
-        builder.Append("Aiko itself never runs git and never creates a commit: it only records what you report.");
+        builder.AppendLine(pushPolicy switch
+        {
+            ActionPolicy.Allow =>
+                "Push policy: Allow - the agent may push from the shared checkout and reports what it pushed.",
+            ActionPolicy.Ask =>
+                "Push policy: Ask - the agent asks the user before pushing, and waits for the answer.",
+            _ =>
+                "Push policy: Deny - do not push from the shared checkout."
+        });
+        builder.Append(
+            "The push policy is a rule Aiko states rather than one it enforces: Aiko has no push of its own, so "
+            + "nothing pauses an execution on it. Aiko itself never runs git and never creates a commit: it only "
+            + "records what you report.");
         return builder.ToString();
     }
 

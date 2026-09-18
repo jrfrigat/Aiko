@@ -100,15 +100,15 @@ internal static class AgentTemplates
         new(
             "aiko-create",
             "Create an Aiko card of any type the project defines, and estimate it in the same pass.",
-            Create),
+            Create + CreateStopsHere),
         new(
             "aiko-create-sub",
             "Create an Aiko sub-card under an existing card, link it to its parent and estimate it.",
-            CreateSub),
+            CreateSub + CreateStopsHere),
         .. cardTypes.Select(type => new Procedure(
             $"aiko-create-{type.Id}",
             $"Create an Aiko {type.Title} card and estimate it in the same pass.",
-            CreateCard(type))),
+            CreateCard(type) + CreateStopsHere)),
         new(
             "aiko-estimate",
             "Estimate an Aiko card - judge the size step and every scoring criterion the project defines.",
@@ -142,6 +142,23 @@ internal static class AgentTemplates
 
 
     /// <summary>
+    /// What every create procedure says at the end: the card is the whole answer to the request.
+    /// </summary>
+    /// <remarks>
+    /// A create procedure can be the only text an agent reads - a model that loads a skill by relevance never
+    /// sees the rule channel - and a procedure ending at "estimate it" reads as "now do the work". That is how
+    /// a request turned into a finished task nobody had asked to run. The tail is written once here and
+    /// appended where the procedures are assembled, so each body stays as authored while every channel - a
+    /// skill, a command, a user-scope install - ends with the same line.
+    /// </remarks>
+    private const string CreateStopsHere =
+        "\n\n" + """
+        Then stop. Creating the card, and estimating it, is the whole answer to what the user asked: do not
+        start a stage, do not create or change files for the card, and do not begin the work - the user starts
+        it with aiko-run <cardId> or "выполни <cardId>".
+        """;
+
+    /// <summary>
     /// Slash command that creates a card of a type the user names, resolved against the project's own
     /// workflows, and estimates it in the same pass.
     /// </summary>
@@ -163,8 +180,12 @@ internal static class AgentTemplates
 
         Then call aiko_create_card with that type's kind, a clear title taken from what the user asked for, an
         own priority and, for work that changes files, the declared scope patterns - and nothing else. Aiko
-        names the card and lands it in the type's backlog stage, so never invent a card id or a stage. Put
-        what the user described into the card's requirements when it says more than the title.
+        names the card and lands it in the type's backlog stage, so never invent a card id or a stage.
+
+        Give the card both of its texts. Put the user's own wording into request - verbatim, or as close as you
+        can get it without tidying it up into a task: the request records what was asked for, and the card stops
+        being able to change it once it leaves the backlog. Put what the card is asked to do into requirements
+        when it says more than the title: that one describes the work, and it changes as the work is understood.
 
         Estimate the card in the same pass, unless the user gave the numbers themselves: read the card back to
         get its revision, judge the size step whose description matches the work and every criterion the
@@ -195,7 +216,7 @@ internal static class AgentTemplates
         Call aiko_create_card with the type's kind, a clear title, an own priority and, for work that changes
         files, the declared scope patterns - and nothing else: Aiko names the sub-card and lands it in
         backlog. Put what the user described into the sub-card's requirements when it says more than the
-        title.
+        title, and the user's own wording into request.
 
         Then link it to its parent: call aiko_link_cards with the PARENT card id as sourceCardId, the new
         sub-card id as targetCardId and "parent-child" as the relation type. The edge points from the parent
@@ -230,8 +251,8 @@ internal static class AgentTemplates
             from what the user asked for, an own priority and, for work that changes files, the declared
             scope patterns - and nothing else. Aiko names the card and lands it in the workflow's
             {WorkflowDefinition.BacklogStageId} stage, so never invent a card id or a stage; the project
-            context lists the rest of that pipeline if you need it. Put what the user described into the
-            card's requirements when it says more than the title.
+            context lists the rest of that pipeline if you need it. Put the user's own wording into request and
+            what the card is asked to do into requirements when the title alone is not enough.
 
             Estimate the card in the same pass, unless the user gave the numbers themselves: read it back for
             its revision, judge the size step and every criterion the project defines, and write them with
@@ -314,9 +335,16 @@ internal static class AgentTemplates
         list of the files you changed. If the work needs files outside the card's declaredScopeFiles, call
         aiko_request_scope_expansion and wait for the user's decision before touching them.
 
-        Post the outcome of the stage into the card's own feed with aiko_add_comment - what you did, what you
-        found and what is left - so the card explains what came of it instead of carrying an empty discussion.
-        Read aiko_list_comments first when the card already has one, and answer what is there.
+        Do not push and do not open branches: the shared checkout is the user's, and the git, commit and push
+        policies the project states in aiko_get_project_context say who may write to it. Aiko has no push of its
+        own, so nothing enforces this but the rule itself - follow it.
+
+        Read the card's feed with aiko_list_comments before you start the work: the stages before you leave
+        notes there - what they learned, what the user asked for, what they left for you - and the feed is the
+        only place that survives a stage. Post the outcome of the stage with aiko_add_comment before you
+        complete it - what you did, what you found, what is left and what the next stage or agent will need -
+        and sign it with your own adapter id as the author, so the feed says which agent wrote what. Answer what
+        is already there rather than repeating it.
 
         Finish with aiko_complete_stage, recording the files you changed, the artifacts you produced and how
         you verified the result, and keep durable conclusions with aiko_store_memory. If you cannot finish - a
@@ -540,15 +568,20 @@ internal static class AgentTemplates
         """
         When Aiko MCP is available, use it as the durable project workflow and task memory. Any work the user
         asks for starts with a card: create it in Aiko first (aiko_create_card, or /aiko-create), and stop
-        there - the card is the answer to the request, and the work begins when the user asks for it (aiko-run,
-        or "выполни"). A card in its backlog stage has no work in it yet, so never create or change files for a
+        there - the card is the answer to the request. An order is still a request: "поправь ...", "исправь ..."
+        and "нужно ..." earn a card and nothing more, and the work begins only when the user asks for it
+        (aiko-run <cardId>, or "выполни <cardId>"). A card in its backlog stage has no work in it yet, so never
+        create or change files for a
         card before you have started the stage you are working in with aiko_start_stage - the start moves the
         card into that stage and is what records the work. Do what the stage's instruction asks for, produce
         its required artifacts and complete it with aiko_complete_stage; only then does the card move on, and
         aiko_move_card refuses to advance a card whose stage is not finished. Before you complete a stage,
         re-estimate the card with aiko_estimate_card: the readiness criterion is what says the work is done,
         and it must describe the card as it is after your change - a stage is not completed with a score
-        nobody refreshed. One run is one stage: work the next stage only when the user asks again, and
+        nobody refreshed. The card's feed is the notebook between stages: read it with aiko_list_comments before
+        you work a stage, and post the outcome with aiko_add_comment - signed with your adapter id - before you
+        complete it, so what one stage learned is not lost on the next. One run is one stage: work the next
+        stage only when the user asks again, and
         /aiko-run <cardId> --all is the explicit exception - it
         walks the pipeline, and even then it stops when a stage asks the user a question, when an agent fails or
         hits its limit, when a stage forbids an action, or when a required artifact cannot be produced. Read the
@@ -568,6 +601,9 @@ internal static class AgentTemplates
 
         When Aiko MCP is available, read its project context before project work. Any work the user asks for
         starts with a card: create it in Aiko first and stop there - the work begins when the user asks for it.
+        An order is still a request: it earns a card, not a run.
+        The card's feed is the notebook between stages: read it with aiko_list_comments before you work a stage,
+        and post the outcome with aiko_add_comment before you complete it, signed with your adapter id.
         Then start the stage you are working in with aiko_start_stage - a card in its backlog has no work in it,
         so no file is created or changed for it before that start. Before you complete a stage, re-estimate the
         card with aiko_estimate_card - the readiness criterion must describe the card as it is after the work.

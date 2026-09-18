@@ -218,6 +218,91 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
     }
 
     [Fact]
+    public async Task A_cards_request_is_recorded_once_and_its_description_explains_itself()
+    {
+        using var http = CreateClient();
+        var project = fixture.ProjectId;
+        var cardId = $"REST-TEXTS-{Guid.NewGuid():N}";
+
+        using var created = await http.PostAsJsonAsync($"api/v1/projects/{project}/cards", new
+        {
+            cardId,
+            kind = "Task",
+            title = "Fix the dropdown",
+            workflowId = "task",
+            stageId = "backlog",
+            ownPriority = 1,
+            declaredScopeFiles = new[] { "src/**" },
+            request = "the dropdown is empty on Fridays",
+            requirements = "Make the dropdown list every value."
+        });
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        Assert.Equal(
+            "the dropdown is empty on Fridays",
+            (await created.Content.ReadFromJsonAsync<JsonElement>())
+                .GetProperty("metadata").GetProperty("request").GetString());
+
+        // A description that actually changed is explained in the card's own feed, signed by the person.
+        using var updated = await http.PutAsJsonAsync($"api/v1/projects/{project}/cards/{cardId}", new
+        {
+            title = "Fix the dropdown",
+            ownPriority = 1,
+            declaredScopeFiles = new[] { "src/**" },
+            expectedRevision = 1,
+            requirements = "Make the dropdown list every value, ordered.",
+            requirementsReason = "the list was unsorted"
+        });
+        Assert.Equal(HttpStatusCode.OK, updated.StatusCode);
+        Assert.Equal(
+            "Make the dropdown list every value, ordered.",
+            (await updated.Content.ReadFromJsonAsync<JsonElement>())
+                .GetProperty("metadata").GetProperty("requirements").GetString());
+
+        var discussion = await http.GetFromJsonAsync<JsonElement>(
+            $"api/v1/projects/{project}/cards/{cardId}/discussion");
+        var note = Assert.Single(discussion.EnumerateArray().ToArray());
+        Assert.Equal("you", note.GetProperty("author").GetString());
+        Assert.Contains(
+            "the list was unsorted",
+            note.GetProperty("body").GetString()!,
+            StringComparison.Ordinal);
+
+        // The board may still move a card by hand - that path is deliberately free of the pipeline rule - and
+        // once the card is out of the backlog its request is a record rather than a description.
+        using var moved = await http.PutAsJsonAsync(
+            $"api/v1/projects/{project}/cards/{cardId}/stage",
+            new { stageId = "analysis", expectedRevision = 2 });
+        Assert.Equal(HttpStatusCode.OK, moved.StatusCode);
+
+        using var changedRequest = await http.PutAsJsonAsync($"api/v1/projects/{project}/cards/{cardId}", new
+        {
+            title = "Fix the dropdown",
+            ownPriority = 1,
+            declaredScopeFiles = new[] { "src/**" },
+            expectedRevision = 3,
+            request = "something else entirely"
+        });
+        Assert.Equal(HttpStatusCode.Conflict, changedRequest.StatusCode);
+        var refusal = (await changedRequest.Content.ReadFromJsonAsync<JsonElement>())
+            .GetProperty("message").GetString()!;
+        Assert.Contains("fixed", refusal, StringComparison.Ordinal);
+        Assert.Contains("analysis", refusal, StringComparison.Ordinal);
+
+        // The requirements are the text that keeps changing, so the same call without a request goes through.
+        using var laterRequirements = await http.PutAsJsonAsync(
+            $"api/v1/projects/{project}/cards/{cardId}",
+            new
+            {
+                title = "Fix the dropdown",
+                ownPriority = 1,
+                declaredScopeFiles = new[] { "src/**" },
+                expectedRevision = 3,
+                requirements = "Make the dropdown list every value, ordered, with a search box."
+            });
+        Assert.Equal(HttpStatusCode.OK, laterRequirements.StatusCode);
+    }
+
+    [Fact]
     public async Task Template_defaults_are_edited_through_the_api_and_bump_the_version()
     {
         using var http = CreateClient();
@@ -234,6 +319,11 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
         Assert.Equal("user-point", criteria[1].GetProperty("id").GetString());
         Assert.Equal("complete", criteria[2].GetProperty("id").GetString());
         Assert.Equal(2, original.GetProperty("workflows").GetArrayLength());
+        // The execution defaults state the push policy next to the commit policy, so a project created from this
+        // template answers both questions in one place.
+        var execution = original.GetProperty("settings").GetProperty("execution");
+        Assert.Equal("Deny", execution.GetProperty("sharedCheckoutCommitPolicy").GetString());
+        Assert.Equal("Deny", execution.GetProperty("sharedCheckoutPushPolicy").GetString());
 
         // Settings and pipelines are written as two slices of the same document, so neither can clobber the
         // other: the version moves once per save, and the pipelines survive a settings write.
