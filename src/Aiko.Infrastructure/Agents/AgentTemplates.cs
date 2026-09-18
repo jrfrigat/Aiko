@@ -118,6 +118,10 @@ internal static class AgentTemplates
             "Run an Aiko card - do what its current stage asks for, report progress and complete the stage.",
             Run(agentAdapterId)),
         new(
+            "aiko-link",
+            "Link this Aiko project to another one and say what that project is for.",
+            Link),
+        new(
             "aiko-scope",
             "Request a scope expansion for an Aiko card whose work needs files outside its declared scope.",
             Scope),
@@ -361,6 +365,31 @@ internal static class AgentTemplates
         """;
 
     /// <summary>
+    /// Slash command that links this project to another one, saying what the neighbour is for.
+    /// </summary>
+    /// <remarks>
+    /// The description is the whole value of a link: an agent reads it before deciding whether a piece of work
+    /// belongs to the neighbour, so the procedure asks for the user's words rather than for a label.
+    /// </remarks>
+    public const string Link =
+        """
+        Link this project to another one in the Aiko registry, so work that belongs to the neighbour can be
+        filed there instead of here.
+
+        Ask the user which project and what it is for. The description is what a later agent reads to decide
+        when the neighbour is the right place for a piece of work, so it is written in the user's own words, as
+        a sentence about that project - not as a label like "other project".
+
+        Call aiko_list_projects to find the project by its readable handle, then aiko_link_project with the
+        project whose registry is written, the project to link, and that description. Linking a project to
+        itself is refused, and so is linking one nobody has registered. A link can be removed with
+        aiko_unlink_project: that stops future routing and leaves the cards already filed there alone.
+
+        The links of the current project are listed by aiko_get_project_context, so an agent working here sees
+        them without asking.
+        """;
+
+    /// <summary>
     /// Slash command for requesting a scope expansion.
     /// </summary>
     public const string Scope =
@@ -594,7 +623,11 @@ internal static class AgentTemplates
         walks the pipeline, and even then it stops when a stage asks the user a question, when an agent fails or
         hits its limit, when a stage forbids an action, or when a required artifact cannot be produced. Read the
         project context before touching files. Warn before modifying files outside the card scopeFiles and
-        record the actual changed files.
+        record the actual changed files. A project can be linked to other projects: aiko_get_project_context
+        lists them with what each one is for. When a request belongs to a linked project, file it there with
+        aiko_create_card_in_project and pass originProjectId and originCardId so the receiving card remembers
+        where it came from - and read that project's context first, because its card types, its stages and its
+        rules are its own.
         """;
 
     /// <summary>

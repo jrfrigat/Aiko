@@ -21,7 +21,8 @@ internal sealed class DaemonTools(
     IProjectInitializer initializer,
     IProjectTemplateStore templates,
     ICardStore cards,
-    IProjectDefinitionStore definitions)
+    IProjectDefinitionStore definitions,
+    IProjectLinkStore links)
 {
     [McpServerTool(Name = "aiko_list_projects", Title = "List Aiko projects")]
     [Description("Lists all projects registered with the Aiko daemon.")]
@@ -29,6 +30,41 @@ internal sealed class DaemonTools(
     {
         var projects = await catalog.ListAsync(cancellationToken);
         return JsonSerializer.Serialize(projects, ServerJsonContext.Default.IReadOnlyListRegisteredProject);
+    }
+
+    [McpServerTool(Name = "aiko_link_project", Title = "Link an Aiko project")]
+    [Description(
+        "Links a project to another one and records what the linked project is for. That description is what an "
+        + "agent reads when it decides whether a piece of work belongs to the neighbour, so it is required and "
+        + "written in the words of whoever links. Both projects are addressed by id or by the readable handle; "
+        + "linking a project to itself is refused, and so is linking a project nobody has registered.")]
+    public async Task<string> LinkProjectAsync(
+        [Description("Project whose registry is written, by id or by its readable handle.")]
+        string projectId,
+        [Description("Project to link, by id or by its readable handle.")]
+        string targetProjectId,
+        [Description("What the linked project is for, in the words of whoever links it.")]
+        string description,
+        CancellationToken cancellationToken)
+    {
+        var link = await links.SaveAsync(projectId, targetProjectId, description, cancellationToken);
+        return JsonSerializer.Serialize(link, ServerJsonContext.Default.ProjectLink);
+    }
+
+    [McpServerTool(Name = "aiko_unlink_project", Title = "Unlink an Aiko project")]
+    [Description(
+        "Removes the link to a project and returns what is left. Cards already filed there stay where they are: "
+        + "a link routes future work, it does not keep the work that was already routed alive.")]
+    public async Task<string> UnlinkProjectAsync(
+        [Description("Project whose registry is written, by id or by its readable handle.")]
+        string projectId,
+        [Description("Linked project to remove, by id or by its readable handle.")]
+        string targetProjectId,
+        CancellationToken cancellationToken)
+    {
+        await links.RemoveAsync(projectId, targetProjectId, cancellationToken);
+        var remaining = await links.ListAsync(projectId, cancellationToken);
+        return JsonSerializer.Serialize(remaining, ServerJsonContext.Default.IReadOnlyListProjectLink);
     }
 
     [McpServerTool(Name = "aiko_list_templates", Title = "List Aiko project templates")]

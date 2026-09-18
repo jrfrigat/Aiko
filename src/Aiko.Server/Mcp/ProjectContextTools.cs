@@ -19,6 +19,7 @@ internal sealed class ProjectContextTools(
     IProjectCatalog projects,
     IProjectDefinitionStore definitions,
     IProjectGitPolicyReader gitPolicies,
+    IProjectLinkStore links,
     IAppSettingsService settings) : ProjectToolBase(httpContextAccessor, projects)
 {
     [McpServerTool(
@@ -39,6 +40,9 @@ internal sealed class ProjectContextTools(
         // is project data, and an agent that never learns about a type cannot create one.
         var workflows = (await definitions.ReadAsync(project.Id, cancellationToken)).Workflows;
         var initialization = await DescribeInitializationAsync(project.RootPath, cancellationToken);
+        // The projects this one hands work to: an agent that cannot see them files the neighbour's work here,
+        // and the link registry exists precisely so that does not happen.
+        var linked = await links.ListAsync(project.Id, cancellationToken);
 
         return $"""
             # Aiko project context
@@ -79,6 +83,8 @@ internal sealed class ProjectContextTools(
             Use aiko_store_memory for durable decisions, conventions and lessons.
 
             {DescribeGit(gitPolicy, execution.SharedCheckoutCommitPolicy, execution.SharedCheckoutPushPolicy)}
+
+            {DescribeLinkedProjects(linked)}
 
             ## How this project scores and sizes a card
 
@@ -180,6 +186,39 @@ internal sealed class ProjectContextTools(
             }
 
             builder.AppendLine();
+        }
+
+        return builder.ToString().TrimEnd();
+    }
+
+    /// <summary>
+    /// The projects this one hands work to, or an empty string when it stands alone.
+    /// </summary>
+    /// <remarks>
+    /// A project with no links contributes nothing rather than an empty section: standing alone is the normal
+    /// state, and a heading that says "none" on every project would be read once and skipped forever after.
+    /// </remarks>
+    /// <param name="links">The project's linked projects.</param>
+    private static string DescribeLinkedProjects(IReadOnlyList<ProjectLink> links)
+    {
+        if (links.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        var builder = new StringBuilder();
+        builder.AppendLine("## Linked projects");
+        builder.AppendLine();
+        builder.AppendLine(
+            "Work that belongs to one of these projects is filed there with aiko_create_card_in_project, passing "
+            + "originProjectId and originCardId so the receiving card remembers where it came from. Read that "
+            + "project's own context first - its card types, its stages and its rules are its own - and keep the "
+            + "description beside each link in front of you: it says when the neighbour is the right place for a "
+            + "piece of work and when it is not.");
+        builder.AppendLine();
+        foreach (var link in links.OrderBy(item => item.Handle, StringComparer.Ordinal))
+        {
+            builder.Append("- ").Append(link.Handle).Append(" - ").Append(link.Description).AppendLine();
         }
 
         return builder.ToString().TrimEnd();

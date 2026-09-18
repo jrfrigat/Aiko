@@ -37,6 +37,74 @@ else
                         }
                     </FlareStack>
                 </FlarePaper>
+                @* The projects this one hands work to. A link is a sentence rather than an id: an agent reads the
+                   description before deciding that a piece of work belongs to the neighbour, so the panel asks
+                   for those words and shows them back with a way to take the link away. *@
+                <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
+                    <FlareStack Gap="FlareSpacing.Small">
+                        <FlareText Element="h3" Typo="TypographyScale.TitleSmall">@Loc.Get("LinkedProjects")</FlareText>
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Get("LinkedProjectsHint")
+                        </FlareText>
+
+                        @if (_links.Count == 0)
+                        {
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                @Loc.Get("LinkedProjectsNone")
+                            </FlareText>
+                        }
+                        else
+                        {
+                            @foreach (var link in _links)
+                            {
+                                var item = link;
+                                <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small">
+                                    <FlareStack Gap="FlareSpacing.None">
+                                        <FlareText Element="span" Mono="true" Typo="TypographyScale.LabelSmall">@item.Handle</FlareText>
+                                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant">
+                                            @item.Description
+                                        </FlareText>
+                                    </FlareStack>
+                                    <FlareIconButton Variant="ButtonVariant.Text"
+                                                     Icon="@FlareIcons.Close"
+                                                     AriaLabel="@Loc.Get("LinkedProjectsRemove")"
+                                                     OnClick="() => RemoveLinkAsync(item)" />
+                                </FlareStack>
+                            }
+                        }
+
+                        @if (_linkMessage is { Length: > 0 } note)
+                        {
+                            <FlareAlert Severity="@(_linkError ? AlertSeverity.Error : AlertSeverity.Success)"
+                                        Variant="AlertVariant.Text">@note</FlareAlert>
+                        }
+
+                        <AikoSelectField Label="@Loc.Get("LinkedProjectsPick")"
+                                         Value="@_linkTarget"
+                                         ValueChanged="value => _linkTarget = value"
+                                         Hint="@Loc.Get("LinkedProjectsPickHint")">
+                            <option value="">@Loc.Get("LinkedProjectsPickNone")</option>
+                            @foreach (var candidate in LinkCandidates())
+                            {
+                                var item = candidate;
+                                <option value="@item.Handle">@item.Name</option>
+                            }
+                        </AikoSelectField>
+                        <AikoField Label="@Loc.Get("LinkedProjectsDescription")"
+                                   Rows="2"
+                                   Placeholder="@Loc.Get("LinkedProjectsDescriptionPlaceholder")"
+                                   Value="@_linkDescription"
+                                   ValueChanged="value => _linkDescription = value" />
+                        <FlareStack Row="true" Justify="FlareJustifyContent.End">
+                            <FlareButton Variant="ButtonVariant.Tonal"
+                                         Size="ButtonSize.Sm"
+                                         Disabled="@(string.IsNullOrWhiteSpace(_linkTarget) || string.IsNullOrWhiteSpace(_linkDescription))"
+                                         OnClick="AddLinkAsync">
+                                <ChildContent>@Loc.Get("LinkedProjectsAdd")</ChildContent>
+                            </FlareButton>
+                        </FlareStack>
+                    </FlareStack>
+                </FlarePaper>
                 <WorkflowInspector Workflows="board.Workflows"
                                    Cards="board.Cards"
                                    InitialWorkflowId="task"
@@ -51,6 +119,87 @@ else
 
 @code {
     [Parameter] public string ProjectId { get; set; } = string.Empty;
+
+    /// <summary>The projects this one is linked to, as the registry holds them.</summary>
+    private IReadOnlyList<ProjectLink> _links = [];
+
+    /// <summary>The handle chosen in the picker, or null when nothing is chosen yet.</summary>
+    private string? _linkTarget;
+
+    /// <summary>What the person said the chosen project is for, before it is stored.</summary>
+    private string? _linkDescription;
+
+    private string? _linkMessage;
+    private bool _linkError;
+
+    /// <summary>
+    /// The projects that can still be linked: the registered ones, without this project and without the
+    /// projects already linked.
+    /// </summary>
+    private IEnumerable<RegisteredProject> LinkCandidates() =>
+        State.Projects
+            .Where(project => !StringComparer.Ordinal.Equals(project.Id, State.Board?.Project.Id))
+            .Where(project => _links.All(link =>
+                !StringComparer.Ordinal.Equals(link.ProjectId, project.Id)))
+            .OrderBy(project => project.Name, StringComparer.Ordinal);
+
+    private async Task LoadLinksAsync()
+    {
+        try
+        {
+            _links = await Http.GetFromJsonAsync<IReadOnlyList<ProjectLink>>(
+                $"api/v1/projects/{Uri.EscapeDataString(ProjectId)}/links",
+                PwaJson.Options) ?? [];
+        }
+        catch (Exception exception)
+        {
+            _linkMessage = exception.Message;
+            _linkError = true;
+        }
+    }
+
+    private async Task AddLinkAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_linkTarget) || string.IsNullOrWhiteSpace(_linkDescription))
+        {
+            return;
+        }
+
+        _linkMessage = null;
+        try
+        {
+            using var response = await Http.PutAsJsonAsync(
+                $"api/v1/projects/{Uri.EscapeDataString(ProjectId)}/links/{Uri.EscapeDataString(_linkTarget)}",
+                new LinkProjectRequest(_linkDescription),
+                PwaJson.Options);
+            response.EnsureSuccessStatusCode();
+            _linkTarget = null;
+            _linkDescription = null;
+            await LoadLinksAsync();
+        }
+        catch (Exception exception)
+        {
+            _linkMessage = exception.Message;
+            _linkError = true;
+        }
+    }
+
+    private async Task RemoveLinkAsync(ProjectLink link)
+    {
+        _linkMessage = null;
+        try
+        {
+            using var response = await Http.DeleteAsync(
+                $"api/v1/projects/{Uri.EscapeDataString(ProjectId)}/links/{Uri.EscapeDataString(link.Handle)}");
+            response.EnsureSuccessStatusCode();
+            await LoadLinksAsync();
+        }
+        catch (Exception exception)
+        {
+            _linkMessage = exception.Message;
+            _linkError = true;
+        }
+    }
 
     /// <summary>
     /// Writes one pipeline of this project and reloads the board, so the editor's revision follows. Returns
@@ -196,5 +345,13 @@ else
         }
     }
 
-    protected override async Task OnParametersSetAsync() => await State.EnsureProjectAsync(ProjectId);
+    /// <summary>
+    /// Opens the project the page names and reads its link registry: the panel shows what the file says, and
+    /// both reloads go together because the settings screen is where the project is read in full.
+    /// </summary>
+    protected override async Task OnParametersSetAsync()
+    {
+        await State.EnsureProjectAsync(ProjectId);
+        await LoadLinksAsync();
+    }
 }

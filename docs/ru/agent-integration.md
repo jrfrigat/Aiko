@@ -36,7 +36,7 @@ aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<handle>
   `aiko_resume_execution`, `aiko_report_agent_state`, `aiko_report_commit`, `aiko_approve_commit`.
 - **Память** - `aiko_search_memory`, `aiko_store_memory`.
 - **Daemon (глобальные)** - `aiko_init_project`, `aiko_list_projects`, `aiko_list_templates`,
-  `aiko_create_card_in_project`, `aiko_doctor`, `aiko_reindex`, `aiko_get_settings`, `aiko_token`,
+  `aiko_create_card_in_project`, `aiko_link_project`, `aiko_unlink_project`, `aiko_doctor`, `aiko_reindex`, `aiko_get_settings`, `aiko_token`,
   `aiko_backup`.
 
 Описания инструментов требуют сначала читать контекст проекта; установленные скиллы и правила
@@ -76,6 +76,14 @@ aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<handle>
 предлагает блокирующую карточку, а не ищет обход. Блокировщик перестаёт держать работу, когда доходит до
 последнего этапа своего конвейера - последний этап читается из воркфлоу, поэтому тип, у которого финал назван
 не `done`, работает так же, - а связь снимают, когда порядок перестал быть нужным.
+
+Проект может быть **связан** с другими проектами, у каждой связи есть фраза о том, чем этот проект занят. Реестр
+живёт в `.aiko/links.json`, `aiko_get_project_context` показывает его агенту в разделе *Linked projects*, а
+редактируется он на странице настроек проекта. Работа, которая принадлежит связанному проекту, ставится туда
+через `aiko_create_card_in_project` с `originProjectId` и `originCardId`, чтобы карточка-получатель помнила,
+откуда пришла, - и перед этим прочитайте контекст того проекта: его типы карточек, его этапы и его правила
+принадлежат ему. `aiko_link_project` и `aiko_unlink_project` (/aiko-link) заводят и снимают связь; проект,
+который никто не зарегистрировал, и сам проект связать нельзя.
 
 Запуск находится в одном из пяти состояний, которые показывают страница карточки и доска: **ожидает
 выполнения** (запуска ещё нет), **выполняется**, **приостановлено** (пауза, падение или лимит),
@@ -206,6 +214,7 @@ UI пока нет, таблица говорит это прямо, а не д�
 | Диагностика установки | `/aiko-doctor` | `aiko_doctor` | — (`aiko doctor`) |
 | Починка установки | `/aiko-repair` | — | — (`aiko repair --fix`) |
 | Резервная копия проекта | `/aiko-backup` | `aiko_backup` | — |
+| Связать проект и сказать, чем он занят | `/aiko-link <slug> <описание>` | `aiko_link_project`, `aiko_unlink_project` | Настройки проекта - *Связанные проекты* |
 | Показать токен доступа | `/aiko-token` | `aiko_token` | — (`aiko token show`) |
 | Управление интеграциями агентов | `/aiko-agents` | — (`aiko agent list` / `install` / `uninstall`) | Дашборд - карточка *Agents*: обнаружение и Подключить / Отключить |
 

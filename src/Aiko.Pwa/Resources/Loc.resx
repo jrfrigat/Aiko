@@ -516,6 +516,16 @@
   <data name="PushAskHint" xml:space="preserve"><value>The agent asks before pushing and waits for your answer</value></data>
   <data name="PushAllowTitle" xml:space="preserve"><value>The agent pushes</value></data>
   <data name="PushAllowHint" xml:space="preserve"><value>The agent may push and reports what it pushed</value></data>
+  <data name="LinkedProjects" xml:space="preserve"><value>Linked projects</value></data>
+  <data name="LinkedProjectsHint" xml:space="preserve"><value>Projects this one hands work to. The description says what each of them is for, and an agent reads it before deciding that a request belongs there rather than here.</value></data>
+  <data name="LinkedProjectsNone" xml:space="preserve"><value>No linked projects yet.</value></data>
+  <data name="LinkedProjectsPick" xml:space="preserve"><value>Project</value></data>
+  <data name="LinkedProjectsPickHint" xml:space="preserve"><value>A project registered with this Aiko installation</value></data>
+  <data name="LinkedProjectsPickNone" xml:space="preserve"><value>Choose a project</value></data>
+  <data name="LinkedProjectsDescription" xml:space="preserve"><value>What it is for</value></data>
+  <data name="LinkedProjectsDescriptionPlaceholder" xml:space="preserve"><value>For example: the desktop client - file UI work here</value></data>
+  <data name="LinkedProjectsAdd" xml:space="preserve"><value>Link project</value></data>
+  <data name="LinkedProjectsRemove" xml:space="preserve"><value>Remove link</value></data>
   <data name="PriorityFormulaTitle" xml:space="preserve"><value>Priority formula</value></data>
   <data name="OwnWeightLabel" xml:space="preserve"><value>Own value weight</value></data>
   <data name="ParentWeightLabel" xml:space="preserve"><value>Parent value weight</value></data>

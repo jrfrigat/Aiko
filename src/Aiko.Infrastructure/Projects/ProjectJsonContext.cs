@@ -23,6 +23,7 @@ namespace Aiko.Infrastructure.Projects;
 [JsonSerializable(typeof(Card))]
 [JsonSerializable(typeof(CardRelation))]
 [JsonSerializable(typeof(RelationDocument))]
+[JsonSerializable(typeof(ProjectLinkDocument))]
 [JsonSerializable(typeof(DiscussionDocument))]
 [JsonSerializable(typeof(StageExecution))]
 internal sealed partial class ProjectJsonContext : JsonSerializerContext;

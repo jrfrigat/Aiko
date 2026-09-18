@@ -36,8 +36,8 @@ aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<handle>
   `aiko_resume_execution`, `aiko_report_agent_state`, `aiko_report_commit`, `aiko_approve_commit`.
 - **Memory** - `aiko_search_memory`, `aiko_store_memory`.
 - **Daemon (global)** - `aiko_init_project`, `aiko_list_projects`, `aiko_list_templates`,
-  `aiko_create_card_in_project`, `aiko_doctor`, `aiko_reindex`, `aiko_get_settings`, `aiko_token`,
-  `aiko_backup`.
+  `aiko_create_card_in_project`, `aiko_link_project`, `aiko_unlink_project`, `aiko_doctor`,
+  `aiko_reindex`, `aiko_get_settings`, `aiko_token`, `aiko_backup`.
 
 Tool descriptions instruct agents to fetch the project context first; the installed skills and
 rules reinforce this per agent.
@@ -74,6 +74,14 @@ card, naming the blocking card and the stage it sits in. An agent that meets tha
 and offers the blocking card; it does not work around it. A blocker stops blocking when it reaches the last
 stage of its own pipeline - the last stage is read from the workflow, so a type whose end is not called `done`
 works too - and the relation is removed when the order no longer holds.
+
+A project can be **linked** to other projects, each with a sentence saying what that project is for. The
+registry lives in `.aiko/links.json`, `aiko_get_project_context` lists it under *Linked projects* for the agent
+working here, and the project's settings page edits it. Work that belongs to a linked project is filed there
+with `aiko_create_card_in_project`, passing `originProjectId` and `originCardId` so the receiving card records
+where it came from - read that project's context first, because its card types, its stages and its rules are
+its own. `aiko_link_project` and `aiko_unlink_project` (/aiko-link) write and remove a link; a project nobody
+registered, and the project itself, cannot be linked.
 
 A run is in one of five states the card page and the board show: **pending** (no run yet), **running**,
 **paused** (paused, failed or rate-limited), **waiting for a decision** and **completed**. "Running" means the
@@ -203,6 +211,7 @@ has no path yet, the table says so rather than pretending the sets are already e
 | Diagnose the installation | `/aiko-doctor` | `aiko_doctor` | — (`aiko doctor`) |
 | Repair the installation | `/aiko-repair` | — | — (`aiko repair --fix`) |
 | Back up a project | `/aiko-backup` | `aiko_backup` | — |
+| Link a project and say what it is for | `/aiko-link <slug> <description>` | `aiko_link_project`, `aiko_unlink_project` | Project settings - *Linked projects* |
 | Show the access token | `/aiko-token` | `aiko_token` | — (`aiko token show`) |
 | Manage agent integrations | `/aiko-agents` | — (`aiko agent list` / `install` / `uninstall`) | Dashboard - the *Agents* card: detection and Connect / Disconnect |
 

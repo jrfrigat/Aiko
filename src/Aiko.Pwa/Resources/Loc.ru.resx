@@ -515,6 +515,16 @@
   <data name="PushAskHint" xml:space="preserve"><value>Агент спрашивает перед пушем и ждёт вашего ответа</value></data>
   <data name="PushAllowTitle" xml:space="preserve"><value>Пушит агент</value></data>
   <data name="PushAllowHint" xml:space="preserve"><value>Агент может пушить и сообщает, что запушил</value></data>
+  <data name="LinkedProjects" xml:space="preserve"><value>Связанные проекты</value></data>
+  <data name="LinkedProjectsHint" xml:space="preserve"><value>Проекты, которым этот проект передаёт работу. Описание говорит, чем каждый из них занят, и агент читает его прежде, чем решить, что запрос относится туда, а не сюда.</value></data>
+  <data name="LinkedProjectsNone" xml:space="preserve"><value>Связанных проектов пока нет.</value></data>
+  <data name="LinkedProjectsPick" xml:space="preserve"><value>Проект</value></data>
+  <data name="LinkedProjectsPickHint" xml:space="preserve"><value>Проект, зарегистрированный в этой установке Aiko</value></data>
+  <data name="LinkedProjectsPickNone" xml:space="preserve"><value>Выберите проект</value></data>
+  <data name="LinkedProjectsDescription" xml:space="preserve"><value>Чем он занят</value></data>
+  <data name="LinkedProjectsDescriptionPlaceholder" xml:space="preserve"><value>Например: десктопный клиент - работа по UI пишется туда</value></data>
+  <data name="LinkedProjectsAdd" xml:space="preserve"><value>Связать проект</value></data>
+  <data name="LinkedProjectsRemove" xml:space="preserve"><value>Убрать связь</value></data>
   <data name="PriorityFormulaTitle" xml:space="preserve"><value>Формула приоритета</value></data>
   <data name="OwnWeightLabel" xml:space="preserve"><value>Вес собственной оценки</value></data>
   <data name="ParentWeightLabel" xml:space="preserve"><value>Вес родительской оценки</value></data>

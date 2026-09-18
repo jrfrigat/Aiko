@@ -871,6 +871,89 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         Assert.DoesNotContain(blockerId, FirstText(started) ?? string.Empty, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task A_project_can_be_linked_to_another_one()
+    {
+        await using var client = await ConnectAsync();
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+
+        // A neighbour registered for this run, so the fixture's own project has something to point at.
+        var neighbourRoot = Path.Combine(Path.GetTempPath(), $"aiko-neighbour-{suffix}");
+        Directory.CreateDirectory(neighbourRoot);
+        var neighbour = await client.CallToolAsync(
+            "aiko_init_project",
+            new Dictionary<string, object?>
+            {
+                ["rootPath"] = neighbourRoot,
+                ["name"] = "Neighbour",
+                ["projectId"] = $"neighbour{suffix}"
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.NotEqual(true, neighbour.IsError);
+        using var neighbourJson = JsonDocument.Parse(FirstText(neighbour) ?? "{}");
+        var neighbourHandle = neighbourJson.RootElement.GetProperty("handle").GetString();
+        var neighbourId = neighbourJson.RootElement.GetProperty("id").GetString();
+
+        // The link is a sentence about the neighbour, not a bare id: that sentence is what a later agent reads
+        // before it decides that a piece of work belongs there.
+        const string why = "the desktop client - UI work is filed here";
+        var linked = await client.CallToolAsync(
+            "aiko_link_project",
+            new Dictionary<string, object?>
+            {
+                ["projectId"] = fixture.ProjectId,
+                ["targetProjectId"] = neighbourHandle,
+                ["description"] = why
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.NotEqual(true, linked.IsError);
+        using var linkedJson = JsonDocument.Parse(FirstText(linked) ?? "{}");
+        Assert.Equal(neighbourId, linkedJson.RootElement.GetProperty("projectId").GetString());
+
+        // An agent working in this project sees the neighbour and what it is for without asking.
+        var context = await client.CallToolAsync("aiko_get_project_context", cancellationToken: CancellationToken.None);
+        var contextText = FirstText(context) ?? string.Empty;
+        Assert.Contains("## Linked projects", contextText, StringComparison.Ordinal);
+        Assert.Contains(neighbourHandle!, contextText, StringComparison.Ordinal);
+        Assert.Contains(why, contextText, StringComparison.Ordinal);
+        Assert.Contains("aiko_create_card_in_project", contextText, StringComparison.Ordinal);
+
+        // A project nobody registered cannot be linked, and neither can the project itself.
+        var unknown = await client.CallToolAsync(
+            "aiko_link_project",
+            new Dictionary<string, object?>
+            {
+                ["projectId"] = fixture.ProjectId,
+                ["targetProjectId"] = $"missing{suffix}",
+                ["description"] = why
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.True(unknown.IsError);
+        var itself = await client.CallToolAsync(
+            "aiko_link_project",
+            new Dictionary<string, object?>
+            {
+                ["projectId"] = fixture.ProjectId,
+                ["targetProjectId"] = fixture.ProjectId,
+                ["description"] = why
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.True(itself.IsError);
+
+        // Removing the link takes it out of the registry and out of the context.
+        var unlinked = await client.CallToolAsync(
+            "aiko_unlink_project",
+            new Dictionary<string, object?>
+            {
+                ["projectId"] = fixture.ProjectId,
+                ["targetProjectId"] = neighbourHandle
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.NotEqual(true, unlinked.IsError);
+        using var remaining = JsonDocument.Parse(FirstText(unlinked) ?? "[]");
+        Assert.Equal(0, remaining.RootElement.GetArrayLength());
+    }
+
     /// <summary>Starts a stage and returns the tool result, so a refusal can be read as an answer.</summary>
     private static ValueTask<CallToolResult> StartStageAsync(
         McpClient client,

@@ -91,6 +91,15 @@ internal sealed record UpdateCardRequest(
     string? Request = null);
 
 /// <summary>
+/// Links a project to another one, or replaces what the existing link says.
+/// </summary>
+/// <param name="Description">
+/// What the linked project is for, in the words of whoever links it - the sentence an agent reads before it
+/// decides that a piece of work belongs to the neighbour.
+/// </param>
+internal sealed record LinkProjectRequest(string Description);
+
+/// <summary>
 /// Writes a card artifact. A null version creates or overwrites without a conflict check.
 /// </summary>
 internal sealed record UpdateArtifactRequest(

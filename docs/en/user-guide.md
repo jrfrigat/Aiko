@@ -284,3 +284,9 @@ lessons.
 
 An agent working in one project can report a card into another project. The created card
 records its origin (`originProjectId`); the target project simply sees where it came from.
+
+Which project that is comes from the **linked projects** registry, edited on the project's settings page under
+*Linked projects*: pick one of the projects registered with this installation, write what it is for ("the
+desktop client - UI work is filed here") and link it. The registry is `.aiko/links.json`, the same sentence is
+shown to an agent in `aiko_get_project_context`, and removing a link only stops future routing - the cards
+already filed in the other project stay where they are.

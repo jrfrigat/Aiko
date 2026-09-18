@@ -600,6 +600,65 @@ public class InfrastructureSpecs
 
 
     [Fact]
+    public async Task Linked_projects_are_stored_with_what_they_are_for()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            // A neighbour to link: a registered project of its own, so the link has something to point at.
+            var neighbourRoot = Path.GetFullPath(Path.Combine(context.ProjectRoot, "..", "neighbour"));
+            Directory.CreateDirectory(neighbourRoot);
+            var neighbour = await context.Initializer.InitializeAsync(
+                new InitializeProjectRequest(
+                    neighbourRoot,
+                    "Neighbour",
+                    ProjectGitPolicy.LocalOnly,
+                    Slug: "neighbour"),
+                CancellationToken.None);
+            var links = new FileProjectLinkStore(context.Catalog);
+
+            // Standing alone is the normal state: no file, nothing to read.
+            Assert.Empty(await links.ListAsync(context.Project.Id, CancellationToken.None));
+
+            // A link carries the neighbour's immutable id, the handle it is addressed by, and the sentence that
+            // says what it is for - the sentence an agent reads before routing work there.
+            const string why = "the desktop client - UI work is filed here";
+            var saved = await links.SaveAsync(context.Project.Id, neighbour.Handle, why, CancellationToken.None);
+            Assert.Equal(neighbour.Id, saved.ProjectId);
+            Assert.Equal(neighbour.Handle, saved.Handle);
+            Assert.Equal(why, saved.Description);
+
+            // The registry is a file of the project, and its revision moves on every write.
+            var linkPath = Path.Combine(context.StitchRoot, "links.json");
+            Assert.True(File.Exists(linkPath));
+            using var first = JsonDocument.Parse(await File.ReadAllTextAsync(linkPath));
+            Assert.Equal(1, first.RootElement.GetProperty("revision").GetInt64());
+            var stored = Assert.Single(await links.ListAsync(context.Project.Id, CancellationToken.None));
+            Assert.Equal(why, stored.Description);
+
+            // Linking the same project again replaces what the link says instead of filing a second one: a
+            // registry with two rows about one neighbour is a registry nobody trusts.
+            await links.SaveAsync(context.Project.Id, neighbour.Id, "still the desktop client", CancellationToken.None);
+            Assert.Equal(
+                "still the desktop client",
+                Assert.Single(await links.ListAsync(context.Project.Id, CancellationToken.None)).Description);
+            using var second = JsonDocument.Parse(await File.ReadAllTextAsync(linkPath));
+            Assert.Equal(2, second.RootElement.GetProperty("revision").GetInt64());
+
+            // A project nobody registered cannot be linked - the registry is what makes a link meaningful - and
+            // neither can the project itself.
+            await Assert.ThrowsAsync<KeyNotFoundException>(async () =>
+                await links.SaveAsync(context.Project.Id, "not-a-project", "anything", CancellationToken.None));
+            await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await links.SaveAsync(context.Project.Id, context.Project.Id, "anything", CancellationToken.None));
+
+            // Removing takes the link out by either name, and removing it twice is not an error.
+            await links.RemoveAsync(context.Project.Id, neighbour.Handle, CancellationToken.None);
+            Assert.Empty(await links.ListAsync(context.Project.Id, CancellationToken.None));
+            await links.RemoveAsync(context.Project.Id, neighbour.Id, CancellationToken.None);
+        });
+    }
+
+    [Fact]
     public async Task Git_policy_reader_reads_the_manifest_and_answers_null_without_one()
     {
         await WithInitializedProjectAsync(async context =>
