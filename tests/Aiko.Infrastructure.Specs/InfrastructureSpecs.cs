@@ -1686,8 +1686,12 @@ public class InfrastructureSpecs
                 }
 
                 // The workspace carries what Cline reads per project: the skill and the rule.
-                Assert.True(File.Exists(Path.Combine(
-                    context.Project.RootPath, ".cline", "skills", "aiko", "SKILL.md")));
+                var skill = Path.Combine(
+                    context.Project.RootPath, ".cline", "skills", "aiko-project", "SKILL.md");
+                Assert.True(File.Exists(skill));
+                // Cline prefers a global skill over a project one of the same name, so the workspace skill
+                // is installed under its own name - which has to match its directory.
+                Assert.Contains("name: aiko-project", await File.ReadAllTextAsync(skill), StringComparison.Ordinal);
                 Assert.True(File.Exists(Path.Combine(context.Project.RootPath, ".clinerules", "aiko.md")));
 
                 // Uninstall takes the entry and Aiko's files out again.

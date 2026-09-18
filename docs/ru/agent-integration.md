@@ -149,7 +149,7 @@ UI пока нет, таблица говорит это прямо, а не д�
 | Codex | `.codex/config.toml` (`mcp_servers.aiko`), `.agents/skills/aiko/SKILL.md`, блок `AGENTS.md` |
 | Cursor | `.cursor/mcp.json`, `.cursor/rules/aiko.mdc` |
 | ZCode | `.zcode/config.json` (нативный `mcp.servers`), `.zcode/skills/aiko/SKILL.md`, `.zcode/commands/aiko-*.md` |
-| Cline | `.cline/skills/aiko/SKILL.md`, `.clinerules/aiko.md` и MCP-запись (см. ниже) |
+| Cline | `.cline/skills/aiko-project/SKILL.md`, `.clinerules/aiko.md` и MCP-запись (см. ниже) |
 
 Глобально, для всего пользователя (`aiko agent install --scope user`, это и запускает установщик):
 
@@ -171,7 +171,9 @@ Cline держит MCP-серверы **только глобально** — р
 которые читает Cline: `~/.cline/data/settings/cline_mcp_settings.json` (приложение и расширение IDE) и
 `~/.cline/mcp.json` (CLI). Несколько проектов могут быть подключены одновременно — Cline включает и
 выключает серверы на сессию. В его записи явно указан `"type": "streamableHttp"`: без типа Cline
-откатывается на устаревший транспорт SSE.
+откатывается на устаревший транспорт SSE. Проектный навык называется `aiko-project`, а не `aiko`:
+Cline даёт **глобальному** навыку приоритет над проектным с тем же именем, поэтому два навыка с именем
+`aiko` оставили бы проектный невидимым.
 
 Установка идемпотентна и сохраняет ваши настройки; удаление убирает только Aiko-управляемый
 контент (MCP-записи, managed-блоки и файлы с маркером владения Aiko).

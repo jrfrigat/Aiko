@@ -26,6 +26,18 @@ internal static class AgentTemplates
         commits (aiko_report_commit) and handoff state through Aiko MCP. On rate limit, report the
         agent state and hand the execution to another agent without losing history.
         """;
+    /// <summary>
+    /// The skill above under another name.
+    /// </summary>
+    /// <remarks>
+    /// A client that gives a global skill precedence over a project skill of the same name would otherwise
+    /// hide this one behind <see cref="GlobalSkill"/> - Cline documents exactly that precedence - so the
+    /// workspace skill is installed under its own name there. That name must match the skill's directory.
+    /// </remarks>
+    public static string SkillNamed(string name) =>
+        Skill.Replace("name: aiko", $"name: {name}", StringComparison.Ordinal);
+
+
 
     /// <summary>
     /// Slash command that creates a card of a type the user names, resolved against the project's own

@@ -26,6 +26,13 @@ public sealed class ClineAgentAdapter : BuiltInAgentAdapter
     /// </summary>
     internal const string ConfigurationDirectoryName = ".cline";
 
+    /// <summary>
+    /// Name of the workspace skill, and therefore of its directory. Deliberately not <c>aiko</c>: Cline
+    /// gives a global skill precedence over a project skill with the same name, so the workspace skill
+    /// would never be seen if both were called the same.
+    /// </summary>
+    internal const string WorkspaceSkillName = "aiko-project";
+
     /// <inheritdoc />
     public override string Id => "cline";
 
@@ -88,10 +95,12 @@ public sealed class ClineAgentAdapter : BuiltInAgentAdapter
         return
         [
             new(
-                Path.Combine(projectRoot, ".cline", "skills", "aiko", "SKILL.md"),
+                Path.Combine(projectRoot, ".cline", "skills", WorkspaceSkillName, "SKILL.md"),
                 "Install the workspace-scoped Aiko skill.",
                 AgentFileKind.OwnedText,
-                AgentTemplates.Skill),
+                // Cline resolves a global skill over a project one of the same name, so the workspace skill
+                // cannot be called "aiko" while the global one is; the directory must match the name.
+                AgentTemplates.SkillNamed(WorkspaceSkillName)),
             new(
                 Path.Combine(projectRoot, ".clinerules", "aiko.md"),
                 "Add Aiko's working contract as a workspace rule.",

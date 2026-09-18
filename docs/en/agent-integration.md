@@ -150,7 +150,7 @@ Per project (`aiko agent install --project <id>`):
 | Codex | `.codex/config.toml` (`mcp_servers.aiko`), `.agents/skills/aiko/SKILL.md`, `AGENTS.md` block |
 | Cursor | `.cursor/mcp.json`, `.cursor/rules/aiko.mdc` |
 | ZCode | `.zcode/config.json` (native `mcp.servers`), `.zcode/skills/aiko/SKILL.md`, `.zcode/commands/aiko-*.md` |
-| Cline | `.cline/skills/aiko/SKILL.md`, `.clinerules/aiko.md`, and the MCP entry (see below) |
+| Cline | `.cline/skills/aiko-project/SKILL.md`, `.clinerules/aiko.md`, and the MCP entry (see below) |
 
 Globally, for every user (`aiko agent install --scope user`, which is what the installer runs):
 
@@ -172,7 +172,9 @@ project install adds one entry named after the project folder (`aiko-<folder>`) 
 reads: `~/.cline/data/settings/cline_mcp_settings.json` (desktop app and IDE extension) and
 `~/.cline/mcp.json` (CLI). Several projects can be connected at once; Cline enables and disables
 servers per session. Its entry spells out `"type": "streamableHttp"`, because Cline falls back to the
-legacy SSE transport when the type is missing.
+legacy SSE transport when the type is missing. The workspace skill is called `aiko-project` rather than
+`aiko`: Cline gives a **global** skill precedence over a project skill of the same name, so two skills
+called `aiko` would leave the workspace one invisible.
 
 Installation is idempotent and preserves your own settings; uninstall removes only Aiko-managed
 content (MCP entries, managed blocks, and files carrying the Aiko ownership marker).
