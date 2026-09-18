@@ -63,8 +63,10 @@ itself needs the work - correctness, architecture, the cost of not doing it; wei
 much the people using the product do; 0.35) and `complete` (how ready the card is; 0.30). Each is scored on
 a 0..10 range and carries its own instruction for the agent. `complete` is the one that moves: every stage
 of the default pipelines, and `/aiko-run`, require the agent to re-score it after each change, so the board
-always says what the card actually does now. A project that starts from a template without criteria keeps
-the plain priority a person types.
+always says what the card actually does now. A stage is not completed with a stale score either:
+`aiko_complete_stage` refuses until the card was re-estimated during that run. A project that starts from a
+template without criteria keeps the plain priority a person types and has nothing to estimate, so completing
+a stage there needs no score.
 
 The card page is laid out in two columns: on the left what the card itself says - its editable requirements
 and declared scope, the declared and actual files and the acceptance criteria of the stage it sits in - above
@@ -176,11 +178,34 @@ its name:
 
 Editing one template is the same defaults screen as before: `/templates/<id>` (and `/settings` for the base).
 
-## Executions
+## Stage states and runs
 
 Each card can have stage executions. An execution owns the workspace and keeps a history of
 `AgentAttempt`s (one per agent run). Progress, scope changes, artifacts, commits and handoffs are
 recorded. A rate-limited agent hands the execution to another agent without losing history.
+
+A card moves through its pipeline one stage at a time, and a stage's state is derived from its runs - Aiko
+stores runs, not a stage status, so there is one thing that can say where the work got to. The card page and
+the board both show it:
+
+- **pending** - the stage has no run yet: the card is sitting here and nothing was started;
+- **running** - an agent reported that it is working here;
+- **paused** - the run stopped: the agent paused it, failed or hit its rate limit;
+- **waiting for a decision** - the agent asked the user something (`aiko_request_scope_expansion`) and is
+  waiting for the answer;
+- **completed** - the agent finished the stage, its artifacts are in place and the card was re-estimated.
+
+A stage that is not completed holds the card: `aiko_move_card` refuses to advance it, and starting another
+stage (`aiko_start_stage`) is refused as well. Running the card again continues the unfinished stage instead
+of starting a new one - that is what "one run is one stage" means, and it is why `/aiko-run <cardId>` performs
+exactly one stage and then stops. The board itself stays free: a person may drag a card to any column, and
+`aiko doctor` reports the cards that were pushed past a stage that was not finished.
+
+"Running" means the agent **said** it is running, not that its process is alive: Aiko does not start agents,
+it only records what an agent reports. A stage is completed only when its required artifacts are in place and
+the card was re-estimated; `/aiko-run <cardId> --all` is the one mode that walks the pipeline by itself, and
+even it stops for a question to the user, a failure or a rate limit, a forbidden policy or a missing required
+artifact.
 
 ## Git
 

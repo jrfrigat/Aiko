@@ -241,9 +241,22 @@ public class DomainSpecs
         Assert.NotNull(unworked);
         Assert.Contains("no execution", unworked, StringComparison.Ordinal);
 
-        // The stage ran, so the card moves on.
+        // Neither can a stage that was started and abandoned: the owner's rule is "only a finished stage may be
+        // left", and the refusal names the state the stage stopped in so continuing it is the visible way on.
+        var abandoned = CardProgress.RefuseForwardMove(
+            "TASK-1", "analysis", "implementation", stages,
+            [new StageRun("analysis", StageExecutionState.Paused)]);
+        Assert.NotNull(abandoned);
+        Assert.Contains("not finished", abandoned, StringComparison.Ordinal);
+        Assert.Contains("Paused", abandoned, StringComparison.Ordinal);
+        Assert.NotNull(CardProgress.RefuseForwardMove(
+            "TASK-1", "analysis", "implementation", stages,
+            [new StageRun("analysis", StageExecutionState.Running)]));
+
+        // The stage finished, so the card moves on.
         Assert.Null(CardProgress.RefuseForwardMove(
-            "TASK-1", "analysis", "implementation", stages, ["analysis"]));
+            "TASK-1", "analysis", "implementation", stages,
+            [new StageRun("analysis", StageExecutionState.Completed)]));
 
         // Backwards, in place, or a stage this pipeline cannot place is not this rule's business.
         Assert.Null(CardProgress.RefuseForwardMove("TASK-1", "review", "implementation", stages, []));

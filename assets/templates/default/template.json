@@ -2,7 +2,7 @@
   "id": "default",
   "name": "Default",
   "description": "The set Aiko starts from: story and task pipelines with their statuses, artifacts and per-status instructions, the app point / user point / complete scoring criteria, two board projections and the empty project memory.",
-  "version": 2,
+  "version": 3,
   "settings": {
     "schemaVersion": 1,
     "execution": {
@@ -120,7 +120,7 @@
           "id": "backlog",
           "title": "Backlog",
           "order": 10,
-          "instruction": "Clarify the value, the boundaries and the links of this story, and state its requirements on the card. Re-score complete when the picture changes.",
+          "instruction": "Clarify the value, the boundaries and the links of this story, and state its requirements on the card. Re-estimate the card with aiko_estimate_card when the picture changes.",
           "allowedCardKinds": [
             "Story"
           ],
@@ -142,7 +142,7 @@
           "id": "elaboration",
           "title": "Elaboration",
           "order": 20,
-          "instruction": "Work out the requirements and the architectural constraints of this story and record them in analysis.md. When the analysis is done, re-score app-point and complete with what you learned.",
+          "instruction": "Work out the requirements and the architectural constraints of this story and record them in analysis.md. Before completing the stage, re-estimate the card with aiko_estimate_card - app-point and readiness - with what you learned.",
           "allowedCardKinds": [
             "Story"
           ],
@@ -170,7 +170,7 @@
           "id": "ready",
           "title": "Ready for decomposition",
           "order": 30,
-          "instruction": "Check that the requirements are unambiguous and that the story can be split into tasks. Re-score complete before moving it on.",
+          "instruction": "Check that the requirements are unambiguous and that the story can be split into tasks. Before completing the stage, re-estimate the card with aiko_estimate_card; readiness must match the story as it is now.",
           "allowedCardKinds": [
             "Story"
           ],
@@ -192,7 +192,7 @@
           "id": "in-progress",
           "title": "In progress",
           "order": 40,
-          "instruction": "Coordinate the implementation of the child tasks. After every change, re-score complete so the story's score says what it now does.",
+          "instruction": "Coordinate the implementation of the child tasks. After every change, re-estimate the card with aiko_estimate_card so its score says what the story now does.",
           "allowedCardKinds": [
             "Story"
           ],
@@ -214,7 +214,7 @@
           "id": "done",
           "title": "Done",
           "order": 50,
-          "instruction": "Verify that the story's outcome was reached and summarize it. Re-score complete to the top of its range before closing the card.",
+          "instruction": "Verify that the story's outcome was reached and summarize it. Before completing the stage, re-estimate the card with aiko_estimate_card; readiness tends to the top of its range.",
           "allowedCardKinds": [
             "Story"
           ],
@@ -246,7 +246,7 @@
           "id": "backlog",
           "title": "Backlog",
           "order": 10,
-          "instruction": "Clarify the request, the scope and the links of this task, and state its requirements on the card. Re-score complete when they change.",
+          "instruction": "Clarify the request, the scope and the links of this task, and state its requirements on the card. Re-estimate the card with aiko_estimate_card when they change.",
           "allowedCardKinds": [
             "Task"
           ],
@@ -268,7 +268,7 @@
           "id": "analysis",
           "title": "Analysis",
           "order": 20,
-          "instruction": "Analyse the task, its risks and the implementation options and record them in analysis.md. When the analysis is done, re-score app-point and complete with what you learned.",
+          "instruction": "Analyse the task, its risks and the implementation options and record them in analysis.md. Before completing the stage, re-estimate the card with aiko_estimate_card - app-point and readiness - with what you learned.",
           "allowedCardKinds": [
             "Task"
           ],
@@ -296,7 +296,7 @@
           "id": "implementation",
           "title": "Implementation",
           "order": 30,
-          "instruction": "Implement the task and record the files you actually changed. After the change, re-score complete, and re-score app-point when the work altered the technical debt.",
+          "instruction": "Implement the task and record the files you actually changed. Before completing the stage, re-estimate the card with aiko_estimate_card: readiness must describe the card as it is after the change, and app-point only changes when the work altered the technical debt.",
           "allowedCardKinds": [
             "Task"
           ],
@@ -324,7 +324,7 @@
           "id": "review",
           "title": "Review",
           "order": 40,
-          "instruction": "Check the result, the tests and any deviation from the declared scope. Re-score complete with what is left to do.",
+          "instruction": "Check the result, the tests and any deviation from the declared scope. Before completing the stage, re-estimate the card with aiko_estimate_card with what is left to do.",
           "allowedCardKinds": [
             "Task"
           ],
@@ -346,7 +346,7 @@
           "id": "done",
           "title": "Done",
           "order": 50,
-          "instruction": "Record the outcome of this task and re-score complete to the top of its range before closing the card.",
+          "instruction": "Record the outcome of this task. Before completing the stage, re-estimate the card with aiko_estimate_card; readiness tends to the top of its range.",
           "allowedCardKinds": [
             "Task"
           ],

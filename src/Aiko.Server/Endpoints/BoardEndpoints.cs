@@ -23,6 +23,7 @@ internal static class BoardEndpoints
                 ICardStore cards,
                 IRelationStore relations,
                 IAppSettingsService settings,
+                IExecutionCoordinator executions,
                 CancellationToken cancellationToken) =>
             {
                 var project = await catalog.FindAsync(projectId, cancellationToken);
@@ -41,7 +42,9 @@ internal static class BoardEndpoints
                     definition.Projections,
                     boardCards,
                     boardRelations,
-                    CardPriorityProjector.Project(boardCards, boardRelations, priority)));
+                    CardPriorityProjector.Project(boardCards, boardRelations, priority),
+                    // Where each card's stage got to, so the board can show it without a request per card.
+                    await executions.ReadStageRunsAsync(projectId, cancellationToken)));
             });
     }
 }

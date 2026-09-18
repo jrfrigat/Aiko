@@ -1,3 +1,4 @@
+using System.Globalization;
 using Aiko.Application.Cards;
 using Aiko.Application.Contracts;
 using Aiko.Domain.Cards;
@@ -82,6 +83,17 @@ internal static class CardEndpoints
                         card.Revision));
                 }
 
+                // Requirements follow the same rule: null leaves the text alone, a blank string clears it. A
+                // request that writes criterion scores is an estimate, so it also records when it was made -
+                // that moment is what lets a stage's completion tell a fresh readiness from a stale one.
+                var metadata = request.Requirements is { } requirements
+                    ? WithRequirements(card.Metadata, requirements)
+                    : card.Metadata;
+                if (request.CriterionValues is not null)
+                {
+                    metadata = WithEstimatedAt(metadata, DateTimeOffset.UtcNow);
+                }
+
                 var updated = card with
                 {
                     Title = request.Title.Trim(),
@@ -100,10 +112,8 @@ internal static class CardEndpoints
                             criterionValues.Where(pair => !string.IsNullOrWhiteSpace(pair.Key)),
                             StringComparer.Ordinal)
                         : card.CriterionValues,
-                    // Requirements follow the same rule: null leaves the text alone, a blank string clears it.
-                    Metadata = request.Requirements is { } requirements
-                        ? WithRequirements(card.Metadata, requirements)
-                        : card.Metadata,
+                    // Requirements and the estimate moment were already folded in above.
+                    Metadata = metadata,
                     Revision = card.Revision + 1
                 };
                 await cards.SaveAsync(updated, request.ExpectedRevision, cancellationToken);
@@ -311,6 +321,18 @@ internal static class CardEndpoints
 
         return updated;
     }
+
+    /// <summary>
+    /// The card's metadata with the moment of an estimate recorded: the criterion scores were just written,
+    /// and a stage's completion reads this moment to tell a fresh readiness from a stale one.
+    /// </summary>
+    private static IReadOnlyDictionary<string, string> WithEstimatedAt(
+        IReadOnlyDictionary<string, string> metadata,
+        DateTimeOffset at) =>
+        new Dictionary<string, string>(metadata, StringComparer.Ordinal)
+        {
+            [Card.EstimatedAtMetadataKey] = at.ToString("O", CultureInfo.InvariantCulture)
+        };
 
     /// <summary>
     /// Trims a size step and turns the empty string into null, so "no size" has one representation rather

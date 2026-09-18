@@ -101,6 +101,14 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         // inside a started stage, and a card in its backlog has none of it yet.
         Assert.Contains("aiko_start_stage", text, StringComparison.Ordinal);
         Assert.Contains("aiko_complete_stage", text, StringComparison.Ordinal);
+        Assert.Contains("One run is one stage", text, StringComparison.Ordinal);
+        Assert.Contains("--all", text, StringComparison.Ordinal);
+        // The context names the project's git and commit policies: an agent told neither cannot know whether
+        // to commit, which is how a commit lands in a repository that asked to stay local.
+        Assert.Contains("## Git and commits", text, StringComparison.Ordinal);
+        Assert.Contains("Git policy:", text, StringComparison.Ordinal);
+        Assert.Contains("Commit policy:", text, StringComparison.Ordinal);
+        Assert.Contains("aiko_report_commit", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -352,7 +360,17 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
 
         // Release the project's run slot. A started execution counts against maxConcurrentRuns, and the
         // fixture's project is shared by every spec in this class - leaving it active would fail the
-        // next start elsewhere.
+        // next start elsewhere. A stage is completed only with a card that was re-estimated in the run.
+        var estimated = await client.CallToolAsync(
+            "aiko_estimate_card",
+            new Dictionary<string, object?>
+            {
+                ["cardId"] = "TASK-MCP-ACTIVITY",
+                ["expectedRevision"] = 2,
+                ["criterionValues"] = new[] { "complete=8" }
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.NotEqual(true, estimated.IsError);
         var complete = await client.CallToolAsync(
             "aiko_complete_stage",
             new Dictionary<string, object?>
@@ -602,6 +620,143 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
                 ["cardId"] = cardId,
                 ["stageId"] = stageId,
                 ["expectedRevision"] = revision
+            },
+            cancellationToken: CancellationToken.None);
+
+    [Fact]
+    public async Task Starting_the_same_stage_again_continues_it_through_mcp()
+    {
+        await using var client = await ConnectAsync();
+        var cardId = $"TASK-CONTINUE-{Guid.NewGuid():N}";
+        await client.CallToolAsync(
+            "aiko_create_card",
+            new Dictionary<string, object?>
+            {
+                ["cardId"] = cardId,
+                ["kind"] = "task",
+                ["title"] = "Keep going",
+                ["ownPriority"] = 1,
+                ["declaredScopeFiles"] = new[] { "src/**" }
+            },
+            cancellationToken: CancellationToken.None);
+
+        var first = await StartStageAsync(client, cardId, "implementation", "claude-code");
+        Assert.NotEqual(true, first.IsError);
+        using var firstJson = JsonDocument.Parse(FirstText(first) ?? "{}");
+        var executionId = firstJson.RootElement.GetProperty("id").GetString();
+
+        // The same stage started again is the same run: the agent picked the card back up, and the project's run
+        // slot is not consumed twice.
+        var again = await StartStageAsync(client, cardId, "implementation", "codex");
+        Assert.NotEqual(true, again.IsError);
+        using var againJson = JsonDocument.Parse(FirstText(again) ?? "{}");
+        Assert.Equal(executionId, againJson.RootElement.GetProperty("id").GetString());
+        Assert.Equal(2, againJson.RootElement.GetProperty("attempts").GetArrayLength());
+
+        // A different stage while this one is open is refused, and the text says how to get on.
+        var next = await StartStageAsync(client, cardId, "review", "claude-code");
+        Assert.True(next.IsError);
+        var reason = FirstText(next) ?? string.Empty;
+        Assert.Contains("not finished", reason, StringComparison.Ordinal);
+        Assert.Contains("aiko_complete_stage", reason, StringComparison.Ordinal);
+
+        // Release the project's run slot for the rest of the class: the fixture's project is shared. The card
+        // has to be re-estimated first - completing a stage with a stale readiness is refused.
+        var estimated = await client.CallToolAsync(
+            "aiko_estimate_card",
+            new Dictionary<string, object?>
+            {
+                ["cardId"] = cardId,
+                ["expectedRevision"] = 2,
+                ["criterionValues"] = new[] { "complete=8" }
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.NotEqual(true, estimated.IsError);
+        var complete = await client.CallToolAsync(
+            "aiko_complete_stage",
+            new Dictionary<string, object?>
+            {
+                ["executionId"] = executionId,
+                ["actualChangedFiles"] = new[] { "src/app.cs" },
+                ["artifacts"] = Array.Empty<string>()
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.NotEqual(true, complete.IsError);
+    }
+
+    [Fact]
+    public async Task Completing_a_stage_without_a_fresh_estimate_is_refused_through_mcp()
+    {
+        await using var client = await ConnectAsync();
+        var cardId = $"TASK-MCP-ESTIMATE-{Guid.NewGuid():N}";
+        await client.CallToolAsync(
+            "aiko_create_card",
+            new Dictionary<string, object?>
+            {
+                ["cardId"] = cardId,
+                ["kind"] = "task",
+                ["title"] = "Guess readiness",
+                ["ownPriority"] = 1,
+                ["declaredScopeFiles"] = new[] { "src/**" }
+            },
+            cancellationToken: CancellationToken.None);
+
+        var started = await StartStageAsync(client, cardId, "implementation", "claude-code");
+        Assert.NotEqual(true, started.IsError);
+        using var startedJson = JsonDocument.Parse(FirstText(started) ?? "{}");
+        var executionId = startedJson.RootElement.GetProperty("id").GetString();
+
+        // The card was never estimated in this run, so its readiness describes it as it was before the work.
+        var refused = await client.CallToolAsync(
+            "aiko_complete_stage",
+            new Dictionary<string, object?>
+            {
+                ["executionId"] = executionId,
+                ["actualChangedFiles"] = new[] { "src/app.cs" },
+                ["artifacts"] = Array.Empty<string>()
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.True(refused.IsError);
+        var reason = FirstText(refused) ?? string.Empty;
+        Assert.Contains("aiko_estimate_card", reason, StringComparison.Ordinal);
+        Assert.Contains("readiness", reason, StringComparison.Ordinal);
+
+        // The refusal is a step, not a dead end: estimating the card lets the stage finish.
+        var estimated = await client.CallToolAsync(
+            "aiko_estimate_card",
+            new Dictionary<string, object?>
+            {
+                ["cardId"] = cardId,
+                ["expectedRevision"] = 2,
+                ["criterionValues"] = new[] { "complete=9" }
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.NotEqual(true, estimated.IsError);
+        var complete = await client.CallToolAsync(
+            "aiko_complete_stage",
+            new Dictionary<string, object?>
+            {
+                ["executionId"] = executionId,
+                ["actualChangedFiles"] = new[] { "src/app.cs" },
+                ["artifacts"] = Array.Empty<string>()
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.NotEqual(true, complete.IsError);
+    }
+
+    /// <summary>Starts a stage and returns the tool result, so a refusal can be read as an answer.</summary>
+    private static ValueTask<CallToolResult> StartStageAsync(
+        McpClient client,
+        string cardId,
+        string stageId,
+        string agentAdapterId) =>
+        client.CallToolAsync(
+            "aiko_start_stage",
+            new Dictionary<string, object?>
+            {
+                ["cardId"] = cardId,
+                ["stageId"] = stageId,
+                ["agentAdapterId"] = agentAdapterId
             },
             cancellationToken: CancellationToken.None);
 

@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Text;
 using ModelContextProtocol.Server;
 using Aiko.Application.Contracts;
+using Aiko.Domain.Execution;
 using Aiko.Domain.Prioritization;
 using Aiko.Domain.Workflow;
 using Aiko.Infrastructure.Storage;
@@ -17,6 +18,7 @@ internal sealed class ProjectContextTools(
     IHttpContextAccessor httpContextAccessor,
     IProjectCatalog projects,
     IProjectDefinitionStore definitions,
+    IProjectGitPolicyReader gitPolicies,
     IAppSettingsService settings) : ProjectToolBase(httpContextAccessor, projects)
 {
     [McpServerTool(
@@ -29,6 +31,10 @@ internal sealed class ProjectContextTools(
     {
         var project = await GetProjectAsync(cancellationToken);
         var priority = await settings.GetEffectivePriorityAsync(project.Id, cancellationToken);
+        var execution = await settings.GetEffectiveExecutionAsync(project.Id, cancellationToken);
+        // The git policy lives in the project's own manifest: without it an agent cannot tell whether this
+        // project's .aiko is tracked, and a project whose manifest moved answers "unknown" rather than a guess.
+        var gitPolicy = await gitPolicies.ReadAsync(project, cancellationToken);
         // Read from the project's own workflows rather than from a fixed pair of files: the set of card types
         // is project data, and an agent that never learns about a type cannot create one.
         var workflows = (await definitions.ReadAsync(project.Id, cancellationToken)).Workflows;
@@ -46,8 +52,13 @@ internal sealed class ProjectContextTools(
             working in with aiko_start_stage - the start moves the card into that stage and leaves the record
             of the work. Do what the stage's instruction asks for, produce its required artifacts, and complete
             it with aiko_complete_stage; only then does the card move on. aiko_move_card advances a card one
-            stage at a time and refuses to leave a stage that was never run, because work done outside a stage
-            leaves no execution, no artifacts and no history.
+            stage at a time and refuses to leave a stage that is not finished, because work done outside a stage
+            leaves no execution, no artifacts and no history. Before you complete a stage, re-estimate the card
+            with aiko_estimate_card: the readiness criterion is what says the work is done, and a stage is not
+            completed while that score still describes the card as it was before the work. One run is one stage:
+            after you complete a stage, stop and wait to be asked for the next one - unless the user passed
+            --all, which walks the pipeline and still stops on a question to the user, a failure or a forbidden
+            action.
 
             Before changing files, read the selected card and its current stage instruction.
             A stage's beforeSkills are what to invoke before you read its instruction, and its afterSkills
@@ -55,6 +66,8 @@ internal sealed class ProjectContextTools(
             Treat declaredScopeFiles as guidance. Warn before intentionally changing files outside it,
             and report actualChangedFiles when completing work.
             Use aiko_store_memory for durable decisions, conventions and lessons.
+
+            {DescribeGit(gitPolicy, execution.SharedCheckoutCommitPolicy)}
 
             ## How this project scores and sizes a card
 
@@ -159,6 +172,50 @@ internal sealed class ProjectContextTools(
         }
 
         return builder.ToString().TrimEnd();
+    }
+
+    /// <summary>
+    /// How this project's repository treats Aiko's own data and commits, as an agent can act on it.
+    /// </summary>
+    /// <remarks>
+    /// Two policies answer two different questions, and confusing them is easy: the git policy says whether
+    /// Aiko's <c>.aiko</c> tree is committed, while the commit policy says whether work in the shared checkout
+    /// may be committed. An agent told neither cannot know whether to commit, which is how a commit lands in a
+    /// repository that asked to stay local - so both are stated, together with the one fact that always holds:
+    /// Aiko never runs git and never creates a commit; it only records what an agent reports.
+    /// </remarks>
+    /// <param name="gitPolicy">The project's git policy, or null when its manifest could not be read.</param>
+    /// <param name="commitPolicy">Whether the shared checkout may be committed.</param>
+    private static string DescribeGit(ProjectGitPolicy? gitPolicy, ActionPolicy commitPolicy)
+    {
+        var builder = new StringBuilder();
+        builder.AppendLine("## Git and commits");
+        builder.AppendLine();
+        builder.AppendLine(gitPolicy switch
+        {
+            ProjectGitPolicy.TrackProjectKnowledge =>
+                "Git policy: TrackProjectKnowledge - this project's knowledge is tracked: .aiko is committed "
+                + "except the runtime files the .gitignore lists.",
+            ProjectGitPolicy.Custom =>
+                "Git policy: Custom - the project's .gitignore is managed by hand; Aiko changes nothing there.",
+            ProjectGitPolicy.LocalOnly =>
+                "Git policy: LocalOnly - Aiko's own data (.aiko) is ignored by git and stays on this machine.",
+            _ =>
+                "Git policy: unknown - the project manifest could not be read, so treat .aiko as local."
+        });
+        builder.AppendLine(commitPolicy switch
+        {
+            ActionPolicy.Allow =>
+                "Commit policy: Allow - the shared checkout may be committed: make the commit yourself and "
+                + "record it with aiko_report_commit.",
+            ActionPolicy.Ask =>
+                "Commit policy: Ask - a commit needs the user's approval: propose it with aiko_report_commit "
+                + "and wait for the answer.",
+            _ =>
+                "Commit policy: Deny - do not commit; aiko_report_commit is rejected."
+        });
+        builder.Append("Aiko itself never runs git and never creates a commit: it only records what you report.");
+        return builder.ToString();
     }
 
     /// <summary>

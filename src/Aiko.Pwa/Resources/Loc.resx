@@ -386,6 +386,13 @@
   <data name="MemoryProfile" xml:space="preserve"><value>Memory profile</value></data>
   <data name="ManagedHeap" xml:space="preserve"><value>managed heap {0}</value></data>
   <data name="StageLoadHint" xml:space="preserve"><value>Each bar is a stage's share of the busiest stage of its own pipeline</value></data>
+  <data name="StageStatePending" xml:space="preserve"><value>Waiting</value></data>
+  <data name="StageStateRunning" xml:space="preserve"><value>Running</value></data>
+  <data name="StageStatePaused" xml:space="preserve"><value>Paused</value></data>
+  <data name="StageStateWaiting" xml:space="preserve"><value>Needs a decision</value></data>
+  <data name="StageStateBlocked" xml:space="preserve"><value>Blocked</value></data>
+  <data name="StageStateDone" xml:space="preserve"><value>Stage finished</value></data>
+  <data name="StagesFinishedCount" xml:space="preserve"><value>{0} stages finished</value></data>
   <data name="GitHubRepository" xml:space="preserve"><value>Aiko on GitHub</value></data>
   <data name="TemplateScope" xml:space="preserve"><value>Default workflow</value></data>
   <data name="TemplateSettingsHeading" xml:space="preserve"><value>Default workflow settings</value></data>

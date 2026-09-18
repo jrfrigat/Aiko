@@ -53,10 +53,22 @@
                             </FlareText>
                         </FlareStack>
                     </FlareStack>
-                    @if (OutOfScopeCount > 0)
-                    {
-                        <span class="aiko-tag aiko-tag--warn">@Loc.Format("OutOfScopeCount", DisplayFormat.Number(OutOfScopeCount))</span>
-                    }
+                    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
+                        @* Where the card's current stage got to, derived from the runs the runs tab already loads,
+                           so this chip and that tab cannot disagree. *@
+                        <span class="aiko-tag @StageStateView.TagClass(CurrentStageState)"
+                              title="@Loc.Get(StageStateView.LabelKey(CurrentStageState))">
+                            @Loc.Get(StageStateView.LabelKey(CurrentStageState))
+                        </span>
+                        @if (FinishedStages > 0)
+                        {
+                            <span class="aiko-tag aiko-tag--quiet">@Loc.Format("StagesFinishedCount", DisplayFormat.Number(FinishedStages))</span>
+                        }
+                        @if (OutOfScopeCount > 0)
+                        {
+                            <span class="aiko-tag aiko-tag--warn">@Loc.Format("OutOfScopeCount", DisplayFormat.Number(OutOfScopeCount))</span>
+                        }
+                    </FlareStack>
                 </FlareStack>
 
                 @* The card's own long prose: what it must do, and what it declares it will touch. What the
@@ -888,6 +900,13 @@
         ?.Stages.FirstOrDefault(stage => StringComparer.Ordinal.Equals(stage.Id, Card.StageId));
 
     /// <summary>The most recent execution, which is the run whose outcomes the card reports.</summary>
+    /// <summary>Where the card's current stage got to, from the runs the runs tab already loaded.</summary>
+    private StageState CurrentStageState =>
+        StageStateView.Of(_executions.Select(execution => execution.State));
+
+    /// <summary>How many of the card's stages have a finished run.</summary>
+    private int FinishedStages => StageStateView.FinishedStages(_executions);
+
     private StageExecution? LatestExecution => _executions
         .OrderByDescending(execution => execution.UpdatedAt)
         .FirstOrDefault();

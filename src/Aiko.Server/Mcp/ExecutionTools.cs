@@ -17,7 +17,10 @@ internal sealed class ExecutionTools(
 {
     [McpServerTool(Name = "aiko_start_stage", Title = "Start Aiko stage")]
     [Description(
-        "Starts a stage execution in the shared project workspace and records the responsible agent.")]
+        "Starts a stage execution in the shared project workspace and records the responsible agent. Starting "
+        + "the stage the card is already working in continues that execution - run the card again and the same "
+        + "stage picks up where it stopped. Starting another stage while one is unfinished is refused: finish it "
+        + "with aiko_complete_stage first.")]
     public async Task<string> StartStageAsync(
         [Description("Card id.")]
         string cardId,

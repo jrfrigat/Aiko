@@ -40,13 +40,13 @@ internal static class BuiltInProjectTemplate
             "story",
             "Stories",
             [
-                Stage("backlog", "Backlog", 10, CardKind.Story, "Clarify the value, the boundaries and the links of this story, and state its requirements on the card. Re-score complete when the picture changes.", "inbox", "secondary"),
+                Stage("backlog", "Backlog", 10, CardKind.Story, "Clarify the value, the boundaries and the links of this story, and state its requirements on the card. Re-estimate the card with aiko_estimate_card when the picture changes.", "inbox", "secondary"),
                 Stage(
                     "elaboration",
                     "Elaboration",
                     20,
                     CardKind.Story,
-                    "Work out the requirements and the architectural constraints of this story and record them in analysis.md. When the analysis is done, re-score app-point and complete with what you learned.",
+                    "Work out the requirements and the architectural constraints of this story and record them in analysis.md. Before completing the stage, re-estimate the card with aiko_estimate_card - app-point and readiness - with what you learned.",
                     "description",
                     "primary",
                     [
@@ -55,9 +55,9 @@ internal static class BuiltInProjectTemplate
                             "The outcome of the story elaboration.",
                             MissingArtifactPolicy.NeedsAttention)
                     ]),
-                Stage("ready", "Ready for decomposition", 30, CardKind.Story, "Check that the requirements are unambiguous and that the story can be split into tasks. Re-score complete before moving it on.", "pending", "tertiary"),
-                Stage("in-progress", "In progress", 40, CardKind.Story, "Coordinate the implementation of the child tasks. After every change, re-score complete so the story's score says what it now does.", "code", "warning"),
-                Stage("done", "Done", 50, CardKind.Story, "Verify that the story's outcome was reached and summarize it. Re-score complete to the top of its range before closing the card.", "done-all", "success")
+                Stage("ready", "Ready for decomposition", 30, CardKind.Story, "Check that the requirements are unambiguous and that the story can be split into tasks. Before completing the stage, re-estimate the card with aiko_estimate_card; readiness must match the story as it is now.", "pending", "tertiary"),
+                Stage("in-progress", "In progress", 40, CardKind.Story, "Coordinate the implementation of the child tasks. After every change, re-estimate the card with aiko_estimate_card so its score says what the story now does.", "code", "warning"),
+                Stage("done", "Done", 50, CardKind.Story, "Verify that the story's outcome was reached and summarize it. Before completing the stage, re-estimate the card with aiko_estimate_card; readiness tends to the top of its range.", "done-all", "success")
             ],
             1,
             "A functional requirement or a user-facing capability, large enough to be decomposed into tasks. "
@@ -71,13 +71,13 @@ internal static class BuiltInProjectTemplate
             "task",
             "Tasks",
             [
-                Stage("backlog", "Backlog", 10, CardKind.Task, "Clarify the request, the scope and the links of this task, and state its requirements on the card. Re-score complete when they change.", "inbox", "secondary"),
+                Stage("backlog", "Backlog", 10, CardKind.Task, "Clarify the request, the scope and the links of this task, and state its requirements on the card. Re-estimate the card with aiko_estimate_card when they change.", "inbox", "secondary"),
                 Stage(
                     "analysis",
                     "Analysis",
                     20,
                     CardKind.Task,
-                    "Analyse the task, its risks and the implementation options and record them in analysis.md. When the analysis is done, re-score app-point and complete with what you learned.",
+                    "Analyse the task, its risks and the implementation options and record them in analysis.md. Before completing the stage, re-estimate the card with aiko_estimate_card - app-point and readiness - with what you learned.",
                     "description",
                     "primary",
                     [
@@ -91,7 +91,7 @@ internal static class BuiltInProjectTemplate
                     "Implementation",
                     30,
                     CardKind.Task,
-                    "Implement the task and record the files you actually changed. After the change, re-score complete, and re-score app-point when the work altered the technical debt.",
+                    "Implement the task and record the files you actually changed. Before completing the stage, re-estimate the card with aiko_estimate_card: readiness must describe the card as it is after the change, and app-point only changes when the work altered the technical debt.",
                     "code",
                     "warning",
                     [
@@ -100,8 +100,8 @@ internal static class BuiltInProjectTemplate
                             "The outcome of the implementation and its verification.",
                             MissingArtifactPolicy.Warn)
                     ]),
-                Stage("review", "Review", 40, CardKind.Task, "Check the result, the tests and any deviation from the declared scope. Re-score complete with what is left to do.", "check-circle", "info"),
-                Stage("done", "Done", 50, CardKind.Task, "Record the outcome of this task and re-score complete to the top of its range before closing the card.", "done-all", "success")
+                Stage("review", "Review", 40, CardKind.Task, "Check the result, the tests and any deviation from the declared scope. Before completing the stage, re-estimate the card with aiko_estimate_card with what is left to do.", "check-circle", "info"),
+                Stage("done", "Done", 50, CardKind.Task, "Record the outcome of this task. Before completing the stage, re-estimate the card with aiko_estimate_card; readiness tends to the top of its range.", "done-all", "success")
             ],
             1,
             "An atomic unit of work an agent carries out within a single stage: one change, one verification. "

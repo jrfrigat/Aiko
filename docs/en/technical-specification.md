@@ -332,6 +332,34 @@ includes:
 In the MVP the fallback is manual. Later: `manual`, `ask`, `automatic` and an ordered agent list.
 Only confidently recognized `rate-limited` permits an automatic fallback.
 
+### 12.1 Stage state and the completion gate
+
+A stage has no stored status: its state is derived from the card's `StageExecution` rows, so the run journal is
+the single source of truth. Five states are shown on the card page and the board:
+
+| State | Derived from |
+| :-- | :-- |
+| pending | no run for the card's current stage |
+| running | the stage's latest run is `Running` |
+| waiting for a decision | the latest run is `WaitingForUser` |
+| paused | the latest run is `Paused`, or `NeedsAttention` (an agent failure or a rate limit) |
+| completed | the latest run is `Completed` |
+
+A forward move (`aiko_move_card`) and the start of another stage (`aiko_start_stage`) are refused while the
+current stage has no `Completed` run; starting the current stage again continues that run instead of creating a
+second one. That is **one run is one stage**: the `/aiko-run` procedure performs one stage and stops, and
+`/aiko-run <cardId> --all` is the explicit exception that walks the pipeline and still stops on a question to
+the user, a failure or a rate limit, a forbidden policy or a missing required artifact. The board's REST move
+endpoint is deliberately not held to the rule: the board is how a person corrects their own board, and
+`aiko doctor` reports the cards that were pushed past an unfinished stage.
+
+`aiko_complete_stage` requires the card to carry an estimate made during that run: the moment of the last
+criterion write (`Card.Metadata["estimatedAt"]`) must be at or after `StageExecution.CreatedAt`, or the call is
+refused with the tool and the readiness criterion to use. A project that defines no criteria has nothing to
+estimate and completes without the check; a caller with no settings service is not gated either. In the
+default template the rule is carried by the stage instructions themselves ("before completing the stage,
+re-estimate the card with `aiko_estimate_card`"), and the working contract states it in `aiko_get_project_context`.
+
 ## 13. Concurrency and workspaces
 
 Strategies:

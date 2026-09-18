@@ -330,6 +330,7 @@ public class InfrastructureSpecs
                     configuration,
                     new AccessTokenStore(dataPaths),
                     context.Cards,
+                    new FileProjectDefinitionStore(context.Catalog),
                     context.Executions);
                 var report = await doctor.InspectAsync(context.Project.Id, CancellationToken.None);
 
@@ -460,6 +461,7 @@ public class InfrastructureSpecs
                 new DaemonEndpointConfiguration(dataPaths),
                 new AccessTokenStore(dataPaths),
                 context.Cards,
+                new FileProjectDefinitionStore(context.Catalog),
                 context.Executions);
 
             var report = await doctor.InspectAsync(context.Project.Id, CancellationToken.None);
@@ -496,6 +498,7 @@ public class InfrastructureSpecs
                 new DaemonEndpointConfiguration(dataPaths),
                 new AccessTokenStore(dataPaths),
                 context.Cards,
+                new FileProjectDefinitionStore(context.Catalog),
                 context.Executions);
 
             // A card pushed into the pipeline with nothing running behind it. The store allows the move - the
@@ -510,9 +513,13 @@ public class InfrastructureSpecs
             };
             await context.Cards.SaveAsync(pushed, 1, CancellationToken.None);
 
-            // A card whose stage was run leaves an execution, and is not reported.
+            // A card worked one stage at a time: the analysis it left is completed, so it is not reported.
             var worked = CreateCard(context.Project.Id, "TASK-RUN", 1);
             await context.Cards.SaveAsync(worked, 0, CancellationToken.None);
+            var analysis = await context.Executions.StartAsync(
+                worked.Reference, "analysis", "claude-code", CancellationToken.None);
+            await EstimateAsync(context, worked);
+            await context.Executions.CompleteAsync(analysis.Id, [], [], CancellationToken.None);
             await context.Executions.StartAsync(
                 worked.Reference, "implementation", "claude-code", CancellationToken.None);
 
@@ -523,6 +530,91 @@ public class InfrastructureSpecs
             Assert.Contains("left the backlog", finding.Summary, StringComparison.Ordinal);
             Assert.Contains("TASK-NO-RUN", finding.Summary, StringComparison.Ordinal);
             Assert.DoesNotContain("TASK-RUN", finding.Summary, StringComparison.Ordinal);
+        });
+    }
+
+    [Fact]
+    public async Task Doctor_reports_a_card_that_moved_on_from_an_unfinished_stage()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            var dataPaths = new AikoDataPaths(context.Database.DatabasePath);
+            var doctor = new WorkshopDoctor(
+                dataPaths,
+                context.Catalog,
+                new UnifiedAgentInstaller([], context.Catalog, new FileProjectDefinitionStore(context.Catalog)),
+                [],
+                new DaemonEndpointConfiguration(dataPaths),
+                new AccessTokenStore(dataPaths),
+                context.Cards,
+                new FileProjectDefinitionStore(context.Catalog),
+                context.Executions);
+
+            // A card that started in a later stage without ever running the one before it: the leaving stage
+            // was never started at all. Its run is completed so the project's one-run limit stays out of the way.
+            var skipped = CreateCard(context.Project.Id, "TASK-NEVER-STARTED", 1);
+            await context.Cards.SaveAsync(skipped, 0, CancellationToken.None);
+            var skippedRun = await context.Executions.StartAsync(
+                skipped.Reference, "implementation", "claude-code", CancellationToken.None);
+            await EstimateAsync(context, skipped);
+            await context.Executions.CompleteAsync(skippedRun.Id, [], [], CancellationToken.None);
+
+            // A card whose leaving stage was completed is healthy and is not reported.
+            var healthy = CreateCard(context.Project.Id, "TASK-HEALTHY", 1);
+            await context.Cards.SaveAsync(healthy, 0, CancellationToken.None);
+            var healthyAnalysis = await context.Executions.StartAsync(
+                healthy.Reference, "analysis", "claude-code", CancellationToken.None);
+            await EstimateAsync(context, healthy);
+            await context.Executions.CompleteAsync(
+                healthyAnalysis.Id, [], [], CancellationToken.None);
+            var healthyImplementation = await context.Executions.StartAsync(
+                healthy.Reference, "implementation", "claude-code", CancellationToken.None);
+            await EstimateAsync(context, healthy);
+            await context.Executions.CompleteAsync(
+                healthyImplementation.Id, [], [], CancellationToken.None);
+
+            // An analysis that was started and abandoned: the run is still open, and the card was pushed into
+            // implementation anyway. There is an execution, so the first check cannot see it - only the state
+            // of the stage behind the card says the work stopped half way. This run stays active, so the card
+            // is set up last, after every other run was closed.
+            var running = CreateCard(context.Project.Id, "TASK-STILL-RUNNING", 1);
+            await context.Cards.SaveAsync(running, 0, CancellationToken.None);
+            await context.Executions.StartAsync(
+                running.Reference, "analysis", "claude-code", CancellationToken.None);
+            // The start moved the card into analysis, so its revision is 2; the board-like push follows it.
+            await context.Cards.SaveAsync(
+                running with { StageId = "implementation", Revision = 3 }, 2, CancellationToken.None);
+
+            var report = await doctor.InspectAsync(context.Project.Id, CancellationToken.None);
+
+            var finding = Assert.Single(report.Findings, item => item.Area == "card-progress");
+            Assert.Equal(DiagnosticSeverity.Warning, finding.Severity);
+            Assert.Contains("not finished", finding.Summary, StringComparison.Ordinal);
+            Assert.Contains("TASK-STILL-RUNNING", finding.Summary, StringComparison.Ordinal);
+            Assert.Contains("'analysis', which was still running", finding.Summary, StringComparison.Ordinal);
+            Assert.Contains("TASK-NEVER-STARTED", finding.Summary, StringComparison.Ordinal);
+            Assert.Contains("'analysis', which was not started", finding.Summary, StringComparison.Ordinal);
+            Assert.DoesNotContain("TASK-HEALTHY", finding.Summary, StringComparison.Ordinal);
+        });
+    }
+
+
+    [Fact]
+    public async Task Git_policy_reader_reads_the_manifest_and_answers_null_without_one()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            var reader = new FileProjectGitPolicyReader();
+
+            // The default template keeps Aiko's data local, and that is what the project's manifest says.
+            Assert.Equal(
+                ProjectGitPolicy.LocalOnly,
+                await reader.ReadAsync(context.Project, CancellationToken.None));
+
+            // A project whose manifest is not there has no policy to read: the answer is "unknown", because
+            // guessing "local" or "tracked" is how a commit lands where it was not wanted.
+            var moved = context.Project with { RootPath = Path.Combine(context.Project.RootPath, "gone") };
+            Assert.Null(await reader.ReadAsync(moved, CancellationToken.None));
         });
     }
 
@@ -551,9 +643,17 @@ public class InfrastructureSpecs
             Assert.Contains("aiko_complete_stage", contract, StringComparison.Ordinal);
             Assert.Contains("backlog", contract, StringComparison.Ordinal);
 
+            // The owner's workflow, in the text an agent reads first: a request stops at the card, one run is
+            // one stage, and --all is the named exception.
+            Assert.Contains("and stop", contract, StringComparison.Ordinal);
+            Assert.Contains("One run is one stage", contract, StringComparison.Ordinal);
+            Assert.Contains("--all", contract, StringComparison.Ordinal);
+
             var run = await File.ReadAllTextAsync(
                 Path.Combine(context.Project.RootPath, ".cline", "skills", "aiko-run", "SKILL.md"));
             Assert.Contains("aiko_start_stage", run, StringComparison.Ordinal);
+            Assert.Contains("Run ONE stage and stop", run, StringComparison.Ordinal);
+            Assert.Contains("--all", run, StringComparison.Ordinal);
             // The old claim - that moving the card is the only way it changes stage - was wrong and told an
             // agent to move a card it was about to start anyway.
             Assert.DoesNotContain("only way it changes stage", run, StringComparison.Ordinal);
@@ -1913,6 +2013,65 @@ public class InfrastructureSpecs
     }
 
     [Fact]
+    public async Task Starting_the_stage_a_card_is_working_in_continues_it()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            var card = CreateCard(context.Project.Id, "TASK-CONTINUE", 1);
+            await context.Cards.SaveAsync(card, 0, CancellationToken.None);
+
+            var first = await context.Executions.StartAsync(
+                card.Reference, "implementation", "claude-code", CancellationToken.None);
+
+            // The card is pulled back while its stage stays open, then the same stage is started again: the run
+            // is continued rather than opened twice, the card comes back to where the work is, and the run limit
+            // is not consulted - this is the same run, not a second one.
+            var pulledBack = await context.Cards.FindAsync(card.Reference, CancellationToken.None)
+                ?? throw new InvalidOperationException("The card disappeared mid-spec.");
+            await context.Cards.SaveAsync(
+                pulledBack with { StageId = "backlog", Revision = pulledBack.Revision + 1 },
+                pulledBack.Revision,
+                CancellationToken.None);
+            var second = await context.Executions.StartAsync(
+                card.Reference, "implementation", "codex", CancellationToken.None);
+
+            Assert.Equal(first.Id, second.Id);
+            Assert.Equal(StageExecutionState.Running, second.State);
+            Assert.Equal(2, second.Attempts.Count);
+            Assert.Equal(AgentAttemptState.Superseded, second.Attempts[0].State);
+            Assert.Equal("codex", second.Attempts[^1].AgentAdapterId);
+            Assert.Equal(
+                "implementation",
+                (await context.Cards.FindAsync(card.Reference, CancellationToken.None))!.StageId);
+            Assert.Single(await context.Executions.ListAsync(card.Reference, CancellationToken.None));
+        });
+    }
+
+    [Fact]
+    public async Task Starting_another_stage_while_one_is_unfinished_is_refused()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            var card = CreateCard(context.Project.Id, "TASK-UNFINISHED", 1);
+            await context.Cards.SaveAsync(card, 0, CancellationToken.None);
+            var started = await context.Executions.StartAsync(
+                card.Reference, "analysis", "claude-code", CancellationToken.None);
+            await context.Executions.PauseAsync(
+                started.Id, "Waiting for the user.", CancellationToken.None);
+
+            var refused = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await context.Executions.StartAsync(
+                    card.Reference, "implementation", "claude-code", CancellationToken.None));
+
+            // The refusal names the stage, the state it stopped in and what to do: an agent has to be able to
+            // act on it without reading the daemon's log.
+            Assert.Contains("analysis", refused.Message, StringComparison.Ordinal);
+            Assert.Contains("Paused", refused.Message, StringComparison.Ordinal);
+            Assert.Contains("aiko_complete_stage", refused.Message, StringComparison.Ordinal);
+        });
+    }
+
+    [Fact]
     public async Task Rate_limited_execution_hands_off_without_losing_history()
     {
         await WithInitializedProjectAsync(async context =>
@@ -1928,10 +2087,13 @@ public class InfrastructureSpecs
                 "implementation",
                 "claude-code",
                 CancellationToken.None);
+            // A second run of the card is refused while this one is open. The same stage would now be continued
+            // (TASK-16), so the refusal this spec guards is the other one: another stage has to wait until this
+            // stage is finished.
             await Assert.ThrowsAsync<InvalidOperationException>(async () =>
                 await context.Executions.StartAsync(
                     card.Reference,
-                    "implementation",
+                    "review",
                     "codex",
                     CancellationToken.None));
 
@@ -1957,6 +2119,7 @@ public class InfrastructureSpecs
             Assert.Equal(AgentAttemptState.RateLimited, handedOff.Attempts[0].State);
             Assert.Equal("codex", handedOff.Attempts[1].AgentAdapterId);
 
+            await EstimateAsync(context, card);
             var completed = await context.Executions.CompleteAsync(
                 started.Id,
                 ["src/Storage.cs", "docs/storage.md"],
@@ -1967,7 +2130,7 @@ public class InfrastructureSpecs
             Assert.Equal("docs/storage.md", outOfScope);
 
             var savedCard = await context.Cards.FindAsync(card.Reference, CancellationToken.None);
-            Assert.Equal(3L, savedCard?.Revision);
+            Assert.Equal(4L, savedCard?.Revision);
             Assert.Equal(2, savedCard?.ActualChangedFiles.Count);
 
             var handoffDirectory = Path.Combine(
@@ -1978,6 +2141,37 @@ public class InfrastructureSpecs
             Assert.Single(Directory.GetFiles(handoffDirectory, "*.md"));
         });
     }
+    [Fact]
+    public async Task Completing_a_stage_requires_a_card_that_was_re_estimated_in_the_run()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            var card = CreateCard(context.Project.Id, "TASK-ESTIMATE-GATE", 1);
+            await context.Cards.SaveAsync(card, 0, CancellationToken.None);
+            var started = await context.Executions.StartAsync(
+                card.Reference, "implementation", "claude-code", CancellationToken.None);
+
+            // The card still carries the estimate it was created with - nothing refreshed it during this run, so
+            // completing the stage would record a readiness that describes the card as it was before the work.
+            var refused = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await context.Executions.CompleteAsync(
+                    started.Id, ["src/Storage.cs"], [], CancellationToken.None));
+            Assert.Contains("aiko_estimate_card", refused.Message, StringComparison.Ordinal);
+            Assert.Contains("readiness", refused.Message, StringComparison.Ordinal);
+            Assert.Contains("TASK-ESTIMATE-GATE", refused.Message, StringComparison.Ordinal);
+
+            // The refusal is a gate, not a cancellation: the run is still open and can be finished.
+            var stillOpen = await context.Executions.FindAsync(started.Id, CancellationToken.None);
+            Assert.Equal(StageExecutionState.Running, stillOpen?.State);
+
+            await EstimateAsync(context, card);
+            var completed = await context.Executions.CompleteAsync(
+                started.Id, ["src/Storage.cs"], [], CancellationToken.None);
+            Assert.Equal(StageExecutionState.Completed, completed.State);
+        });
+    }
+
+
 
     [Fact]
     public async Task An_agent_whose_application_leaves_a_data_directory_is_detected_without_an_executable()
@@ -2389,6 +2583,7 @@ public class InfrastructureSpecs
                     configuration,
                     new AccessTokenStore(dataPaths),
                     context.Cards,
+                    new FileProjectDefinitionStore(context.Catalog),
                     context.Executions);
 
                 var report = await doctor.InspectAsync(context.Project.Id, CancellationToken.None);
@@ -2748,6 +2943,25 @@ public class InfrastructureSpecs
             [],
             [],
             new Dictionary<string, string>());
+
+    /// <summary>
+    /// Records an estimate on the card, which is what a stage's completion now requires: the moment of the
+    /// estimate goes into the card's metadata through the same key the estimate tools write.
+    /// </summary>
+    private static async Task EstimateAsync(TestContext context, Card card)
+    {
+        var current = await context.Cards.FindAsync(card.Reference, CancellationToken.None)
+            ?? throw new InvalidOperationException($"Unknown card: {card.Reference.CardId}");
+        var metadata = new Dictionary<string, string>(current.Metadata, StringComparer.Ordinal)
+        {
+            [Card.EstimatedAtMetadataKey] =
+                DateTimeOffset.UtcNow.ToString("O", System.Globalization.CultureInfo.InvariantCulture)
+        };
+        await context.Cards.SaveAsync(
+            current with { Metadata = metadata, Revision = current.Revision + 1 },
+            current.Revision,
+            CancellationToken.None);
+    }
 
     private static async Task WithInitializedProjectAsync(Func<TestContext, Task> assertion)
     {

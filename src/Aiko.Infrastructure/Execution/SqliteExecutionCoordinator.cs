@@ -79,6 +79,41 @@ public sealed class SqliteExecutionCoordinator(
     }
 
     /// <inheritdoc />
+    public async ValueTask<IReadOnlyList<StageRunSummary>> ReadStageRunsAsync(
+        string projectId,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
+        var project = await FindProjectAsync(projectId, cancellationToken);
+
+        await using var connection = database.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        // SQLite returns the row a MAX() belongs to, so this is one row per pair: the latest run of that stage
+        // and nothing about the ones before it - which is all a badge needs.
+        command.CommandText =
+            """
+            SELECT card_id, stage_id, state, MAX(updated_utc)
+            FROM executions
+            WHERE project_id = $projectId
+            GROUP BY card_id, stage_id;
+            """;
+        command.Parameters.AddWithValue("$projectId", project.Id);
+
+        var runs = new List<StageRunSummary>();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            runs.Add(new StageRunSummary(
+                reader.GetString(0),
+                reader.GetString(1),
+                reader.GetString(2)));
+        }
+
+        return runs;
+    }
+
+    /// <inheritdoc />
     public async ValueTask<StageExecution> StartAsync(
         CardReference card,
         string stageId,
@@ -104,10 +139,26 @@ public sealed class SqliteExecutionCoordinator(
             var sourceCard = await cards.FindAsync(card, cancellationToken)
                 ?? throw new KeyNotFoundException($"Unknown card: {card.ProjectId}/{card.CardId}");
             var existing = await ListAsync(card, cancellationToken);
-            if (existing.Any(execution => !IsTerminal(execution.State)))
+            var unfinished = existing.FirstOrDefault(execution => !IsTerminal(execution.State));
+            if (unfinished is not null)
             {
-                throw new InvalidOperationException(
-                    "The card already has an active stage execution. Resume or hand it off instead.");
+                // A repeated start of the stage that is still open continues it: that is what "run the card
+                // again" means while its stage is unfinished, and a second execution for the same stage would
+                // only split the history of one attempt in two.
+                if (!StringComparer.Ordinal.Equals(unfinished.StageId, stageId))
+                {
+                    throw new InvalidOperationException(
+                        $"stage '{unfinished.StageId}' of card '{card.CardId}' is not finished: its state is "
+                        + $"{unfinished.State}. Continue it with aiko_start_stage '{unfinished.StageId}', or "
+                        + $"complete it with aiko_complete_stage, before starting '{stageId}'.");
+                }
+
+                return await ContinueAsync(
+                    unfinished,
+                    sourceCard,
+                    stageId,
+                    agentAdapterId,
+                    cancellationToken);
             }
 
             var effectiveSettings = settings is null
@@ -190,6 +241,66 @@ public sealed class SqliteExecutionCoordinator(
             await SaveAsync(execution, true, cancellationToken);
             return execution;
         }
+    }
+
+    /// <summary>
+    /// Continues an execution whose stage was left unfinished: the same execution is put back to running with a
+    /// new agent attempt, so the history of that stage stays in one place.
+    /// </summary>
+    /// <remarks>
+    /// The run limit is deliberately not consulted. Continuing is not a second run of the project, it is the
+    /// same one picked up again - and refusing it would leave a card that nobody can move on (leaving an
+    /// unfinished stage is refused) and nobody can resume, which is a dead end rather than a guard rail.
+    /// </remarks>
+    private async ValueTask<StageExecution> ContinueAsync(
+        StageExecution execution,
+        Card sourceCard,
+        string stageId,
+        string agentAdapterId,
+        CancellationToken cancellationToken)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var attempts = execution.Attempts.ToList();
+        if (attempts.Count > 0 &&
+            attempts[^1].State is AgentAttemptState.Queued or
+                AgentAttemptState.Running or
+                AgentAttemptState.WaitingForUser or
+                AgentAttemptState.Paused)
+        {
+            attempts[^1] = attempts[^1] with
+            {
+                State = AgentAttemptState.Superseded,
+                FinishedAt = now,
+                ExitReason = "Continued by a new attempt on the same stage."
+            };
+        }
+
+        attempts.Add(new AgentAttempt(
+            Guid.CreateVersion7().ToString("N"),
+            agentAdapterId,
+            null,
+            AgentAttemptState.Running,
+            now,
+            null,
+            null));
+
+        if (!StringComparer.Ordinal.Equals(sourceCard.StageId, stageId))
+        {
+            // The card was pulled back while its stage stayed open: put it back where the work is.
+            await cards.SaveAsync(
+                sourceCard with { StageId = stageId, Revision = sourceCard.Revision + 1 },
+                sourceCard.Revision,
+                cancellationToken);
+        }
+
+        var continued = execution with
+        {
+            Attempts = attempts,
+            State = StageExecutionState.Running,
+            UpdatedAt = now
+        };
+        await SaveAsync(continued, create: false, cancellationToken);
+        return continued;
     }
 
     /// <inheritdoc />
@@ -331,6 +442,7 @@ public sealed class SqliteExecutionCoordinator(
                 var card = await cards.FindAsync(execution.Card, cancellationToken)
                     ?? throw new KeyNotFoundException(
                         $"Unknown card: {execution.Card.ProjectId}/{execution.Card.CardId}");
+                await EnsureEstimateAsync(execution, card, cancellationToken);
                 await cards.SaveAsync(
                     card with
                     {
@@ -342,6 +454,46 @@ public sealed class SqliteExecutionCoordinator(
                 return completed;
             },
             cancellationToken);
+
+    /// <summary>
+    /// Refuses to complete a stage whose card was not estimated during that run.
+    /// </summary>
+    /// <remarks>
+    /// The readiness criterion is the one number that says how much of the promised outcome exists, and it is
+    /// the agent's job to keep it describing the card as it is after each change. Nothing used to check that,
+    /// so a card could walk the whole pipeline carrying the score it was created with. The project's criteria
+    /// are what make the check possible: a project without them, or a caller with no settings service, has
+    /// nothing to estimate and completes freely.
+    /// </remarks>
+    private async ValueTask EnsureEstimateAsync(
+        StageExecution execution,
+        Card card,
+        CancellationToken cancellationToken)
+    {
+        if (settings is null)
+        {
+            return;
+        }
+
+        var priority = await settings.GetEffectivePriorityAsync(
+            execution.Card.ProjectId,
+            cancellationToken);
+        if (priority.Criteria.Count == 0)
+        {
+            return;
+        }
+
+        if (card.EstimatedAt is { } estimatedAt && estimatedAt >= execution.CreatedAt)
+        {
+            return;
+        }
+
+        throw new InvalidOperationException(
+            $"card '{card.Reference.CardId}' was not re-estimated during this run of stage "
+            + $"'{execution.StageId}': its readiness still describes the card as it was before the work. "
+            + "Call aiko_estimate_card with the criterion that says how ready the card is - readiness, or "
+            + "whatever this project named it - then complete the stage.");
+    }
 
     /// <inheritdoc />
     public ValueTask<StageExecution> PauseAsync(

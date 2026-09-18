@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json.Serialization;
 
 namespace Aiko.Domain.Cards;
@@ -49,6 +50,29 @@ public sealed record Card(
     /// metadata instead of widening every card document with a field most of them leave empty.
     /// </remarks>
     public const string RequirementsMetadataKey = "requirements";
+
+    /// <summary>
+    /// The key a card's last estimate is recorded under in <see cref="Metadata"/>: the moment the size and
+    /// the criterion scores were last written.
+    /// </summary>
+    /// <remarks>
+    /// The scores alone cannot say whether they describe the card as it is now. A stage is closed because its
+    /// work is done, and the readiness score is the only place that fact shows, so completing a stage with a
+    /// score nobody refreshed would record a card that looks less ready than it is. The timestamp is what
+    /// makes "was the card re-estimated in this run?" answerable.
+    /// </remarks>
+    public const string EstimatedAtMetadataKey = "estimatedAt";
+
+    /// <summary>
+    /// When the card was last estimated in round-trip form, or null when it never was. Unreadable text reads
+    /// as "never estimated", which is the safe answer: a stale score must not look fresh.
+    /// </summary>
+    [JsonIgnore]
+    public DateTimeOffset? EstimatedAt =>
+        Metadata.TryGetValue(EstimatedAtMetadataKey, out var value) &&
+        DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var at)
+            ? at
+            : null;
 
     /// <summary>
     /// What the card is asked to do, in the words of whoever wrote it, or null when nobody wrote any.

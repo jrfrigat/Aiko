@@ -386,6 +386,13 @@
   <data name="MemoryProfile" xml:space="preserve"><value>Профиль памяти</value></data>
   <data name="ManagedHeap" xml:space="preserve"><value>managed heap {0}</value></data>
   <data name="StageLoadHint" xml:space="preserve"><value>Каждая полоса - доля этапа от самого нагруженного этапа его конвейера</value></data>
+  <data name="StageStatePending" xml:space="preserve"><value>Ожидает</value></data>
+  <data name="StageStateRunning" xml:space="preserve"><value>Выполняется</value></data>
+  <data name="StageStatePaused" xml:space="preserve"><value>Приостановлено</value></data>
+  <data name="StageStateWaiting" xml:space="preserve"><value>Ожидание решения</value></data>
+  <data name="StageStateBlocked" xml:space="preserve"><value>Сбой</value></data>
+  <data name="StageStateDone" xml:space="preserve"><value>Этап завершён</value></data>
+  <data name="StagesFinishedCount" xml:space="preserve"><value>этапов завершено: {0}</value></data>
   <data name="GitHubRepository" xml:space="preserve"><value>Aiko на GitHub</value></data>
   <data name="TemplateScope" xml:space="preserve"><value>Workflow по умолчанию</value></data>
   <data name="TemplateSettingsHeading" xml:space="preserve"><value>Настройки workflow по умолчанию</value></data>

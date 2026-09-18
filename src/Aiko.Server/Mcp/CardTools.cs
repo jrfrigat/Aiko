@@ -179,6 +179,15 @@ internal sealed class CardTools(
             Size = size is null ? existing.Size : string.IsNullOrWhiteSpace(size) ? null : size.Trim(),
             CriterionValues = scores is null ? existing.CriterionValues : scores,
             OwnPriority = ParseOwnPriority(ownPriority) ?? existing.OwnPriority,
+            // The moment of the estimate is recorded only when criterion scores were written: the size alone
+            // says nothing about how ready the card is, and the gate on a stage's completion reads the moment.
+            Metadata = scores is null
+                ? existing.Metadata
+                : new Dictionary<string, string>(existing.Metadata, StringComparer.Ordinal)
+                {
+                    [Card.EstimatedAtMetadataKey] =
+                        DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture)
+                },
             Revision = existing.Revision + 1
         };
         await cards.SaveAsync(updated, expectedRevision, cancellationToken);
@@ -266,7 +275,9 @@ internal sealed class CardTools(
             card.StageId,
             stage.Id,
             stages,
-            cardExecutions.Select(execution => execution.StageId).ToArray());
+            cardExecutions
+                .Select(execution => new StageRun(execution.StageId, execution.State))
+                .ToArray());
         if (refusal is not null)
         {
             throw new InvalidOperationException(refusal);

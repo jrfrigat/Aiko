@@ -53,6 +53,29 @@ and refuses to leave a stage that was never run, so a card cannot be declared fi
 dragging a card on the board is deliberately not held to that rule: the board is how a person corrects their
 own board, and `aiko doctor` reports the cards that were pushed past a stage anyway.
 
+**One run is one stage.** A request in the chat is not a run: it creates a card in the backlog
+(`aiko_create_card`, or `/aiko-create`) and stops there - the work begins when the user asks for it ("выполни",
+`/aiko-run <cardId>`). That run performs exactly one stage: `aiko_start_stage` for the stage the card is in,
+the work, `aiko_complete_stage`, then stop. Running the card again while its stage is unfinished continues
+that same run, so a half-finished stage is never stepped over, and starting the next stage is refused until
+the current one is completed. `/aiko-run <cardId> --all` is the explicit exception: it walks the pipeline by
+itself, and even then it stops when a stage asks the user a question, when an agent fails or hits its rate
+limit, when a stage's policy forbids an action, or when a required artifact cannot be produced.
+
+A stage is completed only when its required artifacts are in place and the card was re-estimated during that
+run: `aiko_complete_stage` refuses otherwise, because the readiness criterion is what says the work is done.
+A project that defines no criteria has nothing to estimate and completes without the check.
+
+A run is in one of five states the card page and the board show: **pending** (no run yet), **running**,
+**paused** (paused, failed or rate-limited), **waiting for a decision** and **completed**. "Running" means the
+agent reported it, not that its process is alive: Aiko never starts agents.
+
+`aiko_get_project_context` also states the project's **git policy** - whether Aiko's `.aiko` tree is tracked
+(`LocalOnly` ignores it and keeps it on the machine, `TrackProjectKnowledge` commits the project knowledge,
+`Custom` leaves `.gitignore` to the person) - and its **commit policy** for the shared checkout: `Allow`
+(make the commit and record it with `aiko_report_commit`), `Ask` (propose it and wait for the answer) or `Deny`
+(do not commit). Aiko never runs git itself and never creates a commit; it only records what an agent reports.
+
 ## Authentication
 
 The daemon authenticates its MCP endpoint with the local access token, so **every generated MCP entry

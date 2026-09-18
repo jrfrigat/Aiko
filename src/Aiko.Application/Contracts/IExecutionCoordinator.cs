@@ -24,6 +24,16 @@ public interface IExecutionCoordinator
         CancellationToken cancellationToken);
 
     /// <summary>
+    /// Where each stage of each card got to: the latest run per (card, stage) pair, for the screens that show a
+    /// card's progress without loading its whole history.
+    /// </summary>
+    /// <param name="projectId">Project to read, by id or by its readable handle.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    ValueTask<IReadOnlyList<StageRunSummary>> ReadStageRunsAsync(
+        string projectId,
+        CancellationToken cancellationToken);
+
+    /// <summary>
     /// Starts a new stage execution of the card for the given agent;
     /// parallel active executions of one card are rejected.
     /// </summary>

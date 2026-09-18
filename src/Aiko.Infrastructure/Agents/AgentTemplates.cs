@@ -285,18 +285,25 @@ internal static class AgentTemplates
     /// agent is responsible, and a file that belongs to one adapter already knows the answer.
     /// </param>
     public static string Run(string agentAdapterId) => $"""
-        Run a card in Aiko. The user named the card: its id is the first argument, and an optional stage id
-        may follow as the second.
+        Run a card in Aiko. The user named the card: its id is the first argument, an optional stage id may
+        follow as the second, and --all may follow as the last one.
 
         Read aiko_get_project_context and aiko_get_card for that card. The context lists the card's type, its
         pipeline and what each stage demands; the card says which stage it is in right now.
 
-        Run the stage with aiko_start_stage, passing the card id, the id of the stage you mean to work, and
+        Run ONE stage and stop: the user asked for this stage, and asking for the next one is theirs to do.
+        Start it with aiko_start_stage, passing the card id, the id of the stage you mean to work, and
         "{agentAdapterId}" as the agent adapter id. The start moves the card into that stage, so a card may
         still be sitting in its backlog when you begin - and until that start, the card has no work in it:
-        do not create or change any file for it beforehand. Never start a second execution for a card that
-        already has one: if aiko_start_stage refuses because the card has an active execution, continue,
-        complete or hand off that execution instead of starting another.
+        do not create or change any file for it beforehand. A stage that is not finished is the stage you
+        work: starting it again continues that same run, and starting a different one is refused until it is
+        done.
+
+        If the user passed --all, do not stop between stages: after aiko_complete_stage, start the next stage
+        of the pipeline and keep going until it ends, filling in every card as you go (progress, artifacts and
+        the re-score below). Even then, stop and tell the user when a stage asks them a question, when an agent
+        fails or hits its rate limit, when the stage's policy forbids an action, or when a required artifact
+        cannot be produced.
 
         Do what the stage's instruction asks for and honour its beforeSkills and afterSkills. Produce the
         artifacts the stage requires, because they are what the stage is judged by. Complete the stage with
@@ -310,11 +317,6 @@ internal static class AgentTemplates
         Post the outcome of the stage into the card's own feed with aiko_add_comment - what you did, what you
         found and what is left - so the card explains what came of it instead of carrying an empty discussion.
         Read aiko_list_comments first when the card already has one, and answer what is there.
-
-        Before you complete the stage, re-score the card with aiko_estimate_card: the project context lists
-        its criteria, and the one about how complete the card is (complete, or whatever the project named
-        readiness) must describe the card as it is after your change, not as it was before it. Re-score the
-        importance criteria - app-point and user-point - only when the work changed what they measured.
 
         Finish with aiko_complete_stage, recording the files you changed, the artifacts you produced and how
         you verified the result, and keep durable conclusions with aiko_store_memory. If you cannot finish - a
@@ -537,13 +539,21 @@ internal static class AgentTemplates
     public const string ProjectInstructions =
         """
         When Aiko MCP is available, use it as the durable project workflow and task memory. Any work the user
-        asks for starts with a card: create it in Aiko first (aiko_create_card, or /aiko-create). A card in its
-        backlog stage has no work in it yet, so never create or change files for a card before you have started
-        the stage you are working in with aiko_start_stage - the start moves the card into that stage and is
-        what records the work. Do what the stage's instruction asks for, produce its required artifacts and
-        complete it with aiko_complete_stage; only then does the card move on, and aiko_move_card refuses to
-        advance a card whose stage was never run. Read the project context before touching files.
-        Warn before modifying files outside the card scopeFiles and record the actual changed files.
+        asks for starts with a card: create it in Aiko first (aiko_create_card, or /aiko-create), and stop
+        there - the card is the answer to the request, and the work begins when the user asks for it (aiko-run,
+        or "выполни"). A card in its backlog stage has no work in it yet, so never create or change files for a
+        card before you have started the stage you are working in with aiko_start_stage - the start moves the
+        card into that stage and is what records the work. Do what the stage's instruction asks for, produce
+        its required artifacts and complete it with aiko_complete_stage; only then does the card move on, and
+        aiko_move_card refuses to advance a card whose stage is not finished. Before you complete a stage,
+        re-estimate the card with aiko_estimate_card: the readiness criterion is what says the work is done,
+        and it must describe the card as it is after your change - a stage is not completed with a score
+        nobody refreshed. One run is one stage: work the next stage only when the user asks again, and
+        /aiko-run <cardId> --all is the explicit exception - it
+        walks the pipeline, and even then it stops when a stage asks the user a question, when an agent fails or
+        hits its limit, when a stage forbids an action, or when a required artifact cannot be produced. Read the
+        project context before touching files. Warn before modifying files outside the card scopeFiles and
+        record the actual changed files.
         """;
 
     /// <summary>
@@ -557,9 +567,13 @@ internal static class AgentTemplates
         ---
 
         When Aiko MCP is available, read its project context before project work. Any work the user asks for
-        starts with a card: create it in Aiko first, then start the stage you are working in with
-        aiko_start_stage - a card in its backlog has no work in it, so no file is created or changed for it
-        before that start. Produce the stage's artifacts, complete it, and keep card status, progress, scope
-        changes, actual changed files and agent handoffs synchronized.
+        starts with a card: create it in Aiko first and stop there - the work begins when the user asks for it.
+        Then start the stage you are working in with aiko_start_stage - a card in its backlog has no work in it,
+        so no file is created or changed for it before that start. Before you complete a stage, re-estimate the
+        card with aiko_estimate_card - the readiness criterion must describe the card as it is after the work.
+        One run is one stage: after
+        aiko_complete_stage stop, unless the user asked for --all, which walks the pipeline and still stops on a
+        question to the user, a failure or a forbidden action. Produce the stage's artifacts and keep card
+        status, progress, scope changes, actual changed files and agent handoffs synchronized.
         """;
 }

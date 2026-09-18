@@ -151,3 +151,11 @@ with `/aiko-run`), and do the work under that execution; the history of a stage 
 what makes the card readable afterwards. The rule that prevents a repeat is the one agents read before they
 touch files: work belongs to a stage execution, and `aiko_move_card` refuses to advance a card whose stage
 was never run.
+
+`aiko doctor` reports a second, quieter version of the same problem as *"N card(s) moved on from a stage
+that was not finished"*. Here the card has runs, so it looks worked, but the stage it came from was only
+started - or never started - and the card moved past it anyway. Each entry names the card, the stage it left
+and how that stage stopped: `still running`, `paused`, `waiting for a user decision`, `stopped and needs
+attention`, `cancelled` or `not started`. What to do: go back to that stage, continue it with
+`aiko_start_stage` or finish it with `aiko_complete_stage`; a card moves on because its stage is completed,
+not because the card was moved on.

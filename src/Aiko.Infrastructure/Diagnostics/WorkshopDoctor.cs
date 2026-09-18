@@ -1,5 +1,6 @@
 using Aiko.Application.Agents;
 using Aiko.Application.Contracts;
+using Aiko.Domain.Execution;
 using Aiko.Domain.Workflow;
 using Aiko.Infrastructure.Settings;
 using Aiko.Infrastructure.Storage;
@@ -23,6 +24,7 @@ public sealed class WorkshopDoctor(
     DaemonEndpointConfiguration endpoint,
     AccessTokenStore tokens,
     ICardStore cards,
+    IProjectDefinitionStore definitions,
     IExecutionCoordinator executions) : IWorkshopDiagnostics
 {
     /// <inheritdoc />
@@ -150,22 +152,26 @@ public sealed class WorkshopDoctor(
     }
 
     /// <summary>
-    /// Reports cards that left the backlog without a single execution: progress nothing worked for.
+    /// Reports cards whose progress the pipeline cannot account for: cards past the backlog with no execution
+    /// at all, and cards that moved on from a stage that was never finished.
     /// </summary>
     /// <remarks>
     /// A card can only leave the backlog by moving into its pipeline, and a stage that ran leaves an execution
     /// behind. A card past the backlog with none of them was pushed along without the pipeline - by hand, or by
     /// an agent that edited files while the card still sat in the backlog - and what that looks like on the
-    /// board is a card that appears worked while its runs tab, artifacts and history are empty. Saying it out
-    /// loud is the point: the state is otherwise invisible until someone goes looking. Read-only, like every
-    /// other check here.
+    /// board is a card that appears worked while its runs tab, artifacts and history are empty. The second case
+    /// is quieter: the stage was started, so there is a run, but the run never completed and the card was moved
+    /// past it anyway, so the card looks further along than the work behind it. Both states are invisible until
+    /// someone goes looking, which is why the doctor says them out loud. Read-only, like every other check here.
     /// </remarks>
     private async ValueTask InspectCardProgressAsync(
         RegisteredProject project,
         List<DiagnosticFinding> findings,
         CancellationToken cancellationToken)
     {
+        var board = await definitions.ReadAsync(project.Id, cancellationToken);
         var unworked = new List<string>();
+        var abandoned = new List<string>();
         foreach (var card in await cards.ListAsync(project.Id, cancellationToken))
         {
             if (StringComparer.Ordinal.Equals(card.StageId, WorkflowDefinition.BacklogStageId))
@@ -173,26 +179,109 @@ public sealed class WorkshopDoctor(
                 continue;
             }
 
-            if ((await executions.ListAsync(card.Reference, cancellationToken)).Count == 0)
+            var runs = await executions.ListAsync(card.Reference, cancellationToken);
+            if (runs.Count == 0)
             {
                 unworked.Add(card.Reference.CardId);
+                continue;
+            }
+
+            var leavingStage = PreviousStage(board, card.WorkflowId, card.StageId);
+            if (leavingStage is null)
+            {
+                continue;
+            }
+
+            var stageRuns = runs
+                .Where(run => StringComparer.Ordinal.Equals(run.StageId, leavingStage.Id))
+                .ToArray();
+            if (stageRuns.Any(run => run.State == StageExecutionState.Completed))
+            {
+                continue;
+            }
+
+            var state = stageRuns.Length == 0 ? "not started" : Describe(stageRuns[^1].State);
+            abandoned.Add($"{card.Reference.CardId} (left '{leavingStage.Id}', which was {state})");
+        }
+
+        if (unworked.Count > 0)
+        {
+            findings.Add(new DiagnosticFinding(
+                "card-progress",
+                DiagnosticSeverity.Warning,
+                $"{project.Name}: {unworked.Count} card(s) left the backlog without a single run: "
+                    + $"{Summarize(unworked)}. Nothing was worked through a stage there, so the card has no "
+                    + "execution, no artifacts and no history - start the stage with aiko_start_stage before "
+                    + "working a card.",
+                project.RootPath));
+        }
+
+        if (abandoned.Count > 0)
+        {
+            findings.Add(new DiagnosticFinding(
+                "card-progress",
+                DiagnosticSeverity.Warning,
+                $"{project.Name}: {abandoned.Count} card(s) moved on from a stage that was not finished: "
+                    + $"{Summarize(abandoned)}. A card moves on because its stage is completed, not because "
+                    + "the card was moved on - continue that stage with aiko_start_stage, or complete it with "
+                    + "aiko_complete_stage.",
+                project.RootPath));
+        }
+    }
+
+    /// <summary>The stage a card in <paramref name="stageId"/> came from, or null when there is none to check.</summary>
+    /// <remarks>
+    /// Walking one step back is enough: a forward move advances a single stage, so the stage just before the
+    /// card is the one it left. The backlog is skipped - leaving it is how work begins, and the execution that
+    /// follows is what records it.
+    /// </remarks>
+    private static StageDefinition? PreviousStage(
+        ProjectBoardDefinition board,
+        string workflowId,
+        string stageId)
+    {
+        var workflow = board.Workflows
+            .FirstOrDefault(item => StringComparer.Ordinal.Equals(item.Id, workflowId));
+        if (workflow is null)
+        {
+            return null;
+        }
+
+        var index = -1;
+        for (var candidate = 0; candidate < workflow.Stages.Count; candidate++)
+        {
+            if (StringComparer.Ordinal.Equals(workflow.Stages[candidate].Id, stageId))
+            {
+                index = candidate;
+                break;
             }
         }
 
-        if (unworked.Count == 0)
+        if (index <= 0)
         {
-            return;
+            return null;
         }
 
-        var shown = string.Join(", ", unworked.Take(5));
-        var rest = unworked.Count > 5 ? $" and {unworked.Count - 5} more" : string.Empty;
-        findings.Add(new DiagnosticFinding(
-            "card-progress",
-            DiagnosticSeverity.Warning,
-            $"{project.Name}: {unworked.Count} card(s) left the backlog without a single run: {shown}{rest}. "
-                + "Nothing was worked through a stage there, so the card has no execution, no artifacts and no "
-                + "history - start the stage with aiko_start_stage before working a card.",
-            project.RootPath));
+        var previous = workflow.Stages[index - 1];
+        return WorkflowDefinition.IsBacklog(previous) ? null : previous;
+    }
+
+    /// <summary>How a stage run ended, in words a person reads, for the finding above.</summary>
+    private static string Describe(StageExecutionState state) => state switch
+    {
+        StageExecutionState.Running => "still running",
+        StageExecutionState.Paused => "paused",
+        StageExecutionState.WaitingForUser => "waiting for a user decision",
+        StageExecutionState.NeedsAttention => "stopped and needs attention",
+        StageExecutionState.Cancelled => "cancelled",
+        _ => state.ToString()
+    };
+
+    /// <summary>A bounded, comma-separated list for a finding, so a long project still reads.</summary>
+    private static string Summarize(IReadOnlyList<string> items)
+    {
+        var shown = string.Join(", ", items.Take(5));
+        return items.Count > 5 ? $"{shown} and {items.Count - 5} more" : shown;
     }
 
     /// <summary>

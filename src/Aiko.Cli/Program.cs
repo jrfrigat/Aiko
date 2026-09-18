@@ -1033,6 +1033,7 @@ static async Task<WorkshopDiagnostics> InspectAsync(string? projectId)
         new DaemonEndpointConfiguration(dataPaths),
         new AccessTokenStore(dataPaths),
         cards,
+        new FileProjectDefinitionStore(catalog),
         new SqliteExecutionCoordinator(
             catalog,
             cards,

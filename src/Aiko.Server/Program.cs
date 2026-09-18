@@ -59,6 +59,7 @@ builder.Services.AddSingleton<IProjectAnalytics, SqliteProjectAnalytics>();
 builder.Services.AddSingleton<IDaemonTelemetry, SqliteDaemonTelemetry>();
 builder.Services.AddSingleton<ICardDiscussionStore, FileCardDiscussionStore>();
 builder.Services.AddSingleton<IProjectDefinitionStore, FileProjectDefinitionStore>();
+builder.Services.AddSingleton<IProjectGitPolicyReader, FileProjectGitPolicyReader>();
 builder.Services.AddSingleton<ICardStore, FileCardStore>();
 builder.Services.AddSingleton<ICardArtifactStore, FileCardArtifactStore>();
 builder.Services.AddSingleton<IRelationStore, FileRelationStore>();
