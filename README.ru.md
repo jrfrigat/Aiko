@@ -12,7 +12,7 @@
 [![Статус](https://img.shields.io/badge/status-MVP%20foundation-orange)](docs/ru/technical-specification.md)
 
 Aiko (AI kanban orchestrator) - **локальный оркестратор разработки с участием ИИ**: один loopback-демон
-дает Claude Code, Codex, Cursor и ZCode общий контекст проекта, настраиваемый Kanban-конвейер,
+дает Claude Code, Codex, Cursor, ZCode и Cline общий контекст проекта, настраиваемый Kanban-конвейер,
 устойчивую память и стабильный MCP-контракт - при этом все данные остаются на диске в
 Git-дружелюбных Markdown и JSON.
 
@@ -54,7 +54,7 @@ Aiko не заменяет агентов. Он связывает их: кар�
   попытку агента, поэтому handoff, resume, pause и rate-limit не теряют историю
 - **Устойчивая память** - решения, соглашения и уроки живут в `.aiko/memory` как Markdown и
   ищутся через FTS5-индекс SQLite
-- **Единый установщик агентов** - обнаруживает установки Claude Code, Codex, Cursor и ZCode и
+- **Единый установщик агентов** - обнаруживает установки Claude Code, Codex, Cursor, ZCode и Cline и
   идемпотентно применяет проектную конфигурацию (MCP-записи, управляемые блоки, собственные
   skills/команды), сохраняя настройки пользователя; планы по адаптерам и точечное удаление
 - **SQLite-проекции, перестраиваемые** - глобальная база SQLite это индекс и runtime-состояние;
@@ -87,7 +87,7 @@ irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1 | i
 `server\`) и добавляет каталог в пользовательский `PATH`. Ничего не ставится на всю машину,
 права администратора не нужны.
 
-В конце он спрашивает, с какими агентами работать (Claude Code, Codex, Cursor, ZCode), и записывает
+В конце он спрашивает, с какими агентами работать (Claude Code, Codex, Cursor, ZCode, Cline), и записывает
 им глобальные MCP-запись, скиллы `/aiko-*` и общую память; Enter - пропустить вопрос. Ответить без
 диалога: `-Agents claude-code,codex`, пропустить: `-NoAgentSetup`.
 

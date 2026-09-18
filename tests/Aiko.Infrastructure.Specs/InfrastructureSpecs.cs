@@ -1644,6 +1644,71 @@ public class InfrastructureSpecs
 
 
     [Fact]
+    public async Task Cline_configuration_uses_its_own_paths_and_the_streamable_http_transport()
+    {
+        var home = Path.Combine(Path.GetTempPath(), "Aiko.Specs", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(home);
+        var originalHome = Environment.GetEnvironmentVariable("AIKO_USER_HOME");
+        try
+        {
+            Environment.SetEnvironmentVariable("AIKO_USER_HOME", home);
+            await WithInitializedProjectAsync(async context =>
+            {
+                var installer = new UnifiedAgentInstaller(
+                    [new ClineAgentAdapter()],
+                    context.Catalog,
+                    new FileProjectDefinitionStore(context.Catalog));
+                var applied = await installer.ApplyAsync(
+                    context.Project.Id,
+                    $"http://127.0.0.1:18471/mcp/projects/{context.Project.Id}",
+                    "test-token",
+                    ["cline"],
+                    CancellationToken.None);
+                Assert.All(applied.AdapterResults, result => Assert.True(result.Succeeded));
+
+                // The entry is named after the project folder, so several projects can be connected at once.
+                var key = $"aiko-{Path.GetFileName(context.Project.RootPath)}";
+
+                // Both of Cline's global files carry the entry: the app and IDE read the settings file, the
+                // CLI reads mcp.json.
+                foreach (var path in new[]
+                         {
+                             Path.Combine(home, ".cline", "mcp.json"),
+                             Path.Combine(home, ".cline", "data", "settings", "cline_mcp_settings.json")
+                         })
+                {
+                    var text = await File.ReadAllTextAsync(path);
+                    Assert.Contains($"\"{key}\"", text, StringComparison.Ordinal);
+                    // Cline falls back to the legacy SSE transport when the type is missing, so the
+                    // streamable HTTP transport has to be spelled out.
+                    Assert.Contains("\"type\": \"streamableHttp\"", text, StringComparison.Ordinal);
+                    Assert.Contains("Bearer test-token", text, StringComparison.Ordinal);
+                }
+
+                // The workspace carries what Cline reads per project: the skill and the rule.
+                Assert.True(File.Exists(Path.Combine(
+                    context.Project.RootPath, ".cline", "skills", "aiko", "SKILL.md")));
+                Assert.True(File.Exists(Path.Combine(context.Project.RootPath, ".clinerules", "aiko.md")));
+
+                // Uninstall takes the entry and Aiko's files out again.
+                var removed = await installer.UninstallAsync(
+                    context.Project.Id, ["cline"], CancellationToken.None);
+                Assert.All(removed.AdapterResults, result => Assert.True(result.Succeeded));
+                Assert.DoesNotContain(
+                    key,
+                    await File.ReadAllTextAsync(Path.Combine(home, ".cline", "mcp.json")),
+                    StringComparison.Ordinal);
+                Assert.False(File.Exists(Path.Combine(context.Project.RootPath, ".clinerules", "aiko.md")));
+            });
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("AIKO_USER_HOME", originalHome);
+            Directory.Delete(home, true);
+        }
+    }
+
+    [Fact]
     public async Task Agent_configuration_carries_the_access_token()
     {
         await WithInitializedProjectAsync(async context =>

@@ -74,6 +74,7 @@ builder.Services.AddSingleton<IAgentAdapter, ClaudeCodeAgentAdapter>();
 builder.Services.AddSingleton<IAgentAdapter, CodexAgentAdapter>();
 builder.Services.AddSingleton<IAgentAdapter, CursorAgentAdapter>();
 builder.Services.AddSingleton<IAgentAdapter, ZCodeAgentAdapter>();
+builder.Services.AddSingleton<IAgentAdapter, ClineAgentAdapter>();
 builder.Services.AddSingleton<IUnifiedAgentInstaller, UnifiedAgentInstaller>();
 builder.Services
     .AddMcpServer()

@@ -1,0 +1,147 @@
+using Aiko.Application.Agents;
+
+namespace Aiko.Infrastructure.Agents;
+
+/// <summary>
+/// Cline adapter.
+/// </summary>
+/// <remarks>
+/// Cline's configuration is split by scope: <c>~/.cline/</c> is shared by every Cline application (IDE,
+/// CLI, desktop, SDK) and <c>.cline/</c> belongs to one workspace. Two consequences shape this adapter:
+/// <list type="bullet">
+/// <item>project-scoped configuration is files only - a project carries its skills
+/// (<c>.cline/skills</c>) and its rules (<c>.clinerules</c>), and Cline reads no MCP configuration from a
+/// workspace;</item>
+/// <item>the MCP endpoint therefore goes into Cline's global files, one entry per project
+/// (<c>aiko-&lt;folder&gt;</c>), because a single entry cannot name a project. Cline can enable and disable
+/// servers, so several projects can coexist.</item>
+/// </list>
+/// Hooks and plugins are executable code, so Aiko installs neither anywhere.
+/// </remarks>
+public sealed class ClineAgentAdapter : BuiltInAgentAdapter
+{
+    /// <summary>
+    /// Directory the Cline applications keep their shared configuration in. The desktop app and the IDE
+    /// extension have no executable on PATH, so the directory itself is the sign that Cline is installed.
+    /// </summary>
+    internal const string ConfigurationDirectoryName = ".cline";
+
+    /// <inheritdoc />
+    public override string Id => "cline";
+
+    /// <inheritdoc />
+    public override string DisplayName => "Cline";
+
+    /// <inheritdoc />
+    public override AgentCapabilities Capabilities =>
+        AgentCapabilities.McpStreamableHttp |
+        AgentCapabilities.McpStdio |
+        AgentCapabilities.WorkspaceConfiguration |
+        AgentCapabilities.Skills |
+        AgentCapabilities.HeadlessLaunch |
+        AgentCapabilities.Resume |
+        AgentCapabilities.StructuredOutput;
+
+    /// <inheritdoc />
+    protected override string[] ExecutableNames => ["cline"];
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Cline ships as a desktop app and an IDE extension as well as a CLI, and the first two have nothing
+    /// on PATH: <c>~/.cline</c> existing is what says the agent is installed at all.
+    /// </remarks>
+    public override ValueTask<IReadOnlyList<AgentInstallation>> DetectInstallationsAsync(
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var installations = ExecutableDetector.Find(ExecutableNames)
+            .Select(path => new AgentInstallation($"{Id}:{path}", Id, path, null))
+            .ToList();
+
+        var root = UserPath(ConfigurationDirectoryName);
+        if (Directory.Exists(root))
+        {
+            installations.Add(new AgentInstallation($"{Id}:{root}", Id, root, null));
+        }
+
+        return ValueTask.FromResult<IReadOnlyList<AgentInstallation>>(
+            installations.OrderBy(item => item.ExecutablePath, StringComparer.OrdinalIgnoreCase).ToArray());
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// The workspace half: the project's skill, its rule, and the MCP entry. The entry goes into Cline's
+    /// global files because a workspace cannot carry one - it is named after the project so several
+    /// projects can be connected at once.
+    /// <para>
+    /// <paramref name="cardTypes"/> is ignored on purpose: Cline invokes a skill by its name, and the Aiko
+    /// skill explains how to pick the card type, so there is nothing to generate per type.
+    /// </para>
+    /// </remarks>
+    private protected override IReadOnlyList<AgentFileDefinition> CreateFiles(
+        string projectRoot,
+        string projectMcpEndpoint,
+        string? accessToken,
+        IReadOnlyList<CardTypeDescriptor> cardTypes)
+    {
+        var key = ServerKey(projectRoot);
+        return
+        [
+            new(
+                Path.Combine(projectRoot, ".cline", "skills", "aiko", "SKILL.md"),
+                "Install the workspace-scoped Aiko skill.",
+                AgentFileKind.OwnedText,
+                AgentTemplates.Skill),
+            new(
+                Path.Combine(projectRoot, ".clinerules", "aiko.md"),
+                "Add Aiko's working contract as a workspace rule.",
+                AgentFileKind.OwnedText,
+                AgentTemplates.ProjectInstructions),
+            // The IDE extension and the desktop app read their MCP settings from the data directory...
+            AgentFileDefinition.JsonMcp(
+                UserPath(ConfigurationDirectoryName, "data", "settings", "cline_mcp_settings.json"),
+                "Merge the project's Aiko MCP server into Cline's MCP settings.",
+                projectMcpEndpoint,
+                accessToken,
+                // Cline defaults to the legacy SSE transport when the type is absent, so the streamable
+                // HTTP transport has to be spelled out.
+                mcpTransport: "streamableHttp",
+                serverKey: key),
+            // ...and the CLI keeps its own file. Both carry the same definitions.
+            AgentFileDefinition.JsonMcp(
+                UserPath(ConfigurationDirectoryName, "mcp.json"),
+                "Merge the project's Aiko MCP server into the Cline CLI's MCP settings.",
+                projectMcpEndpoint,
+                accessToken,
+                mcpTransport: "streamableHttp",
+                serverKey: key)
+        ];
+    }
+
+    /// <inheritdoc />
+    private protected override IReadOnlyList<AgentFileDefinition> CreateUserFiles() =>
+    [
+        new(
+            UserPath(ConfigurationDirectoryName, "skills", "aiko", "SKILL.md"),
+            "Install the global Aiko skill in the Cline skills root.",
+            AgentFileKind.OwnedText,
+            AgentTemplates.GlobalSkill)
+    ];
+
+    /// <inheritdoc />
+    protected override IReadOnlyList<string> CreateWarnings() =>
+    [
+        // The one thing Cline cannot do per project: its MCP servers are global, so each project gets its
+        // own entry and the agent decides which one to use.
+        "Cline keeps MCP servers globally: this project is added as its own server entry, and Cline enables it per session."
+    ];
+
+    /// <summary>
+    /// The MCP server key for a project: stable across reinstalls, readable, and unique per project folder.
+    /// </summary>
+    internal static string ServerKey(string projectRoot)
+    {
+        var name = Path.GetFileName(Path.TrimEndingDirectorySeparator(projectRoot));
+        return string.IsNullOrWhiteSpace(name) ? "aiko" : $"aiko-{name}";
+    }
+}

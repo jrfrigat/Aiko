@@ -1,6 +1,6 @@
 # Aiko - Интеграция агентов
 
-Aiko связывает Claude Code, Codex, Cursor и ZCode через MCP-эндпоинт проекта.
+Aiko связывает Claude Code, Codex, Cursor, ZCode и Cline через MCP-эндпоинт проекта.
 
 ## MCP-эндпоинты
 
@@ -93,7 +93,7 @@ workflow проекта: они перезаписываются при созд
 Демон требует токен доступа на своём MCP-эндпоинте, поэтому **каждая сгенерированная MCP-запись несёт
 его** — без токена демон отвечает `401`, и агент просто не видит Aiko:
 
-- клиенты, чья конфигурация умеет заголовки (Claude Code, Cursor, ZCode), получают
+- клиенты, чья конфигурация умеет заголовки (Claude Code, Cursor, ZCode, Cline), получают
   `"headers": { "Authorization": "Bearer <token>" }` — в том же виде, в каком это пишет CLI самого
   клиента (Claude Code заодно получает свой тег `"type": "http"`);
 - Codex не умеет хранить заголовок буквально, поэтому в его записи указано имя переменной окружения —
@@ -149,6 +149,7 @@ UI пока нет, таблица говорит это прямо, а не д�
 | Codex | `.codex/config.toml` (`mcp_servers.aiko`), `.agents/skills/aiko/SKILL.md`, блок `AGENTS.md` |
 | Cursor | `.cursor/mcp.json`, `.cursor/rules/aiko.mdc` |
 | ZCode | `.zcode/config.json` (нативный `mcp.servers`), `.zcode/skills/aiko/SKILL.md`, `.zcode/commands/aiko-*.md` |
+| Cline | `.cline/skills/aiko/SKILL.md`, `.clinerules/aiko.md` и MCP-запись (см. ниже) |
 
 Глобально, для всего пользователя (`aiko agent install --scope user`, это и запускает установщик):
 
@@ -158,11 +159,19 @@ UI пока нет, таблица говорит это прямо, а не д�
 | Codex | `~/.codex/skills/aiko/SKILL.md`, `~/.agents/skills/aiko/SKILL.md` |
 | Cursor | `~/.cursor/rules/aiko.mdc` |
 | ZCode | `~/.zcode/skills/aiko/SKILL.md`, `~/.zcode/commands/aiko-*.md` |
+| Cline | `~/.cline/skills/aiko/SKILL.md` |
 
 Codex читает user-scope скиллы из собственного корня `~/.codex/skills` (его встроенные скиллы лежат в
 `~/.codex/skills/.system`), поэтому глобальный скилл пишется туда; копия в переносимом
 `~/.agents/skills` остаётся для раскладок, которые читают это дерево. Переменная `AIKO_USER_HOME`
 переключает установку в другой домашний каталог.
+
+Cline держит MCP-серверы **только глобально** — рабочая папка несёт скиллы и правила, но не сервер, —
+поэтому установка в проект добавляет одну запись с именем по папке проекта (`aiko-<папка>`) в оба файла,
+которые читает Cline: `~/.cline/data/settings/cline_mcp_settings.json` (приложение и расширение IDE) и
+`~/.cline/mcp.json` (CLI). Несколько проектов могут быть подключены одновременно — Cline включает и
+выключает серверы на сессию. В его записи явно указан `"type": "streamableHttp"`: без типа Cline
+откатывается на устаревший транспорт SSE.
 
 Установка идемпотентна и сохраняет ваши настройки; удаление убирает только Aiko-управляемый
 контент (MCP-записи, managed-блоки и файлы с маркером владения Aiko).

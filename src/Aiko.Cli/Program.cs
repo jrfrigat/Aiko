@@ -759,7 +759,7 @@ static string[] ParseSelected(string[] args)
 {
     var selected = (ReadOption(args, "--agent") ?? string.Empty)
         .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-    return selected.Length == 0 ? ["claude-code", "codex", "cursor", "zcode"] : selected;
+    return selected.Length == 0 ? ["claude-code", "codex", "cursor", "zcode", "cline"] : selected;
 }
 
 static void PrintUnknown(IReadOnlyList<string> unknown)
@@ -775,7 +775,8 @@ static IAgentAdapter[] CreateAdapters() =>
     new ClaudeCodeAgentAdapter(),
     new CodexAgentAdapter(),
     new CursorAgentAdapter(),
-    new ZCodeAgentAdapter()
+    new ZCodeAgentAdapter(),
+    new ClineAgentAdapter()
 ];
 
 static async Task<int> TokenAsync()

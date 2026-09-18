@@ -25,7 +25,7 @@ public abstract class BuiltInAgentAdapter : IAgentAdapter
     protected abstract string[] ExecutableNames { get; }
 
     /// <inheritdoc />
-    public ValueTask<IReadOnlyList<AgentInstallation>> DetectInstallationsAsync(
+    public virtual ValueTask<IReadOnlyList<AgentInstallation>> DetectInstallationsAsync(
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();

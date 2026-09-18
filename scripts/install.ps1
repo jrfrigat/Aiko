@@ -59,6 +59,7 @@ $agentChoices = [ordered]@{
     '2' = 'codex'
     '3' = 'cursor'
     '4' = 'zcode'
+    '5' = 'cline'
 }
 
 function Write-Step([string] $message) { Write-Host "==> $message" -ForegroundColor Cyan }
@@ -222,7 +223,7 @@ if (-not $NoAgentSetup -and -not $agentList) {
     Write-Host "Connect Aiko to your agents?" -ForegroundColor Cyan
     Write-Host "It writes the global MCP entry, the /aiko-* skills and the shared memory into each"
     Write-Host "agent's own configuration; nothing else is touched."
-    Write-Host "  [1] Claude Code   [2] Codex   [3] Cursor   [4] ZCode"
+    Write-Host "  [1] Claude Code   [2] Codex   [3] Cursor   [4] ZCode   [5] Cline"
     Write-Host "  1,3 = several agents, all = every agent above, Enter = skip" -ForegroundColor DarkGray
     $answer = ''
     try {

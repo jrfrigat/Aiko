@@ -1,6 +1,6 @@
 # Aiko - Agent Integration
 
-Aiko connects Claude Code, Codex, Cursor and ZCode through a per-project MCP endpoint.
+Aiko connects Claude Code, Codex, Cursor, ZCode and Cline through a per-project MCP endpoint.
 
 ## MCP endpoints
 
@@ -43,7 +43,7 @@ rules reinforce this per agent.
 The daemon authenticates its MCP endpoint with the local access token, so **every generated MCP entry
 carries it** - without it the daemon answers `401` and the agent simply never sees Aiko:
 
-- clients whose configuration holds headers (Claude Code, Cursor, ZCode) get
+- clients whose configuration holds headers (Claude Code, Cursor, ZCode, Cline) get
   `"headers": { "Authorization": "Bearer <token>" }`, written in the same shape the client's own CLI
   produces (Claude Code also gets its `"type": "http"` tag);
 - Codex cannot hold a literal header, so its entry names the environment variable its own CLI writes:
@@ -150,6 +150,7 @@ Per project (`aiko agent install --project <id>`):
 | Codex | `.codex/config.toml` (`mcp_servers.aiko`), `.agents/skills/aiko/SKILL.md`, `AGENTS.md` block |
 | Cursor | `.cursor/mcp.json`, `.cursor/rules/aiko.mdc` |
 | ZCode | `.zcode/config.json` (native `mcp.servers`), `.zcode/skills/aiko/SKILL.md`, `.zcode/commands/aiko-*.md` |
+| Cline | `.cline/skills/aiko/SKILL.md`, `.clinerules/aiko.md`, and the MCP entry (see below) |
 
 Globally, for every user (`aiko agent install --scope user`, which is what the installer runs):
 
@@ -159,11 +160,19 @@ Globally, for every user (`aiko agent install --scope user`, which is what the i
 | Codex | `~/.codex/skills/aiko/SKILL.md`, `~/.agents/skills/aiko/SKILL.md` |
 | Cursor | `~/.cursor/rules/aiko.mdc` |
 | ZCode | `~/.zcode/skills/aiko/SKILL.md`, `~/.zcode/commands/aiko-*.md` |
+| Cline | `~/.cline/skills/aiko/SKILL.md` |
 
 Codex loads user-scope skills from its own root, `~/.codex/skills` (its built-ins live in
 `~/.codex/skills/.system`), so the global skill is written there; the portable `~/.agents/skills` copy
 is kept for layouts that read that tree. Set `AIKO_USER_HOME` to install into a different home
 directory.
+
+Cline keeps MCP servers **globally only** - a workspace carries skills and rules, not a server - so a
+project install adds one entry named after the project folder (`aiko-<folder>`) to both files Cline
+reads: `~/.cline/data/settings/cline_mcp_settings.json` (desktop app and IDE extension) and
+`~/.cline/mcp.json` (CLI). Several projects can be connected at once; Cline enables and disables
+servers per session. Its entry spells out `"type": "streamableHttp"`, because Cline falls back to the
+legacy SSE transport when the type is missing.
 
 Installation is idempotent and preserves your own settings; uninstall removes only Aiko-managed
 content (MCP entries, managed blocks, and files carrying the Aiko ownership marker).

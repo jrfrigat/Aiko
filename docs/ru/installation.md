@@ -1,7 +1,7 @@
 # Aiko - Установка
 
 Aiko - локальный оркестратор ИИ-разработки: один loopback-демон, Kanban PWA, долговременная
-память проекта и стабильный MCP-контракт для Claude Code, Codex, Cursor и ZCode.
+память проекта и стабильный MCP-контракт для Claude Code, Codex, Cursor, ZCode и Cline.
 
 Этот гайд описывает установку и запуск Aiko на Windows.
 

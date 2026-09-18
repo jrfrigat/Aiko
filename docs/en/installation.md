@@ -1,7 +1,7 @@
 # Aiko - Installation
 
 Aiko is a local-first orchestrator for AI-assisted development: one loopback daemon, a Kanban
-PWA, durable project memory and a stable MCP contract for Claude Code, Codex, Cursor and ZCode.
+PWA, durable project memory and a stable MCP contract for Claude Code, Codex, Cursor, ZCode and Cline.
 
 This guide covers installing and running Aiko on Windows.
 

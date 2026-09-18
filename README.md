@@ -12,7 +12,7 @@
 [![Status](https://img.shields.io/badge/status-MVP%20foundation-orange)](docs/en/technical-specification.md)
 
 Aiko (AI kanban orchestrator) is a **local-first orchestrator for AI-assisted development**: one
-loopback daemon that gives Claude Code, Codex, Cursor and ZCode a shared project context, a
+loopback daemon that gives Claude Code, Codex, Cursor, ZCode and Cline a shared project context, a
 configurable Kanban pipeline, durable memory and a stable MCP contract - while you keep every file
 on disk, in Git-friendly Markdown and JSON.
 
@@ -55,7 +55,7 @@ rate limit) hands off to another agent without losing history.
   run, so handoff, resume, pause and rate-limit states never lose history
 - **Durable memory** - decisions, conventions and lessons live in `.aiko/memory` as Markdown and
   are searchable through an SQLite FTS5 index
-- **Unified agent installer** - discovers Claude Code, Codex, Cursor and ZCode installations and
+- **Unified agent installer** - discovers Claude Code, Codex, Cursor, ZCode and Cline installations and
   applies idempotent, user-config-preserving project configuration (MCP entries, managed blocks,
   owned skills/commands) with per-adapter plans and surgical uninstall
 - **SQLite projections, rebuildable** - the global SQLite database is an index and runtime state;
@@ -88,7 +88,7 @@ unpacks it into `%LOCALAPPDATA%\Aiko\bin` (CLI `aiko`, stdio proxy `aiko-stdio`,
 `server\`) and adds that directory to the user `PATH`. Nothing is installed machine-wide and no
 administrator rights are needed.
 
-At the end it asks which agents to connect (Claude Code, Codex, Cursor, ZCode) and writes their
+At the end it asks which agents to connect (Claude Code, Codex, Cursor, ZCode, Cline) and writes their
 global MCP entry, `/aiko-*` skills and shared memory; answering with Enter skips the question. Answer
 it non-interactively with `-Agents claude-code,codex`, or skip it with `-NoAgentSetup`.
 
