@@ -992,6 +992,24 @@
     color: var(--flare-color-error);
 }
 
+/* One file of that list: the row Flare's accordion draws as its toggle. The path takes the free width and
+   wraps - a card's diff holds paths longer than the column - and the counts stay beside it. The row is spans,
+   because the accordion renders it inside the header button. */
+.aiko-diff__file {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.375rem;
+    width: 100%;
+    min-width: 0;
+}
+
+.aiko-diff__path {
+    overflow-wrap: anywhere;
+    font-family: var(--aiko-font-mono, monospace);
+    font-size: 0.75rem;
+}
+
 /* ---------------------------------------------------------------------------------------------
  * The design's field: a mono label, a recessed box and a hint. Every input in the cockpit wears it -
  * the card's parameters, the new-card form, the settings screens - so a form reads the same wherever

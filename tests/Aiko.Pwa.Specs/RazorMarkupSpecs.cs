@@ -122,6 +122,45 @@ public sealed class RazorMarkupSpecs
         Assert.Contains("CriterionPayload, _requirements, _request)", text, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Code_changes_open_file_by_file_behind_a_toggle()
+    {
+        var root = FindRepositoryRoot();
+        var text = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "CardInspector.razor"));
+
+        // The diff is a list of collapsible panels, one per file, and several may stand open at once: a card
+        // that touched a dozen files used to print every patch in one unbroken run of text.
+        Assert.Contains("<FlareAccordion AllowMultiple=\"true\"", text, StringComparison.Ordinal);
+        Assert.Contains("<FlareAccordionPanel Expanded=\"@expanded\"", text, StringComparison.Ordinal);
+        Assert.Contains(
+            "ExpandedChanged=\"@(value => SetFileExpanded(entry.Path, value))\"",
+            text,
+            StringComparison.Ordinal);
+
+        // The toggle's header is the file's own row - its path and what the patch does to it ...
+        Assert.Contains("class=\"aiko-diff__file\"", text, StringComparison.Ordinal);
+        Assert.Contains("class=\"aiko-diff__path\"", text, StringComparison.Ordinal);
+
+        // ... and the patch stands inside the panel, drawn only while that file is open. The wall of text is
+        // not merely hidden: a collapsed file renders nothing.
+        Assert.Contains("@if (expanded && entry.Patch is { Length: > 0 } patch)", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("@if (entry.Patch is", text, StringComparison.Ordinal);
+        Assert.Contains("aiko-diff__line aiko-diff__line--@DiffLineKind(text)", text, StringComparison.Ordinal);
+
+        // Which files are open lives on the page, keyed by path, so opening one cannot close another and the
+        // panel's own re-render cannot fold the patch being read.
+        Assert.Contains("private readonly HashSet<string> _expandedFiles", text, StringComparison.Ordinal);
+        Assert.Contains("_expandedFiles.Add(path);", text, StringComparison.Ordinal);
+
+        // The row is laid out by the cockpit's own stylesheet, which is the only place that sees the header
+        // button Flare draws around it.
+        var css = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "wwwroot", "css", "app.css"));
+        Assert.Contains(".aiko-diff__file {", css, StringComparison.Ordinal);
+        Assert.Contains(".aiko-diff__path {", css, StringComparison.Ordinal);
+    }
+
     /// <summary>
     /// Walks up from this assembly to the solution file, the same way the daemon fixture does.
     /// </summary>

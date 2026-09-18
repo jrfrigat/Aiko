@@ -317,15 +317,26 @@
                         }
                         else if (DiffIsReady)
                         {
-                            <FlareStack Gap="FlareSpacing.Small">
+                            @* One collapsible panel per file. A card's diff is read file by file, and a card that
+                               touched a dozen files used to print every patch at once, so the one file the reader
+                               came for was somewhere in a wall of text. Flare's accordion owns the toggle - a real
+                               button carrying aria-expanded and aria-controls, reachable by keyboard like any other
+                               button - and the panel draws its patch only while it is open, because a collapsed
+                               file that still renders its lines would only move the wall of text into the DOM. *@
+                            <FlareAccordion AllowMultiple="true" HeadingLevel="0">
                                 @foreach (var file in _diff!.Files)
                                 {
                                     var entry = file;
-                                    <FlareStack Gap="FlareSpacing.XXSmall">
-                                        <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small" Wrap="true">
-                                            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                                    var expanded = _expandedFiles.Contains(entry.Path);
+                                    <FlareAccordionPanel Expanded="@expanded"
+                                                         ExpandedChanged="@(value => SetFileExpanded(entry.Path, value))">
+                                        @* The header is the file's own row: its path and what the patch does to it.
+                                           Spans rather than a stack, because the accordion renders the header inside
+                                           the toggle button, which takes phrasing content. *@
+                                        <HeaderContent>
+                                            <span class="aiko-diff__file">
                                                 <FlareIconView Value="@MaterialDesign3Icons.Regular.Description" Color="FlareColor.Secondary" />
-                                                <FlareText Element="span" Mono="true" Typo="TypographyScale.LabelMedium">@entry.Path</FlareText>
+                                                <span class="aiko-diff__path">@entry.Path</span>
                                                 @if (entry.Added > 0)
                                                 {
                                                     <span class="aiko-tag aiko-tag--live">@($"+{entry.Added}")</span>
@@ -334,27 +345,29 @@
                                                 {
                                                     <span class="aiko-tag aiko-tag--warn">@($"-{entry.Removed}")</span>
                                                 }
-                                            </FlareStack>
-                                        </FlareStack>
-                                        @if (entry.Patch is { Length: > 0 } patch)
-                                        {
-                                            <div class="aiko-diff__lines">
-                                                @foreach (var line in PatchLines(patch))
-                                                {
-                                                    var text = line;
-                                                    <span class="aiko-diff__line aiko-diff__line--@DiffLineKind(text)">@text</span>
-                                                }
-                                            </div>
-                                        }
-                                        else
-                                        {
-                                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                                                @Loc.Get("DiffBinaryOrEmpty")
-                                            </FlareText>
-                                        }
-                                    </FlareStack>
+                                            </span>
+                                        </HeaderContent>
+                                        <ChildContent>
+                                            @if (expanded && entry.Patch is { Length: > 0 } patch)
+                                            {
+                                                <div class="aiko-diff__lines">
+                                                    @foreach (var line in PatchLines(patch))
+                                                    {
+                                                        var text = line;
+                                                        <span class="aiko-diff__line aiko-diff__line--@DiffLineKind(text)">@text</span>
+                                                    }
+                                                </div>
+                                            }
+                                            else if (expanded)
+                                            {
+                                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                                    @Loc.Get("DiffBinaryOrEmpty")
+                                                </FlareText>
+                                            }
+                                        </ChildContent>
+                                    </FlareAccordionPanel>
                                 }
-                            </FlareStack>
+                            </FlareAccordion>
                         }
                         else
                         {
@@ -925,6 +938,12 @@
     private IReadOnlyList<CardArtifactSummary> _artifacts = [];
     private GitCardDiff? _diff;
     private bool _loadingDiff;
+
+    /// <summary>
+    /// Which files of the code-changes block the reader opened. Keyed by path, so opening one file cannot close
+    /// another and a live board refresh - which re-renders the tab - does not fold the patch being read.
+    /// </summary>
+    private readonly HashSet<string> _expandedFiles = new(StringComparer.Ordinal);
     private IReadOnlyList<CardComment> _discussion = [];
 
     /// <summary>The tab counts the bar was last rendered with, so the settle pass below runs once per change.</summary>
@@ -1022,6 +1041,23 @@
         { Available: false, Failure: { Length: > 0 } failure } => failure,
         _ => Loc.Get("DiffNoChanges")
     };
+
+    /// <summary>
+    /// Opens or closes one file of the code-changes block. The panel asks the page rather than keeping the state
+    /// itself, because the page decides what stands inside it: a collapsed file renders no patch at all, which is
+    /// the point of collapsing it.
+    /// </summary>
+    private void SetFileExpanded(string path, bool expanded)
+    {
+        if (expanded)
+        {
+            _expandedFiles.Add(path);
+        }
+        else
+        {
+            _expandedFiles.Remove(path);
+        }
+    }
 
     /// <summary>The patch as lines, so each one can carry the class its first character asks for.</summary>
     private static IEnumerable<string> PatchLines(string patch) => patch.Split('\n');
