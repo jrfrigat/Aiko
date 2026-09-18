@@ -45,6 +45,12 @@
                                Color="@(State.EventsConnected ? FlareColor.Tertiary : FlareColor.Warning)">
                         @(State.EventsConnected ? Loc.Get("SseLive") : Loc.Get("Online"))
                     </FlareText>
+                    @* Why there is no live stream. Without it the shell said ONLINE and nothing else, so a
+                       board that had stopped receiving events looked like a board with nothing to report. *@
+                    @if (!State.EventsConnected && State.EventsStatusMessage is { Length: > 0 } streamFailure)
+                    {
+                        <span class="aiko-tag aiko-tag--quiet" title="@streamFailure">@streamFailure</span>
+                    }
                     <span class="aiko-tag aiko-tag--quiet">@State.HostCaption</span>
                     <span class="aiko-tag aiko-tag--quiet" title="@Loc.Get("DaemonRoundTrip")">@LatencyCaption</span>
                 </FlareStack>

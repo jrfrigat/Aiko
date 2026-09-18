@@ -1,8 +1,43 @@
 window.aikoEvents = {
     connect: function (url, dotnet) {
         const source = new EventSource(url);
+        source.onopen = function () {
+            // The stream is genuinely open now; before this callback the connection was only requested.
+            dotnet.invokeMethodAsync('OnConnectionChanged', true, null).catch(function () {});
+        };
         source.onmessage = function (message) {
             dotnet.invokeMethodAsync('OnEvent', message.data);
+        };
+        source.onerror = function () {
+            // EventSource reconnects on its own and never says why it failed, so the cause is fetched once:
+            // the HTTP status of the stream is the difference between "this browser is not paired" and "the
+            // daemon is gone", and the shell shows which of the two it is instead of going quiet.
+            const controller = new AbortController();
+            const timer = setTimeout(function () { controller.abort(); }, 2000);
+            fetch(url, { headers: { 'Accept': 'text/event-stream' }, signal: controller.signal })
+                .then(
+                    function (response) {
+                        clearTimeout(timer);
+                        controller.abort();
+                        const reason = response.ok
+                            ? 'The event stream dropped; the browser is reconnecting.'
+                            : 'The daemon answered ' + response.status + ' for the event stream.';
+                        // Interop failures are swallowed on their own: reporting them here would blame the
+                        // network for a circuit that has already gone away.
+                        return dotnet
+                            .invokeMethodAsync('OnConnectionChanged', false, reason)
+                            .catch(function () {});
+                    },
+                    function (error) {
+                        clearTimeout(timer);
+                        return dotnet
+                            .invokeMethodAsync(
+                                'OnConnectionChanged',
+                                false,
+                                'The daemon is not reachable: ' +
+                                    (error && error.message ? error.message : 'no reason given'))
+                            .catch(function () {});
+                    });
         };
         return source;
     },

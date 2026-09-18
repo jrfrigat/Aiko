@@ -37,6 +37,7 @@ internal sealed class WorkspaceState : IAsyncDisposable
         _http = http;
         _events = new ProjectEventClient(js);
         _events.Received += OnProjectEventAsync;
+        _events.ConnectionChanged += OnEventConnectionChangedAsync;
     }
 
     /// <summary>Registered projects, in the daemon's order.</summary>
@@ -90,8 +91,14 @@ internal sealed class WorkspaceState : IAsyncDisposable
     /// <summary>Whether a load is in flight.</summary>
     public bool Loading { get; private set; } = true;
 
-    /// <summary>Whether the open project's SSE stream is connected.</summary>
+    /// <summary>Whether the open project's SSE stream is connected, as the browser reported it.</summary>
     public bool EventsConnected { get; private set; }
+
+    /// <summary>
+    /// Why the SSE stream is not connected, or null while it is. Shown in the shell so a silent stream
+    /// reads as a cause rather than as "the board is stale again".
+    /// </summary>
+    public string? EventsStatusMessage { get; private set; }
 
     /// <summary>Bumped on every execution event, so the card drawer re-reads its timeline.</summary>
     public int ExecutionPulse { get; private set; }
@@ -206,6 +213,7 @@ internal sealed class WorkspaceState : IAsyncDisposable
         ProjectConnections = [];
         await _events.CloseAsync();
         EventsConnected = false;
+        EventsStatusMessage = null;
         await NotifyAsync();
     }
 
@@ -497,31 +505,52 @@ internal sealed class WorkspaceState : IAsyncDisposable
             return;
         }
 
+        EventsStatusMessage = null;
         try
         {
             await _events.ConnectAsync(_http.BaseAddress.ToString(), SelectedProjectId);
-            EventsConnected = true;
+            // The outcome is not known yet: EventSource connects asynchronously, and the browser reports
+            // both the open stream and the failure through OnEventConnectionChangedAsync. Claiming a live
+            // stream here is what made the shell's badge say "SSE LIVE" over a stream that never opened.
         }
-        catch (JSDisconnectedException)
+        catch (JSDisconnectedException exception)
         {
             EventsConnected = false;
+            EventsStatusMessage = exception.Message;
         }
-        catch (JSException)
+        catch (JSException exception)
         {
             EventsConnected = false;
+            EventsStatusMessage = exception.Message;
         }
-        catch (InvalidOperationException)
+        catch (InvalidOperationException exception)
         {
             // JS interop is unavailable (prerender): the board still works, just without live events.
             EventsConnected = false;
+            EventsStatusMessage = exception.Message;
         }
 
         await NotifyAsync();
     }
 
+    /// <summary>
+    /// Applies the stream's state as the browser reports it: the shell's live badge follows a real open
+    /// connection, and a failure carries the reason instead of leaving the board quietly stale.
+    /// </summary>
+    private async Task OnEventConnectionChangedAsync(bool connected, string? reason)
+    {
+        EventsConnected = connected;
+        EventsStatusMessage = connected ? null : reason;
+        await NotifyAsync();
+    }
+
     private async Task OnProjectEventAsync(string projectId, AikoEvent @event)
     {
-        if (!string.Equals(projectId, SelectedProjectId, StringComparison.Ordinal))
+        // Events are journaled and broadcast under the project's immutable id, while the route may have
+        // opened the project by its readable handle. Comparing those two strings directly dropped every
+        // event of a project addressed by its handle - which is exactly the URL the UI hands out - so the
+        // board and the card page only moved when the page was reloaded by hand.
+        if (!BelongsToOpenProject(projectId, SelectedProject))
         {
             return;
         }
@@ -538,6 +567,18 @@ internal sealed class WorkspaceState : IAsyncDisposable
                 break;
         }
     }
+
+    /// <summary>
+    /// Whether an event received for <paramref name="eventProjectId"/> concerns the open project.
+    /// </summary>
+    /// <remarks>
+    /// The comparison is deliberately made against the project's id and not against the value the route
+    /// carried: the route value is a handle for people to read, and only the id is what the daemon's
+    /// events carry.
+    /// </remarks>
+    internal static bool BelongsToOpenProject(string eventProjectId, RegisteredProject? openProject) =>
+        openProject is not null &&
+        StringComparer.Ordinal.Equals(eventProjectId, openProject.Id);
 
     /// <summary>
     /// Coalesces a burst of board events into one reload: an agent finishing a stage publishes several
@@ -589,6 +630,7 @@ internal sealed class WorkspaceState : IAsyncDisposable
     {
         _disposed = true;
         _events.Received -= OnProjectEventAsync;
+        _events.ConnectionChanged -= OnEventConnectionChangedAsync;
         lock (_sync)
         {
             _boardReloadDelay?.Cancel();

@@ -9,6 +9,11 @@ namespace Aiko.Pwa.Services;
 /// EventSource. EventSource reconnects automatically and replays missed events
 /// via the Last-Event-Id header.
 /// </summary>
+/// <remarks>
+/// The stream's state comes from the browser's own callbacks rather than from the fact that a connection
+/// object exists: EventSource connects asynchronously, so the moment the call returns is the moment before
+/// the outcome is known - and that outcome is what the shell's live badge shows.
+/// </remarks>
 public sealed class ProjectEventClient(IJSRuntime js) : IAsyncDisposable
 {
     private DotNetObjectReference<ProjectEventClient>? _reference;
@@ -21,9 +26,19 @@ public sealed class ProjectEventClient(IJSRuntime js) : IAsyncDisposable
     public event Func<string, AikoEvent, Task>? Received;
 
     /// <summary>
-    /// Whether an EventSource connection is currently open.
+    /// Raised when the stream opens or fails, carrying the reason of the failure.
     /// </summary>
-    public bool IsConnected => _source is not null;
+    public event Func<bool, string?, Task>? ConnectionChanged;
+
+    /// <summary>
+    /// Whether an EventSource connection is currently open, as the browser last reported it.
+    /// </summary>
+    public bool IsConnected { get; private set; }
+
+    /// <summary>
+    /// Why the stream is not open, or null while it is.
+    /// </summary>
+    public string? LastError { get; private set; }
 
     /// <summary>
     /// Connects to the event stream of a project, replacing any previous subscription.
@@ -64,6 +79,8 @@ public sealed class ProjectEventClient(IJSRuntime js) : IAsyncDisposable
 
         _source = null;
         _subscribedProjectId = null;
+        IsConnected = false;
+        LastError = null;
     }
 
     /// <inheritdoc />
@@ -71,6 +88,21 @@ public sealed class ProjectEventClient(IJSRuntime js) : IAsyncDisposable
     {
         await CloseAsync();
         _reference?.Dispose();
+    }
+
+    /// <summary>
+    /// Receives the stream's state from the browser, so the shell can tell a live subscription from a
+    /// silent one - and, when it is not live, name the reason instead of leaving the user to reload.
+    /// </summary>
+    [JSInvokable]
+    public async Task OnConnectionChanged(bool connected, string? reason)
+    {
+        IsConnected = connected;
+        LastError = connected ? null : reason;
+        if (ConnectionChanged is { } handler)
+        {
+            await handler(connected, reason);
+        }
     }
 
     [JSInvokable]
