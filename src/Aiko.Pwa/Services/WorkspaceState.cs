@@ -46,6 +46,16 @@ internal sealed class WorkspaceState : IAsyncDisposable
     public IReadOnlyList<AgentAdapterOption> Agents { get; private set; } = [];
 
     /// <summary>
+    /// Which agents the open project has been connected to, as the project's own files report it.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately not part of <see cref="Agents"/>: that list is machine-wide - the agent is installed and
+    /// connected for the user - while this one is about the project, and the two answers differ for a project
+    /// nobody has connected an agent to yet.
+    /// </remarks>
+    public IReadOnlyList<AgentProjectConnection> ProjectConnections { get; private set; } = [];
+
+    /// <summary>
     /// The project templates a new project can be created from. Read once with the rest of the shell data;
     /// the only one that exists today is the built-in default.
     /// </summary>
@@ -168,6 +178,7 @@ internal sealed class WorkspaceState : IAsyncDisposable
         try
         {
             await LoadBoardAsync();
+            await LoadProjectConnectionsAsync();
             await ConnectEventsAsync();
         }
         finally
@@ -192,6 +203,7 @@ internal sealed class WorkspaceState : IAsyncDisposable
         SelectedProjectId = null;
         Board = null;
         SettingsView = null;
+        ProjectConnections = [];
         await _events.CloseAsync();
         EventsConnected = false;
         await NotifyAsync();
@@ -309,6 +321,34 @@ internal sealed class WorkspaceState : IAsyncDisposable
     /// Re-reads the agent adapters: whether each agent is installed on this machine and whether Aiko has
     /// connected to it.
     /// </summary>
+    /// <summary>
+    /// Reads which agents are connected to the open project.
+    /// </summary>
+    /// <remarks>
+    /// A call of its own rather than part of the board: the project's files decide the answer, and they change
+    /// when an agent is connected or a file is deleted by hand, not when a card moves. Like the agent list,
+    /// this is overview information, so a failure leaves an empty list instead of an error screen.
+    /// </remarks>
+    public async Task LoadProjectConnectionsAsync()
+    {
+        if (SelectedProjectId is not { Length: > 0 } projectId)
+        {
+            ProjectConnections = [];
+            return;
+        }
+
+        try
+        {
+            ProjectConnections = await _http.GetFromJsonAsync<IReadOnlyList<AgentProjectConnection>>(
+                $"api/v1/projects/{Uri.EscapeDataString(projectId)}/installation",
+                PwaJson.Options) ?? [];
+        }
+        catch (Exception)
+        {
+            ProjectConnections = [];
+        }
+    }
+
     public async Task ReloadAgentsAsync()
     {
         try

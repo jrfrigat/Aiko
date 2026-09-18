@@ -18,6 +18,25 @@ else
            of stages reads fine beside the scoring tables rather than above them. *@
         <SettingsEditor ProjectId="@board.Project.Id">
             <ExtraNarrowContent>
+                @* Which agents this project has been connected to. The dashboard's Agents card answers the
+                   machine-wide question - installed, and connected for the user - while this list answers the
+                   project's, and the two differ for a project nobody has connected an agent to yet. *@
+                <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
+                    <FlareStack Gap="FlareSpacing.Small">
+                        <FlareText Element="h3" Typo="TypographyScale.TitleSmall">@Loc.Get("Agents")</FlareText>
+                        @foreach (var connection in State.ProjectConnections)
+                        {
+                            var item = connection;
+                            <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small">
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall">@item.DisplayName</FlareText>
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall"
+                                           Color="@(item.Connected ? FlareColor.Success : FlareColor.OnSurfaceVariant2)">
+                                    @(item.Connected ? Loc.Get("AgentConnected") : Loc.Get("AgentNotConnected"))
+                                </FlareText>
+                            </FlareStack>
+                        }
+                    </FlareStack>
+                </FlarePaper>
                 <WorkflowInspector Workflows="board.Workflows"
                                    Cards="board.Cards"
                                    InitialWorkflowId="task"
