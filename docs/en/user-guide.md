@@ -66,14 +66,14 @@ of the default pipelines, and `/aiko-run`, require the agent to re-score it afte
 always says what the card actually does now. A project that starts from a template without criteria keeps
 the plain priority a person types.
 
-The card page is laid out in two columns: on the left the stage's scope - the editable stage instruction
-(which belongs to the project's workflow), the card's editable requirements and declared scope, the declared
-and actual files and the acceptance criteria - above one block of tabs: the completed outcomes, the code
-changes, the artifacts and the runs; on the right the execution state with its assignees, the triage and
-score with the card's rank on the board (and the *Ask to estimate* action below the criteria), the related
-cards (parents, children and plain relations - each links to its own page), the progress of the stage's
-acceptance criteria, the stage's skills and the card's parameters (title, priority, size and every scoring
-criterion of the project).
+The card page is laid out in two columns: on the left what the card itself says - its editable requirements
+and declared scope, the declared and actual files and the acceptance criteria of the stage it sits in - above
+one block of tabs: the completed outcomes, the code changes, the artifacts and the runs; on the right the
+execution state with its assignees, the triage and score with the card's rank on the board (and the *Ask to
+estimate* action below the criteria), the related cards (parents, children and plain relations - each links to
+its own page), the progress of the stage's acceptance criteria, the stage's skills and the card's parameters
+(title, priority, size and every scoring criterion of the project). What the stage asks the agent to do belongs
+to the workflow, not to the card, so it is edited on the **Workflow** page rather than here.
 
 ## Workflows
 

@@ -36,8 +36,9 @@
     @* The work column: the design's left side. *@
     <FlareStack Class="aiko-card__main" Gap="FlareSpacing.Medium">
 
-        @* What the stage asks for and what the card declared: the scope, and the files an agent touched
-           without declaring them. *@
+        @* What the card declares and what it touched: its requirements and scope, the files, and the stage's
+           acceptance criteria. What the stage asks the agent for belongs to the workflow and is edited
+           there, so a card never repeats it. *@
         <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
             <FlareStack Gap="FlareSpacing.Medium">
                 <FlareStack Row="true" Align="FlareAlignItems.Start" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small" Wrap="true">
@@ -58,30 +59,9 @@
                     }
                 </FlareStack>
 
-                @* What the stage asks for, and what the card declares it will touch. Both are long text, so
-                   both wear the design's prompt block - the same one the stage editor uses in its drawer -
-                   and each is saved on its own: the instruction belongs to the workflow, the scope to the
-                   card. *@
-                <FlareStack Gap="FlareSpacing.XSmall">
-                    <PromptField Name="@($"{Card.StageId}.instruction")"
-                                 Title="@Loc.Get("Instruction")"
-                                 Rows="4"
-                                 Value="@_instruction"
-                                 ValueChanged="value => _instruction = value" />
-                    <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small" Wrap="true">
-                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                            @Loc.Get("WorkflowHint")
-                        </FlareText>
-                        <FlareButton Variant="ButtonVariant.Tonal"
-                                     Size="ButtonSize.Sm"
-                                     Loading="@_savingInstruction"
-                                     OnClick="SaveInstructionAsync">
-                            <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.Edit" /></LeadingIcon>
-                            <ChildContent>@Loc.Get("SaveStageInstruction")</ChildContent>
-                        </FlareButton>
-                    </FlareStack>
-                </FlareStack>
-
+                @* The card's own long prose: what it must do, and what it declares it will touch. What the
+                   stage asks the agent for belongs to the workflow and is edited on the Workflow page, so the
+                   card page does not repeat it. *@
                 <FlareStack Gap="FlareSpacing.XSmall">
                     @* What the card must do, in the words of whoever wrote it. It wears the same prompt
                        block as the scope below, because both are long prose about this one card. *@
@@ -852,7 +832,6 @@
     private string? _size;
     private string? _scope;
     private string? _requirements;
-    private string? _instruction;
     private string? _estimateAgent;
     private string? _estimateMessage;
     private bool _estimateError;
@@ -861,7 +840,6 @@
     private string? _message;
     private bool _hasError;
     private bool _saving;
-    private bool _savingInstruction;
     private bool _loadingExecutions;
     private int _activeTab;
     private IReadOnlyList<StageExecution> _executions = [];
@@ -884,19 +862,12 @@
     private string EstimateCommand => $"/aiko-estimate {Card.Reference.CardId}";
 
     /// <summary>
-    /// The stage the card sits in, from its own workflow: it carries what the stage asks for (the
-    /// instruction), what it expects to be produced (the artifacts) and how the result is verified.
+    /// The stage the card sits in, from its own workflow: what it expects to be produced (the artifacts) and
+    /// how the result is verified. What it asks the agent for is edited on the Workflow page, not here.
     /// </summary>
     private StageDefinition? Stage => Board.Workflows
         .FirstOrDefault(workflow => StringComparer.Ordinal.Equals(workflow.Id, Card.WorkflowId))
         ?.Stages.FirstOrDefault(stage => StringComparer.Ordinal.Equals(stage.Id, Card.StageId));
-
-    /// <summary>
-    /// The card's own workflow. The stage instruction belongs to it rather than to the card, so editing
-    /// that instruction is a workflow update and carries the workflow's revision.
-    /// </summary>
-    private WorkflowDefinition? Workflow => Board.Workflows
-        .FirstOrDefault(workflow => StringComparer.Ordinal.Equals(workflow.Id, Card.WorkflowId));
 
     /// <summary>The most recent execution, which is the run whose outcomes the card reports.</summary>
     private StageExecution? LatestExecution => _executions
@@ -1245,7 +1216,6 @@
             _size = Card.Size;
             _scope = string.Join(Environment.NewLine, Card.DeclaredScopeFiles);
             _requirements = Card.Requirements;
-            _instruction = Stage?.Instruction ?? string.Empty;
             LoadCriterionValues();
             _message = null;
             _hasError = false;
@@ -1396,62 +1366,6 @@
         finally
         {
             _saving = false;
-        }
-    }
-
-    /// <summary>
-    /// Saves the stage's instruction into the project's workflow. The instruction is the stage's, not the
-    /// card's - it is what the agent is asked to do here - so the write replaces that one stage in the
-    /// workflow, with the revision of the definition the page read. A conflict means someone else changed
-    /// the pipeline, and the refreshed board carries their version.
-    /// </summary>
-    private async Task SaveInstructionAsync()
-    {
-        if (_savingInstruction || Stage is not { } stage || Workflow is not { } workflow)
-        {
-            return;
-        }
-
-        _savingInstruction = true;
-        _message = null;
-        try
-        {
-            var stages = workflow.Stages
-                .Select(item => StringComparer.Ordinal.Equals(item.Id, stage.Id)
-                    ? item with { Instruction = (_instruction ?? string.Empty).Trim() }
-                    : item)
-                .ToArray();
-            using var response = await Http.PutAsJsonAsync(
-                $"api/v1/projects/{Uri.EscapeDataString(Card.Reference.ProjectId)}/workflows/{Uri.EscapeDataString(workflow.Id)}",
-                new UpdateWorkflowRequest(
-                    workflow.Title,
-                    stages,
-                    workflow.Revision,
-                    workflow.Description,
-                    workflow.Icon,
-                    workflow.Color),
-                PwaJson.Options);
-            if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
-            {
-                _message = Loc.Get("WorkflowConflict");
-                _hasError = true;
-                await OnSaved.InvokeAsync();
-                return;
-            }
-
-            response.EnsureSuccessStatusCode();
-            _message = Loc.Get("WorkflowSaved");
-            _hasError = false;
-            await OnSaved.InvokeAsync();
-        }
-        catch (Exception exception)
-        {
-            _message = Loc.Format("SaveWorkflowFailed", exception.Message);
-            _hasError = true;
-        }
-        finally
-        {
-            _savingInstruction = false;
         }
     }
 

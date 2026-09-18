@@ -145,7 +145,6 @@
   <data name="MoveUp" xml:space="preserve"><value>Up</value></data>
   <data name="MoveDown" xml:space="preserve"><value>Down</value></data>
   <data name="SaveWorkflow" xml:space="preserve"><value>Save workflow</value></data>
-  <data name="SaveStageInstruction" xml:space="preserve"><value>Save instruction</value></data>
   <data name="WorkflowHint" xml:space="preserve"><value>Changes apply to the board and to the next agent runs.</value></data>
   <data name="NewStage" xml:space="preserve"><value>New stage</value></data>
   <data name="NewStageInstruction" xml:space="preserve"><value>Describe what the agent should do at this stage.</value></data>
@@ -331,7 +330,7 @@
   <data name="DeclaredScope" xml:space="preserve"><value>Declared scope</value></data>
   <data name="EditCard" xml:space="preserve"><value>Edit card</value></data>
   <data name="EditCardHint" xml:space="preserve"><value>What the card is called on the board. Everything else about it sits in the panels around this one.</value></data>
-  <data name="ScopePanelHint" xml:space="preserve"><value>What the stage asks for and what the card declared</value></data>
+  <data name="ScopePanelHint" xml:space="preserve"><value>What the card requires and what it declares it will touch</value></data>
   <data name="ArtifactPresent" xml:space="preserve"><value>present</value></data>
   <data name="ArtifactMissing" xml:space="preserve"><value>missing</value></data>
   <data name="FilesDeclared" xml:space="preserve"><value>Declared</value></data>

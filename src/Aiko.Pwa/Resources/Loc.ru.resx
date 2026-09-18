@@ -135,7 +135,6 @@
   <data name="MoveUp" xml:space="preserve"><value>Выше</value></data>
   <data name="MoveDown" xml:space="preserve"><value>Ниже</value></data>
   <data name="SaveWorkflow" xml:space="preserve"><value>Сохранить workflow</value></data>
-  <data name="SaveStageInstruction" xml:space="preserve"><value>Сохранить инструкцию</value></data>
   <data name="WorkflowHint" xml:space="preserve"><value>Изменения применятся к доске и к следующим запускам агентов.</value></data>
   <data name="NewStage" xml:space="preserve"><value>Новый статус</value></data>
   <data name="NewStageInstruction" xml:space="preserve"><value>Опиши, что агент должен сделать на этом этапе.</value></data>
@@ -331,7 +330,7 @@
   <data name="DeclaredScope" xml:space="preserve"><value>Заявленный scope</value></data>
   <data name="EditCard" xml:space="preserve"><value>Редактировать карточку</value></data>
   <data name="EditCardHint" xml:space="preserve"><value>Как карточка называется на доске. Всё остальное о ней — в панелях рядом.</value></data>
-  <data name="ScopePanelHint" xml:space="preserve"><value>Что требует этап и что заявила карточка</value></data>
+  <data name="ScopePanelHint" xml:space="preserve"><value>Что требует карточка и что она заявляет к изменению</value></data>
   <data name="ArtifactPresent" xml:space="preserve"><value>на месте</value></data>
   <data name="ArtifactMissing" xml:space="preserve"><value>отсутствует</value></data>
   <data name="FilesDeclared" xml:space="preserve"><value>Объявлено</value></data>
