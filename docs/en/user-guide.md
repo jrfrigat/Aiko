@@ -82,6 +82,12 @@ its own page), the progress of the stage's acceptance criteria, the stage's skil
 (title, priority, size and every scoring criterion of the project). What the stage asks the agent to do belongs
 to the workflow, not to the card, so it is edited on the **Workflow** page rather than here.
 
+A card can wait for another one: a `blocks` relation (the blocking card is the source) keeps the blocked card
+from being started. `aiko_start_stage` refuses it and names the blocking card and its stage, and the agent
+reports that to you instead of working a card whose turn has not come. The block lifts when the blocking card
+reaches the last stage of its own pipeline - read from that card's workflow, so pipelines may differ - or when
+the relation is removed.
+
 ## Workflows
 
 A workflow is the card type: an ordered list of stages that defines both the pipeline a card runs through

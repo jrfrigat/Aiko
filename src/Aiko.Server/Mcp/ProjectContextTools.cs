@@ -57,7 +57,10 @@ internal sealed class ProjectContextTools(
             stage at a time and refuses to leave a stage that is not finished, because work done outside a stage
             leaves no execution, no artifacts and no history. Before you complete a stage, re-estimate the card
             with aiko_estimate_card: the readiness criterion is what says the work is done, and a stage is not
-            completed while that score still describes the card as it was before the work. One run is one stage:
+            completed while that score still describes the card as it was before the work. A card may wait for
+            another one: aiko_get_card lists the cards that block it, and aiko_start_stage refuses a blocked card
+            and names the blocker - do not work around that, tell the user and offer the blocking card instead.
+            One run is one stage:
             after you complete a stage, stop and wait to be asked for the next one - unless the user passed
             --all, which walks the pipeline and still stops on a question to the user, a failure or a forbidden
             action.

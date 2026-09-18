@@ -284,6 +284,20 @@ public class DomainSpecs
             null);
     }
 
+    /// <summary>
+    /// A stage for the card-type tests, where only the id and the order matter.
+    /// </summary>
+    private static StageDefinition Stage(string id, int order) => new(
+        id,
+        id,
+        order,
+        "Do it.",
+        [CardKind.Task],
+        "claude",
+        [],
+        new Dictionary<string, ActionPolicy>(StringComparer.Ordinal),
+        null);
+
     [Fact]
     public void The_request_and_the_requirements_are_two_texts_read_from_the_metadata()
     {
@@ -347,6 +361,80 @@ public class DomainSpecs
         Assert.NotNull(cleared);
         Assert.Contains("changed", cleared, StringComparison.Ordinal);
         Assert.DoesNotContain("\"", cleared, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_card_waits_for_the_cards_that_block_it()
+    {
+        var workflows = new[]
+        {
+            new WorkflowDefinition(
+                "task",
+                "Tasks",
+                [
+                    Stage("backlog", 10),
+                    Stage("analysis", 20),
+                    Stage("done", 30)
+                ],
+                1)
+        };
+
+        static Card Card(string id, string stageId) => new(
+            new CardReference("project", id),
+            CardKind.Task,
+            $"Title of {id}",
+            "task",
+            stageId,
+            1,
+            1m,
+            [],
+            [],
+            new Dictionary<string, string>(StringComparer.Ordinal));
+
+        static CardRelation Edge(CardReference source, CardReference target, string type) =>
+            new("relation-1", source, target, type, DateTimeOffset.UnixEpoch);
+
+        var blocked = Card("TASK-2", "backlog");
+        var blocker = Card("TASK-1", "backlog");
+        var blocks = Edge(blocker.Reference, blocked.Reference, RelationTypes.Blocks);
+
+        // The blocker is in its pipeline, so the card waits: the rule names the card, its title and where it is,
+        // because that is what a person has to be told next.
+        var unfinished = CardBlocking.Unfinished(blocked.Reference, [blocks], [blocked, blocker], workflows);
+        var waiting = Assert.Single(unfinished);
+        Assert.Equal("TASK-1", waiting.CardId);
+        Assert.Equal("Title of TASK-1", waiting.Title);
+        Assert.Equal("backlog", waiting.StageId);
+
+        var refusal = CardBlocking.RefuseStart(blocked.Reference.CardId, unfinished);
+        Assert.NotNull(refusal);
+        Assert.Contains("'TASK-1'", refusal, StringComparison.Ordinal);
+        Assert.Contains("Title of TASK-1", refusal, StringComparison.Ordinal);
+        Assert.Contains("backlog", refusal, StringComparison.Ordinal);
+        Assert.Contains("blocked", refusal, StringComparison.Ordinal);
+
+        // The same blocker at the end of its own pipeline no longer holds anything back, and the message says
+        // nothing: the last stage is read from the workflow, so a type whose end is not called 'done' works too.
+        var finished = Card("TASK-1", "done");
+        Assert.Empty(CardBlocking.Unfinished(blocked.Reference, [blocks], [blocked, finished], workflows));
+        Assert.Null(CardBlocking.RefuseStart(blocked.Reference.CardId, []));
+
+        // An edge of another type is not a block, and neither is an edge whose source card is not there: the
+        // reindexer reports that defect, and a gate waiting for a card nobody can finish would stop the work.
+        Assert.Empty(CardBlocking.Unfinished(
+            blocked.Reference,
+            [Edge(blocker.Reference, blocked.Reference, RelationTypes.RelatesTo)],
+            [blocked, blocker],
+            workflows));
+        Assert.Empty(CardBlocking.Unfinished(blocked.Reference, [blocks], [blocked], workflows));
+
+        // The direction matters: the card that blocks is the source, so the edge the other way round says
+        // nothing about this card.
+        Assert.Empty(CardBlocking.Unfinished(
+            blocker.Reference,
+            [blocks],
+            [blocked, blocker],
+            workflows));
     }
 
     private static Card TextCard(string stageId) => new(

@@ -61,6 +61,7 @@ builder.Services.AddSingleton<ICardDiscussionStore, FileCardDiscussionStore>();
 builder.Services.AddSingleton<IProjectDefinitionStore, FileProjectDefinitionStore>();
 builder.Services.AddSingleton<IProjectGitPolicyReader, FileProjectGitPolicyReader>();
 builder.Services.AddSingleton<ICardStore, FileCardStore>();
+builder.Services.AddSingleton<ICardBlockers, CardBlockerReader>();
 builder.Services.AddSingleton<ICardArtifactStore, FileCardArtifactStore>();
 builder.Services.AddSingleton<IRelationStore, FileRelationStore>();
 builder.Services.AddSingleton<IMemoryStore, FileMemoryStore>();

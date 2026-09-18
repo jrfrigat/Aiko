@@ -310,7 +310,12 @@ internal static class AgentTemplates
         follow as the second, and --all may follow as the last one.
 
         Read aiko_get_project_context and aiko_get_card for that card. The context lists the card's type, its
-        pipeline and what each stage demands; the card says which stage it is in right now.
+        pipeline and what each stage demands; the card says which stage it is in right now, and which cards
+        block it.
+
+        A card that waits for another one is not yours to start: aiko_start_stage refuses it and names the
+        blocking card. Do not look for a way around that - say so to the user and offer the blocking card
+        instead, because finishing it is what unblocks the work they asked for.
 
         Run ONE stage and stop: the user asked for this stage, and asking for the next one is theirs to do.
         Start it with aiko_start_stage, passing the card id, the id of the stage you mean to work, and
@@ -573,7 +578,10 @@ internal static class AgentTemplates
         (aiko-run <cardId>, or "выполни <cardId>"). A card in its backlog stage has no work in it yet, so never
         create or change files for a
         card before you have started the stage you are working in with aiko_start_stage - the start moves the
-        card into that stage and is what records the work. Do what the stage's instruction asks for, produce
+        card into that stage and is what records the work. A card may wait for another one: aiko_get_card lists
+        the cards that block it, and aiko_start_stage refuses a blocked card, naming the blocker. When that
+        happens, do not work this card - say so to the user and offer the blocking card instead. Do what the
+        stage's instruction asks for, produce
         its required artifacts and complete it with aiko_complete_stage; only then does the card move on, and
         aiko_move_card refuses to advance a card whose stage is not finished. Before you complete a stage,
         re-estimate the card with aiko_estimate_card: the readiness criterion is what says the work is done,
@@ -605,7 +613,9 @@ internal static class AgentTemplates
         The card's feed is the notebook between stages: read it with aiko_list_comments before you work a stage,
         and post the outcome with aiko_add_comment before you complete it, signed with your adapter id.
         Then start the stage you are working in with aiko_start_stage - a card in its backlog has no work in it,
-        so no file is created or changed for it before that start. Before you complete a stage, re-estimate the
+        so no file is created or changed for it before that start. A card another card blocks is not yours to
+        start: aiko_get_card lists the blockers and aiko_start_stage refuses it, naming them - tell the user and
+        offer the blocking card instead of working around it. Before you complete a stage, re-estimate the
         card with aiko_estimate_card - the readiness criterion must describe the card as it is after the work.
         One run is one stage: after
         aiko_complete_stage stop, unless the user asked for --all, which walks the pipeline and still stops on a

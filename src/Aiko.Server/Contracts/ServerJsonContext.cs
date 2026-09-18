@@ -30,6 +30,8 @@ namespace Aiko.Server.Contracts;
 [JsonSerializable(typeof(TemplateDocument))]
 [JsonSerializable(typeof(ReindexResult))]
 [JsonSerializable(typeof(Card))]
+[JsonSerializable(typeof(CardBlockerView))]
+[JsonSerializable(typeof(IReadOnlyList<CardBlockerView>))]
 [JsonSerializable(typeof(IReadOnlyList<Card>))]
 [JsonSerializable(typeof(CardRelation))]
 [JsonSerializable(typeof(IReadOnlyList<CardRelation>))]

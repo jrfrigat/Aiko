@@ -54,5 +54,26 @@ public sealed record WorkflowDefinition(
     /// <param name="stage">Stage to test.</param>
     public static bool IsBacklog(StageDefinition stage) =>
         StringComparer.Ordinal.Equals(stage.Id, BacklogStageId);
+
+    /// <summary>
+    /// Whether a stage is the last one of its pipeline: the stage a card reaches when its type's work is done.
+    /// </summary>
+    /// <remarks>
+    /// Asked by the blocking rule, which decides whether a card that blocks another one is finished - the last
+    /// stage is read from the workflow because pipelines differ per card type, and calling the end <c>done</c>
+    /// is only true of the workflows that happen to use that id.
+    /// </remarks>
+    /// <param name="workflow">The workflow to test against.</param>
+    /// <param name="stage">The stage to place.</param>
+    public static bool IsLastStage(WorkflowDefinition workflow, StageDefinition stage)
+    {
+        ArgumentNullException.ThrowIfNull(workflow);
+        ArgumentNullException.ThrowIfNull(stage);
+
+        var last = workflow.Stages
+            .OrderByDescending(candidate => candidate.Order)
+            .FirstOrDefault();
+        return last is not null && StringComparer.Ordinal.Equals(last.Id, stage.Id);
+    }
 }
 

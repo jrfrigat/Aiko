@@ -756,6 +756,121 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         Assert.NotEqual(true, complete.IsError);
     }
 
+    [Fact]
+    public async Task A_blocked_card_cannot_start_its_stage()
+    {
+        // A two-stage card type, so the blocker can reach the end of its own pipeline in one move: the rule reads
+        // the end from the workflow, and this keeps the spec about the gate rather than about a long pipeline.
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var workflowId = $"waiting{suffix}";
+        var kind = $"Waiting{suffix}";
+        using var http = new HttpClient { BaseAddress = fixture.BaseUrl };
+        using var created = await http.PostAsJsonAsync(
+            $"api/v1/projects/{fixture.ProjectId}/workflows",
+            new
+            {
+                id = workflowId,
+                title = "Waiting",
+                stages = new object[]
+                {
+                    new
+                    {
+                        id = "backlog", title = "Backlog", order = 10, instruction = "Clarify.",
+                        allowedCardKinds = new[] { kind }, defaultAgentAdapterId = (string?)null,
+                        requiredArtifacts = Array.Empty<object>(), actionPolicies = new Dictionary<string, string>()
+                    },
+                    new
+                    {
+                        id = "done", title = "Done", order = 20, instruction = "Record.",
+                        allowedCardKinds = new[] { kind }, defaultAgentAdapterId = (string?)null,
+                        requiredArtifacts = Array.Empty<object>(), actionPolicies = new Dictionary<string, string>()
+                    }
+                }
+            });
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+
+        await using var client = await ConnectAsync();
+        var blockerId = $"WAITING-{suffix}";
+        var blockedId = $"TASK-BLOCKED-{suffix}";
+        await client.CallToolAsync(
+            "aiko_create_card",
+            new Dictionary<string, object?>
+            {
+                ["cardId"] = blockerId,
+                ["kind"] = kind,
+                ["title"] = "The card the work waits for",
+                ["ownPriority"] = 1
+            },
+            cancellationToken: CancellationToken.None);
+        await client.CallToolAsync(
+            "aiko_create_card",
+            new Dictionary<string, object?>
+            {
+                ["cardId"] = blockedId,
+                ["kind"] = "task",
+                ["title"] = "The card that waits",
+                ["ownPriority"] = 1
+            },
+            cancellationToken: CancellationToken.None);
+        var linked = await client.CallToolAsync(
+            "aiko_link_cards",
+            new Dictionary<string, object?>
+            {
+                ["sourceCardId"] = blockerId,
+                ["targetCardId"] = blockedId,
+                ["relationType"] = "blocks"
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.NotEqual(true, linked.IsError);
+
+        // The card document says who blocks it and where that card is, so an agent reading the card sees the
+        // order before it tries anything ...
+        var document = await client.CallToolAsync(
+            "aiko_get_card",
+            new Dictionary<string, object?> { ["cardId"] = blockedId },
+            cancellationToken: CancellationToken.None);
+        using var cardJson = JsonDocument.Parse(FirstText(document) ?? "{}");
+        var blocker = Assert.Single(cardJson.RootElement.GetProperty("blockedBy").EnumerateArray());
+        Assert.Equal(blockerId, blocker.GetProperty("cardId").GetString());
+        Assert.Equal("backlog", blocker.GetProperty("stageId").GetString());
+
+        // ... and the start is refused, naming the blocking card and its stage, so the agent has something to
+        // repeat to the user instead of quietly working the blocked card.
+        var refused = await StartStageAsync(client, blockedId, "analysis", "claude-code");
+        Assert.True(refused.IsError);
+        var refusal = FirstText(refused) ?? string.Empty;
+        Assert.Contains(blockedId, refusal, StringComparison.Ordinal);
+        Assert.Contains(blockerId, refusal, StringComparison.Ordinal);
+        Assert.Contains("backlog", refusal, StringComparison.Ordinal);
+        Assert.Contains("offer", refusal, StringComparison.Ordinal);
+
+        // The blocker reaches the end of its own pipeline - one step out of the backlog - and the same start goes
+        // through: a finished blocker holds nothing back.
+        var blockerDocument = await client.CallToolAsync(
+            "aiko_get_card",
+            new Dictionary<string, object?> { ["cardId"] = blockerId },
+            cancellationToken: CancellationToken.None);
+        using var blockerJson = JsonDocument.Parse(FirstText(blockerDocument) ?? "{}");
+        var blockerRevision = blockerJson.RootElement.GetProperty("revision").GetInt64();
+        var moved = await client.CallToolAsync(
+            "aiko_move_card",
+            new Dictionary<string, object?>
+            {
+                ["cardId"] = blockerId,
+                ["stageId"] = "done",
+                ["expectedRevision"] = blockerRevision
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.NotEqual(true, moved.IsError);
+
+        // ... and the same start is no longer refused by the block: the gate reads the rule, and the domain
+        // spec covers the rule itself. Whether the start goes through can still depend on runs the shared
+        // project has open - the default run limit is one, and other specs may leave an execution running - so
+        // what is asserted here is that the refusal is no longer about a blocker.
+        var started = await StartStageAsync(client, blockedId, "analysis", "claude-code");
+        Assert.DoesNotContain(blockerId, FirstText(started) ?? string.Empty, StringComparison.Ordinal);
+    }
+
     /// <summary>Starts a stage and returns the tool result, so a refusal can be read as an answer.</summary>
     private static ValueTask<CallToolResult> StartStageAsync(
         McpClient client,

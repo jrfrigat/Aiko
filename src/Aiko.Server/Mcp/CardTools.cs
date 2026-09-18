@@ -24,6 +24,7 @@ internal sealed class CardTools(
     IRelationStore relations,
     IProjectDefinitionStore definitions,
     ICardDiscussionStore discussion,
+    ICardBlockers blockers,
     IExecutionCoordinator executions) : ProjectToolBase(httpContextAccessor, projects)
 {
     [McpServerTool(Name = "aiko_list_cards", Title = "List Aiko cards")]
@@ -64,9 +65,28 @@ internal sealed class CardTools(
         var card = await cards.FindAsync(
             new CardReference(GetProjectId(), cardId),
             cancellationToken);
-        return card is null
-            ? $"Card '{cardId}' was not found."
-            : JsonSerializer.Serialize(card, ServerJsonContext.Default.Card);
+        if (card is null)
+        {
+            return $"Card '{cardId}' was not found.";
+        }
+
+        // The card carries who blocks it, so an agent reading a card before starting a stage sees the order
+        // without having to be refused first: the document and the start gate quote the same rule. The blockers
+        // are added beside the card's own fields instead of wrapping them, so a caller that reads 'title' or
+        // 'stageId' keeps working.
+        var blockedBy = await blockers.UnfinishedAsync(card.Reference, cancellationToken);
+        var document = JsonSerializer.SerializeToNode(card, ServerJsonContext.Default.Card)
+            ?? throw new InvalidOperationException($"Card '{cardId}' could not be serialized.");
+        document["blockedBy"] = JsonSerializer.SerializeToNode(
+            blockedBy
+                .Select(blocker => new CardBlockerView(
+                    blocker.CardId,
+                    blocker.Title,
+                    blocker.StageId,
+                    blocker.StageTitle))
+                .ToArray(),
+            ServerJsonContext.Default.IReadOnlyListCardBlockerView);
+        return document.ToJsonString();
     }
 
     [McpServerTool(Name = "aiko_create_card", Title = "Create Aiko card")]

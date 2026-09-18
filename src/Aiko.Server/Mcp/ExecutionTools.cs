@@ -2,6 +2,7 @@ using System.ComponentModel;
 using ModelContextProtocol.Server;
 using Aiko.Application.Contracts;
 using Aiko.Domain.Cards;
+using Aiko.Domain.Workflow;
 
 namespace Aiko.Server.Mcp;
 
@@ -13,6 +14,7 @@ namespace Aiko.Server.Mcp;
 internal sealed class ExecutionTools(
     IHttpContextAccessor httpContextAccessor,
     IProjectCatalog projects,
+    ICardBlockers blockers,
     IExecutionCoordinator executions) : ProjectToolBase(httpContextAccessor, projects)
 {
     [McpServerTool(Name = "aiko_start_stage", Title = "Start Aiko stage")]
@@ -20,7 +22,8 @@ internal sealed class ExecutionTools(
         "Starts a stage execution in the shared project workspace and records the responsible agent. Starting "
         + "the stage the card is already working in continues that execution - run the card again and the same "
         + "stage picks up where it stopped. Starting another stage while one is unfinished is refused: finish it "
-        + "with aiko_complete_stage first.")]
+        + "with aiko_complete_stage first. A card another card blocks is refused too: name the blocking card to "
+        + "the user and offer that card instead of working this one.")]
     public async Task<string> StartStageAsync(
         [Description("Card id.")]
         string cardId,
@@ -30,8 +33,19 @@ internal sealed class ExecutionTools(
         string agentAdapterId,
         CancellationToken cancellationToken)
     {
+        // Work waits for the cards that block it. `blocks` is the user's own order, and until this gate existed
+        // it lived only in relations.json: a blocked card started exactly like a free one, which is how a card
+        // was worked while the card it waited for sat in the backlog. The refusal names the blocker, because the
+        // agent's next move is to say so to the user and offer that card - not to retry.
+        var card = new CardReference(GetProjectId(), cardId);
+        var blockedBy = await blockers.UnfinishedAsync(card, cancellationToken);
+        if (CardBlocking.RefuseStart(cardId, blockedBy) is { } refusal)
+        {
+            throw new InvalidOperationException(refusal);
+        }
+
         var execution = await executions.StartAsync(
-            new CardReference(GetProjectId(), cardId),
+            card,
             stageId,
             agentAdapterId,
             cancellationToken);

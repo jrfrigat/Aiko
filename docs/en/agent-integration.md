@@ -67,6 +67,14 @@ A stage is completed only when its required artifacts are in place and the card 
 run: `aiko_complete_stage` refuses otherwise, because the readiness criterion is what says the work is done.
 A project that defines no criteria has nothing to estimate and completes without the check.
 
+A card can wait for another one: `blocks` is a directed relation - the blocking card is `sourceCardId`, the
+waiting card `targetCardId` - and Aiko reads it rather than only storing it. `aiko_get_card` reports the
+unfinished blockers in `blockedBy`, beside the card's own fields, and `aiko_start_stage` **refuses** a blocked
+card, naming the blocking card and the stage it sits in. An agent that meets that refusal says so to the user
+and offers the blocking card; it does not work around it. A blocker stops blocking when it reaches the last
+stage of its own pipeline - the last stage is read from the workflow, so a type whose end is not called `done`
+works too - and the relation is removed when the order no longer holds.
+
 A run is in one of five states the card page and the board show: **pending** (no run yet), **running**,
 **paused** (paused, failed or rate-limited), **waiting for a decision** and **completed**. "Running" means the
 agent reported it, not that its process is alive: Aiko never starts agents.
