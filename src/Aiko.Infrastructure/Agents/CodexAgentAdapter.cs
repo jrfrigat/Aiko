@@ -34,6 +34,11 @@ public sealed class CodexAgentAdapter : BuiltInAgentAdapter
     /// <inheritdoc />
     protected override string[] ExecutableNames => ["codex"];
 
+    /// <summary>
+    /// <c>~/.codex</c>, which a desktop install leaves behind even when nothing of it is on PATH.
+    /// </summary>
+    protected override IReadOnlyList<string> InstallationDirectories => [UserPath(".codex")];
+
     /// <inheritdoc />
     private protected override IReadOnlyList<AgentFileDefinition> CreateFiles(
         string projectRoot,

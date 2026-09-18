@@ -45,28 +45,11 @@ public sealed class ClineAgentAdapter : BuiltInAgentAdapter
     /// <inheritdoc />
     protected override string[] ExecutableNames => ["cline"];
 
-    /// <inheritdoc />
-    /// <remarks>
-    /// Cline ships as a desktop app and an IDE extension as well as a CLI, and the first two have nothing
-    /// on PATH: <c>~/.cline</c> existing is what says the agent is installed at all.
-    /// </remarks>
-    public override ValueTask<IReadOnlyList<AgentInstallation>> DetectInstallationsAsync(
-        CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        var installations = ExecutableDetector.Find(ExecutableNames)
-            .Select(path => new AgentInstallation($"{Id}:{path}", Id, path, null))
-            .ToList();
-
-        var root = UserPath(ConfigurationDirectoryName);
-        if (Directory.Exists(root))
-        {
-            installations.Add(new AgentInstallation($"{Id}:{root}", Id, root, null));
-        }
-
-        return ValueTask.FromResult<IReadOnlyList<AgentInstallation>>(
-            installations.OrderBy(item => item.ExecutablePath, StringComparer.OrdinalIgnoreCase).ToArray());
-    }
+    /// <summary>
+    /// <c>~/.cline</c>, the configuration directory every Cline application shares. The desktop app and the
+    /// IDE extension have nothing on PATH, so the directory is what says the agent is installed at all.
+    /// </summary>
+    protected override IReadOnlyList<string> InstallationDirectories => [UserPath(ConfigurationDirectoryName)];
 
     /// <inheritdoc />
     /// <remarks>

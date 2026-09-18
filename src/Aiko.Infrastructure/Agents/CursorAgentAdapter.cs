@@ -25,6 +25,11 @@ public sealed class CursorAgentAdapter : BuiltInAgentAdapter
     /// <inheritdoc />
     protected override string[] ExecutableNames => ["cursor-agent", "cursor"];
 
+    /// <summary>
+    /// <c>~/.cursor</c>: the editor is installed per user, and its CLI is a separate thing that may be absent.
+    /// </summary>
+    protected override IReadOnlyList<string> InstallationDirectories => [UserPath(".cursor")];
+
     /// <inheritdoc />
     private protected override IReadOnlyList<AgentFileDefinition> CreateFiles(
         string projectRoot,

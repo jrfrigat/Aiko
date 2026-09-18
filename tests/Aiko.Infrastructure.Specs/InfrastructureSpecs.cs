@@ -1722,6 +1722,38 @@ public class InfrastructureSpecs
     }
 
     [Fact]
+    public async Task An_agent_whose_application_leaves_a_data_directory_is_detected_without_an_executable()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "Aiko.Specs", Guid.NewGuid().ToString("N"));
+        var home = Path.Combine(root, "home");
+        var emptyPath = Path.Combine(root, "empty");
+        Directory.CreateDirectory(emptyPath);
+        // ZCode ships without an executable of its own name on PATH, so its data directory is the only thing
+        // that says it is installed - the discovery Cline has always used, now shared by every adapter.
+        Directory.CreateDirectory(Path.Combine(home, ".zcode"));
+
+        var previousPath = Environment.GetEnvironmentVariable("PATH");
+        var previousHome = Environment.GetEnvironmentVariable("AIKO_USER_HOME");
+        try
+        {
+            Environment.SetEnvironmentVariable("PATH", emptyPath);
+            Environment.SetEnvironmentVariable("AIKO_USER_HOME", home);
+
+            var installations = await new ZCodeAgentAdapter().DetectInstallationsAsync(CancellationToken.None);
+
+            var installation = Assert.Single(installations);
+            Assert.Equal(Path.Combine(home, ".zcode"), installation.ExecutablePath);
+            Assert.Null(installation.Version);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("PATH", previousPath);
+            Environment.SetEnvironmentVariable("AIKO_USER_HOME", previousHome);
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
     public async Task Agent_detection_reports_one_executable_per_name()
     {
         // An npm install on Windows leaves an extensionless shell shim next to its .cmd, and the detector
@@ -1732,11 +1764,14 @@ public class InfrastructureSpecs
         await File.WriteAllTextAsync(Path.Combine(directory, "zcode.cmd"), string.Empty);
 
         var originalPath = Environment.GetEnvironmentVariable("PATH");
+        var previousHome = Environment.GetEnvironmentVariable("AIKO_USER_HOME");
         try
         {
             // PATH is replaced rather than prepended, so the result does not depend on whether the machine
-            // running the tests happens to have a real zcode installed.
+            // running the tests happens to have a real zcode installed, and the home directory is isolated for
+            // the same reason: a data directory left by a real install is another signal now.
             Environment.SetEnvironmentVariable("PATH", directory);
+            Environment.SetEnvironmentVariable("AIKO_USER_HOME", Path.Combine(directory, "home"));
             var installations = await new ZCodeAgentAdapter().DetectInstallationsAsync(CancellationToken.None);
 
             var installation = Assert.Single(installations);
@@ -1747,6 +1782,7 @@ public class InfrastructureSpecs
         finally
         {
             Environment.SetEnvironmentVariable("PATH", originalPath);
+            Environment.SetEnvironmentVariable("AIKO_USER_HOME", previousHome);
             Directory.Delete(directory, true);
         }
     }

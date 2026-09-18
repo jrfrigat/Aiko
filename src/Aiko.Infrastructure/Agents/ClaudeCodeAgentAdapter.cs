@@ -34,6 +34,11 @@ public sealed class ClaudeCodeAgentAdapter : BuiltInAgentAdapter
     /// <inheritdoc />
     protected override string[] ExecutableNames => ["claude"];
 
+    /// <summary>
+    /// <c>~/.claude</c>, which exists for the IDE extension and the desktop app as well as for the CLI.
+    /// </summary>
+    protected override IReadOnlyList<string> InstallationDirectories => [UserPath(".claude")];
+
     /// <inheritdoc />
     private protected override IReadOnlyList<AgentFileDefinition> CreateFiles(
         string projectRoot,

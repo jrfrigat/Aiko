@@ -150,6 +150,11 @@ has no path yet, the table says so rather than pretending the sets are already e
 | Show the access token | `/aiko-token` | `aiko_token` | — (`aiko token show`) |
 | Manage agent integrations | `/aiko-agents` | — (`aiko agent list` / `install` / `uninstall`) | Dashboard - the *Agents* card: detection and Connect / Disconnect |
 
+An agent is detected by every signal it leaves behind, not only by an executable: a CLI is found on `PATH`,
+while a desktop app or an IDE extension - which has nothing on `PATH` at all - is found by its own data
+directory (`~/.claude`, `~/.codex`, `~/.cursor`, `~/.zcode`, `~/.cline`). Detection decides what the dashboard
+offers and what a repair touches; it never runs the agent, so no version is reported.
+
 ## What the installer writes
 
 Per project (`aiko agent install --project <id>`). The contract and the procedures travel separately:

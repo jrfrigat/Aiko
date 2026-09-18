@@ -30,6 +30,12 @@ public sealed class ZCodeAgentAdapter : BuiltInAgentAdapter
     /// <inheritdoc />
     protected override string[] ExecutableNames => ["zcode"];
 
+    /// <summary>
+    /// <c>~/.zcode</c>, the client's own data directory. ZCode ships without an executable of its own name on
+    /// PATH in the common install, so the directory is what says it is there at all.
+    /// </summary>
+    protected override IReadOnlyList<string> InstallationDirectories => [UserPath(".zcode")];
+
     /// <inheritdoc />
     private protected override IReadOnlyList<AgentFileDefinition> CreateFiles(
         string projectRoot,

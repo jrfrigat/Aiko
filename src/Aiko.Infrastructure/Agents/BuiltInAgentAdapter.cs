@@ -24,19 +24,55 @@ public abstract class BuiltInAgentAdapter : IAgentAdapter
     /// </summary>
     protected abstract string[] ExecutableNames { get; }
 
+    /// <summary>
+    /// Directories that prove the agent is installed even when nothing of it is on PATH, because a desktop
+    /// app and an IDE extension have no executable to find.
+    /// </summary>
+    /// <remarks>
+    /// Resolved on every call rather than cached, so a test or a portable install that moves the home
+    /// directory sees the change. Empty for an agent whose only sign of life is its executable.
+    /// </remarks>
+    protected virtual IReadOnlyList<string> InstallationDirectories => [];
+
     /// <inheritdoc />
+    /// <remarks>
+    /// Every signal is used, because no single one is reliable: the CLI is on PATH, while the desktop app and
+    /// the IDE extension are only visible as their own data directory. A signal that finds the same adapter
+    /// twice still counts once, and the entry names the directory for a directory hit so the UI can say which
+    /// discovery produced it.
+    /// </remarks>
     public virtual ValueTask<IReadOnlyList<AgentInstallation>> DetectInstallationsAsync(
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var installations = ExecutableDetector.Find(ExecutableNames)
-            .Select(path => new AgentInstallation(
+            .Select(path => (Key: path, Installation: new AgentInstallation(
                 $"{Id}:{path}",
                 Id,
                 path,
-                null))
-            .ToArray();
-        return ValueTask.FromResult<IReadOnlyList<AgentInstallation>>(installations);
+                null)))
+            .ToList();
+
+        foreach (var directory in InstallationDirectories)
+        {
+            if (!Directory.Exists(directory))
+            {
+                continue;
+            }
+
+            installations.Add((directory, new AgentInstallation(
+                $"{Id}:{directory}",
+                Id,
+                directory,
+                null)));
+        }
+
+        return ValueTask.FromResult<IReadOnlyList<AgentInstallation>>(
+            installations
+                .DistinctBy(item => item.Key, StringComparer.OrdinalIgnoreCase)
+                .Select(item => item.Installation)
+                .OrderBy(item => item.ExecutablePath, StringComparer.OrdinalIgnoreCase)
+                .ToArray());
     }
 
     /// <inheritdoc />
