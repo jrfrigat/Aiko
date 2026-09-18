@@ -14,7 +14,7 @@ public sealed class ProjectSlugSpecs
         // The requirement's own example: the name keeps its spelling, the handle is latin.
         Assert.Equal("moj-pervyj-proekt", ProjectSlug.Derive("Мой пеРвыЙ проект"));
         Assert.Equal("aiko", ProjectSlug.Derive("Aiko"));
-        Assert.Equal("stitchflow", ProjectSlug.Derive("  StitchFlow  "));
+        Assert.Equal("aiko", ProjectSlug.Derive("  Aiko  "));
     }
 
     [Fact]
