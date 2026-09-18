@@ -55,7 +55,10 @@ carries it** - without it the daemon answers `401` and the agent simply never se
 
 Because the token lives in those files, they must not be committed. Project initialization adds them to
 `.gitignore` (`/.mcp.json`, `/.cursor/mcp.json`, `/.zcode/config.json`, plus the `.aiko` entry the git
-policy already covers); for a project initialized earlier, add the lines by hand.
+policy already covers); for a project initialized earlier, add the lines by hand. The directories Aiko writes
+agent files into (`/.cline/`, `/.clinerules/`, `/.codex/`, `/.agents/`) are added too, because every install
+and repair rewrites them. `AGENTS.md` and `CLAUDE.md` are not added: those are shared instructions, and Aiko
+only puts a marked block in them.
 
 `aiko doctor` reports a configuration whose endpoint is right but which carries no credential, and
 `aiko repair --fix` rewrites it.

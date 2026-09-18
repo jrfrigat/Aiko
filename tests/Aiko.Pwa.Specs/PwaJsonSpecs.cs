@@ -53,7 +53,10 @@ public sealed class PwaJsonSpecs
             typeof(DirectoryListing),
             typeof(AgentAdapterOption),
             typeof(IReadOnlyList<AgentAdapterOption>),
-            typeof(AgentInstallation)
+            typeof(AgentInstallation),
+            typeof(AgentProjectConnection),
+            typeof(IReadOnlyList<AgentProjectConnection>),
+            typeof(ConnectProjectAgentsRequest)
         ];
 
         foreach (var type in types)

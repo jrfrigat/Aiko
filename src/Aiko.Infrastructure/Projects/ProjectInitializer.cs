@@ -367,7 +367,14 @@ public sealed class ProjectInitializer(
                 : $"/{dataDirectory}/runtime/",
             "/.mcp.json",
             "/.cursor/mcp.json",
-            "/.zcode/config.json"
+            "/.zcode/config.json",
+            // The directories Aiko writes agent files into. Every install and repair rewrites them, so they are
+            // projections rather than content a person edits. AGENTS.md and CLAUDE.md are deliberately absent:
+            // those are shared instructions a team commits, and Aiko only adds a marked block to them.
+            "/.cline/",
+            "/.clinerules/",
+            "/.codex/",
+            "/.agents/"
         ];
 
         var gitIgnorePath = Path.Combine(rootPath, ".gitignore");

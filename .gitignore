@@ -25,3 +25,13 @@ TestResults/
 /.mcp.json
 /.cursor/mcp.json
 /.zcode/config.json
+
+# Agent configuration Aiko projects into this repository. Every install and repair rewrites it, so it is
+# generated rather than authored. AGENTS.md and CLAUDE.md are here for the same reason: Aiko only adds a
+# marked block to them.
+/.cline/
+/.clinerules/
+/.codex/
+/.agents/
+/AGENTS.md
+/CLAUDE.md

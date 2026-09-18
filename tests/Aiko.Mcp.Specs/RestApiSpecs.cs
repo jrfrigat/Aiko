@@ -20,6 +20,42 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
     private HttpClient CreateClient() => new() { BaseAddress = fixture.BaseUrl };
 
     [Fact]
+    public async Task A_project_reports_which_agents_are_connected_to_it()
+    {
+        using var http = CreateClient();
+        var root = Path.Combine(Path.GetTempPath(), "Aiko.Specs", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var created = await http.PostAsJsonAsync("/api/v1/projects/initialize", new { rootPath = root });
+            created.EnsureSuccessStatusCode();
+            var project = await created.Content.ReadFromJsonAsync<JsonElement>();
+            var projectId = project.GetProperty("id").GetString();
+
+            // The project-scoped half of the agent list: what this project has, which is a different fact from
+            // what the machine has. A project nobody has connected an agent to therefore reports every adapter
+            // as unconnected rather than omitting them.
+            var connections = await http.GetFromJsonAsync<JsonElement>(
+                $"/api/v1/projects/{projectId}/installation");
+            Assert.True(connections.GetArrayLength() > 0);
+            foreach (var connection in connections.EnumerateArray())
+            {
+                Assert.False(
+                    connection.GetProperty("connected").GetBoolean(),
+                    $"{connection.GetProperty("displayName").GetString()} is in a project nobody connected");
+            }
+
+            // An identifier nobody registered is a 404, not an empty list: the two mean different things.
+            var unknown = await http.GetAsync("/api/v1/projects/no-such-project/installation");
+            Assert.Equal(HttpStatusCode.NotFound, unknown.StatusCode);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
     public async Task Health_and_system_describe_the_daemon()
     {
         using var http = CreateClient();
