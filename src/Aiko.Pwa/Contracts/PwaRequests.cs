@@ -9,6 +9,14 @@ namespace Aiko.Pwa.Contracts;
 /// <see cref="Services.PwaJsonContext"/>, and a source-generated serializer needs the types to be
 /// reachable from the generated code (a private type nested in a component is not).
 /// </summary>
+
+/// <summary>
+/// Connects a set of agents to one project, which is what the add-project form does with the agents the user
+/// ticked.
+/// </summary>
+/// <param name="SelectedAdapterIds">Adapter ids to connect; empty connects nobody.</param>
+public sealed record ConnectProjectAgentsRequest(IReadOnlyList<string> SelectedAdapterIds);
+
 /// <summary>Creates a card of any type the project defines.</summary>
 /// <param name="CardId">A card id to import, or null to let Aiko name the card.</param>
 /// <param name="Kind">Card type id.</param>

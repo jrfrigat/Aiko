@@ -204,7 +204,9 @@ it sits in the project, and the client that reads it is configured for that proj
 Creating a project is the other half: the init command is generated per adapter and names that adapter, so
 `aiko init <path> --agent <id>` registers the project and connects the agent in one step. The step is
 idempotent - it writes only what is missing, and an agent already connected to the project is reported as such
-instead of failing, which is what a second agent running init on the same project needs.
+instead of failing, which is what a second agent running init on the same project needs. A project created
+from the dashboard's form takes the other road: the form offers the agents that are already connected for the
+user, and the ones ticked there are connected to the new project in the same gesture.
 
 Codex loads user-scope skills from its own root, `~/.codex/skills` (its built-ins live in
 `~/.codex/skills/.system`), so the global skill is written there; the portable `~/.agents/skills` copy

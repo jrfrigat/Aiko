@@ -83,6 +83,7 @@ namespace Aiko.Pwa.Services;
 [JsonSerializable(typeof(AgentUserScope))]
 [JsonSerializable(typeof(AgentProjectConnection))]
 [JsonSerializable(typeof(IReadOnlyList<AgentProjectConnection>))]
+[JsonSerializable(typeof(ConnectProjectAgentsRequest))]
 [JsonSerializable(typeof(AgentConnectionResponse))]
 [JsonSerializable(typeof(AgentInstallation))]
 [JsonSourceGenerationOptions(

@@ -267,7 +267,8 @@ internal sealed class WorkspaceState : IAsyncDisposable
         string? name,
         ProjectGitPolicy gitPolicy,
         string? templateId = null,
-        string? slug = null)
+        string? slug = null,
+        IReadOnlyList<string>? agentAdapterIds = null)
     {
         await EnsureInitializedAsync();
         Error = null;
@@ -291,6 +292,13 @@ internal sealed class WorkspaceState : IAsyncDisposable
             // The first project writes the installation's default template, so the list the add-project
             // form offers is refreshed here rather than at the next page load.
             await ReloadTemplatesAsync();
+            if (project is not null && agentAdapterIds is { Count: > 0 })
+            {
+                // The form asked for these agents, so they are connected in the same gesture: the project is
+                // created and connected rather than created and then needing a second step the user must know.
+                await ConnectProjectAgentsAsync(project.Id, agentAdapterIds);
+            }
+
             return project;
         }
         catch (Exception exception)
@@ -321,6 +329,38 @@ internal sealed class WorkspaceState : IAsyncDisposable
     /// Re-reads the agent adapters: whether each agent is installed on this machine and whether Aiko has
     /// connected to it.
     /// </summary>
+    /// <summary>
+    /// Connects the chosen agents to a project.
+    /// </summary>
+    /// <remarks>
+    /// The same call the CLI makes, and idempotent on the daemon side: an agent that is already connected has
+    /// its files rewritten to the same content rather than being reported as a failure, so a user can tick an
+    /// agent without first having to know whether it was connected already.
+    /// </remarks>
+    /// <param name="projectId">Identifier of the project, by id or by handle.</param>
+    /// <param name="adapterIds">Adapter ids to connect.</param>
+    public async Task ConnectProjectAgentsAsync(string projectId, IReadOnlyList<string> adapterIds)
+    {
+        if (adapterIds.Count == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            using var response = await _http.PostAsJsonAsync(
+                $"api/v1/projects/{Uri.EscapeDataString(projectId)}/installation",
+                new ConnectProjectAgentsRequest(adapterIds),
+                PwaJson.Options);
+            response.EnsureSuccessStatusCode();
+        }
+        catch (Exception exception)
+        {
+            Error = Loc.Format("AddProjectFailed", FailureText.Describe(exception));
+            await NotifyAsync();
+        }
+    }
+
     /// <summary>
     /// Reads which agents are connected to the open project.
     /// </summary>

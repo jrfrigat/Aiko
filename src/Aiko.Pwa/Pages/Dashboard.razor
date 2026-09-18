@@ -225,6 +225,28 @@
                             @Loc.Get("TemplateFirstProjectHint")
                         </FlareText>
                     }
+                    @* Which agents this project is for. Only connected ones are offered: an agent that is not
+                       connected for the user has no global skills to read, so connecting it here would look
+                       like it worked while the agent stayed blind. *@
+                    @if (ConnectableAgents.Count > 0)
+                    {
+                        <FlareStack Gap="FlareSpacing.XSmall">
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
+                                @Loc.Get("Agents")
+                            </FlareText>
+                            <FlareStack Row="true" Gap="FlareSpacing.XSmall" Wrap="true">
+                                @foreach (var adapter in ConnectableAgents)
+                                {
+                                    var item = adapter;
+                                    <FlareButton Variant="@(_newAgentIds.Contains(item.Id) ? ButtonVariant.Tonal : ButtonVariant.Text)"
+                                                 Size="ButtonSize.Sm"
+                                                 OnClick="() => ToggleNewAgent(item.Id)">
+                                        <ChildContent>@item.DisplayName</ChildContent>
+                                    </FlareButton>
+                                }
+                            </FlareStack>
+                        </FlareStack>
+                    }
                     <FlareStack Row="true" Gap="FlareSpacing.XSmall">
                         <FlareButton OnClick="AddProjectAsync">@Loc.Get("Add")</FlareButton>
                         <FlareButton Variant="ButtonVariant.Text" OnClick="CloseAddProject">@Loc.Get("Cancel")</FlareButton>
@@ -418,6 +440,9 @@
     private string? _newProjectPath;
     private string? _newProjectName;
     private string? _newProjectSlug;
+
+    /// <summary>The agents ticked in the add-project form, by adapter id.</summary>
+    private readonly HashSet<string> _newAgentIds = new(StringComparer.Ordinal);
     private string? _newGitPolicy = "LocalOnly";
 
     protected override async Task OnInitializedAsync()
@@ -645,9 +670,28 @@
     private static string TemplateOption(ProjectTemplateSummary template) =>
         $"{template.Name} v{template.Version}";
 
+    /// <summary>
+    /// The agents the add-project form offers: installed on this machine and connected for the user. An agent
+    /// that is neither has nothing global to read, so offering it would look like it worked while the agent
+    /// stayed blind.
+    /// </summary>
+    private IReadOnlyList<AgentAdapterOption> ConnectableAgents => State.Agents
+        .Where(adapter => DisplayFormat.Classify(adapter) == DisplayFormat.AgentPresence.Connected)
+        .ToArray();
+
+    /// <summary>Adds or removes one agent from the add-project form's selection.</summary>
+    private void ToggleNewAgent(string adapterId)
+    {
+        if (!_newAgentIds.Remove(adapterId))
+        {
+            _newAgentIds.Add(adapterId);
+        }
+    }
+
     private void OpenAddProject()
     {
         _showAddProject = true;
+        _newAgentIds.Clear();
         // Preselect the template an init without a choice would use anyway, so the common case is one
         // click and the choice is still visible.
         _newTemplateId ??= State.Templates.FirstOrDefault(template => template.IsDefault)?.Id
@@ -791,7 +835,8 @@
             string.IsNullOrWhiteSpace(_newProjectName) ? null : _newProjectName.Trim(),
             Enum.Parse<ProjectGitPolicy>(_newGitPolicy ?? nameof(ProjectGitPolicy.LocalOnly)),
             _newTemplateId,
-            string.IsNullOrWhiteSpace(_newProjectSlug) ? null : _newProjectSlug.Trim());
+            string.IsNullOrWhiteSpace(_newProjectSlug) ? null : _newProjectSlug.Trim(),
+            _newAgentIds.Count == 0 ? null : _newAgentIds.ToArray());
         if (project is null)
         {
             _error = State.Error;
