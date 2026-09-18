@@ -248,8 +248,12 @@
                 card.Reference.CardId))
             ?.Snapshot.EffectivePriority ?? card.OwnPriority;
 
-    private string Score(Card card) =>
-        EffectivePriority(card).ToString("0.##", CultureInfo.InvariantCulture);
+    /// <summary>
+    /// The tag's figure: the effective priority on the 0..100 scale the card page prints too, so one glance
+    /// compares two cards. The formula's score is a share of the maximum, and a bare "0,47" beside "1" reads
+    /// as almost nothing next to everything.
+    /// </summary>
+    private string Score(Card card) => DisplayFormat.Priority(EffectivePriority(card));
 
     private static string MetaLine(Card card) =>
         $"rev={card.Revision} · files={card.ActualChangedFiles.Count}/{card.DeclaredScopeFiles.Count}";
@@ -275,10 +279,10 @@
     {
         if (card.CriterionValues is not { Count: > 0 } criteria)
         {
-            return $"P{Score(card)}";
+            return Score(card);
         }
 
-        return $"P{Score(card)} - " + string.Join(", ", criteria.Select(pair =>
+        return $"{Score(card)} - " + string.Join(", ", criteria.Select(pair =>
             $"{pair.Key}={pair.Value.ToString("0.##", CultureInfo.InvariantCulture)}"));
     }
 

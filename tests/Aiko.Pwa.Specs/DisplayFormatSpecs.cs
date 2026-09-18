@@ -10,6 +10,21 @@ namespace Aiko.Pwa.Specs;
 public sealed class DisplayFormatSpecs
 {
     [Fact]
+    public void A_priority_is_printed_on_the_scale_the_board_ranks_by()
+    {
+        // The formula's score is a share of the maximum, and printing it as a fraction made the board say
+        // "0,47" beside "1" - two figures nobody compares. The scale is 0..100 instead.
+        Assert.Equal("72", DisplayFormat.Priority(0.72m));
+        Assert.Equal("38", DisplayFormat.Priority(0.376m));
+        Assert.Equal("100", DisplayFormat.Priority(1m));
+        // The size coefficient can lift a card past the maximum, and the figure says so rather than hiding it.
+        Assert.Equal("115", DisplayFormat.Priority(1.15m));
+        Assert.Equal("0", DisplayFormat.Priority(0m));
+        // Rounded away from zero: two cards a thousandth apart still read as different figures.
+        Assert.Equal("65", DisplayFormat.Priority(0.645m));
+    }
+
+    [Fact]
     public void Agent_state_distinguishes_found_from_not_found()
     {
         // Nothing was found on PATH: this is the only case that may say "not found".

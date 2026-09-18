@@ -1068,7 +1068,9 @@
                 .FirstOrDefault(priority => StringComparer.Ordinal.Equals(
                     priority.CardId, Card.Reference.CardId))
                 ?.Snapshot.EffectivePriority;
-            return Number(effective ?? Card.OwnPriority);
+            // The same 0..100 scale the board prints, so the card page and the board never disagree about
+            // what a card is worth.
+            return DisplayFormat.Priority(effective ?? Card.OwnPriority);
         }
     }
 

@@ -117,4 +117,18 @@ public static class DisplayFormat
 
     /// <summary>A number with at most two decimals, invariant, for priorities and scores.</summary>
     public static string Score(decimal value) => value.ToString("0.##", CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// A card's priority the way the board and the card page state it: the formula's score is a share of the
+    /// maximum - the weighted criterion values, times the size coefficient - so it is printed on a 0..100
+    /// scale. A reader compares cards by that figure, and "0,47" next to "1" says nothing to anyone.
+    /// </summary>
+    /// <remarks>
+    /// The figure can pass 100, because the size coefficient rewards a small step: a card with the best
+    /// possible criterion scores and an XS size is worth more than one of the same value at XL. Rounding is
+    /// away from zero, so two cards a thousandth apart still read as different figures.
+    /// </remarks>
+    public static string Priority(decimal value) =>
+        Math.Round(value * 100m, MidpointRounding.AwayFromZero)
+            .ToString("0", CultureInfo.InvariantCulture);
 }
