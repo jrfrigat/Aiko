@@ -272,6 +272,77 @@ public class InfrastructureSpecs
     }
 
     [Fact]
+    public void The_project_endpoint_carries_the_readable_handle()
+    {
+        var registered = new RegisteredProject("01a0b2c3d4e5f60718293a4b5c6d7e8f", "Demo", @"C:\Demo", "demo");
+
+        // The handle is what a person reads in an agent's configuration, so a URL says which project it
+        // belongs to instead of carrying a GUID nobody can place.
+        Assert.Equal(
+            "http://127.0.0.1:5299/mcp/projects/demo",
+            ProjectMcpEndpoint.For("http://127.0.0.1:5299", registered));
+        // A daemon address that already ends in a slash does not double up.
+        Assert.Equal(
+            "http://127.0.0.1:5299/mcp/projects/demo",
+            ProjectMcpEndpoint.For("http://127.0.0.1:5299/", registered));
+
+        // A project registered before slugs existed keeps working: the id resolves just the same.
+        var legacy = new RegisteredProject("01a0b2c3d4e5f60718293a4b5c6d7e8f", "Demo", @"C:\Demo");
+        Assert.Equal(
+            "http://127.0.0.1:5299/mcp/projects/01a0b2c3d4e5f60718293a4b5c6d7e8f",
+            ProjectMcpEndpoint.For("http://127.0.0.1:5299", legacy));
+    }
+
+    [Fact]
+    public async Task Install_and_diagnosis_agree_on_the_project_endpoint()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "Aiko.Specs", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        await File.WriteAllTextAsync(Path.Combine(directory, "claude.cmd"), string.Empty);
+        var originalPath = Environment.GetEnvironmentVariable("PATH");
+        try
+        {
+            Environment.SetEnvironmentVariable("PATH", directory);
+            await WithInitializedProjectAsync(async context =>
+            {
+                // What this locks: install and repair used to build the path themselves and disagree - one
+                // wrote the project's id, the other the handle a user had typed - so they rewrote each
+                // other's files on every run and the diagnosis called a working configuration stale.
+                var dataPaths = new AikoDataPaths(context.Database.DatabasePath);
+                var configuration = new DaemonEndpointConfiguration(dataPaths);
+                var settings = await configuration.LoadOrCreateAsync(null, CancellationToken.None);
+                var adapter = new ClaudeCodeAgentAdapter();
+                var installer = new UnifiedAgentInstaller(
+                    [adapter], context.Catalog, new FileProjectDefinitionStore(context.Catalog));
+
+                await installer.ApplyAsync(
+                    context.Project.Id,
+                    ProjectMcpEndpoint.For($"http://127.0.0.1:{settings.Port}", context.Project),
+                    "test-token",
+                    ["claude-code"],
+                    CancellationToken.None);
+
+                var doctor = new WorkshopDoctor(
+                    dataPaths,
+                    context.Catalog,
+                    installer,
+                    [adapter],
+                    configuration,
+                    new AccessTokenStore(dataPaths));
+                var report = await doctor.InspectAsync(context.Project.Id, CancellationToken.None);
+
+                // A configuration this build wrote is never reported as drift.
+                Assert.DoesNotContain(report.Findings, finding => finding.Area == "agent-config");
+            });
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("PATH", originalPath);
+            Directory.Delete(directory, true);
+        }
+    }
+
+    [Fact]
     public void Stale_endpoint_detection_ignores_files_that_carry_no_endpoint()
     {
         const string current = "http://127.0.0.1:5299/mcp/projects/p1";
@@ -1879,11 +1950,12 @@ public class InfrastructureSpecs
                 var settings = await configuration.LoadOrCreateAsync(null, CancellationToken.None);
 
                 // An installation from before the token existed: the endpoint is right, nothing
-                // authenticates, so the daemon answers 401 and the agent never sees Aiko.
+                // authenticates, so the daemon answers 401 and the agent never sees Aiko. The endpoint
+                // carries the project's readable handle - the same one the installer and the diagnosis use.
                 var mcp = Path.Combine(context.Project.RootPath, ".mcp.json");
                 await File.WriteAllTextAsync(
                     mcp,
-                    $"{{\"mcpServers\":{{\"aiko\":{{\"url\":\"http://127.0.0.1:{settings.Port}/mcp/projects/{context.Project.Id}\"}}}}}}");
+                    $"{{\"mcpServers\":{{\"aiko\":{{\"url\":\"http://127.0.0.1:{settings.Port}/mcp/projects/{context.Project.Handle}\"}}}}}}");
 
                 var doctor = new WorkshopDoctor(
                     dataPaths,

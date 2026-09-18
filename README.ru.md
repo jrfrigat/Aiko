@@ -156,7 +156,7 @@ dotnet run --project src/Aiko.Server
 curl -X POST http://127.0.0.1:24560/api/v1/projects/initialize \
      -H "Content-Type: application/json" \
      -d "{ \"rootPath\": \"C:/путь/к/проекту\" }"
-# => { "id": "<projectId>", ... }   MCP: http://127.0.0.1:24560/mcp/projects/<projectId>
+# => { "id": "<projectId>", ... }   MCP: http://127.0.0.1:24560/mcp/projects/<handle>
 ```
 
 `.\install.ps1` в корне репозитория публикует текущий checkout в `%LOCALAPPDATA%\Aiko\bin` - после
@@ -169,14 +169,17 @@ curl -X POST http://127.0.0.1:24560/api/v1/projects/initialize \
 Каждому проекту выдается собственный Streamable HTTP MCP-endpoint:
 
 ```text
-http://127.0.0.1:<port>/mcp/projects/<projectId>
+http://127.0.0.1:<port>/mcp/projects/<handle>
 ```
+
+`<handle>` - читаемый slug проекта, тот же, что в адресах UI. Демон различает проект по handle или по
+id, поэтому адрес, записанный до появления slug'ов, продолжает работать.
 
 Клиенты без надежного Streamable HTTP используют тонкий stdio-прокси (без второго хранилища,
 форвардинг на уровне транспорта, только loopback):
 
 ```text
-aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<projectId>
+aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<handle>
 ```
 
 Стабильный набор инструментов (31 tools): контекст проекта, CRUD карточек, связи, оценка и взятие

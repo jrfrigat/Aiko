@@ -134,7 +134,7 @@ public sealed class WorkshopDoctor(
             return;
         }
 
-        var expectedEndpoint = $"{settings.BaseUri}mcp/projects/{project.Id}";
+        var expectedEndpoint = ProjectMcpEndpoint.For(settings.BaseUri.ToString(), project);
         foreach (var finding in await FindAgentConfigDriftAsync(
                      project,
                      expectedEndpoint,
@@ -253,7 +253,7 @@ public sealed class WorkshopDoctor(
     /// are never reported as drift.
     /// </summary>
     public static bool HasEndpoint(string content) =>
-        content.Contains("/mcp/projects/", StringComparison.Ordinal);
+        content.Contains(ProjectMcpEndpoint.PathPrefix, StringComparison.Ordinal);
 
     /// <summary>
     /// Whether a file carries the credential the daemon requires: an <c>Authorization</c> header, or the
@@ -270,7 +270,7 @@ public sealed class WorkshopDoctor(
     /// stale would be pure noise.
     /// </summary>
     public static bool IsStaleProjectEndpoint(string content, string expectedEndpoint) =>
-        content.Contains("/mcp/projects/", StringComparison.Ordinal) &&
+        content.Contains(ProjectMcpEndpoint.PathPrefix, StringComparison.Ordinal) &&
         !content.Contains(expectedEndpoint, StringComparison.Ordinal);
 
     /// <summary>
@@ -279,6 +279,6 @@ public sealed class WorkshopDoctor(
     /// </summary>
     public static bool IsStaleUserScopeEndpoint(string content, string expectedEndpoint) =>
         content.Contains("/mcp", StringComparison.Ordinal) &&
-        !content.Contains("/mcp/projects/", StringComparison.Ordinal) &&
+        !content.Contains(ProjectMcpEndpoint.PathPrefix, StringComparison.Ordinal) &&
         !content.Contains(expectedEndpoint, StringComparison.Ordinal);
 }

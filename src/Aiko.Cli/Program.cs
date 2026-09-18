@@ -728,11 +728,19 @@ static async Task<int> AgentInstallAsync(string[] args, bool uninstall)
         return 1;
     }
 
-    var endpoint = $"http://127.0.0.1:{settings.Port}/mcp/projects/{projectId}";
+    // The endpoint is built from the registered project, not from the identifier the user typed: an id and a
+    // handle both resolve here, and only the resolved project says which of the two belongs in the URL.
+    if (await catalog.FindAsync(projectId, CancellationToken.None) is not { } project)
+    {
+        Console.Error.WriteLine($"No registered project with id {projectId}.");
+        return 1;
+    }
+
+    var endpoint = ProjectMcpEndpoint.For($"http://127.0.0.1:{settings.Port}", project);
     // Without the token in the configuration the daemon answers 401 on /mcp and the agent never sees Aiko.
     var accessToken = await new AccessTokenStore(dataPaths).GetOrCreateAsync();
     var applied = await installer.ApplyAsync(
-        projectId,
+        project.Id,
         endpoint,
         accessToken,
         selected,
@@ -875,7 +883,7 @@ static async Task<int> RepairAsync(string[] args)
             continue;
         }
 
-        var endpoint = $"http://127.0.0.1:{settings.Port}/mcp/projects/{project.Id}";
+        var endpoint = ProjectMcpEndpoint.For($"http://127.0.0.1:{settings.Port}", project);
         var applied = await installer.ApplyAsync(
             project.Id,
             endpoint,

@@ -200,12 +200,12 @@
     private bool _hasError;
 
     /// <summary>
-    /// The MCP endpoint an agent connects to: the daemon plus the open project, when one is open. The real
-    /// project id is shown rather than its readable handle, because this is the address the written agent
-    /// configurations carry.
+    /// The MCP endpoint an agent connects to: the daemon plus the open project, when one is open. It carries
+    /// the project's readable handle, because that is exactly what the written agent configurations carry -
+    /// the two have to read the same, or the screen would show an address no agent has.
     /// </summary>
     private string McpEndpoint => State.SelectedProject is { } project && State.HostCaption is { Length: > 0 } host
-        ? $"http://{host}/mcp/projects/{project.Id}"
+        ? $"http://{host}/mcp/projects/{project.Handle}"
         : Loc.Get("SelectProjectForLocalSettings");
 
     /// <summary>The measured round-trip to the daemon, or a dash before it has answered once.</summary>

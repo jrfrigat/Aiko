@@ -4,8 +4,9 @@ namespace Aiko.Application.Contracts;
 /// A project registered in the Aiko catalog.
 /// </summary>
 /// <param name="Id">
-/// Stable project id - a generated GUID. It is the key written into card files, relations and every agent's
-/// MCP endpoint, so it never changes.
+/// Stable project id - a generated GUID. It is the key written into card files, relations and the SQLite
+/// projections, so it never changes. An agent's MCP endpoint carries the readable handle instead, because a
+/// URL a person reads should say which project it belongs to (see <see cref="Handle"/>).
 /// </param>
 /// <param name="Name">Display name.</param>
 /// <param name="RootPath">Project root directory.</param>

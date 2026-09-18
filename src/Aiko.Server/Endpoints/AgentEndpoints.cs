@@ -48,38 +48,46 @@ internal static class AgentEndpoints
             });
         app.MapPost(
             "/api/v1/projects/{projectId}/installation-plan",
-            async (
+            async Task<IResult> (
                 string projectId,
                 PlanAgentInstallationRequest request,
                 HttpRequest httpRequest,
                 IUnifiedAgentInstaller installer,
+                IProjectCatalog catalog,
                 DaemonAccessToken accessToken,
                 CancellationToken cancellationToken) =>
             {
-                var endpoint =
-                    $"{httpRequest.Scheme}://{httpRequest.Host}/mcp/projects/{Uri.EscapeDataString(projectId)}";
+                if (await catalog.FindAsync(projectId, cancellationToken) is not { } project)
+                {
+                    return TypedResults.NotFound();
+                }
+
                 return TypedResults.Ok(await installer.PlanAsync(
-                    projectId,
-                    endpoint,
+                    project.Id,
+                    ProjectMcpEndpoint.For($"{httpRequest.Scheme}://{httpRequest.Host}", project),
                     accessToken.Value,
                     request.SelectedAdapterIds,
                     cancellationToken));
             });
         app.MapPost(
             "/api/v1/projects/{projectId}/installation",
-            async (
+            async Task<IResult> (
                 string projectId,
                 PlanAgentInstallationRequest request,
                 HttpRequest httpRequest,
                 IUnifiedAgentInstaller installer,
+                IProjectCatalog catalog,
                 DaemonAccessToken accessToken,
                 CancellationToken cancellationToken) =>
             {
-                var endpoint =
-                    $"{httpRequest.Scheme}://{httpRequest.Host}/mcp/projects/{Uri.EscapeDataString(projectId)}";
+                if (await catalog.FindAsync(projectId, cancellationToken) is not { } project)
+                {
+                    return TypedResults.NotFound();
+                }
+
                 return TypedResults.Ok(await installer.ApplyAsync(
-                    projectId,
-                    endpoint,
+                    project.Id,
+                    ProjectMcpEndpoint.For($"{httpRequest.Scheme}://{httpRequest.Host}", project),
                     accessToken.Value,
                     request.SelectedAdapterIds,
                     cancellationToken));

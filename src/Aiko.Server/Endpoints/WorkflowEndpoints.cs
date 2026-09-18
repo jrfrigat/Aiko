@@ -25,6 +25,7 @@ internal static class WorkflowEndpoints
                 CreateWorkflowRequest request,
                 IProjectDefinitionStore definitions,
                 IUnifiedAgentInstaller agents,
+                IProjectCatalog catalog,
                 DaemonAccessToken accessToken,
                 HttpRequest httpRequest,
                 CancellationToken cancellationToken) =>
@@ -56,7 +57,7 @@ internal static class WorkflowEndpoints
                     return Results.BadRequest(new ErrorResponse(exception.Message));
                 }
 
-                await ReprojectAsync(projectId, httpRequest, agents, accessToken, cancellationToken);
+                await ReprojectAsync(projectId, httpRequest, agents, catalog, accessToken, cancellationToken);
                 return Results.Created(
                     $"/api/v1/projects/{projectId}/workflows/{created.Id}",
                     created);
@@ -71,6 +72,7 @@ internal static class WorkflowEndpoints
                 IProjectDefinitionStore definitions,
                 ICardStore cards,
                 IUnifiedAgentInstaller agents,
+                IProjectCatalog catalog,
                 DaemonAccessToken accessToken,
                 HttpRequest httpRequest,
                 CancellationToken cancellationToken) =>
@@ -124,7 +126,7 @@ internal static class WorkflowEndpoints
                     return Results.BadRequest(new ErrorResponse(exception.Message));
                 }
 
-                await ReprojectAsync(projectId, httpRequest, agents, accessToken, cancellationToken);
+                await ReprojectAsync(projectId, httpRequest, agents, catalog, accessToken, cancellationToken);
                 return Results.Ok(updated);
             });
 
@@ -136,6 +138,7 @@ internal static class WorkflowEndpoints
                 IProjectDefinitionStore definitions,
                 ICardStore cards,
                 IUnifiedAgentInstaller agents,
+                IProjectCatalog catalog,
                 DaemonAccessToken accessToken,
                 HttpRequest httpRequest,
                 CancellationToken cancellationToken) =>
@@ -166,7 +169,7 @@ internal static class WorkflowEndpoints
                     return Results.NotFound();
                 }
 
-                await ReprojectAsync(projectId, httpRequest, agents, accessToken, cancellationToken);
+                await ReprojectAsync(projectId, httpRequest, agents, catalog, accessToken, cancellationToken);
                 return Results.NoContent();
             });
         app.MapPost(
@@ -178,6 +181,7 @@ internal static class WorkflowEndpoints
                 IProjectDefinitionStore definitions,
                 ICardStore cards,
                 IUnifiedAgentInstaller agents,
+                IProjectCatalog catalog,
                 DaemonAccessToken accessToken,
                 HttpRequest httpRequest,
                 CancellationToken cancellationToken) =>
@@ -219,7 +223,7 @@ internal static class WorkflowEndpoints
                         workflowId,
                         newId,
                         cancellationToken);
-                    await ReprojectAsync(projectId, httpRequest, agents, accessToken, cancellationToken);
+                    await ReprojectAsync(projectId, httpRequest, agents, catalog, accessToken, cancellationToken);
                     return Results.Ok(renamed);
                 }
                 catch (InvalidOperationException exception)
@@ -244,14 +248,19 @@ internal static class WorkflowEndpoints
         string projectId,
         HttpRequest httpRequest,
         IUnifiedAgentInstaller agents,
+        IProjectCatalog catalog,
         DaemonAccessToken accessToken,
         CancellationToken cancellationToken)
     {
         try
         {
-            var endpoint =
-                $"{httpRequest.Scheme}://{httpRequest.Host}/mcp/projects/{Uri.EscapeDataString(projectId)}";
-            await agents.ReprojectCardTypesAsync(projectId, endpoint, accessToken.Value, cancellationToken);
+            if (await catalog.FindAsync(projectId, cancellationToken) is not { } project)
+            {
+                return;
+            }
+
+            var endpoint = ProjectMcpEndpoint.For($"{httpRequest.Scheme}://{httpRequest.Host}", project);
+            await agents.ReprojectCardTypesAsync(project.Id, endpoint, accessToken.Value, cancellationToken);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {

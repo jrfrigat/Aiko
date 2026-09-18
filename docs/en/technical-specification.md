@@ -115,7 +115,7 @@ A single ASP.NET Core .NET 10 process:
 
 - REST API `/api/v1`;
 - event SSE `/api/v1/events`;
-- MCP endpoint `/mcp/projects/{projectId}`;
+- MCP endpoint `/mcp/projects/{projectHandle}` - the project's readable handle;
 - health/readiness endpoints;
 - serving the local PWA;
 - the background run scheduler.
@@ -407,14 +407,17 @@ installing `.zcode/skills`. The adapter accounts for the native config taking pr
 The primary transport is the Streamable HTTP of the global daemon. The endpoint is per project:
 
 ```text
-POST http://127.0.0.1:<configuredPort>/mcp/projects/{projectId}
+POST http://127.0.0.1:<configuredPort>/mcp/projects/{projectHandle}
 ```
+
+`{projectHandle}` is the project's readable slug, the same handle the UI's URLs carry; the daemon also
+resolves the project's id, so a URL written before slugs existed keeps working.
 
 `stdio` remains a compatible thin proxy and does not create a second store. The proxy runs as a
 separate short-lived process:
 
 ```text
-aiko-stdio --url http://127.0.0.1:<configuredPort>/mcp/projects/{projectId}
+aiko-stdio --url http://127.0.0.1:<configuredPort>/mcp/projects/{projectHandle}
 ```
 
 Passing the URL through `AIKO_MCP_URL` is allowed. The proxy works at the raw transport level,

@@ -14,9 +14,9 @@ public interface IProjectCatalog
     /// Finds a project by its stable id or by its human-readable slug, or returns null when neither matches.
     /// </summary>
     /// <remarks>
-    /// Accepting both is what lets links carry the readable handle while every card file, relation and agent
-    /// MCP endpoint keeps the immutable id. The id is tried first, so nothing that resolved before stops
-    /// resolving, and a project without a slug is still reachable by id.
+    /// Accepting both is what lets links and agent MCP endpoints carry the readable handle while every card
+    /// file and relation keeps the immutable id. The id is tried first, so nothing that resolved before
+    /// stops resolving, and a project without a slug is still reachable by id.
     /// </remarks>
     ValueTask<RegisteredProject?> FindAsync(string projectIdOrSlug, CancellationToken cancellationToken);
 

@@ -156,7 +156,7 @@ remembers the choice in `settings.json` next to the database. Open the UI at
 curl -X POST http://127.0.0.1:24560/api/v1/projects/initialize \
      -H "Content-Type: application/json" \
      -d "{ \"rootPath\": \"C:/path/to/your/project\" }"
-# => { "id": "<projectId>", ... }   MCP: http://127.0.0.1:24560/mcp/projects/<projectId>
+# => { "id": "<projectId>", ... }   MCP: http://127.0.0.1:24560/mcp/projects/<handle>
 ```
 
 `.\install.ps1` in the repository root publishes this checkout into `%LOCALAPPDATA%\Aiko\bin`, so
@@ -169,14 +169,17 @@ curl -X POST http://127.0.0.1:24560/api/v1/projects/initialize \
 Each project gets a dedicated Streamable HTTP MCP endpoint:
 
 ```text
-http://127.0.0.1:<port>/mcp/projects/<projectId>
+http://127.0.0.1:<port>/mcp/projects/<handle>
 ```
+
+`<handle>` is the project's readable slug - the same one the UI's URLs carry. The daemon resolves a
+project by its handle or by its id, so an endpoint written before slugs existed keeps working.
 
 Clients without reliable Streamable HTTP use the thin stdio proxy (no second store, raw transport
 forwarding, loopback-only):
 
 ```text
-aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<projectId>
+aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<handle>
 ```
 
 The stable tool set (31 tools): project context, card CRUD, linking, estimating and taking a card, the

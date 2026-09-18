@@ -7,8 +7,11 @@ Aiko connects Claude Code, Codex, Cursor, ZCode and Cline through a per-project 
 Each project gets a Streamable HTTP MCP endpoint:
 
 ```text
-http://127.0.0.1:<port>/mcp/projects/<projectId>
+http://127.0.0.1:<port>/mcp/projects/<handle>
 ```
+
+`<handle>` is the project's readable slug - the same one the UI's URLs carry. The daemon resolves a project
+by its handle or by its id, so an endpoint written before slugs existed keeps working.
 
 A daemon-level endpoint (no project) exposes global operations:
 
@@ -19,7 +22,7 @@ http://127.0.0.1:<port>/mcp
 Clients without reliable Streamable HTTP use the stdio proxy:
 
 ```text
-aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<projectId>
+aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<handle>
 ```
 
 ## The tool set

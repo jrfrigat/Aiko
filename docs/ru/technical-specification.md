@@ -113,7 +113,7 @@ workflow, память и стабильный MCP-контракт.
 
 - REST API `/api/v1`;
 - SSE событий `/api/v1/events`;
-- MCP endpoint `/mcp/projects/{projectId}`;
+- MCP endpoint `/mcp/projects/{projectHandle}` - читаемый handle проекта;
 - health/readiness endpoints;
 - раздача локального PWA;
 - планировщик фоновых запусков.
@@ -401,14 +401,17 @@ resume, structured output, rate-limit detection и remote workspace.
 Основной транспорт - Streamable HTTP глобального демона. Endpoint проектный:
 
 ```text
-POST http://127.0.0.1:<configuredPort>/mcp/projects/{projectId}
+POST http://127.0.0.1:<configuredPort>/mcp/projects/{projectHandle}
 ```
+
+`{projectHandle}` - читаемый slug проекта, тот же handle, что в адресах UI; демон различает проект и по
+id, поэтому адрес, записанный до появления slug'ов, продолжает работать.
 
 `stdio` остается совместимым тонким proxy и не создает второе хранилище. Proxy запускается
 как отдельный короткоживущий процесс:
 
 ```text
-aiko-stdio --url http://127.0.0.1:<configuredPort>/mcp/projects/{projectId}
+aiko-stdio --url http://127.0.0.1:<configuredPort>/mcp/projects/{projectHandle}
 ```
 
 Допускается передача URL через `AIKO_MCP_URL`. Proxy работает на raw transport уровне,

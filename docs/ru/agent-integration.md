@@ -7,8 +7,11 @@ Aiko связывает Claude Code, Codex, Cursor, ZCode и Cline через MC
 Каждый проект получает Streamable HTTP MCP-эндпоинт:
 
 ```text
-http://127.0.0.1:<port>/mcp/projects/<projectId>
+http://127.0.0.1:<port>/mcp/projects/<handle>
 ```
+
+`<handle>` - читаемый slug проекта, тот же, что в адресах UI. Демон различает проект по handle или по id,
+поэтому адрес, записанный до появления slug'ов, продолжает работать.
 
 Daemon-level эндпоинт (без проекта) отдаёт глобальные операции:
 
@@ -19,7 +22,7 @@ http://127.0.0.1:<port>/mcp
 Клиенты без надёжного Streamable HTTP используют stdio-прокси:
 
 ```text
-aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<projectId>
+aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<handle>
 ```
 
 ## Набор инструментов

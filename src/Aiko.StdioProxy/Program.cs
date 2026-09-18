@@ -103,7 +103,7 @@ static bool TryValidateEndpoint(
     {
         endpoint = null!;
         error =
-            "Usage: aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/{projectId}";
+            "Usage: aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/{projectHandle}";
         return false;
     }
 
