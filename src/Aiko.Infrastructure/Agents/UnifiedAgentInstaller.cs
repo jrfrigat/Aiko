@@ -93,6 +93,7 @@ public sealed class UnifiedAgentInstaller(
         {
             plans.Add(await adaptersById[adapterId].PlanProjectInstallAsync(
                 project.RootPath,
+                project.Handle,
                 projectMcpEndpoint,
                 accessToken,
                 cardTypes,
@@ -126,6 +127,7 @@ public sealed class UnifiedAgentInstaller(
             {
                 results.Add(await adaptersById[adapterId].ApplyProjectInstallAsync(
                     project.RootPath,
+                    project.Handle,
                     projectMcpEndpoint,
                     accessToken,
                     cardTypes,
@@ -174,6 +176,7 @@ public sealed class UnifiedAgentInstaller(
             {
                 results.Add(await adapter.ApplyProjectInstallAsync(
                     project.RootPath,
+                    project.Handle,
                     projectMcpEndpoint,
                     accessToken,
                     cardTypes,
@@ -234,6 +237,7 @@ public sealed class UnifiedAgentInstaller(
         {
             plans.Add(await adaptersById[adapterId].PlanProjectUninstallAsync(
                 project.RootPath,
+                project.Handle,
                 cancellationToken));
         }
 
@@ -257,6 +261,7 @@ public sealed class UnifiedAgentInstaller(
             {
                 results.Add(await adaptersById[adapterId].UninstallProjectAsync(
                     project.RootPath,
+                    project.Handle,
                     cancellationToken));
             }
             catch (Exception exception) when (exception is not OperationCanceledException)

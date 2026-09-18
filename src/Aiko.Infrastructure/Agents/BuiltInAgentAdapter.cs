@@ -42,6 +42,7 @@ public abstract class BuiltInAgentAdapter : IAgentAdapter
     /// <inheritdoc />
     public ValueTask<InstallationPlan> PlanProjectInstallAsync(
         string projectRoot,
+        string projectHandle,
         string projectMcpEndpoint,
         string? accessToken,
         IReadOnlyList<CardTypeDescriptor> cardTypes,
@@ -59,7 +60,7 @@ public abstract class BuiltInAgentAdapter : IAgentAdapter
 
         return ValueTask.FromResult(new InstallationPlan(
             Id,
-            CreateFiles(Path.GetFullPath(projectRoot), projectMcpEndpoint, accessToken, cardTypes)
+            CreateFiles(Path.GetFullPath(projectRoot), projectHandle, projectMcpEndpoint, accessToken, cardTypes)
                 .Select(file => new InstallationChange(file.Path, file.Description))
                 .ToArray(),
             CreateWarnings()));
@@ -80,14 +81,16 @@ public abstract class BuiltInAgentAdapter : IAgentAdapter
     /// <inheritdoc />
     public async ValueTask<AgentInstallationResult> ApplyProjectInstallAsync(
         string projectRoot,
+        string projectHandle,
         string projectMcpEndpoint,
         string? accessToken,
         IReadOnlyList<CardTypeDescriptor> cardTypes,
         CancellationToken cancellationToken)
     {
-        await PlanProjectInstallAsync(projectRoot, projectMcpEndpoint, accessToken, cardTypes, cancellationToken);
+        await PlanProjectInstallAsync(
+            projectRoot, projectHandle, projectMcpEndpoint, accessToken, cardTypes, cancellationToken);
         var fullRoot = Path.GetFullPath(projectRoot);
-        var definitions = CreateFiles(fullRoot, projectMcpEndpoint, accessToken, cardTypes);
+        var definitions = CreateFiles(fullRoot, projectHandle, projectMcpEndpoint, accessToken, cardTypes);
         var files = new List<InstallationFileResult>();
 
         foreach (var definition in definitions)
@@ -126,6 +129,7 @@ public abstract class BuiltInAgentAdapter : IAgentAdapter
     /// <inheritdoc />
     public ValueTask<InstallationPlan> PlanProjectUninstallAsync(
         string projectRoot,
+        string projectHandle,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -134,7 +138,7 @@ public abstract class BuiltInAgentAdapter : IAgentAdapter
         var directories = OwnedDirectories(fullRoot);
         // Every owned file is reported, not only the ones a current plan names: a command of a card type the
         // project has since removed is exactly what a user wants to see going away.
-        var planned = CreateFiles(fullRoot, "http://127.0.0.1/mcp", null, [])
+        var planned = CreateFiles(fullRoot, projectHandle, "http://127.0.0.1/mcp", null, [])
             .Select(file => file.Path)
             .Concat(directories.SelectMany(FindOwnedFiles))
             .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -151,12 +155,13 @@ public abstract class BuiltInAgentAdapter : IAgentAdapter
     /// <inheritdoc />
     public async ValueTask<AgentInstallationResult> UninstallProjectAsync(
         string projectRoot,
+        string projectHandle,
         CancellationToken cancellationToken)
     {
-        await PlanProjectUninstallAsync(projectRoot, cancellationToken);
+        await PlanProjectUninstallAsync(projectRoot, projectHandle, cancellationToken);
         var fullRoot = Path.GetFullPath(projectRoot);
         var files = new List<InstallationFileResult>();
-        foreach (var definition in CreateFiles(fullRoot, "http://127.0.0.1/mcp", null, []))
+        foreach (var definition in CreateFiles(fullRoot, projectHandle, "http://127.0.0.1/mcp", null, []))
         {
             cancellationToken.ThrowIfCancellationRequested();
             try
@@ -291,6 +296,10 @@ public abstract class BuiltInAgentAdapter : IAgentAdapter
     /// Returns descriptions of the configuration files the adapter creates in the project.
     /// </summary>
     /// <param name="projectRoot">Full path to the project root.</param>
+    /// <param name="projectHandle">
+    /// The project's readable handle, for an adapter that names a file or an entry after the project instead
+    /// of after the folder it sits in.
+    /// </param>
     /// <param name="projectMcpEndpoint">Absolute loopback URL of the project MCP server.</param>
     /// <param name="accessToken">The daemon's access token, written into the MCP entry so the client can authenticate.</param>
     /// <param name="cardTypes">
@@ -299,6 +308,7 @@ public abstract class BuiltInAgentAdapter : IAgentAdapter
     /// </param>
     private protected abstract IReadOnlyList<AgentFileDefinition> CreateFiles(
         string projectRoot,
+        string projectHandle,
         string projectMcpEndpoint,
         string? accessToken,
         IReadOnlyList<CardTypeDescriptor> cardTypes);

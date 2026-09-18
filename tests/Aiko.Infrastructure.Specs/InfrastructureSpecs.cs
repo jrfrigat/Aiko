@@ -1876,8 +1876,9 @@ public class InfrastructureSpecs
                     CancellationToken.None);
                 Assert.All(applied.AdapterResults, result => Assert.True(result.Succeeded));
 
-                // The entry is named after the project folder, so several projects can be connected at once.
-                var key = $"aiko-{Path.GetFileName(context.Project.RootPath)}";
+                // The entry is named after the project's own handle, so several projects can be connected at
+                // once and the name a person reads in the file says which project it belongs to.
+                var key = $"aiko-{context.Project.Handle}";
 
                 // Both of Cline's global files carry the entry: the app and IDE read the settings file, the
                 // CLI reads mcp.json.
@@ -1889,6 +1890,12 @@ public class InfrastructureSpecs
                 {
                     var text = await File.ReadAllTextAsync(path);
                     Assert.Contains($"\"{key}\"", text, StringComparison.Ordinal);
+                    // The fixture's folder is called Project while the project's handle is project, so this
+                    // is what says the key follows the project rather than the folder.
+                    Assert.DoesNotContain(
+                        $"\"aiko-{Path.GetFileName(context.Project.RootPath)}\"",
+                        text,
+                        StringComparison.Ordinal);
                     // Cline falls back to the legacy SSE transport when the type is missing, so the
                     // streamable HTTP transport has to be spelled out.
                     Assert.Contains("\"type\": \"streamableHttp\"", text, StringComparison.Ordinal);

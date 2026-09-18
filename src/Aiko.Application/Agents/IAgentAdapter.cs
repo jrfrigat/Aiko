@@ -32,6 +32,11 @@ public interface IAgentAdapter
     /// Builds a plan for installing the project-scoped Aiko configuration without touching files.
     /// </summary>
     /// <param name="projectRoot">Full path to the project root.</param>
+    /// <param name="projectHandle">
+    /// The project's readable handle. An adapter whose configuration lives outside the project needs it to
+    /// name its entry after the project itself - Cline keeps one MCP entry per project in a file shared by
+    /// every workspace - rather than after whichever folder the project happens to sit in.
+    /// </param>
     /// <param name="projectMcpEndpoint">Absolute loopback URL of the project MCP server.</param>
     /// <param name="accessToken">
     /// The daemon's access token. The MCP endpoint requires it, so it belongs in the configuration the
@@ -44,6 +49,7 @@ public interface IAgentAdapter
     /// <param name="cancellationToken">Cancellation token for the operation.</param>
     ValueTask<InstallationPlan> PlanProjectInstallAsync(
         string projectRoot,
+        string projectHandle,
         string projectMcpEndpoint,
         string? accessToken,
         IReadOnlyList<CardTypeDescriptor> cardTypes,
@@ -55,6 +61,7 @@ public interface IAgentAdapter
     /// </summary>
     ValueTask<AgentInstallationResult> ApplyProjectInstallAsync(
         string projectRoot,
+        string projectHandle,
         string projectMcpEndpoint,
         string? accessToken,
         IReadOnlyList<CardTypeDescriptor> cardTypes,
@@ -78,8 +85,13 @@ public interface IAgentAdapter
     /// <summary>
     /// Builds a plan for removing the Aiko configuration from the project without touching files.
     /// </summary>
+    /// <remarks>
+    /// The handle is needed here as much as on install: an adapter that names its entry after the project
+    /// cannot find that entry again without it, and would leave it behind.
+    /// </remarks>
     ValueTask<InstallationPlan> PlanProjectUninstallAsync(
         string projectRoot,
+        string projectHandle,
         CancellationToken cancellationToken);
 
     /// <summary>
@@ -87,6 +99,7 @@ public interface IAgentAdapter
     /// </summary>
     ValueTask<AgentInstallationResult> UninstallProjectAsync(
         string projectRoot,
+        string projectHandle,
         CancellationToken cancellationToken);
 
     /// <summary>

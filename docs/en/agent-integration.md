@@ -194,7 +194,7 @@ is kept for layouts that read that tree. Set `AIKO_USER_HOME` to install into a 
 directory.
 
 Cline keeps MCP servers **globally only** - a workspace carries skills and rules, not a server - so a
-project install adds one entry named after the project folder (`aiko-<folder>`) to both files Cline
+project install adds one entry named after the project's own handle (`aiko-<handle>`) to both files Cline
 reads: `~/.cline/data/settings/cline_mcp_settings.json` (desktop app and IDE extension) and
 `~/.cline/mcp.json` (CLI). Several projects can be connected at once; Cline enables and disables
 servers per session. Its entry spells out `"type": "streamableHttp"`, because Cline falls back to the

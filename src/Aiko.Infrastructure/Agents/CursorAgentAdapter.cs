@@ -28,6 +28,7 @@ public sealed class CursorAgentAdapter : BuiltInAgentAdapter
     /// <inheritdoc />
     private protected override IReadOnlyList<AgentFileDefinition> CreateFiles(
         string projectRoot,
+        string projectHandle,
         string projectMcpEndpoint,
         string? accessToken,
         // Cursor has no slash commands, so the card types change nothing here; the argument is part of the

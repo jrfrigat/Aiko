@@ -13,7 +13,7 @@ namespace Aiko.Infrastructure.Agents;
 /// (<c>.cline/skills</c>) and its rules (<c>.clinerules</c>), and Cline reads no MCP configuration from a
 /// workspace;</item>
 /// <item>the MCP endpoint therefore goes into Cline's global files, one entry per project
-/// (<c>aiko-&lt;folder&gt;</c>), because a single entry cannot name a project. Cline can enable and disable
+/// (<c>aiko-&lt;handle&gt;</c>), because a single entry cannot name a project. Cline can enable and disable
 /// servers, so several projects can coexist.</item>
 /// </list>
 /// Hooks and plugins are executable code, so Aiko installs neither anywhere.
@@ -80,11 +80,12 @@ public sealed class ClineAgentAdapter : BuiltInAgentAdapter
     /// </remarks>
     private protected override IReadOnlyList<AgentFileDefinition> CreateFiles(
         string projectRoot,
+        string projectHandle,
         string projectMcpEndpoint,
         string? accessToken,
         IReadOnlyList<CardTypeDescriptor> cardTypes)
     {
-        var key = ServerKey(projectRoot);
+        var key = ServerKey(projectHandle);
         return
         [
             // The working contract, in the workspace rule channel - the half of the configuration a project
@@ -158,11 +159,13 @@ public sealed class ClineAgentAdapter : BuiltInAgentAdapter
     ];
 
     /// <summary>
-    /// The MCP server key for a project: stable across reinstalls, readable, and unique per project folder.
+    /// The MCP server key for a project: the project's readable handle under Aiko's prefix, so one entry per
+    /// project can coexist in Cline's shared file.
     /// </summary>
-    internal static string ServerKey(string projectRoot)
-    {
-        var name = Path.GetFileName(Path.TrimEndingDirectorySeparator(projectRoot));
-        return string.IsNullOrWhiteSpace(name) ? "aiko" : $"aiko-{name}";
-    }
+    /// <remarks>
+    /// The handle rather than the folder name: a folder is called whatever the machine happens to call it,
+    /// while the handle is what the project is called, and the key ends up in a file a person reads.
+    /// </remarks>
+    internal static string ServerKey(string projectHandle) =>
+        string.IsNullOrWhiteSpace(projectHandle) ? "aiko" : $"aiko-{projectHandle}";
 }
