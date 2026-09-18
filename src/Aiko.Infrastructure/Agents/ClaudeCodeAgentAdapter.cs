@@ -3,8 +3,13 @@ using Aiko.Application.Agents;
 namespace Aiko.Infrastructure.Agents;
 
 /// <summary>
-/// Claude Code adapter: .mcp.json, a skill and a slash command in .claude.
+/// Claude Code adapter: .mcp.json, CLAUDE.md, a skill and a slash command per procedure in .claude.
 /// </summary>
+/// <remarks>
+/// The working contract goes into <c>CLAUDE.md</c> as a managed block - Claude Code's project memory is
+/// read whether or not a model decides to load anything, which is what a contract needs, and it is the
+/// user's own file, so the block is upserted rather than the file owned. The skills carry the procedures.
+/// </remarks>
 public sealed class ClaudeCodeAgentAdapter : BuiltInAgentAdapter
 {
     /// <inheritdoc />
@@ -43,6 +48,10 @@ public sealed class ClaudeCodeAgentAdapter : BuiltInAgentAdapter
                 AgentFileKind.OwnedText,
                 content);
 
+        // One procedure, two channels: the skill is what a model loads by relevance, the command is what a
+        // person types. Both carry the same body, so they cannot drift apart.
+        var procedures = AgentTemplates.ProjectProcedures(Id, cardTypes);
+
         return
         [
             AgentFileDefinition.JsonMcp(
@@ -53,30 +62,28 @@ public sealed class ClaudeCodeAgentAdapter : BuiltInAgentAdapter
                 // Claude Code tags its own streamable HTTP servers with "http"; matching its output keeps
                 // the entry identical to what `claude mcp add` writes.
                 mcpTransport: "http"),
+            // The working contract, in the only place Claude Code reads unconditionally. A managed block,
+            // because CLAUDE.md is the user's own project memory.
             new(
-                Path.Combine(projectRoot, ".claude", "skills", "aiko", "SKILL.md"),
-                "Install the Aiko workflow skill.",
+                Path.Combine(projectRoot, "CLAUDE.md"),
+                "Add Aiko's working contract as a project instruction block.",
+                AgentFileKind.ManagedBlock,
+                AgentTemplates.ProjectInstructions),
+            .. procedures.Select(procedure => new AgentFileDefinition(
+                Path.Combine(projectRoot, ".claude", "skills", procedure.Name, "SKILL.md"),
+                $"Install the {procedure.Name} skill.",
                 AgentFileKind.OwnedText,
-                AgentTemplates.Skill),
-            Command("aiko-create", AgentTemplates.Create),
-            .. cardTypes.Select(type => Command(
-                $"aiko-create-{type.Id}",
-                AgentTemplates.CreateCard(type))),
-            Command("aiko-create-sub", AgentTemplates.CreateSub),
-            Command("aiko-estimate", AgentTemplates.Estimate),
-            Command("aiko-run", AgentTemplates.Run(Id)),
-            Command("aiko-scope", AgentTemplates.Scope),
-            Command("aiko-handoff", AgentTemplates.Handoff),
-            Command("aiko-memory", AgentTemplates.Memory),
-            Command("aiko-status", AgentTemplates.Status),
-            Command("aiko-ui", AgentTemplates.UiCommand)
+                procedure.ToSkill())),
+            .. procedures.Select(procedure => Command(procedure.Name, procedure.Body))
         ];
     }
 
     /// <inheritdoc />
     private protected override IReadOnlyList<OwnedDirectory> OwnedDirectories(string projectRoot) =>
     [
-        new(Path.Combine(projectRoot, ".claude", "commands"), "aiko-*.md")
+        new(Path.Combine(projectRoot, ".claude", "commands"), "aiko-*.md"),
+        // Every skill is its own directory, so the sweep has to descend into the skills root.
+        new(Path.Combine(projectRoot, ".claude", "skills"), "SKILL.md", SearchOption.AllDirectories)
     ];
 
     private protected override IReadOnlyList<AgentFileDefinition> CreateUserFiles()

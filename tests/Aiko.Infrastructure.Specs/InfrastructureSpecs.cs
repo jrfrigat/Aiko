@@ -961,6 +961,80 @@ public class InfrastructureSpecs
     }
 
     [Fact]
+    public async Task Project_procedures_are_skills_named_after_the_directory_they_live_in()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            var installer = new UnifiedAgentInstaller(
+                [new ClineAgentAdapter()],
+                context.Catalog,
+                new FileProjectDefinitionStore(context.Catalog));
+            await installer.ApplyAsync(
+                context.Project.Id,
+                $"http://127.0.0.1:18471/mcp/projects/{context.Project.Id}",
+                "test-token",
+                ["cline"],
+                CancellationToken.None);
+
+            var skillsRoot = Path.Combine(context.Project.RootPath, ".cline", "skills");
+            var directories = Directory.EnumerateDirectories(skillsRoot).ToArray();
+            Assert.NotEmpty(directories);
+            foreach (var directory in directories)
+            {
+                var name = Path.GetFileName(directory);
+                var lines = await File.ReadAllLinesAsync(Path.Combine(directory, "SKILL.md"));
+                // A client matches a skill by the pair it reads first: the name, which has to equal the
+                // directory the skill lives in...
+                Assert.Equal("---", lines[0]);
+                Assert.Equal($"name: {name}", lines[1]);
+                // ...and a description the frontmatter can carry as a plain scalar, so a colon followed by
+                // a space - which would read as another mapping key - is not allowed in it.
+                Assert.StartsWith("description: ", lines[2], StringComparison.Ordinal);
+                Assert.DoesNotContain(": ", lines[2]["description: ".Length..], StringComparison.Ordinal);
+                Assert.Equal("---", lines[3]);
+                Assert.Contains("aiko_", string.Join('\n', lines), StringComparison.Ordinal);
+            }
+        });
+    }
+
+    [Fact]
+    public async Task A_skill_of_a_previous_release_leaves_no_empty_directory_behind()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            var installer = new UnifiedAgentInstaller(
+                [new ClineAgentAdapter()],
+                context.Catalog,
+                new FileProjectDefinitionStore(context.Catalog));
+            var skillsRoot = Path.Combine(context.Project.RootPath, ".cline", "skills");
+            // What an earlier Aiko wrote: the working contract as a skill of its own.
+            var stale = Path.Combine(skillsRoot, "aiko-project");
+            Directory.CreateDirectory(stale);
+            await File.WriteAllTextAsync(
+                Path.Combine(stale, "SKILL.md"), "<!-- Managed by Aiko -->\nname: aiko-project");
+            // A skill the user wrote is not Aiko's to remove, marker or not.
+            var mine = Path.Combine(skillsRoot, "my-skill");
+            Directory.CreateDirectory(mine);
+            await File.WriteAllTextAsync(Path.Combine(mine, "SKILL.md"), "my own skill");
+
+            await installer.ApplyAsync(
+                context.Project.Id,
+                $"http://127.0.0.1:18471/mcp/projects/{context.Project.Id}",
+                "test-token",
+                ["cline"],
+                CancellationToken.None);
+
+            // The stale skill goes, and its directory with it, because nothing else lives there...
+            Assert.False(File.Exists(Path.Combine(stale, "SKILL.md")));
+            Assert.False(Directory.Exists(stale));
+            // ...while a directory that still holds anything keeps it, and the managed root stays.
+            Assert.True(File.Exists(Path.Combine(mine, "SKILL.md")));
+            Assert.True(Directory.Exists(mine));
+            Assert.True(Directory.Exists(skillsRoot));
+        });
+    }
+
+    [Fact]
     public async Task User_scope_install_creates_and_removes_global_skills()
     {
         var previousHome = Environment.GetEnvironmentVariable("AIKO_USER_HOME");
@@ -1523,6 +1597,24 @@ public class InfrastructureSpecs
             Assert.Contains("sourceCardId", sub, StringComparison.Ordinal);
             Assert.Contains("targetCardId", sub, StringComparison.Ordinal);
 
+            // The same procedures are installed as skills as well: that is the channel a model loads by
+            // relevance, while the command is the one a person types.
+            var skills = Path.Combine(context.Project.RootPath, ".claude", "skills");
+            Assert.Contains(
+                "name: aiko-run",
+                await File.ReadAllTextAsync(Path.Combine(skills, "aiko-run", "SKILL.md")),
+                StringComparison.Ordinal);
+            Assert.Contains(
+                "name: aiko-create-task",
+                await File.ReadAllTextAsync(Path.Combine(skills, "aiko-create-task", "SKILL.md")),
+                StringComparison.Ordinal);
+            // The working contract is not one of them: it sits in CLAUDE.md, the file Claude Code reads
+            // whether or not a model judges anything relevant.
+            var claudeMemory = await File.ReadAllTextAsync(
+                Path.Combine(context.Project.RootPath, "CLAUDE.md"));
+            Assert.Contains("aiko:begin", claudeMemory, StringComparison.Ordinal);
+            Assert.Contains("durable project workflow and task memory", claudeMemory, StringComparison.Ordinal);
+
             // Commands an older Aiko wrote are no longer part of the plan, so the next install sweeps them
             // instead of leaving two ways to do the same thing.
             var legacy = Path.Combine(commands, "aiko-story-create.md");
@@ -1685,14 +1777,29 @@ public class InfrastructureSpecs
                     Assert.Contains("Bearer test-token", text, StringComparison.Ordinal);
                 }
 
-                // The workspace carries what Cline reads per project: the skill and the rule.
+                // The workspace carries what Cline reads per project: the rule and the skill per procedure.
                 var skill = Path.Combine(
-                    context.Project.RootPath, ".cline", "skills", "aiko-project", "SKILL.md");
+                    context.Project.RootPath, ".cline", "skills", "aiko-run", "SKILL.md");
                 Assert.True(File.Exists(skill));
-                // Cline prefers a global skill over a project one of the same name, so the workspace skill
-                // is installed under its own name - which has to match its directory.
-                Assert.Contains("name: aiko-project", await File.ReadAllTextAsync(skill), StringComparison.Ordinal);
-                Assert.True(File.Exists(Path.Combine(context.Project.RootPath, ".clinerules", "aiko.md")));
+                // A skill is a procedure now, and it announces itself by the name its directory carries.
+                var skillText = await File.ReadAllTextAsync(skill);
+                Assert.Contains("name: aiko-run", skillText, StringComparison.Ordinal);
+                Assert.Contains("description: Run an Aiko card", skillText, StringComparison.Ordinal);
+                // The per-type procedures reach Cline as skills too, because it has no slash commands.
+                Assert.True(File.Exists(Path.Combine(
+                    context.Project.RootPath, ".cline", "skills", "aiko-create-task", "SKILL.md")));
+                // No project skill is called "aiko": that name belongs to the global skill, which Cline
+                // resolves first - the whole reason the workspace one used to be renamed.
+                Assert.False(File.Exists(Path.Combine(
+                    context.Project.RootPath, ".cline", "skills", "aiko", "SKILL.md")));
+
+                // The working contract is not a skill: Cline reads it from the workspace rule on every run.
+                var rule = Path.Combine(context.Project.RootPath, ".clinerules", "aiko.md");
+                Assert.True(File.Exists(rule));
+                Assert.Contains(
+                    "Read project context before taking a card",
+                    await File.ReadAllTextAsync(rule),
+                    StringComparison.Ordinal);
 
                 // Uninstall takes the entry and Aiko's files out again.
                 var removed = await installer.UninstallAsync(
@@ -1894,6 +2001,9 @@ public class InfrastructureSpecs
             Assert.Contains("[mcp_servers.aiko]", installedCodex, StringComparison.Ordinal);
             var installedAgents = await File.ReadAllTextAsync(agentsFile);
             Assert.Contains("Keep this text.", installedAgents, StringComparison.Ordinal);
+            // ZCode has no rules file, so the contract reaches it through the cross-client AGENTS.md - the
+            // very block Codex writes, which is why two adapters merge into one block instead of fighting.
+            Assert.Contains("aiko:begin", installedAgents, StringComparison.Ordinal);
 
             using var cursorDocument = JsonDocument.Parse(await File.ReadAllTextAsync(cursorConfig));
             Assert.True(cursorDocument.RootElement.GetProperty("custom").GetBoolean());

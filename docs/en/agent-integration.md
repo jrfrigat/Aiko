@@ -57,12 +57,17 @@ policy already covers); for a project initialized earlier, add the lines by hand
 `aiko doctor` reports a configuration whose endpoint is right but which carries no credential, and
 `aiko repair --fix` rewrites it.
 
-## Skills and commands
+## Skills, commands and rules
 
-Project-scoped skills/commands (installed with `aiko agent install --project <id>`):
+Two channels, because a contract and a procedure are not the same thing. A **skill** is a procedure a model
+loads when it judges the description relevant; a **rule** is read on every run, which is what the working
+contract needs.
 
-`/aiko-create`, `/aiko-create-sub`, `/aiko-estimate`, `/aiko-run`, `/aiko-scope`, `/aiko-handoff`,
-`/aiko-memory`, `/aiko-status`, `/aiko-ui`.
+Project-scoped procedures (installed with `aiko agent install --project <id>`) are written as skills, and as
+slash commands for the clients that have commands - Claude Code and ZCode:
+
+`aiko-create`, `aiko-create-sub`, `aiko-estimate`, `aiko-run`, `aiko-scope`, `aiko-handoff`,
+`aiko-memory`, `aiko-status`, `aiko-ui`.
 
 `/aiko-create <type> <description>` takes the card type as its first argument (`/aiko-create bug The
 dropdown is empty`) and reads the project context to resolve it, so it covers every type without being
@@ -103,7 +108,9 @@ need `aiko agent install --project <id>` for a particular project.
 
 The behavior contract: any work item starts with a card; read context before acting; warn before
 changing files outside the declared scope; report progress, actual files and commits through Aiko.
-The project context lists every card type the project defines with the stages of its pipeline, so a type
+It is installed in the rule channel, not as a skill, because it has to hold whether or not a model decides
+that a skill is relevant. The project context lists every card type the project defines with the stages of
+its pipeline, so a type
 added in the workflow editor is one an agent can create immediately. It also carries the project's
 initialization instruction when its template came with one, which is what an `/aiko-init` run finishes by
 carrying out.
@@ -142,17 +149,26 @@ has no path yet, the table says so rather than pretending the sets are already e
 
 ## What the installer writes
 
-Per project (`aiko agent install --project <id>`):
+Per project (`aiko agent install --project <id>`). The contract and the procedures travel separately:
 
-| Agent | Files |
-| :-- | :-- |
-| Claude Code | `.mcp.json`, `.claude/skills/aiko/SKILL.md`, `.claude/commands/aiko-*.md` |
-| Codex | `.codex/config.toml` (`mcp_servers.aiko`), `.agents/skills/aiko/SKILL.md`, `AGENTS.md` block |
-| Cursor | `.cursor/mcp.json`, `.cursor/rules/aiko.mdc` |
-| ZCode | `.zcode/config.json` (native `mcp.servers`), `.zcode/skills/aiko/SKILL.md`, `.zcode/commands/aiko-*.md` |
-| Cline | `.cline/skills/aiko-project/SKILL.md`, `.clinerules/aiko.md`, and the MCP entry (see below) |
+| Agent | Rule - the contract, read every run | Skills and commands - the procedures |
+| :-- | :-- | :-- |
+| Claude Code | `CLAUDE.md` block | `.claude/skills/aiko-*/SKILL.md`, `.claude/commands/aiko-*.md` |
+| Codex | `AGENTS.md` block | `.agents/skills/aiko-*/SKILL.md` (no commands) |
+| Cursor | `.cursor/rules/aiko.mdc` | — (neither skills nor commands) |
+| ZCode | `AGENTS.md` block | `.zcode/skills/aiko-*/SKILL.md`, `.zcode/commands/aiko-*.md` |
+| Cline | `.clinerules/aiko.md` | `.cline/skills/aiko-*/SKILL.md` (no commands) |
 
-Globally, for every user (`aiko agent install --scope user`, which is what the installer runs):
+One create procedure per card type the project defines is written alongside the rest, and both are a
+projection of the workflows: they are re-written when a type is created or removed, and only for the agents
+already connected to that project.
+
+Codex and ZCode share the `AGENTS.md` block: it is the cross-client mechanism ZCode reads project
+instructions from, and the content is identical, so two adapters merge into one block instead of fighting
+over the file.
+
+Globally, for every user (`aiko agent install --scope user`, which is what the installer runs). One
+orientation skill explains the flow; the actions are commands:
 
 | Agent | Files |
 | :-- | :-- |
@@ -172,9 +188,11 @@ project install adds one entry named after the project folder (`aiko-<folder>`) 
 reads: `~/.cline/data/settings/cline_mcp_settings.json` (desktop app and IDE extension) and
 `~/.cline/mcp.json` (CLI). Several projects can be connected at once; Cline enables and disables
 servers per session. Its entry spells out `"type": "streamableHttp"`, because Cline falls back to the
-legacy SSE transport when the type is missing. The workspace skill is called `aiko-project` rather than
-`aiko`: Cline gives a **global** skill precedence over a project skill of the same name, so two skills
-called `aiko` would leave the workspace one invisible.
+legacy SSE transport when the type is missing. Cline receives the project procedures as skills - it has no
+commands - and they are named after the procedures (`aiko-create`, `aiko-run`, ...) rather than `aiko`,
+which is the name the global skill holds and Cline resolves first. That precedence is why the workspace
+skill used to be called `aiko-project`. The contract itself sits in `.clinerules/aiko.md`, which Cline
+reads on every run.
 
 Installation is idempotent and preserves your own settings; uninstall removes only Aiko-managed
 content (MCP entries, managed blocks, and files carrying the Aiko ownership marker).

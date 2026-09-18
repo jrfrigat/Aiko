@@ -308,7 +308,14 @@ public abstract class BuiltInAgentAdapter : IAgentAdapter
     /// </summary>
     /// <param name="Path">Absolute path of the directory.</param>
     /// <param name="SearchPattern">Glob of the names Aiko may own inside it.</param>
-    private protected sealed record OwnedDirectory(string Path, string SearchPattern);
+    /// <param name="SearchOption">
+    /// Whether the search descends into subdirectories; a skills root needs it, because every skill is a
+    /// directory of its own holding a <c>SKILL.md</c>.
+    /// </param>
+    private protected sealed record OwnedDirectory(
+        string Path,
+        string SearchPattern,
+        SearchOption SearchOption = SearchOption.TopDirectoryOnly);
 
     /// <summary>
     /// The directories Aiko manages by name in this project; empty when the adapter owns no files that way.
@@ -327,7 +334,7 @@ public abstract class BuiltInAgentAdapter : IAgentAdapter
     /// <param name="directory">Managed directory to scan.</param>
     private protected static IReadOnlyList<string> FindOwnedFiles(OwnedDirectory directory) =>
         Directory.Exists(directory.Path)
-            ? Directory.EnumerateFiles(directory.Path, directory.SearchPattern)
+            ? Directory.EnumerateFiles(directory.Path, directory.SearchPattern, directory.SearchOption)
                 .Where(file => File.ReadAllText(file).Contains(
                     AgentFileMarkers.Managed,
                     StringComparison.Ordinal))
@@ -338,6 +345,11 @@ public abstract class BuiltInAgentAdapter : IAgentAdapter
     /// Removes the owned files a plan does not describe, which is how a command whose card type is gone
     /// disappears instead of lingering; a file without the ownership marker is never touched.
     /// </summary>
+    /// <remarks>
+    /// A skill is a directory of its own, so removing its <c>SKILL.md</c> would leave the directory behind.
+    /// Empty is the only state Aiko cleans - whatever a user put in there keeps the directory, and the
+    /// managed root itself is never removed.
+    /// </remarks>
     /// <param name="directories">Managed directories to sweep.</param>
     /// <param name="plannedPaths">Paths the current plan describes, and therefore keeps.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -347,19 +359,50 @@ public abstract class BuiltInAgentAdapter : IAgentAdapter
         CancellationToken cancellationToken)
     {
         var removed = new List<InstallationFileResult>();
-        foreach (var file in directories.SelectMany(FindOwnedFiles))
+        foreach (var directory in directories)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (plannedPaths.Contains(file, StringComparer.OrdinalIgnoreCase))
+            foreach (var file in FindOwnedFiles(directory))
             {
-                continue;
+                cancellationToken.ThrowIfCancellationRequested();
+                if (plannedPaths.Contains(file, StringComparer.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                File.Delete(file);
+                removed.Add(new InstallationFileResult(file, InstallationFileStatus.Removed, null));
             }
 
-            File.Delete(file);
-            removed.Add(new InstallationFileResult(file, InstallationFileStatus.Removed, null));
+            RemoveEmptySubdirectories(directory.Path);
         }
 
         return ValueTask.FromResult<IReadOnlyList<InstallationFileResult>>(removed);
+    }
+
+    /// <summary>
+    /// Deletes the empty subdirectories of a managed root, deepest first, and never the root itself.
+    /// </summary>
+    private static void RemoveEmptySubdirectories(string root)
+    {
+        if (!Directory.Exists(root))
+        {
+            return;
+        }
+
+        // Deepest first, and buffered before anything is deleted, so removing a parent never invalidates the
+        // enumeration.
+        var candidates = Directory
+            .EnumerateDirectories(root, "*", SearchOption.AllDirectories)
+            .OrderByDescending(path => path.Length)
+            .ToArray();
+        foreach (var directory in candidates)
+        {
+            if (!Directory.EnumerateFileSystemEntries(directory).Any())
+            {
+                Directory.Delete(directory);
+            }
+        }
     }
 
     /// <summary>

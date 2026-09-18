@@ -3,8 +3,13 @@ using Aiko.Application.Agents;
 namespace Aiko.Infrastructure.Agents;
 
 /// <summary>
-/// ZCode adapter: a native MCP server in .zcode/config.json, a skill and a slash command.
+/// ZCode adapter: a native MCP server in .zcode/config.json, a working-contract block in AGENTS.md and a
+/// skill plus a slash command per procedure in .zcode.
 /// </summary>
+/// <remarks>
+/// ZCode has no rules file of its own, so the contract travels through the cross-client <c>AGENTS.md</c>
+/// mechanism - the same block Codex writes, which is why the two merge into one instead of fighting.
+/// </remarks>
 public sealed class ZCodeAgentAdapter : BuiltInAgentAdapter
 {
     /// <inheritdoc />
@@ -39,6 +44,8 @@ public sealed class ZCodeAgentAdapter : BuiltInAgentAdapter
                 AgentFileKind.OwnedText,
                 content);
 
+        var procedures = AgentTemplates.ProjectProcedures(Id, cardTypes);
+
         return
         [
             AgentFileDefinition.NestedJsonMcp(
@@ -46,30 +53,27 @@ public sealed class ZCodeAgentAdapter : BuiltInAgentAdapter
                 "Merge the native project-scoped Aiko HTTP MCP server.",
                 projectMcpEndpoint,
                 accessToken),
+            // The working contract. ZCode reads project instructions from AGENTS.md, and a managed block
+            // keeps it beside whatever the project already wrote there.
             new(
-                Path.Combine(projectRoot, ".zcode", "skills", "aiko", "SKILL.md"),
-                "Install the Aiko workflow skill.",
+                Path.Combine(projectRoot, "AGENTS.md"),
+                "Add Aiko's working contract as a project instruction block.",
+                AgentFileKind.ManagedBlock,
+                AgentTemplates.ProjectInstructions),
+            .. procedures.Select(procedure => new AgentFileDefinition(
+                Path.Combine(projectRoot, ".zcode", "skills", procedure.Name, "SKILL.md"),
+                $"Install the {procedure.Name} skill.",
                 AgentFileKind.OwnedText,
-                AgentTemplates.Skill),
-            Command("aiko-create", AgentTemplates.Create),
-            .. cardTypes.Select(type => Command(
-                $"aiko-create-{type.Id}",
-                AgentTemplates.CreateCard(type))),
-            Command("aiko-create-sub", AgentTemplates.CreateSub),
-            Command("aiko-estimate", AgentTemplates.Estimate),
-            Command("aiko-run", AgentTemplates.Run(Id)),
-            Command("aiko-scope", AgentTemplates.Scope),
-            Command("aiko-handoff", AgentTemplates.Handoff),
-            Command("aiko-memory", AgentTemplates.Memory),
-            Command("aiko-status", AgentTemplates.Status),
-            Command("aiko-ui", AgentTemplates.UiCommand)
+                procedure.ToSkill())),
+            .. procedures.Select(procedure => Command(procedure.Name, procedure.Body))
         ];
     }
 
     /// <inheritdoc />
     private protected override IReadOnlyList<OwnedDirectory> OwnedDirectories(string projectRoot) =>
     [
-        new(Path.Combine(projectRoot, ".zcode", "commands"), "aiko-*.md")
+        new(Path.Combine(projectRoot, ".zcode", "commands"), "aiko-*.md"),
+        new(Path.Combine(projectRoot, ".zcode", "skills"), "SKILL.md", SearchOption.AllDirectories)
     ];
 
     /// <inheritdoc />

@@ -10,32 +10,88 @@ namespace Aiko.Infrastructure.Agents;
 internal static class AgentTemplates
 {
     /// <summary>
-    /// Skill with instructions for coordinating work through the Aiko MCP.
-    /// </summary>
-    public const string Skill =
-        """
-        ---
-        name: aiko
-        description: Use Aiko MCP for project cards, workflow stages, execution history and handoff.
-        ---
-
-        When Aiko MCP is available, read the project context before planning project work.
-        Treat Aiko cards as the durable source of task state: any piece of work starts with a card.
-        Before changing files outside the card's scopeFiles, warn the user and record the proposed
-        scope expansion through aiko_request_scope_expansion. Record progress, actual changed files,
-        commits (aiko_report_commit) and handoff state through Aiko MCP. On rate limit, report the
-        agent state and hand the execution to another agent without losing history.
-        """;
-    /// <summary>
-    /// The skill above under another name.
+    /// One procedure Aiko installs into an agent: the name its skill is loaded under, the description a
+    /// client matches to decide whether to load it, and the body that says what to do.
     /// </summary>
     /// <remarks>
-    /// A client that gives a global skill precedence over a project skill of the same name would otherwise
-    /// hide this one behind <see cref="GlobalSkill"/> - Cline documents exactly that precedence - so the
-    /// workspace skill is installed under its own name there. That name must match the skill's directory.
+    /// A skill carries a procedure the model may invoke on its own. The working contract is not one: it has
+    /// to hold whether or not a model judges a skill relevant, so it travels in the rule channel instead
+    /// (see <see cref="ProjectInstructions"/> and <see cref="CursorRule"/>). Calling the contract a skill
+    /// was how the two got muddled.
     /// </remarks>
-    public static string SkillNamed(string name) =>
-        Skill.Replace("name: aiko", $"name: {name}", StringComparison.Ordinal);
+    public sealed record Procedure(string Name, string Description, string Body)
+    {
+        /// <summary>The skill document: the Agent Skills frontmatter plus the body.</summary>
+        public string ToSkill() => $"""
+            ---
+            name: {Name}
+            description: {Description}
+            ---
+
+            {Body.Trim()}
+            """;
+    }
+
+    /// <summary>
+    /// The procedures a project installs: one per workflow step, plus one create procedure per card type
+    /// the project declares.
+    /// </summary>
+    /// <remarks>
+    /// The per-type procedures are generated rather than written by hand, because the set of types is
+    /// project data: the daemon re-writes them when a type is added or removed. Each one is installed
+    /// through every channel its client supports - a skill where the client has skills, a slash command
+    /// where it has those - so the same procedure is reachable by relevance and by name.
+    /// </remarks>
+    /// <param name="agentAdapterId">
+    /// The adapter these files are installed for, written into the run procedure: <c>aiko_start_stage</c>
+    /// records which agent is responsible, and a file that belongs to one adapter already knows the answer.
+    /// </param>
+    /// <param name="cardTypes">Card types the project declares.</param>
+    public static IReadOnlyList<Procedure> ProjectProcedures(
+        string agentAdapterId,
+        IReadOnlyList<CardTypeDescriptor> cardTypes) =>
+    [
+        new(
+            "aiko-create",
+            "Create an Aiko card of any type the project defines, and estimate it in the same pass.",
+            Create),
+        new(
+            "aiko-create-sub",
+            "Create an Aiko sub-card under an existing card, link it to its parent and estimate it.",
+            CreateSub),
+        .. cardTypes.Select(type => new Procedure(
+            $"aiko-create-{type.Id}",
+            $"Create an Aiko {type.Title} card and estimate it in the same pass.",
+            CreateCard(type))),
+        new(
+            "aiko-estimate",
+            "Estimate an Aiko card - judge the size step and every scoring criterion the project defines.",
+            Estimate),
+        new(
+            "aiko-run",
+            "Run an Aiko card - do what its current stage asks for, report progress and complete the stage.",
+            Run(agentAdapterId)),
+        new(
+            "aiko-scope",
+            "Request a scope expansion for an Aiko card whose work needs files outside its declared scope.",
+            Scope),
+        new(
+            "aiko-handoff",
+            "Hand an Aiko stage execution to another agent without losing its history.",
+            Handoff),
+        new(
+            "aiko-memory",
+            "Search and store the durable Aiko project memory.",
+            Memory),
+        new(
+            "aiko-status",
+            "Summarize the Aiko work in progress.",
+            Status),
+        new(
+            "aiko-ui",
+            "Open the Aiko board for this project.",
+            UiCommand),
+    ];
 
 
 
@@ -99,8 +155,9 @@ internal static class AgentTemplates
         sub-card id as targetCardId and "parent-child" as the relation type. The edge points from the parent
         to the child; the other way round the board would show the sub-card as the parent.
 
-        Finally estimate the new card exactly as /aiko-create does - read it back for its revision, judge the
-        size step and every criterion the project defines, and write them with aiko_estimate_card.
+        Finally estimate the new card exactly as the aiko-create procedure does - read it back for its
+        revision, judge the size step and every criterion the project defines, and write them with
+        aiko_estimate_card.
 
         Report at the end: the created card id, its parent, and the size and scores you wrote.
         """;

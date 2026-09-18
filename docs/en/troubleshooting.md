@@ -18,6 +18,23 @@ powershell -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.c
 `aiko` is not found after installing: open a new terminal (or check that
 `%LOCALAPPDATA%\Aiko\bin` is on the user `PATH`).
 
+## Upgrading from an earlier Aiko
+
+The agent layout changed: the working contract now travels in the rule channel (`CLAUDE.md`, `AGENTS.md`,
+`.clinerules/aiko.md`, `.cursor/rules/aiko.mdc`), and the skills carry procedures only - one per workflow
+step. An earlier Aiko put the contract itself in a skill, so a project connected before this release still
+has `.claude/skills/aiko/SKILL.md`, `.cline/skills/aiko-project/SKILL.md` and their siblings.
+
+Re-run the connection once and the stale files are swept:
+
+```powershell
+aiko repair --fix
+```
+
+`repair --fix` reindexes and re-applies the whole project configuration for every detected agent, so the
+old skills are removed, the new ones are written and `CLAUDE.md` appears. `aiko agent install --project
+<id>` does the same for one project. A file without Aiko's ownership marker is never touched.
+
 ## The port is busy
 
 If a daemon you left running holds it, stop that one first instead of hunting for the process:

@@ -186,25 +186,35 @@ templates, diagnostics and reindex, settings, backup and opening the UI. Tool
 descriptions instruct agents to fetch the project context first; installed skills, rules and
 `AGENTS.md` blocks reinforce it per agent.
 
-### Skills
+### Skills and rules
 
-Written by `aiko agent install`. Project scope (`--project <id>`):
+Two channels, because a contract and a procedure are not the same thing. A **skill** is a procedure a model
+loads when it judges the description relevant; a **rule** is read on every run, which is what the working
+contract needs.
 
-| Skill | Does |
+Project scope (`--project <id>`) installs every procedure as a skill, and as a slash command for the clients
+that have commands. One create procedure per card type the project defines is generated alongside them:
+
+| Skill / command | Does |
 | :-- | :-- |
-| `/aiko-create <type> <description>`, `/aiko-create-<type>` | Create a card of any type this project defines: Aiko names it, lands it in backlog and the agent estimates its size and scores |
-| `/aiko-create-sub <parentCardId> <type> <description>` | Create a sub-card under a card: the same creation, plus the parent-child link |
-| `/aiko-estimate <cardId>` | Estimate a card: the agent judges the size step and the criterion scores |
-| `/aiko-run <cardId> [stageId]` | Run a card: do what its current stage asks for, report progress and complete it; a stage id moves it there first |
-| `/aiko-scope` | Ask for a scope expansion |
-| `/aiko-handoff` | Hand the stage over to another agent |
-| `/aiko-memory` | Store and search project memory |
-| `/aiko-status` | Summarize what is in progress |
-| `/aiko-ui` | Open the board for this project |
+| `aiko-create <type> <description>`, `aiko-create-<type>` | Create a card of any type this project defines: Aiko names it, lands it in backlog and the agent estimates its size and scores |
+| `aiko-create-sub <parentCardId> <type> <description>` | Create a sub-card under a card: the same creation, plus the parent-child link |
+| `aiko-estimate <cardId>` | Estimate a card: the agent judges the size step and the criterion scores |
+| `aiko-run <cardId> [stageId]` | Run a card: do what its current stage asks for, report progress and complete it; a stage id moves it there first |
+| `aiko-scope` | Ask for a scope expansion |
+| `aiko-handoff` | Hand the stage over to another agent |
+| `aiko-memory` | Store and search project memory |
+| `aiko-status` | Summarize what is in progress |
+| `aiko-ui` | Open the board for this project |
 
-User scope (`--scope user`), available without a project open:
+The working contract travels in the rule channel instead, one file per client: a marked block in `CLAUDE.md`
+(Claude Code), `AGENTS.md` (Codex and ZCode) and `.clinerules/aiko.md` (Cline), or the rule Aiko owns in
+`.cursor/rules/aiko.mdc` (Cursor).
 
-| Skill | Does |
+User scope (`--scope user`), available without a project open. One skill explains the flow; the actions
+themselves are commands:
+
+| Command | Does |
 | :-- | :-- |
 | `/aiko-init [name] [id]` | Register the current directory as a project; the id is the readable handle its URLs use |
 | `/aiko-list-projects` | List the registered projects |

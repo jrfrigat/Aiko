@@ -26,13 +26,6 @@ public sealed class ClineAgentAdapter : BuiltInAgentAdapter
     /// </summary>
     internal const string ConfigurationDirectoryName = ".cline";
 
-    /// <summary>
-    /// Name of the workspace skill, and therefore of its directory. Deliberately not <c>aiko</c>: Cline
-    /// gives a global skill precedence over a project skill with the same name, so the workspace skill
-    /// would never be seen if both were called the same.
-    /// </summary>
-    internal const string WorkspaceSkillName = "aiko-project";
-
     /// <inheritdoc />
     public override string Id => "cline";
 
@@ -77,12 +70,12 @@ public sealed class ClineAgentAdapter : BuiltInAgentAdapter
 
     /// <inheritdoc />
     /// <remarks>
-    /// The workspace half: the project's skill, its rule, and the MCP entry. The entry goes into Cline's
-    /// global files because a workspace cannot carry one - it is named after the project so several
-    /// projects can be connected at once.
+    /// The workspace half: the project's working contract, its skills, and the MCP entry. The entry goes
+    /// into Cline's global files because a workspace cannot carry one - it is named after the project so
+    /// several projects can be connected at once.
     /// <para>
-    /// <paramref name="cardTypes"/> is ignored on purpose: Cline invokes a skill by its name, and the Aiko
-    /// skill explains how to pick the card type, so there is nothing to generate per type.
+    /// Cline has no slash commands, so the procedures reach it as skills only - one per card type the
+    /// project declares, which is why <paramref name="cardTypes"/> is no longer ignorable here.
     /// </para>
     /// </remarks>
     private protected override IReadOnlyList<AgentFileDefinition> CreateFiles(
@@ -94,18 +87,18 @@ public sealed class ClineAgentAdapter : BuiltInAgentAdapter
         var key = ServerKey(projectRoot);
         return
         [
-            new(
-                Path.Combine(projectRoot, ".cline", "skills", WorkspaceSkillName, "SKILL.md"),
-                "Install the workspace-scoped Aiko skill.",
-                AgentFileKind.OwnedText,
-                // Cline resolves a global skill over a project one of the same name, so the workspace skill
-                // cannot be called "aiko" while the global one is; the directory must match the name.
-                AgentTemplates.SkillNamed(WorkspaceSkillName)),
+            // The working contract, in the workspace rule channel - the half of the configuration a project
+            // can carry.
             new(
                 Path.Combine(projectRoot, ".clinerules", "aiko.md"),
                 "Add Aiko's working contract as a workspace rule.",
                 AgentFileKind.OwnedText,
                 AgentTemplates.ProjectInstructions),
+            .. AgentTemplates.ProjectProcedures(Id, cardTypes).Select(procedure => new AgentFileDefinition(
+                Path.Combine(projectRoot, ".cline", "skills", procedure.Name, "SKILL.md"),
+                $"Install the {procedure.Name} skill.",
+                AgentFileKind.OwnedText,
+                procedure.ToSkill())),
             // The IDE extension and the desktop app read their MCP settings from the data directory...
             AgentFileDefinition.JsonMcp(
                 UserPath(ConfigurationDirectoryName, "data", "settings", "cline_mcp_settings.json"),
@@ -126,6 +119,12 @@ public sealed class ClineAgentAdapter : BuiltInAgentAdapter
                 serverKey: key)
         ];
     }
+
+    /// <inheritdoc />
+    private protected override IReadOnlyList<OwnedDirectory> OwnedDirectories(string projectRoot) =>
+    [
+        new(Path.Combine(projectRoot, ".cline", "skills"), "SKILL.md", SearchOption.AllDirectories)
+    ];
 
     /// <inheritdoc />
     private protected override IReadOnlyList<AgentFileDefinition> CreateUserFiles() =>

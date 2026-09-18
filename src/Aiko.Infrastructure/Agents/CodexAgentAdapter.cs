@@ -3,9 +3,13 @@ using Aiko.Application.Agents;
 namespace Aiko.Infrastructure.Agents;
 
 /// <summary>
-/// Codex adapter: a TOML configuration in .codex, a skill in .codex/skills (the client's own
-/// skills root) and in the portable .agents/skills, and a managed block in AGENTS.md.
+/// Codex adapter: a TOML configuration in .codex, a managed block in AGENTS.md holding the working
+/// contract, and one skill per procedure in the portable .agents/skills.
 /// </summary>
+/// <remarks>
+/// Codex has no slash commands, so the skills are the only per-procedure channel there. User scope keeps
+/// the global Aiko skill in the client's own <c>~/.codex/skills</c> as well as in the portable tree.
+/// </remarks>
 public sealed class CodexAgentAdapter : BuiltInAgentAdapter
 {
     /// <inheritdoc />
@@ -35,8 +39,8 @@ public sealed class CodexAgentAdapter : BuiltInAgentAdapter
         string projectRoot,
         string projectMcpEndpoint,
         string? accessToken,
-        // Codex has no slash commands, so the card types change nothing here; the argument is part of the
-        // shared contract and the context it writes teaches it every type.
+        // Codex has no slash commands, so the card types change only the skills it installs; the argument is
+        // part of the shared contract and the context it writes teaches it every type.
         IReadOnlyList<CardTypeDescriptor> cardTypes) =>
     [
         new(
@@ -44,16 +48,22 @@ public sealed class CodexAgentAdapter : BuiltInAgentAdapter
             "Merge mcp_servers.aiko with the project-scoped HTTP endpoint.",
             AgentFileKind.ManagedBlock,
             BuildMcpBlock(projectMcpEndpoint, accessToken)),
-        new(
-            Path.Combine(projectRoot, ".agents", "skills", "aiko", "SKILL.md"),
-            "Install the repository-scoped Aiko skill.",
+        .. AgentTemplates.ProjectProcedures(Id, cardTypes).Select(procedure => new AgentFileDefinition(
+            Path.Combine(projectRoot, ".agents", "skills", procedure.Name, "SKILL.md"),
+            $"Install the {procedure.Name} skill.",
             AgentFileKind.OwnedText,
-            AgentTemplates.Skill),
+            procedure.ToSkill())),
         new(
             Path.Combine(projectRoot, "AGENTS.md"),
             "Add a marked Aiko instruction block without replacing project instructions.",
             AgentFileKind.ManagedBlock,
             AgentTemplates.ProjectInstructions)
+    ];
+
+    /// <inheritdoc />
+    private protected override IReadOnlyList<OwnedDirectory> OwnedDirectories(string projectRoot) =>
+    [
+        new(Path.Combine(projectRoot, ".agents", "skills"), "SKILL.md", SearchOption.AllDirectories)
     ];
 
     /// <inheritdoc />
