@@ -1281,9 +1281,20 @@ public class InfrastructureSpecs
             // type-agnostic aiko-create is what covers those.
             Assert.False(Directory.Exists(Path.Combine(fakeHome, ".agents", "skills", "aiko-create-story")));
 
+            // The contract also goes into Cline's own rules root, not only the workspace: the app reads global
+            // rules in every folder, and a workspace rule alone reaches nobody in a build that does not surface
+            // workspace rules - the same gap the skills have.
+            var globalRule = Path.Combine(fakeHome, ".cline", "rules", "aiko.md");
+            Assert.True(File.Exists(globalRule));
+            Assert.Contains(
+                "starts with a card",
+                await File.ReadAllTextAsync(globalRule),
+                StringComparison.Ordinal);
+
             var removed = await adapter.UninstallUserAsync(CancellationToken.None);
             Assert.True(removed.Succeeded);
             Assert.False(File.Exists(run));
+            Assert.False(File.Exists(globalRule));
             // Cline's own skills root is emptied as well: both halves are this adapter's.
             Assert.False(File.Exists(Path.Combine(fakeHome, ".cline", "skills", "aiko", "SKILL.md")));
         }
@@ -2077,7 +2088,7 @@ public class InfrastructureSpecs
                 var rule = Path.Combine(context.Project.RootPath, ".clinerules", "aiko.md");
                 Assert.True(File.Exists(rule));
                 Assert.Contains(
-                    "Read project context before taking a card",
+                    "starts with a card",
                     await File.ReadAllTextAsync(rule),
                     StringComparison.Ordinal);
 

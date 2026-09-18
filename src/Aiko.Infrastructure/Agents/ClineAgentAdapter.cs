@@ -130,7 +130,15 @@ public sealed class ClineAgentAdapter : BuiltInAgentAdapter
             UserPath(".agents", "skills", procedure.Name, "SKILL.md"),
             $"Install the {procedure.Name} skill for Cline in the portable agent skills root.",
             AgentFileKind.OwnedText,
-            procedure.ToGlobalSkill()))
+            procedure.ToGlobalSkill())),
+        // The contract in the rule channel this client reads without a workspace: Cline keeps global rules in
+        // ~/.cline/rules, and a rule there holds in every folder rather than only in a project that installed
+        // one. The workspace rule stays as well - it is what a project carries for its own team.
+        new(
+            UserPath(ConfigurationDirectoryName, "rules", "aiko.md"),
+            "Install the global Aiko rule in Cline's rules root.",
+            AgentFileKind.OwnedText,
+            AgentTemplates.ProjectInstructions)
     ];
 
     /// <inheritdoc />

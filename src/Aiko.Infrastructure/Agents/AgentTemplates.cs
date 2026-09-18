@@ -521,11 +521,17 @@ internal static class AgentTemplates
     /// <summary>
     /// Instruction block for AGENTS.md describing Aiko as the project working memory.
     /// </summary>
+    /// <remarks>
+    /// The first sentence is the one that matters and the one that was missing: work the user asks for starts
+    /// with a card, not with an edit. A contract that only says "read the context before taking a card"
+    /// presumes a card already exists, and an agent asked to fix something will simply fix it.
+    /// </remarks>
     public const string ProjectInstructions =
         """
-        When Aiko MCP is available, use it as the durable project workflow and task memory.
-        Read project context before taking a card, report progress and preserve execution handoffs.
-        Warn before modifying files outside the card scopeFiles and record actual changed files.
+        When Aiko MCP is available, use it as the durable project workflow and task memory. Any work the user
+        asks for starts with a card: create it in Aiko first (aiko_create_card, or /aiko-create), then do the
+        work, report progress and preserve execution handoffs. Read the project context before touching files.
+        Warn before modifying files outside the card scopeFiles and record the actual changed files.
         """;
 
     /// <summary>
@@ -538,7 +544,8 @@ internal static class AgentTemplates
         alwaysApply: true
         ---
 
-        When Aiko MCP is available, read its project context before project work. Keep card
-        status, progress, scope changes, actual changed files and agent handoffs synchronized.
+        When Aiko MCP is available, read its project context before project work. Any work the user asks for
+        starts with a card: create it in Aiko first, then do the work. Keep card status, progress, scope
+        changes, actual changed files and agent handoffs synchronized.
         """;
 }
