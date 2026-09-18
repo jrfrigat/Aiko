@@ -161,7 +161,11 @@
         _stages = _workflow?.Stages.OrderBy(stage => stage.Order).ToArray() ?? [];
         _cards = Board.Cards
             .Where(card => StringComparer.OrdinalIgnoreCase.Equals(card.Kind, Kind))
-            .OrderByDescending(card => card.OwnPriority)
+            // Ranked by the priority the formula computes, not by the manual field: with criteria configured
+            // the score is the weighted criterion values times the size coefficient, and the manual value is
+            // only what a project without criteria ranks by. The projector falls back that way itself, so the
+            // board and the card page finally show the same number.
+            .OrderByDescending(EffectivePriority)
             .ToArray();
     }
 
@@ -232,8 +236,20 @@
         : StringComparer.OrdinalIgnoreCase.Equals(kind, CardKind.Task) ? Loc.Get("TaskKind")
         : kind;
 
-    private static string Score(Card card) =>
-        card.OwnPriority.ToString("0.##", CultureInfo.InvariantCulture);
+    /// <summary>
+    /// The card's effective priority as the daemon computed it: the criterion scores, blended with the
+    /// parents' and multiplied by the size coefficient. A card the snapshot does not carry falls back to its
+    /// own manual value, which is what a project without criteria ranks by.
+    /// </summary>
+    private decimal EffectivePriority(Card card) =>
+        Board.CardPriorities
+            .FirstOrDefault(priority => StringComparer.Ordinal.Equals(
+                priority.CardId,
+                card.Reference.CardId))
+            ?.Snapshot.EffectivePriority ?? card.OwnPriority;
+
+    private string Score(Card card) =>
+        EffectivePriority(card).ToString("0.##", CultureInfo.InvariantCulture);
 
     private static string MetaLine(Card card) =>
         $"rev={card.Revision} · files={card.ActualChangedFiles.Count}/{card.DeclaredScopeFiles.Count}";
@@ -251,15 +267,18 @@
             : $"DoD: {Loc.Format("FilesCount", card.ActualChangedFiles.Count, card.DeclaredScopeFiles.Count)}";
     }
 
-    /// <summary>The card's own priority, with the criterion values that produced it, as a tooltip.</summary>
-    private static string PriorityTitle(Card card)
+    /// <summary>
+    /// The computed priority with the criterion values that produced it, as a tooltip - so the tag explains
+    /// the number instead of only repeating it.
+    /// </summary>
+    private string PriorityTitle(Card card)
     {
         if (card.CriterionValues is not { Count: > 0 } criteria)
         {
             return $"P{Score(card)}";
         }
 
-        return string.Join(", ", criteria.Select(pair =>
+        return $"P{Score(card)} - " + string.Join(", ", criteria.Select(pair =>
             $"{pair.Key}={pair.Value.ToString("0.##", CultureInfo.InvariantCulture)}"));
     }
 
