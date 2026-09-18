@@ -22,6 +22,20 @@ public interface IUnifiedAgentInstaller
         CancellationToken cancellationToken);
 
     /// <summary>
+    /// Reports, for every known adapter, whether it is connected to the given project.
+    /// </summary>
+    /// <remarks>
+    /// Derived from the files an install owns, so the answer cannot disagree with what is on disk. This is the
+    /// project-scoped half of the agent list: an agent connected machine-wide still has to be connected to a
+    /// project before that project has anything of its own for the agent to read.
+    /// </remarks>
+    /// <param name="projectId">Identifier of a registered project, by id or by handle.</param>
+    /// <param name="cancellationToken">Cancellation token for the operation.</param>
+    ValueTask<IReadOnlyList<AgentProjectConnection>> ReadProjectConnectionsAsync(
+        string projectId,
+        CancellationToken cancellationToken);
+
+    /// <summary>
     /// Removes the user-scoped Aiko configuration of a single adapter, leaving user files alone.
     /// </summary>
     /// <returns>The outcome, or null when the identifier is unknown to this installer.</returns>

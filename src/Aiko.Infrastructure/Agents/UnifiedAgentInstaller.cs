@@ -77,6 +77,29 @@ public sealed class UnifiedAgentInstaller(
     }
 
     /// <inheritdoc />
+    public async ValueTask<IReadOnlyList<AgentProjectConnection>> ReadProjectConnectionsAsync(
+        string projectId,
+        CancellationToken cancellationToken)
+    {
+        var project = await projects.FindAsync(projectId, cancellationToken)
+            ?? throw new KeyNotFoundException($"Unknown Aiko project: {projectId}");
+
+        var connections = new List<AgentProjectConnection>(adaptersById.Count);
+        foreach (var adapter in adaptersById.Values.OrderBy(item => item.DisplayName, StringComparer.Ordinal))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            // Asked of the adapter rather than read from a record: each one knows which files it owns, so the
+            // answer follows the disk the moment a user deletes something by hand.
+            connections.Add(new AgentProjectConnection(
+                adapter.Id,
+                adapter.DisplayName,
+                await adapter.IsProjectConfiguredAsync(project.RootPath, cancellationToken)));
+        }
+
+        return connections;
+    }
+
+    /// <inheritdoc />
     public async ValueTask<UnifiedInstallationPlan> PlanAsync(
         string projectId,
         string projectMcpEndpoint,

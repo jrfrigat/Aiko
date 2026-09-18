@@ -1204,6 +1204,43 @@ public class InfrastructureSpecs
     }
 
     [Fact]
+    public async Task A_project_reports_which_agents_are_connected_to_it()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            var installer = new UnifiedAgentInstaller(
+                [new CodexAgentAdapter(), new ClineAgentAdapter()],
+                context.Catalog,
+                new FileProjectDefinitionStore(context.Catalog));
+
+            // A fresh project has nothing for either adapter. That is a different fact from whether the agents
+            // are installed on the machine, and it has to be asked of the project.
+            var before = await installer.ReadProjectConnectionsAsync(context.Project.Id, CancellationToken.None);
+            Assert.Equal(2, before.Count);
+            Assert.All(before, connection => Assert.False(connection.Connected));
+
+            await installer.ApplyAsync(
+                context.Project.Id,
+                $"http://127.0.0.1:18471/mcp/projects/{context.Project.Handle}",
+                "test-token",
+                ["cline"],
+                CancellationToken.None);
+
+            var after = await installer.ReadProjectConnectionsAsync(context.Project.Id, CancellationToken.None);
+            var cline = Assert.Single(after, connection => connection.AdapterId == "cline");
+            Assert.True(cline.Connected);
+            Assert.Equal("Cline", cline.DisplayName);
+            Assert.False(Assert.Single(after, connection => connection.AdapterId == "codex").Connected);
+
+            // And the answer follows the disk: a file deleted by hand is not reported as connected, because
+            // nothing was recorded that could go stale.
+            Directory.Delete(Path.Combine(context.Project.RootPath, ".cline"), true);
+            var swept = await installer.ReadProjectConnectionsAsync(context.Project.Id, CancellationToken.None);
+            Assert.False(Assert.Single(swept, connection => connection.AdapterId == "cline").Connected);
+        });
+    }
+
+    [Fact]
     public async Task Cline_user_scope_installs_the_generic_procedures_in_the_portable_root()
     {
         var previousHome = Environment.GetEnvironmentVariable("AIKO_USER_HOME");

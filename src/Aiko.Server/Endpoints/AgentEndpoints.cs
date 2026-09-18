@@ -46,6 +46,24 @@ internal static class AgentEndpoints
                     ? TypedResults.NotFound()
                     : TypedResults.Ok(await DescribeAsync(installer, adapterId, result, cancellationToken));
             });
+        // The project-scoped half of the agent list. The machine-wide Connect below does not answer whether a
+        // given project has anything for an agent, and a screen about one project needs exactly that.
+        app.MapGet(
+            "/api/v1/projects/{projectId}/installation",
+            async Task<IResult> (
+                string projectId,
+                IProjectCatalog catalog,
+                IUnifiedAgentInstaller installer,
+                CancellationToken cancellationToken) =>
+            {
+                if (await catalog.FindAsync(projectId, cancellationToken) is not { } project)
+                {
+                    return TypedResults.NotFound();
+                }
+
+                return TypedResults.Ok(
+                    await installer.ReadProjectConnectionsAsync(project.Id, cancellationToken));
+            });
         app.MapPost(
             "/api/v1/projects/{projectId}/installation-plan",
             async Task<IResult> (
