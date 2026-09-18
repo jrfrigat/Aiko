@@ -176,6 +176,9 @@ app.MapPost(
         context.Response.Cookies.Append("aiko_session", accessToken, new CookieOptions
         {
             HttpOnly = true,
+            // Deliberately not Secure: the daemon serves plain HTTP on the loopback interface, and a Secure
+            // cookie is never sent back over http, which would leave the UI permanently unauthenticated. The
+            // loopback binding is the control that keeps this session off any network.
             SameSite = SameSiteMode.Strict,
             IsEssential = true
         });
