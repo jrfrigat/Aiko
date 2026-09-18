@@ -127,13 +127,26 @@ public sealed class ClineAgentAdapter : BuiltInAgentAdapter
     ];
 
     /// <inheritdoc />
+    /// <remarks>
+    /// The procedures are installed into the portable <c>~/.agents/skills</c> tree as well, because a Cline
+    /// build that does not surface workspace skills - the desktop app reads the global root and leaves
+    /// <c>&lt;project&gt;/.cline/skills</c> alone - would never see them otherwise. They are project-agnostic
+    /// by design: each reads the project context at run time, so one copy serves every project. A procedure
+    /// per card type stays out of the global scope on purpose, because a type is one project's data; the
+    /// type-agnostic <c>aiko-create</c> covers it.
+    /// </remarks>
     private protected override IReadOnlyList<AgentFileDefinition> CreateUserFiles() =>
     [
         new(
             UserPath(ConfigurationDirectoryName, "skills", "aiko", "SKILL.md"),
             "Install the global Aiko skill in the Cline skills root.",
             AgentFileKind.OwnedText,
-            AgentTemplates.GlobalSkill)
+            AgentTemplates.GlobalSkill),
+        .. AgentTemplates.ProjectProcedures(Id, []).Select(procedure => new AgentFileDefinition(
+            UserPath(".agents", "skills", procedure.Name, "SKILL.md"),
+            $"Install the {procedure.Name} skill for Cline in the portable agent skills root.",
+            AgentFileKind.OwnedText,
+            procedure.ToSkill()))
     ];
 
     /// <inheritdoc />

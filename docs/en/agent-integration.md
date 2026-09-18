@@ -179,7 +179,14 @@ orientation skill explains the flow; the actions are commands:
 | Codex | `~/.codex/skills/aiko/SKILL.md`, `~/.agents/skills/aiko/SKILL.md` |
 | Cursor | `~/.cursor/rules/aiko.mdc` |
 | ZCode | `~/.zcode/skills/aiko/SKILL.md`, `~/.zcode/commands/aiko-*.md` |
-| Cline | `~/.cline/skills/aiko/SKILL.md` |
+| Cline | `~/.cline/skills/aiko/SKILL.md`, `~/.agents/skills/aiko-*/SKILL.md` |
+
+Cline gets its procedures globally as well as in the workspace, and the duplication is deliberate: a Cline
+build that does not surface workspace skills - the desktop app reads the global root and leaves a project's
+`.cline/skills` alone - would otherwise find no procedure at all. The generic ones are project-agnostic by
+design, because each reads the project context at run time, so one global copy serves every project. A
+procedure per card type stays in the workspace: a type is one project's data, and the type-agnostic
+`aiko-create` covers it.
 
 Codex loads user-scope skills from its own root, `~/.codex/skills` (its built-ins live in
 `~/.codex/skills/.system`), so the global skill is written there; the portable `~/.agents/skills` copy

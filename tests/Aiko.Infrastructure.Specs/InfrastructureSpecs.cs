@@ -1131,6 +1131,53 @@ public class InfrastructureSpecs
     }
 
     [Fact]
+    public async Task Cline_user_scope_installs_the_generic_procedures_in_the_portable_root()
+    {
+        var previousHome = Environment.GetEnvironmentVariable("AIKO_USER_HOME");
+        var fakeHome = Path.Combine(Path.GetTempPath(), "Aiko.Specs", Guid.NewGuid().ToString("N"));
+        Environment.SetEnvironmentVariable("AIKO_USER_HOME", fakeHome);
+        try
+        {
+            var adapter = new ClineAgentAdapter();
+            var applied = await adapter.ApplyUserInstallAsync(CancellationToken.None);
+            Assert.True(applied.Succeeded);
+
+            // A Cline build that does not surface workspace skills reads the global root and nothing else,
+            // so a procedure left in <project>/.cline/skills is a procedure the user cannot reach at all.
+            var run = Path.Combine(fakeHome, ".agents", "skills", "aiko-run", "SKILL.md");
+            Assert.True(File.Exists(run));
+            var runText = await File.ReadAllTextAsync(run);
+            Assert.Contains("name: aiko-run", runText, StringComparison.Ordinal);
+            // The adapter that starts a stage is the one the file was installed for.
+            Assert.Contains("\"cline\"", runText, StringComparison.Ordinal);
+
+            // Every procedure that works on whichever project is open is installed globally...
+            foreach (var name in new[]
+                     {
+                         "aiko-create", "aiko-create-sub", "aiko-estimate", "aiko-scope",
+                         "aiko-handoff", "aiko-memory", "aiko-status", "aiko-ui"
+                     })
+            {
+                Assert.True(File.Exists(Path.Combine(fakeHome, ".agents", "skills", name, "SKILL.md")));
+            }
+
+            // ...and nothing that names one project's card type, because a type is project data. The
+            // type-agnostic aiko-create is what covers those.
+            Assert.False(Directory.Exists(Path.Combine(fakeHome, ".agents", "skills", "aiko-create-story")));
+
+            var removed = await adapter.UninstallUserAsync(CancellationToken.None);
+            Assert.True(removed.Succeeded);
+            Assert.False(File.Exists(run));
+            // Cline's own skills root is emptied as well: both halves are this adapter's.
+            Assert.False(File.Exists(Path.Combine(fakeHome, ".cline", "skills", "aiko", "SKILL.md")));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("AIKO_USER_HOME", previousHome);
+        }
+    }
+
+    [Fact]
     public async Task Codex_user_scope_install_writes_the_clients_own_skills_root()
     {
         var previousHome = Environment.GetEnvironmentVariable("AIKO_USER_HOME");
