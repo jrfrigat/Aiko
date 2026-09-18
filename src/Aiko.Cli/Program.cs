@@ -107,9 +107,14 @@ static async Task<int> InitAsync(string[] args)
     if (string.IsNullOrWhiteSpace(path))
     {
         Console.Error.WriteLine(
-            "Usage: aiko init <path> [--name <n>] [--id <slug>] [--git-policy <p>] [--template <id>]");
+            "Usage: aiko init <path> [--name <n>] [--id <slug>] [--git-policy <p>] [--template <id>] "
+            + "[--agent <id>]");
         return 2;
     }
+
+    // The agent that runs init names itself and is connected to the project in the same step. A person
+    // creating a project does not: there the form asks which agents the project is for.
+    var agentId = ReadOption(args, "--agent");
 
     var policy = ParseGitPolicy(ReadOption(args, "--git-policy"));
     var dataPaths = AikoDataPaths.FromEnvironment();
@@ -137,7 +142,9 @@ static async Task<int> InitAsync(string[] args)
                 ReadOption(args, "--id")),
             CancellationToken.None);
         Console.WriteLine($"Registered project {project.Handle} ({project.Id}) at {project.RootPath}");
-        return 0;
+        return string.IsNullOrWhiteSpace(agentId)
+            ? 0
+            : await ConnectAgentAsync(catalog, dataPaths, project, agentId);
     }
     catch (Exception exception) when (exception is IOException or UnauthorizedAccessException
                                          or ArgumentException or InvalidOperationException)
@@ -229,6 +236,45 @@ static async ValueTask<int> FindProjectAsync(string path)
             Console.WriteLine($"Create one with: aiko init \"{result.Path}\"");
             return 1;
     }
+}
+
+// Connects the agent that ran `aiko init` to the project it just created. Idempotent by design: a second
+// agent running init on the same project only adds itself, and one that is already connected is told so
+// rather than given an error.
+static async ValueTask<int> ConnectAgentAsync(
+    IProjectCatalog catalog,
+    AikoDataPaths dataPaths,
+    RegisteredProject project,
+    string agentId)
+{
+    var settings = await new DaemonEndpointConfiguration(dataPaths).TryReadAsync();
+    if (settings is null)
+    {
+        Console.Error.WriteLine("Start the daemon once first, so the MCP endpoint port is known.");
+        return 1;
+    }
+
+    var installer = new UnifiedAgentInstaller(CreateAdapters(), catalog, new FileProjectDefinitionStore(catalog));
+    var result = await installer.ApplyAsync(
+        project.Id,
+        ProjectMcpEndpoint.For($"http://127.0.0.1:{settings.Port}", project),
+        await new AccessTokenStore(dataPaths).GetOrCreateAsync(),
+        [agentId],
+        CancellationToken.None);
+
+    if (result.UnknownAdapterIds.Count > 0)
+    {
+        Console.Error.WriteLine($"Unknown agent: {agentId}");
+        return 1;
+    }
+
+    var changed = result.AdapterResults
+        .SelectMany(item => item.Files)
+        .Count(file => file.Status is not InstallationFileStatus.Unchanged);
+    Console.WriteLine(changed == 0
+        ? $"Agent already connected to project {project.Handle}."
+        : $"Connected {agentId} to project {project.Handle}: {changed} file(s) written.");
+    return 0;
 }
 
 // Unregistering changes what the daemon shows, so it asks first. A redirected stdin means a script:

@@ -201,6 +201,11 @@ daemon, and one that is not an Aiko project at all. In both cases the procedure 
 `aiko init` command and stops, rather than acting on some other project. A workspace copy needs none of this:
 it sits in the project, and the client that reads it is configured for that project.
 
+Creating a project is the other half: the init command is generated per adapter and names that adapter, so
+`aiko init <path> --agent <id>` registers the project and connects the agent in one step. The step is
+idempotent - it writes only what is missing, and an agent already connected to the project is reported as such
+instead of failing, which is what a second agent running init on the same project needs.
+
 Codex loads user-scope skills from its own root, `~/.codex/skills` (its built-ins live in
 `~/.codex/skills/.system`), so the global skill is written there; the portable `~/.agents/skills` copy
 is kept for layouts that read that tree. Set `AIKO_USER_HOME` to install into a different home

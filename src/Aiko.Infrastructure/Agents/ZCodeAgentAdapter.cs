@@ -97,7 +97,7 @@ public sealed class ZCodeAgentAdapter : BuiltInAgentAdapter
         return
         [
             new(UserPath(".zcode", "skills", "aiko", "SKILL.md"), "Install the global Aiko skill.", AgentFileKind.OwnedText, AgentTemplates.GlobalSkill),
-            Command("aiko-init", AgentTemplates.Init),
+            Command("aiko-init", AgentTemplates.InitFor(Id)),
             Command("aiko-list-projects", AgentTemplates.ListProjects),
             Command("aiko-status", AgentTemplates.GlobalStatus),
             Command("aiko-doctor", AgentTemplates.GlobalDoctor),

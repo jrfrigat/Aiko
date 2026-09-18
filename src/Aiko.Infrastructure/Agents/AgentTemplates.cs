@@ -409,6 +409,25 @@ internal static class AgentTemplates
         """;
 
     /// <summary>
+    /// The init command as one adapter receives it: the shared text plus the identifier that connects that very
+    /// agent to the project it creates.
+    /// </summary>
+    /// <remarks>
+    /// Aiko knows which adapter a file was generated for and the agent reading it does not have to say, so the
+    /// id is written in. Naming it makes init connect the agent in the same step, which is what a user means by
+    /// running init from inside an agent; a project created from the UI picks its agents on the form instead.
+    /// </remarks>
+    /// <param name="agentAdapterId">Adapter id, for example <c>claude-code</c>.</param>
+    public static string InitFor(string agentAdapterId) =>
+        $"""
+        {Init}
+
+        When this runs from inside an agent, name that agent so it is connected to the project in the same
+        step: `aiko init <path> --agent {agentAdapterId}`. The step is idempotent - an agent that is already
+        connected is reported as such instead of failing.
+        """;
+
+    /// <summary>
     /// Global slash command that lists the registered projects.
     /// </summary>
     public const string ListProjects =

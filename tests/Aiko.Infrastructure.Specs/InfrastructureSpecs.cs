@@ -1191,6 +1191,12 @@ public class InfrastructureSpecs
             Assert.True(applied.Succeeded);
             Assert.True(File.Exists(Path.Combine(fakeHome, ".claude", "skills", "aiko", "SKILL.md")));
             Assert.True(File.Exists(Path.Combine(fakeHome, ".claude", "commands", "aiko-init.md")));
+            // The init command names the adapter it was generated for, so a project created from inside that
+            // agent is connected to it in the same step instead of the user having to say who they are.
+            Assert.Contains(
+                "--agent claude-code",
+                await File.ReadAllTextAsync(Path.Combine(fakeHome, ".claude", "commands", "aiko-init.md")),
+                StringComparison.Ordinal);
 
             var removed = await adapter.UninstallUserAsync(CancellationToken.None);
             Assert.True(removed.Succeeded);
