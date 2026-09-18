@@ -328,7 +328,9 @@ public class InfrastructureSpecs
                     installer,
                     [adapter],
                     configuration,
-                    new AccessTokenStore(dataPaths));
+                    new AccessTokenStore(dataPaths),
+                    context.Cards,
+                    context.Executions);
                 var report = await doctor.InspectAsync(context.Project.Id, CancellationToken.None);
 
                 // A configuration this build wrote is never reported as drift.
@@ -456,7 +458,9 @@ public class InfrastructureSpecs
                 new UnifiedAgentInstaller([], context.Catalog, new FileProjectDefinitionStore(context.Catalog)),
                 [],
                 new DaemonEndpointConfiguration(dataPaths),
-                new AccessTokenStore(dataPaths));
+                new AccessTokenStore(dataPaths),
+                context.Cards,
+                context.Executions);
 
             var report = await doctor.InspectAsync(context.Project.Id, CancellationToken.None);
 
@@ -475,6 +479,84 @@ public class InfrastructureSpecs
             // An unknown project is an error, not an empty success.
             var unknown = await doctor.InspectAsync("nope", CancellationToken.None);
             Assert.Equal(DiagnosticSeverity.Error, Assert.Single(unknown.Findings, finding => finding.Area == "project").Severity);
+        });
+    }
+
+    [Fact]
+    public async Task Doctor_reports_a_card_that_left_the_backlog_without_a_run()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            var dataPaths = new AikoDataPaths(context.Database.DatabasePath);
+            var doctor = new WorkshopDoctor(
+                dataPaths,
+                context.Catalog,
+                new UnifiedAgentInstaller([], context.Catalog, new FileProjectDefinitionStore(context.Catalog)),
+                [],
+                new DaemonEndpointConfiguration(dataPaths),
+                new AccessTokenStore(dataPaths),
+                context.Cards,
+                context.Executions);
+
+            // A card pushed into the pipeline with nothing running behind it. The store allows the move - the
+            // board is the person's own - and what it leaves is a card that looks worked while its runs tab is
+            // empty, which is the state nobody could see before this check.
+            var created = CreateCard(context.Project.Id, "TASK-NO-RUN", 1);
+            await context.Cards.SaveAsync(created, 0, CancellationToken.None);
+            var pushed = created with
+            {
+                StageId = "implementation",
+                Revision = 2
+            };
+            await context.Cards.SaveAsync(pushed, 1, CancellationToken.None);
+
+            // A card whose stage was run leaves an execution, and is not reported.
+            var worked = CreateCard(context.Project.Id, "TASK-RUN", 1);
+            await context.Cards.SaveAsync(worked, 0, CancellationToken.None);
+            await context.Executions.StartAsync(
+                worked.Reference, "implementation", "claude-code", CancellationToken.None);
+
+            var report = await doctor.InspectAsync(context.Project.Id, CancellationToken.None);
+
+            var finding = Assert.Single(report.Findings, item => item.Area == "card-progress");
+            Assert.Equal(DiagnosticSeverity.Warning, finding.Severity);
+            Assert.Contains("left the backlog", finding.Summary, StringComparison.Ordinal);
+            Assert.Contains("TASK-NO-RUN", finding.Summary, StringComparison.Ordinal);
+            Assert.DoesNotContain("TASK-RUN", finding.Summary, StringComparison.Ordinal);
+        });
+    }
+
+    [Fact]
+    public async Task The_working_contract_requires_a_started_stage_before_files_change()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            var installer = new UnifiedAgentInstaller(
+                [new ClineAgentAdapter()],
+                context.Catalog,
+                new FileProjectDefinitionStore(context.Catalog));
+            await installer.ApplyAsync(
+                context.Project.Id,
+                $"http://127.0.0.1:18471/mcp/projects/{context.Project.Handle}",
+                "test-token",
+                ["cline"],
+                CancellationToken.None);
+
+            // Work that starts with a card but never enters a stage leaves no execution, no artifacts and no
+            // history: the card looks worked while its runs tab is empty. What an agent reads first - the
+            // workspace rule and the run procedure - has to say where the work happens.
+            var contract = await File.ReadAllTextAsync(
+                Path.Combine(context.Project.RootPath, ".clinerules", "aiko.md"));
+            Assert.Contains("aiko_start_stage", contract, StringComparison.Ordinal);
+            Assert.Contains("aiko_complete_stage", contract, StringComparison.Ordinal);
+            Assert.Contains("backlog", contract, StringComparison.Ordinal);
+
+            var run = await File.ReadAllTextAsync(
+                Path.Combine(context.Project.RootPath, ".cline", "skills", "aiko-run", "SKILL.md"));
+            Assert.Contains("aiko_start_stage", run, StringComparison.Ordinal);
+            // The old claim - that moving the card is the only way it changes stage - was wrong and told an
+            // agent to move a card it was about to start anyway.
+            Assert.DoesNotContain("only way it changes stage", run, StringComparison.Ordinal);
         });
     }
 
@@ -2305,7 +2387,9 @@ public class InfrastructureSpecs
                     new UnifiedAgentInstaller([new ClaudeCodeAgentAdapter()], context.Catalog, new FileProjectDefinitionStore(context.Catalog)),
                     [new ClaudeCodeAgentAdapter()],
                     configuration,
-                    new AccessTokenStore(dataPaths));
+                    new AccessTokenStore(dataPaths),
+                    context.Cards,
+                    context.Executions);
 
                 var report = await doctor.InspectAsync(context.Project.Id, CancellationToken.None);
 

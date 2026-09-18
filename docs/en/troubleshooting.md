@@ -138,3 +138,16 @@ and re-registering the right path is just `aiko init`.
 
 Aiko cannot force an agent to call a tool. The installed skills, `AGENTS.md` block and Cursor rule
 reinforce the "read context first" contract; mention it explicitly in the prompt if needed.
+
+## A card moved without its stage
+
+`aiko doctor` reports it as a warning: *"N card(s) left the backlog without a single run"*, with the card
+ids. It means the card sits past the backlog while nothing was ever worked through a stage - no execution, no
+artifacts, no history - which is what an agent leaves behind when it edits files while the card is still in
+its `backlog` stage, or when someone drags a card forward by hand.
+
+What to do: open the card, start the stage it should have been worked in (`aiko_start_stage`, or run the card
+with `/aiko-run`), and do the work under that execution; the history of a stage that was really worked is
+what makes the card readable afterwards. The rule that prevents a repeat is the one agents read before they
+touch files: work belongs to a stage execution, and `aiko_move_card` refuses to advance a card whose stage
+was never run.

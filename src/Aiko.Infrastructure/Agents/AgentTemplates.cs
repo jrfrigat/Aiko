@@ -291,14 +291,17 @@ internal static class AgentTemplates
         Read aiko_get_project_context and aiko_get_card for that card. The context lists the card's type, its
         pipeline and what each stage demands; the card says which stage it is in right now.
 
-        If a stage id was given and is not the card's current stage, call aiko_move_card to put the card
-        there first and re-read it - moving the card is the only way it changes stage.
+        Run the stage with aiko_start_stage, passing the card id, the id of the stage you mean to work, and
+        "{agentAdapterId}" as the agent adapter id. The start moves the card into that stage, so a card may
+        still be sitting in its backlog when you begin - and until that start, the card has no work in it:
+        do not create or change any file for it beforehand. Never start a second execution for a card that
+        already has one: if aiko_start_stage refuses because the card has an active execution, continue,
+        complete or hand off that execution instead of starting another.
 
-        Then start the stage with aiko_start_stage, passing the card id, the id of the stage the card is now
-        in, and "{agentAdapterId}" as the agent adapter id. Do what the stage's instruction asks for, and
-        honour its beforeSkills and afterSkills. Never start a second execution for a card that already has
-        one: if aiko_start_stage refuses because the card has an active execution, continue, complete or hand
-        off that execution instead of starting another.
+        Do what the stage's instruction asks for and honour its beforeSkills and afterSkills. Produce the
+        artifacts the stage requires, because they are what the stage is judged by. Complete the stage with
+        aiko_complete_stage once its instruction and artifacts are done - the card moves on from there, and
+        a card whose stage was never run cannot move on at all.
 
         Keep aiko_report_progress updated with the summary, the steps done and left, and the complete current
         list of the files you changed. If the work needs files outside the card's declaredScopeFiles, call
@@ -526,15 +529,20 @@ internal static class AgentTemplates
     /// Instruction block for AGENTS.md describing Aiko as the project working memory.
     /// </summary>
     /// <remarks>
-    /// The first sentence is the one that matters and the one that was missing: work the user asks for starts
-    /// with a card, not with an edit. A contract that only says "read the context before taking a card"
-    /// presumes a card already exists, and an agent asked to fix something will simply fix it.
+    /// The first sentences are the ones that matter: work the user asks for starts with a card, and a card's
+    /// work happens inside a stage execution. A contract that only said "start with a card" was satisfied by
+    /// creating one and then editing files with the card still in the backlog - a card that then looks worked
+    /// while its runs tab, artifacts and history stay empty. Naming the start is what closes that gap.
     /// </remarks>
     public const string ProjectInstructions =
         """
         When Aiko MCP is available, use it as the durable project workflow and task memory. Any work the user
-        asks for starts with a card: create it in Aiko first (aiko_create_card, or /aiko-create), then do the
-        work, report progress and preserve execution handoffs. Read the project context before touching files.
+        asks for starts with a card: create it in Aiko first (aiko_create_card, or /aiko-create). A card in its
+        backlog stage has no work in it yet, so never create or change files for a card before you have started
+        the stage you are working in with aiko_start_stage - the start moves the card into that stage and is
+        what records the work. Do what the stage's instruction asks for, produce its required artifacts and
+        complete it with aiko_complete_stage; only then does the card move on, and aiko_move_card refuses to
+        advance a card whose stage was never run. Read the project context before touching files.
         Warn before modifying files outside the card scopeFiles and record the actual changed files.
         """;
 
@@ -549,7 +557,9 @@ internal static class AgentTemplates
         ---
 
         When Aiko MCP is available, read its project context before project work. Any work the user asks for
-        starts with a card: create it in Aiko first, then do the work. Keep card status, progress, scope
+        starts with a card: create it in Aiko first, then start the stage you are working in with
+        aiko_start_stage - a card in its backlog has no work in it, so no file is created or changed for it
+        before that start. Produce the stage's artifacts, complete it, and keep card status, progress, scope
         changes, actual changed files and agent handoffs synchronized.
         """;
 }

@@ -1,5 +1,6 @@
 using Aiko.Application.Agents;
 using Aiko.Application.Contracts;
+using Aiko.Domain.Workflow;
 using Aiko.Infrastructure.Settings;
 using Aiko.Infrastructure.Storage;
 
@@ -20,7 +21,9 @@ public sealed class WorkshopDoctor(
     IUnifiedAgentInstaller agents,
     IEnumerable<IAgentAdapter> agentAdapters,
     DaemonEndpointConfiguration endpoint,
-    AccessTokenStore tokens) : IWorkshopDiagnostics
+    AccessTokenStore tokens,
+    ICardStore cards,
+    IExecutionCoordinator executions) : IWorkshopDiagnostics
 {
     /// <inheritdoc />
     public async ValueTask<WorkshopDiagnostics> InspectAsync(
@@ -129,6 +132,8 @@ public sealed class WorkshopDoctor(
             $"{project.Name}: registered and present.",
             tree));
 
+        await InspectCardProgressAsync(project, findings, cancellationToken);
+
         if (settings is null)
         {
             return;
@@ -142,6 +147,52 @@ public sealed class WorkshopDoctor(
         {
             findings.Add(finding);
         }
+    }
+
+    /// <summary>
+    /// Reports cards that left the backlog without a single execution: progress nothing worked for.
+    /// </summary>
+    /// <remarks>
+    /// A card can only leave the backlog by moving into its pipeline, and a stage that ran leaves an execution
+    /// behind. A card past the backlog with none of them was pushed along without the pipeline - by hand, or by
+    /// an agent that edited files while the card still sat in the backlog - and what that looks like on the
+    /// board is a card that appears worked while its runs tab, artifacts and history are empty. Saying it out
+    /// loud is the point: the state is otherwise invisible until someone goes looking. Read-only, like every
+    /// other check here.
+    /// </remarks>
+    private async ValueTask InspectCardProgressAsync(
+        RegisteredProject project,
+        List<DiagnosticFinding> findings,
+        CancellationToken cancellationToken)
+    {
+        var unworked = new List<string>();
+        foreach (var card in await cards.ListAsync(project.Id, cancellationToken))
+        {
+            if (StringComparer.Ordinal.Equals(card.StageId, WorkflowDefinition.BacklogStageId))
+            {
+                continue;
+            }
+
+            if ((await executions.ListAsync(card.Reference, cancellationToken)).Count == 0)
+            {
+                unworked.Add(card.Reference.CardId);
+            }
+        }
+
+        if (unworked.Count == 0)
+        {
+            return;
+        }
+
+        var shown = string.Join(", ", unworked.Take(5));
+        var rest = unworked.Count > 5 ? $" and {unworked.Count - 5} more" : string.Empty;
+        findings.Add(new DiagnosticFinding(
+            "card-progress",
+            DiagnosticSeverity.Warning,
+            $"{project.Name}: {unworked.Count} card(s) left the backlog without a single run: {shown}{rest}. "
+                + "Nothing was worked through a stage there, so the card has no execution, no artifacts and no "
+                + "history - start the stage with aiko_start_stage before working a card.",
+            project.RootPath));
     }
 
     /// <summary>

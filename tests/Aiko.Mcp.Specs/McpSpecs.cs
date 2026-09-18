@@ -97,6 +97,10 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         Assert.Contains("### Story (workflowId: story)", text, StringComparison.Ordinal);
         Assert.Contains("### Task (workflowId: task)", text, StringComparison.Ordinal);
         Assert.Contains("backlog: a new card starts here", text, StringComparison.Ordinal);
+        // The context is what an agent reads first, so the working contract is stated here too: work happens
+        // inside a started stage, and a card in its backlog has none of it yet.
+        Assert.Contains("aiko_start_stage", text, StringComparison.Ordinal);
+        Assert.Contains("aiko_complete_stage", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -545,36 +549,61 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
     }
 
     [Fact]
-    public async Task Moves_a_card_between_stages_through_mcp()
+    public async Task Moves_a_card_forward_only_through_worked_stages()
     {
         await using var client = await ConnectAsync();
-
+        var cardId = $"TASK-MOVE-{Guid.NewGuid():N}";
         await client.CallToolAsync(
             "aiko_create_card",
             new Dictionary<string, object?>
             {
-                ["cardId"] = "TASK-MOVE-001",
+                ["cardId"] = cardId,
                 ["kind"] = "task",
                 ["title"] = "Move me",
                 ["workflowId"] = "task",
-                ["stageId"] = "backlog",
                 ["ownPriority"] = 2,
                 ["declaredScopeFiles"] = new[] { "src/**" }
             },
             cancellationToken: CancellationToken.None);
 
-        var move = await client.CallToolAsync(
+        // A card is created in the backlog. Declaring it reviewed from there is how a card ends up finished
+        // with nothing behind it - no execution, no artifacts, no history - so the move is refused and the
+        // message says what to do instead.
+        var skip = await MoveAsync(client, cardId, "review", 1L);
+        Assert.True(skip.IsError);
+        var skipReason = FirstText(skip) ?? string.Empty;
+        Assert.Contains("one stage at a time", skipReason, StringComparison.Ordinal);
+        Assert.Contains("aiko_start_stage", skipReason, StringComparison.Ordinal);
+
+        // Leaving the backlog for the next stage is how work begins.
+        var intoAnalysis = await MoveAsync(client, cardId, "analysis", 1L);
+        Assert.NotEqual(true, intoAnalysis.IsError);
+
+        // And it stops there: the analysis stage has not been run, so the card cannot move on.
+        var unworked = await MoveAsync(client, cardId, "implementation", 2L);
+        Assert.True(unworked.IsError);
+        Assert.Contains("no execution", FirstText(unworked) ?? string.Empty, StringComparison.Ordinal);
+
+        // Pulling a card back is how rework starts, and is never refused.
+        var backwards = await MoveAsync(client, cardId, "backlog", 2L);
+        Assert.NotEqual(true, backwards.IsError);
+    }
+
+    /// <summary>Moves a card and returns the tool result, so a refusal can be read as an answer.</summary>
+    private static ValueTask<CallToolResult> MoveAsync(
+        McpClient client,
+        string cardId,
+        string stageId,
+        long revision) =>
+        client.CallToolAsync(
             "aiko_move_card",
             new Dictionary<string, object?>
             {
-                ["cardId"] = "TASK-MOVE-001",
-                ["stageId"] = "implementation",
-                ["expectedRevision"] = 1L
+                ["cardId"] = cardId,
+                ["stageId"] = stageId,
+                ["expectedRevision"] = revision
             },
             cancellationToken: CancellationToken.None);
-        Assert.NotEqual(true, move.IsError);
-        Assert.Contains("implementation", FirstText(move), StringComparison.Ordinal);
-    }
 
     [Fact]
     public async Task Daemon_diagnostics_and_reindex_tools_work()

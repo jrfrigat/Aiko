@@ -6,6 +6,7 @@ using ModelContextProtocol.Server;
 using Aiko.Application.Cards;
 using Aiko.Application.Contracts;
 using Aiko.Domain.Cards;
+using Aiko.Domain.Workflow;
 using Aiko.Server.Contracts;
 using Aiko.Server.Workflow;
 
@@ -22,7 +23,8 @@ internal sealed class CardTools(
     ICardStore cards,
     IRelationStore relations,
     IProjectDefinitionStore definitions,
-    ICardDiscussionStore discussion) : ProjectToolBase(httpContextAccessor, projects)
+    ICardDiscussionStore discussion,
+    IExecutionCoordinator executions) : ProjectToolBase(httpContextAccessor, projects)
 {
     [McpServerTool(Name = "aiko_list_cards", Title = "List Aiko cards")]
     [Description("Lists cards in the current project. Get project context before taking action.")]
@@ -225,7 +227,9 @@ internal sealed class CardTools(
 
     [McpServerTool(Name = "aiko_move_card", Title = "Move Aiko card")]
     [Description(
-        "Moves a card to another stage of its workflow, validating the stage against the card kind.")]
+        "Moves a card one stage forward in its workflow, or anywhere backwards, validating the stage against "
+        + "the card kind. A forward move is refused while the stage the card is leaving has no execution: the "
+        + "card moves on because the stage is done, so run it with aiko_start_stage first.")]
     public async Task<string> MoveCardAsync(
         [Description("Card id.")]
         string cardId,
@@ -247,10 +251,26 @@ internal sealed class CardTools(
                 card.Revision);
         }
 
-        var stage = await CardStageValidation.FindValidStageAsync(card, stageId, definitions, cancellationToken)
+        var stages = await CardStageValidation.ReadStagesAsync(card, definitions, cancellationToken);
+        var stage = CardStageValidation.FindValidStage(stages, card, stageId)
             ?? throw new ArgumentException(
                 $"Stage '{stageId}' is not valid for card '{cardId}' workflow.",
                 nameof(stageId));
+
+        // The agent's path, and deliberately not the board's: an agent that can move a card from the backlog
+        // straight to review can call a card done without running anything, while a person dragging a card
+        // knows what they are doing - the REST move endpoint stays free for exactly that reason.
+        var cardExecutions = await executions.ListAsync(reference, cancellationToken);
+        var refusal = CardProgress.RefuseForwardMove(
+            cardId,
+            card.StageId,
+            stage.Id,
+            stages,
+            cardExecutions.Select(execution => execution.StageId).ToArray());
+        if (refusal is not null)
+        {
+            throw new InvalidOperationException(refusal);
+        }
 
         var moved = card with { StageId = stage.Id, Revision = card.Revision + 1 };
         await cards.SaveAsync(moved, expectedRevision, cancellationToken);

@@ -214,6 +214,55 @@ public class DomainSpecs
     }
 
     [Fact]
+    public void A_card_advances_one_stage_and_only_out_of_a_stage_that_ran()
+    {
+        var stages = new[]
+        {
+            Stage("backlog", 10),
+            Stage("analysis", 20),
+            Stage("implementation", 30),
+            Stage("review", 40),
+            Stage("done", 50)
+        };
+
+        // The backlog is where a card is created: leaving it is how work begins, and the start that follows
+        // is what records the work.
+        Assert.Null(CardProgress.RefuseForwardMove("TASK-1", "backlog", "analysis", stages, []));
+
+        // One stage at a time: a card cannot be declared reviewed straight from the backlog. This is what an
+        // agent did before the rule existed, and the card then sat in review with an empty runs tab.
+        var skipped = CardProgress.RefuseForwardMove("TASK-1", "backlog", "review", stages, []);
+        Assert.NotNull(skipped);
+        Assert.Contains("one stage at a time", skipped, StringComparison.Ordinal);
+        Assert.Contains("aiko_start_stage", skipped, StringComparison.Ordinal);
+
+        // A stage nobody ran cannot be left: leaving it would make the card look worked when it is not.
+        var unworked = CardProgress.RefuseForwardMove("TASK-1", "analysis", "implementation", stages, []);
+        Assert.NotNull(unworked);
+        Assert.Contains("no execution", unworked, StringComparison.Ordinal);
+
+        // The stage ran, so the card moves on.
+        Assert.Null(CardProgress.RefuseForwardMove(
+            "TASK-1", "analysis", "implementation", stages, ["analysis"]));
+
+        // Backwards, in place, or a stage this pipeline cannot place is not this rule's business.
+        Assert.Null(CardProgress.RefuseForwardMove("TASK-1", "review", "implementation", stages, []));
+        Assert.Null(CardProgress.RefuseForwardMove("TASK-1", "implementation", "implementation", stages, []));
+        Assert.Null(CardProgress.RefuseForwardMove("TASK-1", "analysis", "unknown", stages, []));
+
+        static StageDefinition Stage(string id, int order) => new(
+            id,
+            id,
+            order,
+            "Do it.",
+            [CardKind.Task],
+            "claude",
+            [],
+            new Dictionary<string, ActionPolicy>(StringComparer.Ordinal),
+            null);
+    }
+
+    [Fact]
     public void Stage_executors_and_validation_commands_survive_the_workflow_json()
     {
         var stage = new StageDefinition(

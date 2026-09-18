@@ -42,6 +42,17 @@ aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<handle>
 Tool descriptions instruct agents to fetch the project context first; the installed skills and
 rules reinforce this per agent.
 
+## Where work happens
+
+A card starts in its type's `backlog` stage, and a card sitting there has no work in it yet: work belongs to
+a stage execution, and a stage that ran is what leaves an execution, its artifacts and its history behind.
+So the order is: create the card, start the stage you are working in with `aiko_start_stage` (the start moves
+the card into that stage), do what that stage's instruction asks for, produce the artifacts it requires,
+complete it with `aiko_complete_stage`, then move on. `aiko_move_card` advances a card one stage at a time
+and refuses to leave a stage that was never run, so a card cannot be declared finished by moving it. A person
+dragging a card on the board is deliberately not held to that rule: the board is how a person corrects their
+own board, and `aiko doctor` reports the cards that were pushed past a stage anyway.
+
 ## Authentication
 
 The daemon authenticates its MCP endpoint with the local access token, so **every generated MCP entry
@@ -96,12 +107,12 @@ parent to the child, which is the direction the board reads as "this card belong
 action hands to an agent. The agent reads the card and the project context (the size grid's descriptions
 and each criterion's range) and calls `aiko_estimate_card` with the size step and the scores.
 
-`/aiko-run <cardId> [stageId]` runs a card: it reads the card's own stage and that stage's instruction from
-the project context, does the work, reports progress and completes the stage. A stage id moves the card
-there first, which is why there is no separate move command. Nothing about it names a stage, so it works in
-any pipeline - the per-stage commands it replaces (`/aiko-analyze`, `/aiko-implement`, `/aiko-review`,
-`/aiko-complete`) and `/aiko-next-stage` all named stages of the default template, the same hardcoding card
-types no longer have.
+`/aiko-run <cardId> [stageId]` runs a card: it starts the stage with `aiko_start_stage`, does what that
+stage's instruction asks for, produces its artifacts, reports progress and completes the stage. A stage id
+names the stage to start, and the start moves the card into it - which is why there is no separate move
+command. Nothing about it names a stage of a particular pipeline, so it works in any of them - the
+per-stage commands it replaces (`/aiko-analyze`, `/aiko-implement`, `/aiko-review`, `/aiko-complete`) and
+`/aiko-next-stage` all named stages of the default template, the same hardcoding card types no longer have.
 
 Global skills/commands (installed with `aiko agent install --scope user`):
 

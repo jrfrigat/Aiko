@@ -41,6 +41,14 @@ internal sealed class ProjectContextTools(
             Project ID: {project.Id}
             Root: {project.RootPath}
 
+            Work happens inside a stage execution, not beside the pipeline. A card in its backlog stage has no
+            work in it yet: do not create or change files for a card before you have started the stage you are
+            working in with aiko_start_stage - the start moves the card into that stage and leaves the record
+            of the work. Do what the stage's instruction asks for, produce its required artifacts, and complete
+            it with aiko_complete_stage; only then does the card move on. aiko_move_card advances a card one
+            stage at a time and refuses to leave a stage that was never run, because work done outside a stage
+            leaves no execution, no artifacts and no history.
+
             Before changing files, read the selected card and its current stage instruction.
             A stage's beforeSkills are what to invoke before you read its instruction, and its afterSkills
             are what to invoke once the instruction is done.

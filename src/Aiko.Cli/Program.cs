@@ -5,7 +5,9 @@ using System.Text.Json;
 using Aiko.Application.Agents;
 using Aiko.Application.Contracts;
 using Aiko.Infrastructure.Agents;
+using Aiko.Infrastructure.Cards;
 using Aiko.Infrastructure.Diagnostics;
+using Aiko.Infrastructure.Execution;
 using Aiko.Infrastructure.Projects;
 using Aiko.Infrastructure.Settings;
 using Aiko.Infrastructure.Storage;
@@ -1022,13 +1024,20 @@ static async Task<WorkshopDiagnostics> InspectAsync(string? projectId)
     await database.InitializeAsync();
     var catalog = new SqliteProjectCatalog(database);
     var installer = new UnifiedAgentInstaller(CreateAdapters(), catalog, new FileProjectDefinitionStore(catalog));
+    var cards = new FileCardStore(catalog, database);
     var diagnostics = new WorkshopDoctor(
         dataPaths,
         catalog,
         installer,
         CreateAdapters(),
         new DaemonEndpointConfiguration(dataPaths),
-        new AccessTokenStore(dataPaths));
+        new AccessTokenStore(dataPaths),
+        cards,
+        new SqliteExecutionCoordinator(
+            catalog,
+            cards,
+            database,
+            new AppSettingsService(new FileAppSettingsStore(catalog))));
     return await diagnostics.InspectAsync(projectId, CancellationToken.None);
 }
 
