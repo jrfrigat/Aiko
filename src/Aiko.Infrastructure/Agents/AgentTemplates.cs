@@ -10,6 +10,32 @@ namespace Aiko.Infrastructure.Agents;
 internal static class AgentTemplates
 {
     /// <summary>
+    /// The step a user-scope procedure starts with: work out which project the user has open, and what to
+    /// say when there is none.
+    /// </summary>
+    /// <remarks>
+    /// The working directory is the only thing that can say which project this is: a user-scope skill is
+    /// visible in every folder, and in a client like Cline the enabled MCP entry - not the folder - is what
+    /// carries a project. Asking first is what keeps a card from landing in whichever project is connected.
+    /// </remarks>
+    public const string ProjectPreamble =
+        """
+        First work out which project this is: this skill is installed for the whole machine and can be run in
+        any folder, while the project to work with is the folder the user has open.
+
+        1. Run `aiko project find "<the working directory>"` and read the answer.
+        2. If it names a project, that is the one. Confirm its tools are available by reading
+           `aiko_get_project_context`; when that tool is not available, the project is not connected to this
+           agent - tell the user to connect it and stop (`aiko agent install --project <project>`; in Cline
+           the entry `aiko-<project>` also has to be enabled in its MCP server list).
+        3. If it says the folder carries .aiko but is not registered, tell the user it is not registered yet
+           and that `aiko init` in that folder registers it. Do nothing else.
+        4. If it says the folder is not an Aiko project, tell the user the folder has to be initialized
+           first (`/aiko-init`, or `aiko init` in that folder) and stop. Never pick another project to work
+           in, and never create the card somewhere else.
+        """;
+
+    /// <summary>
     /// One procedure Aiko installs into an agent: the name its skill is loaded under, the description a
     /// client matches to decide whether to load it, and the body that says what to do.
     /// </summary>
@@ -27,6 +53,26 @@ internal static class AgentTemplates
             name: {Name}
             description: {Description}
             ---
+
+            {Body.Trim()}
+            """;
+
+        /// <summary>
+        /// The skill document for a user-scope install: the same procedure with the step that works out which
+        /// project the user has open in front of it.
+        /// </summary>
+        /// <remarks>
+        /// A workspace copy needs no such step - it sits in the project, and the client that reads it is
+        /// configured for that project. A user-scope copy is visible in every folder, so it has to ask before
+        /// it acts.
+        /// </remarks>
+        public string ToGlobalSkill() => $"""
+            ---
+            name: {Name}
+            description: {Description}
+            ---
+
+            {ProjectPreamble}
 
             {Body.Trim()}
             """;

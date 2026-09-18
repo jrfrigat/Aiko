@@ -372,6 +372,79 @@ public class InfrastructureSpecs
     }
 
     [Fact]
+    public async Task A_working_directory_resolves_to_the_project_that_owns_it()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            // The project itself...
+            var exact = await ProjectPathLookup.ResolveAsync(
+                context.Catalog, context.ProjectRoot, CancellationToken.None);
+            Assert.Equal(ProjectPathMatch.Registered, exact.Match);
+            Assert.Equal(context.Project.Id, exact.Project?.Id);
+
+            // ...and a folder inside it: opening a subfolder is not opening a different project.
+            var nested = Path.Combine(context.ProjectRoot, "src", "nested");
+            Directory.CreateDirectory(nested);
+            var inner = await ProjectPathLookup.ResolveAsync(
+                context.Catalog, nested, CancellationToken.None);
+            Assert.Equal(ProjectPathMatch.Registered, inner.Match);
+            Assert.Equal(context.Project.RootPath, inner.Project?.RootPath);
+
+            // A folder nobody registered says so instead of guessing at a project.
+            var loose = Path.GetFullPath(Path.Combine(context.ProjectRoot, "..", "not-a-project"));
+            Directory.CreateDirectory(loose);
+            var none = await ProjectPathLookup.ResolveAsync(
+                context.Catalog, loose, CancellationToken.None);
+            Assert.Equal(ProjectPathMatch.None, none.Match);
+            Assert.Null(none.Project);
+        });
+    }
+
+    [Fact]
+    public async Task A_folder_that_carries_aiko_without_being_registered_says_which_it_is()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            // What a project copied from another machine, or one whose registration was removed, looks like:
+            // the folder is an Aiko project, the daemon simply has no record of it. The two have to be told
+            // apart, because only one of them is fixed by registering.
+            var stray = Path.GetFullPath(Path.Combine(context.ProjectRoot, "..", "stray"));
+            Directory.CreateDirectory(AikoProjectPaths.DataRoot(stray));
+
+            var result = await ProjectPathLookup.ResolveAsync(
+                context.Catalog, stray, CancellationToken.None);
+
+            Assert.Equal(ProjectPathMatch.Initialized, result.Match);
+            Assert.Null(result.Project);
+            Assert.Equal(stray, result.Path);
+        });
+    }
+
+    [Fact]
+    public async Task Global_procedures_start_by_working_out_which_project_they_are_in()
+    {
+        var previousHome = Environment.GetEnvironmentVariable("AIKO_USER_HOME");
+        var fakeHome = Path.Combine(Path.GetTempPath(), "Aiko.Specs", Guid.NewGuid().ToString("N"));
+        Environment.SetEnvironmentVariable("AIKO_USER_HOME", fakeHome);
+        try
+        {
+            var adapter = new ClineAgentAdapter();
+            await adapter.ApplyUserInstallAsync(CancellationToken.None);
+
+            // A user-scope skill is visible in every folder, while the project is whichever folder the user
+            // has open - so the global copy has to ask which one that is before it touches anything.
+            var global = await File.ReadAllTextAsync(
+                Path.Combine(fakeHome, ".agents", "skills", "aiko-create", "SKILL.md"));
+            Assert.Contains("aiko project find", global, StringComparison.Ordinal);
+            Assert.Contains("aiko init", global, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("AIKO_USER_HOME", previousHome);
+        }
+    }
+
+    [Fact]
     public async Task Doctor_reports_the_installation_without_changing_it()
     {
         await WithInitializedProjectAsync(async context =>
@@ -1910,6 +1983,9 @@ public class InfrastructureSpecs
                 var skillText = await File.ReadAllTextAsync(skill);
                 Assert.Contains("name: aiko-run", skillText, StringComparison.Ordinal);
                 Assert.Contains("description: Run an Aiko card", skillText, StringComparison.Ordinal);
+                // No "which project is this" step here: a workspace copy sits in the project and the client
+                // that reads it is configured for that project, so only the user-scope copy asks.
+                Assert.DoesNotContain("aiko project find", skillText, StringComparison.Ordinal);
                 // The per-type procedures reach Cline as skills too, because it has no slash commands.
                 Assert.True(File.Exists(Path.Combine(
                     context.Project.RootPath, ".cline", "skills", "aiko-create-task", "SKILL.md")));

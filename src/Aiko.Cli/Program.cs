@@ -43,6 +43,7 @@ static int Help()
                                                         Register a project (.aiko); --id is the readable
                                                         handle used in the UI's URLs
           templates                                     List the project templates to create from
+          project find [path]                           Report which Aiko project owns a folder
           project remove <id> [--yes]                   Unregister a project (keeps its files)
           serve [-d|--detached] [--port <p>]              Start the Aiko daemon: in this terminal by
                                                         default, in the background with -d (its log goes
@@ -154,14 +155,22 @@ static async Task<int> InitAsync(string[] args)
 static async Task<int> ProjectAsync(string[] args)
 {
     var subcommand = args.Length > 1 ? args[1] : null;
-    var projectId = args.Length > 2 && !args[2].StartsWith('-') ? args[2] : null;
-    if (!string.Equals(subcommand, "remove", StringComparison.Ordinal) ||
-        string.IsNullOrWhiteSpace(projectId))
+    var argument = args.Length > 2 && !args[2].StartsWith('-') ? args[2] : null;
+
+    if (string.Equals(subcommand, "find", StringComparison.Ordinal))
     {
-        Console.Error.WriteLine("Usage: aiko project remove <projectId> [--yes]");
+        return await FindProjectAsync(argument ?? Directory.GetCurrentDirectory());
+    }
+
+    if (!string.Equals(subcommand, "remove", StringComparison.Ordinal) ||
+        string.IsNullOrWhiteSpace(argument))
+    {
+        Console.Error.WriteLine("Usage: aiko project find [path]");
+        Console.Error.WriteLine("       aiko project remove <projectId> [--yes]");
         return 2;
     }
 
+    var projectId = argument;
     var dataPaths = AikoDataPaths.FromEnvironment();
     var database = new AikoDatabase(dataPaths);
     await database.InitializeAsync();
@@ -185,6 +194,41 @@ static async Task<int> ProjectAsync(string[] args)
     Console.WriteLine(
         $"Unregistered project {project.Id} ({project.RootPath}). Files on disk were not touched.");
     return 0;
+}
+
+// Answers the one question a user-scope skill has to ask before it touches anything: which project is this
+// folder? It prints what to do about each answer, not only the state, because the caller is an agent that
+// has to tell the user what to run. Exit code 0 means a project was found, 1 means it was not.
+static async ValueTask<int> FindProjectAsync(string path)
+{
+    var dataPaths = AikoDataPaths.FromEnvironment();
+    var database = new AikoDatabase(dataPaths);
+    await database.InitializeAsync();
+    var catalog = new SqliteProjectCatalog(database);
+
+    var result = await ProjectPathLookup.ResolveAsync(catalog, path, CancellationToken.None);
+    switch (result.Match)
+    {
+        case ProjectPathMatch.Registered when result.Project is { } project:
+            Console.WriteLine($"project: {project.Handle}");
+            Console.WriteLine($"id: {project.Id}");
+            Console.WriteLine($"name: {project.Name}");
+            Console.WriteLine($"root: {project.RootPath}");
+            Console.WriteLine($"dir: {result.Path}");
+            return 0;
+        case ProjectPathMatch.Initialized:
+            Console.WriteLine("project: none");
+            Console.WriteLine($"dir: {result.Path}");
+            Console.WriteLine("The folder carries .aiko, but the daemon has no project registered for it.");
+            Console.WriteLine($"Register it with: aiko init \"{result.Path}\"");
+            return 1;
+        default:
+            Console.WriteLine("project: none");
+            Console.WriteLine($"dir: {result.Path}");
+            Console.WriteLine("The folder is not an Aiko project: no .aiko here, nothing registered for it.");
+            Console.WriteLine($"Create one with: aiko init \"{result.Path}\"");
+            return 1;
+    }
 }
 
 // Unregistering changes what the daemon shows, so it asks first. A redirected stdin means a script:

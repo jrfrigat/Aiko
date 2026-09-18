@@ -188,6 +188,14 @@ design, because each reads the project context at run time, so one global copy s
 procedure per card type stays in the workspace: a type is one project's data, and the type-agnostic
 `aiko-create` covers it.
 
+A user-scope procedure therefore starts by working out which project it is in, because it is visible in every
+folder while the project is whichever folder the user has open. It runs
+`aiko project find "<working directory>"`, which answers with the project - a folder inside one resolves to
+it - or with one of the two ways there is none: a folder that carries `.aiko` but is not registered with the
+daemon, and one that is not an Aiko project at all. In both cases the procedure reports the matching
+`aiko init` command and stops, rather than acting on some other project. A workspace copy needs none of this:
+it sits in the project, and the client that reads it is configured for that project.
+
 Codex loads user-scope skills from its own root, `~/.codex/skills` (its built-ins live in
 `~/.codex/skills/.system`), so the global skill is written there; the portable `~/.agents/skills` copy
 is kept for layouts that read that tree. Set `AIKO_USER_HOME` to install into a different home

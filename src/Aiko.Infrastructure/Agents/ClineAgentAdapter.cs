@@ -147,7 +147,7 @@ public sealed class ClineAgentAdapter : BuiltInAgentAdapter
             UserPath(".agents", "skills", procedure.Name, "SKILL.md"),
             $"Install the {procedure.Name} skill for Cline in the portable agent skills root.",
             AgentFileKind.OwnedText,
-            procedure.ToSkill()))
+            procedure.ToGlobalSkill()))
     ];
 
     /// <inheritdoc />
