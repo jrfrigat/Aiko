@@ -23,4 +23,19 @@ public interface IActivityReport
     ValueTask<IReadOnlyList<ActivityDay>> GetActivityAsync(
         int days,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// The same series, narrowed to one project: the days that project's own runs and events happened on.
+    /// </summary>
+    /// <remarks>
+    /// A project's own calendar cannot be derived from the installation-wide one - another project's work
+    /// would show up in it - so the filter belongs in the store, where the counts are grouped.
+    /// </remarks>
+    /// <param name="projectId">Project to read, by id or by its readable handle.</param>
+    /// <param name="days">Window length in days, counted back from today, clamped by the implementation.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    ValueTask<IReadOnlyList<ActivityDay>> GetProjectActivityAsync(
+        string projectId,
+        int days,
+        CancellationToken cancellationToken);
 }

@@ -235,6 +235,7 @@
   <data name="TableActions" xml:space="preserve"><value>Actions</value></data>
   <data name="ActivityTitle" xml:space="preserve"><value>Activity</value></data>
   <data name="ActivityCaption" xml:space="preserve"><value>runs and events · last year</value></data>
+  <data name="ActivityTotal" xml:space="preserve"><value>{0} recorded in the window</value></data>
   <data name="ActivityNone" xml:space="preserve"><value>Nothing recorded yet. Start the daemon and run a stage.</value></data>
   <data name="ActivityLess" xml:space="preserve"><value>less</value></data>
   <data name="ActivityMore" xml:space="preserve"><value>more</value></data>
@@ -368,18 +369,11 @@
   <data name="ProjectOverviewNav" xml:space="preserve"><value>Project overview / stats</value></data>
   <data name="ProjectSettingsNav" xml:space="preserve"><value>Project settings</value></data>
     <data name="ProjectOverviewHint" xml:space="preserve"><value>What this project is, what it is made of, and how its cards are spread across its pipelines</value></data>
-  <data name="ProjectDataTitle" xml:space="preserve"><value>Project data</value></data>
-  <data name="ProjectDataHint" xml:space="preserve"><value>Where the project lives, and what the daemon reads from it</value></data>
-  <data name="WorkflowsTitle" xml:space="preserve"><value>Workflows</value></data>
-  <data name="StagesCount" xml:space="preserve"><value>{0} stages</value></data>
-  <data name="ProjectionsTitle" xml:space="preserve"><value>Board projections</value></data>
-  <data name="ProjectionsHint" xml:space="preserve"><value>The views this project's board offers</value></data>
-  <data name="RelationsHint" xml:space="preserve"><value>Links between the project's cards</value></data>
+  <data name="TriageNone" xml:space="preserve"><value>No cards yet: the distribution follows the board.</value></data>
   <data name="ReindexProject" xml:space="preserve"><value>Re-index project</value></data>
   <data name="ReindexDone" xml:space="preserve"><value>Project re-indexed.</value></data>
   <data name="ReindexDoneCounts" xml:space="preserve"><value>Re-indexed: {0} cards, {1} relations, {2} memory documents</value></data>
   <data name="ReindexFailed" xml:space="preserve"><value>Could not re-index the project: {0}</value></data>
-  <data name="ProjectStatsHint" xml:space="preserve"><value>How this project's cards are spread across its pipelines, read from the board the daemon serves</value></data>
   <data name="StageLoad" xml:space="preserve"><value>Cards per stage</value></data>
   <data name="VelocityTitle" xml:space="preserve"><value>Pipeline velocity &amp; throughput</value></data>
   <data name="VelocityHint" xml:space="preserve"><value>Cards that entered a stage, per week, over the last {0} weeks</value></data>

@@ -68,33 +68,9 @@
                     <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant2">@Loc.Get("ActivityCaption")</FlareText>
                 </FlareStack>
 
-                @if (_activityTotal == 0)
-                {
-                    <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant">
-                        @Loc.Get("ActivityNone")
-                    </FlareText>
-                }
-                else
-                {
-                    <div class="aiko-heat">
-                        <div class="aiko-heat__grid" role="img" aria-label="@Loc.Get("ActivityTitle")">
-                            @foreach (var cell in _cells)
-                            {
-                                <span class="aiko-heat__cell aiko-heat__cell--l@(cell.Level)"
-                                      title="@CellTitle(cell)"></span>
-                            }
-                        </div>
-                    </div>
-                    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
-                        <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant2">@Loc.Get("ActivityLess")</FlareText>
-                        <span class="aiko-heat__cell aiko-heat__cell--l0"></span>
-                        <span class="aiko-heat__cell aiko-heat__cell--l1"></span>
-                        <span class="aiko-heat__cell aiko-heat__cell--l2"></span>
-                        <span class="aiko-heat__cell aiko-heat__cell--l3"></span>
-                        <span class="aiko-heat__cell aiko-heat__cell--l4"></span>
-                        <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant2">@Loc.Get("ActivityMore")</FlareText>
-                    </FlareStack>
-                }
+                @* The calendar and its empty state live in one component now: the project page draws the
+                   same picture over its own days. *@
+                <ActivityCalendar Days="_activity" />
             </FlareStack>
         </FlareCard>
     }
@@ -416,17 +392,11 @@
 </FlareStack>
 
 @code {
-    // A year of squares, aligned to whole weeks.
-    private const int HeatmapDays = 364;
-
-    private sealed record ActivityCell(DateOnly Date, int Count, int Level);
-
     private IReadOnlyList<ProjectBoardSnapshot> _boards = [];
 
     /// <summary>What git says about each project, keyed by project id; read with the boards.</summary>
     private IReadOnlyDictionary<string, GitStatus> _git = new Dictionary<string, GitStatus>(StringComparer.Ordinal);
     private IReadOnlyList<ActivityDay> _activity = [];
-    private IReadOnlyList<ActivityCell> _cells = [];
     private int _activityTotal;
     private int _todayCount;
     private bool _loading = true;
@@ -475,8 +445,11 @@
                 .Where(entry => entry.Status is not null)
                 .ToDictionary(entry => entry.Id, entry => entry.Status!, StringComparer.Ordinal);
             _activity = await Http.GetFromJsonAsync<IReadOnlyList<ActivityDay>>(
-                $"api/v1/activity?days={HeatmapDays}", PwaJson.Options) ?? [];
-            BuildHeatmap();
+                $"api/v1/activity?days={ActivityHeatmap.WindowDays}", PwaJson.Options) ?? [];
+            // The calendar builds its own rectangle; the shell only needs the two figures it shows
+            // elsewhere - how much was recorded, and how much of it was today.
+            _activityTotal = ActivityHeatmap.Total(_activity);
+            _todayCount = ActivityHeatmap.TotalOn(_activity, DateOnly.FromDateTime(DateTime.UtcNow));
         }
         catch (Exception exception)
         {
@@ -616,55 +589,6 @@
             _error = Loc.Format("UnregisterFailed", FailureText.Describe(exception));
         }
     }
-
-    /// <summary>
-    /// Turns the sparse series the daemon returns into a rectangular calendar: whole weeks, Monday
-    /// first, one cell per day up to today.
-    /// </summary>
-    private void BuildHeatmap()
-    {
-        var counts = new Dictionary<DateOnly, int>();
-        foreach (var day in _activity)
-        {
-            counts[day.Date] = day.Count;
-        }
-
-        _activityTotal = counts.Values.Sum();
-        var max = counts.Count == 0 ? 0 : counts.Values.Max();
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        _todayCount = counts.TryGetValue(today, out var todayEvents) ? todayEvents : 0;
-        var start = today.AddDays(-(HeatmapDays - 1));
-        // Step back to the Monday of that week, so every column is a calendar week.
-        start = start.AddDays(-(((int)start.DayOfWeek + 6) % 7));
-
-        var cells = new List<ActivityCell>();
-        for (var date = start; date <= today; date = date.AddDays(1))
-        {
-            var count = counts.TryGetValue(date, out var value) ? value : 0;
-            cells.Add(new ActivityCell(date, count, Level(count, max)));
-        }
-
-        _cells = cells;
-    }
-
-    /// <summary>The cell's shade: 0 is idle, 1-4 grow with the day relative to the busiest one.</summary>
-    private static int Level(int count, int max)
-    {
-        if (count <= 0 || max <= 0)
-        {
-            return 0;
-        }
-
-        if (max <= 4)
-        {
-            return Math.Min(count, 4);
-        }
-
-        return Math.Clamp((int)Math.Ceiling(count * 4d / max), 1, 4);
-    }
-
-    private static string CellTitle(ActivityCell cell) =>
-        $"{cell.Date:yyyy-MM-dd} · {DisplayFormat.Number(cell.Count)}";
 
     /// <summary>A template as the select shows it: the name, and the version it will be copied at.</summary>
     private static string TemplateOption(ProjectTemplateSummary template) =>

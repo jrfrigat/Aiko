@@ -70,10 +70,13 @@ public sealed class SqliteProjectAnalytics(AikoDatabase database, IProjectCatalo
 
         return new ProjectAnalytics(
             weekly,
-            await ReadGroupedAsync(connection, projectId, "SELECT kind, COUNT(*) FROM cards WHERE project_id = $projectId GROUP BY kind", cancellationToken),
+            // Keyed by the resolved id, not by the value the caller sent: the cards projection is written
+            // under the project's immutable id, so grouping by the readable handle the project page holds
+            // matched nothing and the distribution chart came back empty.
+            await ReadGroupedAsync(connection, project.Id, "SELECT kind, COUNT(*) FROM cards WHERE project_id = $projectId GROUP BY kind", cancellationToken),
             await ReadGroupedAsync(
                 connection,
-                projectId,
+                project.Id,
                 """
                 SELECT COALESCE(json_extract(document_json, '$.size'), '') AS size, COUNT(*)
                 FROM cards WHERE project_id = $projectId GROUP BY size ORDER BY size

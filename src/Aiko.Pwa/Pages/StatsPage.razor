@@ -3,10 +3,11 @@
 @inject HttpClient Http
 @inject WorkspaceState State
 
-@* The project's own page: what it is, what it is made of, and how its cards are spread across its
-   pipelines. Everything is read from the snapshot the daemon already serves, so this screen cannot
-   disagree with the board it summarises. It answers to both routes: the rail links the project root, and
-   /stats keeps working for the deep links and the older screens that point at it. *@
+@* The project's own page: when it was worked, how fast its pipeline moves, what its board is made of, and
+   how its cards are spread across its pipelines. The board snapshot comes from the daemon and the calendar
+   and charts from its projections, so this screen cannot disagree with the board it summarises. It answers
+   to both routes: the rail links the project root, and /stats keeps working for the deep links and the
+   older screens that point at it. *@
 <PageTitle>@Loc.Get("ProjectOverviewNav")</PageTitle>
 
 @if (State.Board is not { } board)
@@ -52,84 +53,115 @@ else
             </FlareStack>
         </FlareStack>
 
+        @* The project's own activity, the same calendar the dashboard draws: the days this project's runs
+           and events happened on. It is the first block because it says when the project was worked, not
+           just what is in it. *@
         <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
             <FlareStack Gap="FlareSpacing.Medium">
-                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
-                    <span class="aiko-panel__icon aiko-panel__icon--primary">
-                        <FlareIconView Value="@MaterialDesign3Icons.Regular.BarChart" />
-                    </span>
-                    <FlareStack Gap="FlareSpacing.None">
-                        <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("ProjectStats")</FlareText>
-                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                            @Loc.Get("ProjectStatsHint")
-                        </FlareText>
-                    </FlareStack>
-                </FlareStack>
-                <div class="aiko-tiles">
-                    @foreach (var tile in Tiles)
-                    {
-                        var item = tile;
-                        <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
-                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
-                                @item.Label
+                <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small">
+                    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
+                        <span class="aiko-panel__icon aiko-panel__icon--primary">
+                            <FlareIconView Value="@MaterialDesign3Icons.Regular.CalendarMonth" />
+                        </span>
+                        <FlareStack Gap="FlareSpacing.None">
+                            <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("ActivityTitle")</FlareText>
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                @Loc.Get("ActivityCaption")
                             </FlareText>
-                            <span class="aiko-value aiko-value--big">@item.Value</span>
                         </FlareStack>
-                    }
-                </div>
+                    </FlareStack>
+                    <span class="aiko-tag aiko-tag--quiet">@Loc.Format("ActivityTotal", _activityTotal)</span>
+                </FlareStack>
+                <ActivityCalendar Days="_activity" />
             </FlareStack>
         </FlarePaper>
 
-        <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
-            <FlareStack Gap="FlareSpacing.Medium">
-                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
-                    <span class="aiko-panel__icon aiko-panel__icon--secondary">
-                        <FlareIconView Value="@MaterialDesign3Icons.Regular.FolderOpen" />
-                    </span>
-                    <FlareStack Gap="FlareSpacing.None">
-                        <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("ProjectDataTitle")</FlareText>
-                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                            @Loc.Get("ProjectDataHint")
-                        </FlareText>
+        @* The project's history, side by side: how fast the pipeline moves, and what the board is made of.
+           Both are FlareChart drawings of the daemon's analytics - a bar per week, and a bar per card type
+           and per size step. The category labels sit beside the bars, so a chart says which bar is which
+           without a legend. *@
+        <div class="aiko-panels--split">
+            <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
+                <FlareStack Gap="FlareSpacing.Medium">
+                    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
+                        <span class="aiko-panel__icon aiko-panel__icon--primary">
+                            <FlareIconView Value="@MaterialDesign3Icons.Regular.TrendingUp" />
+                        </span>
+                        <FlareStack Gap="FlareSpacing.None">
+                            <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("VelocityTitle")</FlareText>
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                @Loc.Format("VelocityHint", AnalyticsWindow)
+                            </FlareText>
+                        </FlareStack>
                     </FlareStack>
+                    @if (_analytics is { Weekly.Count: > 0 } velocity)
+                    {
+                        <FlareChart Type="ChartType.Bar"
+                                    Data="@AnalyticsCharts.Velocity(velocity.Weekly)"
+                                    Description="@Loc.Get("VelocityTitle")"
+                                    Height="240"
+                                    ShowLegend="false" />
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Format("VelocityTotal", velocity.Weekly.Sum(bucket => bucket.Count))
+                        </FlareText>
+                    }
+                    else
+                    {
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Get("VelocityNone")
+                        </FlareText>
+                    }
                 </FlareStack>
-                <div class="aiko-tiles">
-                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
-                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
-                            @Loc.Get("ProjectPath")
-                        </FlareText>
-                        <span class="aiko-value aiko-value--clip" title="@board.Project.RootPath">@board.Project.RootPath</span>
+            </FlarePaper>
+
+            <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
+                <FlareStack Gap="FlareSpacing.Medium">
+                    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
+                        <span class="aiko-panel__icon aiko-panel__icon--tertiary">
+                            <FlareIconView Value="@MaterialDesign3Icons.Regular.PieChart" />
+                        </span>
+                        <FlareStack Gap="FlareSpacing.None">
+                            <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("TriageTitle")</FlareText>
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                @Loc.Get("TriageHint")
+                            </FlareText>
+                        </FlareStack>
                     </FlareStack>
-                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
-                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
-                            @Loc.Get("WorkflowsTitle")
-                        </FlareText>
-                        <span class="aiko-value">@DisplayFormat.Number(board.Workflows.Count)</span>
+                    @if (_analytics is { ByKind.Count: > 0 } distribution)
+                    {
+                        <FlareStack Gap="FlareSpacing.XSmall">
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">@Loc.Get("CardKind")</FlareText>
+                            <FlareChart Type="ChartType.Bar"
+                                        Data="@AnalyticsCharts.ByKind(distribution.ByKind, KindLabel)"
+                                        Description="@Loc.Get("CardKind")"
+                                        Height="@ChartHeight(distribution.ByKind.Count)"
+                                        Horizontal="true"
+                                        BarWidthRatio="0.55"
+                                        ShowLegend="false" />
+                        </FlareStack>
+                        @if (distribution.BySize.Count > 0)
+                        {
+                            <FlareStack Gap="FlareSpacing.XSmall">
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">@Loc.Get("SizeIdLabel")</FlareText>
+                                <FlareChart Type="ChartType.Bar"
+                                            Data="@AnalyticsCharts.BySize(distribution.BySize, SizeLabel)"
+                                            Description="@Loc.Get("SizeIdLabel")"
+                                            Height="@ChartHeight(distribution.BySize.Count)"
+                                            Horizontal="true"
+                                            BarWidthRatio="0.55"
+                                            ShowLegend="false" />
+                            </FlareStack>
+                        }
+                    }
+                    else
+                    {
                         <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                            @Loc.Format("StagesCount", board.Workflows.Sum(workflow => workflow.Stages.Count))
+                            @Loc.Get("TriageNone")
                         </FlareText>
-                    </FlareStack>
-                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
-                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
-                            @Loc.Get("ProjectionsTitle")
-                        </FlareText>
-                        <span class="aiko-value">@DisplayFormat.Number(board.Projections.Count)</span>
-                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                            @Loc.Get("ProjectionsHint")
-                        </FlareText>
-                    </FlareStack>
-                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
-                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
-                            @Loc.Get("Relations")
-                        </FlareText>
-                        <span class="aiko-value">@DisplayFormat.Number(board.Relations.Count)</span>
-                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                            @Loc.Get("RelationsHint")
-                        </FlareText>
-                    </FlareStack>
-                </div>
-            </FlareStack>
-        </FlarePaper>
+                    }
+                </FlareStack>
+            </FlarePaper>
+        </div>
 
         <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
             <FlareStack Gap="FlareSpacing.Medium">
@@ -163,92 +195,7 @@ else
                 }
             </FlareStack>
         </FlarePaper>
-        @* The project's own history, as the design's two analytics blocks: how many cards moved per week,
-           and what the board is made of. Both come from the daemon's projection of stage transitions -
-           observed facts, kept in the database, never in the files the project owns. *@
-        <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
-            <FlareStack Gap="FlareSpacing.Medium">
-                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
-                    <span class="aiko-panel__icon aiko-panel__icon--primary">
-                        <FlareIconView Value="@MaterialDesign3Icons.Regular.TrendingUp" />
-                    </span>
-                    <FlareStack Gap="FlareSpacing.None">
-                        <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("VelocityTitle")</FlareText>
-                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                            @Loc.Format("VelocityHint", AnalyticsWindow)
-                        </FlareText>
-                    </FlareStack>
-                </FlareStack>
-                @if (_analytics is { Weekly.Count: > 0 } velocity)
-                {
-                    <FlareStack Gap="FlareSpacing.XXSmall">
-                        @foreach (var week in velocity.Weekly)
-                        {
-                            var bucket = week;
-                            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
-                                <span class="aiko-value aiko-stage__label">@bucket.Label</span>
-                                <span class="aiko-bar"><span class="aiko-bar__fill" style="@($"width: {Share(bucket, velocity.Weekly)}%")"></span></span>
-                                <span class="aiko-tag @(bucket.Count == 0 ? "aiko-tag--quiet" : "aiko-tag--accent")">
-                                    @DisplayFormat.Number(bucket.Count)
-                                </span>
-                            </FlareStack>
-                        }
-                    </FlareStack>
-                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                        @Loc.Format("VelocityTotal", velocity.Weekly.Sum(bucket => bucket.Count))
-                    </FlareText>
-                }
-                else
-                {
-                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                        @Loc.Get("VelocityNone")
-                    </FlareText>
-                }
-            </FlareStack>
-        </FlarePaper>
 
-        <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
-            <FlareStack Gap="FlareSpacing.Medium">
-                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
-                    <span class="aiko-panel__icon aiko-panel__icon--tertiary">
-                        <FlareIconView Value="@MaterialDesign3Icons.Regular.PieChart" />
-                    </span>
-                    <FlareStack Gap="FlareSpacing.None">
-                        <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("TriageTitle")</FlareText>
-                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                            @Loc.Get("TriageHint")
-                        </FlareText>
-                    </FlareStack>
-                </FlareStack>
-                @if (_analytics is { } triage)
-                {
-                    <FlareStack Gap="FlareSpacing.XSmall">
-                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">@Loc.Get("CardKind")</FlareText>
-                        @foreach (var bucket in triage.ByKind)
-                        {
-                            var item = bucket;
-                            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
-                                <span class="aiko-value aiko-stage__label">@KindLabel(item.Label)</span>
-                                <span class="aiko-bar"><span class="aiko-bar__fill" style="@($"width: {Share(item, triage.ByKind)}%")"></span></span>
-                                <span class="aiko-tag aiko-tag--accent">@DisplayFormat.Number(item.Count)</span>
-                            </FlareStack>
-                        }
-                    </FlareStack>
-                    <FlareStack Gap="FlareSpacing.XSmall">
-                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">@Loc.Get("SizeIdLabel")</FlareText>
-                        @foreach (var bucket in triage.BySize)
-                        {
-                            var item = bucket;
-                            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
-                                <span class="aiko-value aiko-stage__label">@SizeLabel(item.Label)</span>
-                                <span class="aiko-bar"><span class="aiko-bar__fill" style="@($"width: {Share(item, triage.BySize)}%")"></span></span>
-                                <span class="aiko-tag aiko-tag--accent">@DisplayFormat.Number(item.Count)</span>
-                            </FlareStack>
-                        }
-                    </FlareStack>
-                }
-            </FlareStack>
-        </FlarePaper>
     </FlareStack>
 }
 
@@ -259,6 +206,8 @@ else
     [Parameter] public string ProjectId { get; set; } = string.Empty;
 
     private ProjectAnalytics? _analytics;
+    private IReadOnlyList<ActivityDay> _activity = [];
+    private int _activityTotal;
     private bool _reindexing;
     private string? _message;
     private bool _hasError;
@@ -302,27 +251,10 @@ else
         }
     }
 
-    /// <summary>The numbers a board is read by.</summary>
-    private IReadOnlyList<(string Label, string Value)> Tiles
-    {
-        get
-        {
-            var board = State.Board;
-            return
-            [
-                (Loc.Get("Cards"), DisplayFormat.Number(board?.Cards.Count ?? 0)),
-                (Loc.Get("StoriesNav"), DisplayFormat.Number(BoardMetrics.CountKind(board, CardKind.Story))),
-                (Loc.Get("TasksNav"), DisplayFormat.Number(BoardMetrics.CountKind(board, CardKind.Task))),
-                (Loc.Get("InProgress"), DisplayFormat.Number(BoardMetrics.InProgressCount(board))),
-                (Loc.Get("OutOfScope"), DisplayFormat.Number(BoardMetrics.OutOfScopeCount(board))),
-                (Loc.Get("Relations"), DisplayFormat.Number(board?.Relations.Count ?? 0))
-            ];
-        }
-    }
-
     /// <summary>
     /// Cards per stage, workflow by workflow, each stage's bar showing its share of the busiest stage - so
-    /// the picture says where work bunches up rather than how large the project is.
+    /// the picture says where work bunches up rather than how large the project is. A stage nobody is in
+    /// draws no bar at all.
     /// </summary>
     private IReadOnlyList<(string Title, IReadOnlyList<(string StageId, int Count, int Share)> Rows)> StagesByWorkflow
     {
@@ -348,19 +280,18 @@ else
                     counts.Select(entry => (
                         entry.Id,
                         entry.Count,
-                        peak == 0 ? 0 : Math.Max(4, (int)Math.Round(entry.Count * 100d / peak)))).ToArray()));
+                        AnalyticsCharts.SharePercent(entry.Count, peak))).ToArray()));
             }
 
             return result;
         }
     }
 
-    /// <summary>Where one bucket's bar ends: its share of the tallest bar in its own chart.</summary>
-    private static int Share(AnalyticsBucket bucket, IReadOnlyList<AnalyticsBucket> all)
-    {
-        var peak = all.Count == 0 ? 0 : all.Max(item => item.Count);
-        return peak == 0 ? 0 : Math.Max(4, (int)Math.Round(bucket.Count * 100d / peak));
-    }
+    /// <summary>
+    /// A horizontal chart's height: tall enough for one row per category, and never taller than the
+    /// content needs, so a project with two types does not leave half a panel empty.
+    /// </summary>
+    private static int ChartHeight(int rows) => Math.Max(110, (rows * 32) + 48);
 
     /// <summary>A card kind's own name, falling back to the raw value the daemon stored.</summary>
     private static string KindLabel(string kind) => kind switch
@@ -378,11 +309,12 @@ else
     {
         await State.EnsureProjectAsync(ProjectId);
         await LoadAnalyticsAsync();
+        await LoadActivityAsync();
     }
 
     /// <summary>
-    /// Reads the project's charts. A failure leaves them empty rather than blanking the screen: the numbers
-    /// above are computed from the board, which is already loaded.
+    /// Reads the project's charts. A failure leaves them empty rather than blanking the screen: everything
+    /// else on the page is computed from the board, which is already loaded.
     /// </summary>
     private async Task LoadAnalyticsAsync()
     {
@@ -395,6 +327,26 @@ else
         catch
         {
             _analytics = null;
+        }
+    }
+
+    /// <summary>
+    /// Reads the project's own days for the calendar. The daemon filters the series by project, so this
+    /// project's calendar cannot show another project's work.
+    /// </summary>
+    private async Task LoadActivityAsync()
+    {
+        try
+        {
+            _activity = await Http.GetFromJsonAsync<IReadOnlyList<ActivityDay>>(
+                $"api/v1/projects/{Uri.EscapeDataString(ProjectId)}/activity?days={ActivityHeatmap.WindowDays}",
+                PwaJson.Options) ?? [];
+            _activityTotal = ActivityHeatmap.Total(_activity);
+        }
+        catch
+        {
+            _activity = [];
+            _activityTotal = 0;
         }
     }
 }

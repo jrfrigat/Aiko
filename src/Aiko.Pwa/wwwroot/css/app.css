@@ -445,6 +445,15 @@
     background: var(--flare-color-surface-container-low);
 }
 
+/* Two panels side by side: the project page's two charts, which are read as a pair. The columns collapse
+   into one when the page is too narrow for two charts to stay legible. */
+.aiko-panels--split {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
+    gap: 0.75rem;
+    align-items: start;
+}
+
 /* The squared icon tile that opens a panel. */
 .aiko-panel__icon {
     display: grid;

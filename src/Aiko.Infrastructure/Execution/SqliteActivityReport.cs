@@ -9,15 +9,35 @@ namespace Aiko.Infrastructure.Execution;
 /// (<c>executions.created_utc</c>, every attempt to run an agent) or the daemon published an event
 /// (<c>events.occurred_utc</c>, every card, relation and execution change the UI was told about).
 /// The counts are grouped in the database, so a year of history costs one query and a few hundred
-/// rows.
+/// rows. The same query answers for the whole installation and for one project, with the filter
+/// applied where the grouping happens.
 /// </summary>
-public sealed class SqliteActivityReport(AikoDatabase database) : IActivityReport
+public sealed class SqliteActivityReport(AikoDatabase database, IProjectCatalog projects) : IActivityReport
 {
     /// <summary>Longest window the report will serve: a year and a day, i.e. a leap year of squares.</summary>
     public const int MaxDays = 366;
 
     /// <inheritdoc />
-    public async ValueTask<IReadOnlyList<ActivityDay>> GetActivityAsync(
+    public ValueTask<IReadOnlyList<ActivityDay>> GetActivityAsync(
+        int days,
+        CancellationToken cancellationToken) =>
+        ReadAsync(projectId: null, days, cancellationToken);
+
+    /// <inheritdoc />
+    public async ValueTask<IReadOnlyList<ActivityDay>> GetProjectActivityAsync(
+        string projectId,
+        int days,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
+        // The rows are keyed by the project's immutable id; the project page holds the readable handle.
+        var project = await projects.FindAsync(projectId, cancellationToken)
+            ?? throw new KeyNotFoundException($"Unknown Aiko project: {projectId}");
+        return await ReadAsync(project.Id, days, cancellationToken);
+    }
+
+    private async ValueTask<IReadOnlyList<ActivityDay>> ReadAsync(
+        string? projectId,
         int days,
         CancellationToken cancellationToken)
     {
@@ -31,6 +51,8 @@ public sealed class SqliteActivityReport(AikoDatabase database) : IActivityRepor
         await using var connection = database.CreateConnection();
         await connection.OpenAsync(cancellationToken);
         await using var command = connection.CreateCommand();
+        // One statement answers both questions: a null project id leaves every row in, a set one keeps
+        // the project's own.
         command.CommandText =
             """
             SELECT day, SUM(day_count) AS total
@@ -38,17 +60,20 @@ public sealed class SqliteActivityReport(AikoDatabase database) : IActivityRepor
                 SELECT substr(created_utc, 1, 10) AS day, COUNT(*) AS day_count
                 FROM executions
                 WHERE created_utc >= $since
+                  AND ($projectId IS NULL OR project_id = $projectId)
                 GROUP BY day
                 UNION ALL
                 SELECT substr(occurred_utc, 1, 10) AS day, COUNT(*) AS day_count
                 FROM events
                 WHERE occurred_utc >= $since
+                  AND ($projectId IS NULL OR project_id = $projectId)
                 GROUP BY day
             )
             GROUP BY day
             ORDER BY day;
             """;
         command.Parameters.AddWithValue("$since", since);
+        command.Parameters.AddWithValue("$projectId", (object?)projectId ?? DBNull.Value);
 
         var result = new List<ActivityDay>();
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);

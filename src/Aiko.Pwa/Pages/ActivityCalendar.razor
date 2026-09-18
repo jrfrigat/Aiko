@@ -1,0 +1,49 @@
+@* The contribution calendar: a year of days, Monday first, one cell per day. The daemon serves a sparse
+   series - quiet days are omitted to keep the payload small - so the rectangle, its shades and the
+   empty state are built here, and the dashboard and a project's own page draw the same calendar. *@
+@if (Total == 0)
+{
+    <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant">
+        @Loc.Get("ActivityNone")
+    </FlareText>
+}
+else
+{
+    <div class="aiko-heat">
+        <div class="aiko-heat__grid" role="img" aria-label="@Loc.Get("ActivityTitle")">
+            @foreach (var cell in _cells)
+            {
+                <span class="aiko-heat__cell aiko-heat__cell--l@(cell.Level)"
+                      title="@CellTitle(cell)"></span>
+            }
+        </div>
+    </div>
+    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
+        <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant2">@Loc.Get("ActivityLess")</FlareText>
+        <span class="aiko-heat__cell aiko-heat__cell--l0"></span>
+        <span class="aiko-heat__cell aiko-heat__cell--l1"></span>
+        <span class="aiko-heat__cell aiko-heat__cell--l2"></span>
+        <span class="aiko-heat__cell aiko-heat__cell--l3"></span>
+        <span class="aiko-heat__cell aiko-heat__cell--l4"></span>
+        <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant2">@Loc.Get("ActivityMore")</FlareText>
+    </FlareStack>
+}
+
+@code {
+    /// <summary>The days the daemon counted; quiet days may be missing.</summary>
+    [Parameter] public IReadOnlyList<ActivityDay> Days { get; set; } = [];
+
+    /// <summary>How far back the calendar reaches, in days.</summary>
+    [Parameter] public int WindowDays { get; set; } = ActivityHeatmap.WindowDays;
+
+    private IReadOnlyList<HeatCell> _cells = [];
+
+    /// <summary>Everything recorded in the window, which is what decides between a calendar and a hint.</summary>
+    private int Total => ActivityHeatmap.Total(Days);
+
+    protected override void OnParametersSet() =>
+        _cells = ActivityHeatmap.Build(Days, DateOnly.FromDateTime(DateTime.UtcNow), WindowDays);
+
+    private static string CellTitle(HeatCell cell) =>
+        $"{cell.Date:yyyy-MM-dd} · {DisplayFormat.Number(cell.Count)}";
+}

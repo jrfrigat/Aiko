@@ -235,6 +235,7 @@
   <data name="TableActions" xml:space="preserve"><value>Действия</value></data>
   <data name="ActivityTitle" xml:space="preserve"><value>Активность</value></data>
   <data name="ActivityCaption" xml:space="preserve"><value>запуски и события · за год</value></data>
+  <data name="ActivityTotal" xml:space="preserve"><value>записано за окно: {0}</value></data>
   <data name="ActivityNone" xml:space="preserve"><value>Пока ничего не записано. Запустите демон и выполните этап.</value></data>
   <data name="ActivityLess" xml:space="preserve"><value>меньше</value></data>
   <data name="ActivityMore" xml:space="preserve"><value>больше</value></data>
@@ -368,18 +369,11 @@
   <data name="ProjectOverviewNav" xml:space="preserve"><value>Обзор и статистика проекта</value></data>
   <data name="ProjectSettingsNav" xml:space="preserve"><value>Настройки проекта</value></data>
     <data name="ProjectOverviewHint" xml:space="preserve"><value>Что это за проект, из чего он состоит и как его карточки распределены по пайплайнам</value></data>
-  <data name="ProjectDataTitle" xml:space="preserve"><value>Данные проекта</value></data>
-  <data name="ProjectDataHint" xml:space="preserve"><value>Где лежит проект и что демон из него читает</value></data>
-  <data name="WorkflowsTitle" xml:space="preserve"><value>Workflows</value></data>
-  <data name="StagesCount" xml:space="preserve"><value>этапов: {0}</value></data>
-  <data name="ProjectionsTitle" xml:space="preserve"><value>Проекции доски</value></data>
-  <data name="ProjectionsHint" xml:space="preserve"><value>Какие представления предлагает доска проекта</value></data>
-  <data name="RelationsHint" xml:space="preserve"><value>Связи между карточками проекта</value></data>
+  <data name="TriageNone" xml:space="preserve"><value>Карточек пока нет: распределение считается по доске.</value></data>
   <data name="ReindexProject" xml:space="preserve"><value>Переиндексировать проект</value></data>
   <data name="ReindexDone" xml:space="preserve"><value>Проект переиндексирован.</value></data>
   <data name="ReindexDoneCounts" xml:space="preserve"><value>Переиндексировано: карточек {0}, связей {1}, документов памяти {2}</value></data>
   <data name="ReindexFailed" xml:space="preserve"><value>Не удалось переиндексировать проект: {0}</value></data>
-  <data name="ProjectStatsHint" xml:space="preserve"><value>Как карточки проекта распределены по его конвейерам, по данным доски от демона</value></data>
   <data name="StageLoad" xml:space="preserve"><value>Карточки по этапам</value></data>
   <data name="VelocityTitle" xml:space="preserve"><value>Скорость конвейера</value></data>
   <data name="VelocityHint" xml:space="preserve"><value>Сколько карточек вошло в этап, по неделям, за последние {0} недель</value></data>
