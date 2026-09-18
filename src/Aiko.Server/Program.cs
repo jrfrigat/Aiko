@@ -1,4 +1,5 @@
 using ModelContextProtocol.AspNetCore;
+using ModelContextProtocol.Protocol;
 using Aiko.Application.Agents;
 using Aiko.Application.Contracts;
 using Aiko.Infrastructure.Agents;
@@ -84,7 +85,26 @@ builder.Services
     .WithTools<ExecutionTools>()
     .WithTools<MemoryTools>()
     .WithTools<DaemonTools>()
-    .WithTools<MaintenanceTools>();
+    .WithTools<MaintenanceTools>()
+    // A tool that throws otherwise reaches the agent as "An error occurred invoking 'aiko_start_stage'",
+    // with the real cause left in the daemon's log where the agent cannot see it. Handing the message back
+    // as the error result is what lets an agent name the reason - an unknown card, a refused start, a
+    // constraint the store reported - and either act on it or tell the user, instead of guessing.
+    .WithRequestFilters(filters => filters.AddCallToolFilter(next => async (request, cancellationToken) =>
+    {
+        try
+        {
+            return await next(request, cancellationToken);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            return new CallToolResult
+            {
+                IsError = true,
+                Content = [new TextContentBlock { Text = exception.Message }]
+            };
+        }
+    }));
 
 var app = builder.Build();
 

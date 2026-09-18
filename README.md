@@ -182,10 +182,11 @@ forwarding, loopback-only):
 aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<handle>
 ```
 
-The stable tool set (31 tools): project context, card CRUD, linking, estimating and taking a card, the
-full stage-execution life cycle (start / report progress / request scope expansion / complete / pause /
-handoff / resume / report agent state), memory search and store, project registration and listing,
-templates, diagnostics and reindex, settings, backup and opening the UI. Tool
+The stable tool set (33 tools): project context, card CRUD, linking, estimating and taking a card, the
+card discussion (adding and reading the notes on a card), the full stage-execution life cycle (start /
+report progress / request scope expansion / complete / pause / handoff / resume / report agent state),
+memory search and store, project registration and listing, templates, diagnostics and reindex, settings,
+backup and opening the UI. Tool
 descriptions instruct agents to fetch the project context first; installed skills, rules and
 `AGENTS.md` blocks reinforce it per agent.
 

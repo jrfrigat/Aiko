@@ -153,7 +153,7 @@ public class InfrastructureSpecs
     {
         await WithInitializedProjectAsync(async context =>
         {
-            var report = new SqliteActivityReport(context.Database);
+            var report = new SqliteActivityReport(context.Database, context.Catalog);
             // Registering the project already wrote its own event, so the baseline is read rather
             // than assumed to be zero.
             var today = DateOnly.FromDateTime(DateTime.UtcNow);
@@ -1101,6 +1101,128 @@ public class InfrastructureSpecs
                 "claude-code",
                 executionEvent.PayloadJson,
                 StringComparison.Ordinal);
+        });
+    }
+
+    [Fact]
+    public async Task An_execution_addressed_by_the_project_handle_is_stored_under_the_id()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            // An agent's MCP endpoint and the UI's URLs carry the readable handle, which is not the id the
+            // projections are keyed by - and the executions table declares a foreign key against the id.
+            Assert.NotEqual(context.Project.Id, context.Project.Handle);
+            var card = CreateCard(context.Project.Id, "TASK-HANDLE", 1);
+            await context.Cards.SaveAsync(card, 0, CancellationToken.None);
+
+            var execution = await context.Executions.StartAsync(
+                new CardReference(context.Project.Handle, "TASK-HANDLE"),
+                "implementation",
+                "claude-code",
+                CancellationToken.None);
+
+            // The row exists at all: this is the insert that used to fail with
+            // "SQLite Error 19: 'FOREIGN KEY constraint failed'" because the handle went in unresolved.
+            Assert.Equal(context.Project.Id, execution.Card.ProjectId);
+            Assert.Equal(
+                execution.Id,
+                Assert.Single(await context.Executions.ListAsync(
+                    new CardReference(context.Project.Id, "TASK-HANDLE"),
+                    CancellationToken.None)).Id);
+
+            // The card's "runs" tab asks through the handle, and it must answer with the run rather than
+            // coming back empty.
+            Assert.Equal(
+                execution.Id,
+                Assert.Single(await context.Executions.ListAsync(
+                    new CardReference(context.Project.Handle, "TASK-HANDLE"),
+                    CancellationToken.None)).Id);
+
+            // The journal is keyed the same way, so a subscriber of the project receives the change.
+            var events = await context.EventJournal.ReadAsync(
+                context.Project.Id, afterId: 0, limit: 50, CancellationToken.None);
+            Assert.Contains(events, item =>
+                item.Type == AikoEventTypes.ExecutionUpdated &&
+                item.PayloadJson.Contains("TASK-HANDLE", StringComparison.Ordinal));
+        });
+    }
+
+    [Fact]
+    public async Task Project_activity_counts_only_the_days_of_that_project()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            // A second project in the same installation: the two share the daemon and its database, which
+            // is exactly what the project filter has to separate.
+            var otherRoot = Path.Combine(context.ProjectRoot, "..", "Other");
+            Directory.CreateDirectory(otherRoot);
+            var other = await context.Initializer.InitializeAsync(
+                new InitializeProjectRequest(otherRoot),
+                CancellationToken.None);
+
+            var report = new SqliteActivityReport(context.Database, context.Catalog);
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            // Addressed by the readable handle, the way the project page addresses it.
+            var before = await report.GetProjectActivityAsync(
+                context.Project.Handle, 7, CancellationToken.None);
+            var otherBefore = await report.GetProjectActivityAsync(
+                other.Handle, 7, CancellationToken.None);
+
+            var card = CreateCard(other.Id, "TASK-ACTIVITY-OTHER", 1);
+            await context.Cards.SaveAsync(card, 0, CancellationToken.None);
+
+            var after = await report.GetProjectActivityAsync(
+                context.Project.Handle, 7, CancellationToken.None);
+            var otherAfter = await report.GetProjectActivityAsync(
+                other.Handle, 7, CancellationToken.None);
+
+            // Work in one project is not this project's activity.
+            Assert.Equal(ActivityOn(before, today), ActivityOn(after, today));
+            Assert.True(
+                ActivityOn(otherAfter, today) > ActivityOn(otherBefore, today),
+                "the other project's own day did not grow");
+
+            // The installation-wide series still sees everything, which is what makes the narrow one mean
+            // something.
+            var everything = await report.GetActivityAsync(7, CancellationToken.None);
+            Assert.True(ActivityOn(everything, today) >= ActivityOn(otherAfter, today));
+
+            // An unknown project is an error rather than an empty calendar.
+            await Assert.ThrowsAsync<KeyNotFoundException>(async () =>
+                await report.GetProjectActivityAsync(Guid.NewGuid().ToString("N"), 7, CancellationToken.None));
+        });
+
+        static int ActivityOn(IReadOnlyList<ActivityDay> days, DateOnly day) =>
+            days.Where(item => item.Date == day).Sum(item => item.Count);
+    }
+
+    [Fact]
+    public async Task Analytics_read_by_the_handle_fill_the_distribution()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            // The card page and the project page address a project by its handle, and the cards projection
+            // is keyed by the id - so reading the charts through the handle is the case that used to come
+            // back with an empty distribution.
+            Assert.NotEqual(context.Project.Id, context.Project.Handle);
+            var story = CreateCard(context.Project.Id, "STORY-DISTRIBUTION", 1) with
+            {
+                Kind = CardKind.Story,
+                WorkflowId = "story",
+                Size = "M"
+            };
+            var task = CreateCard(context.Project.Id, "TASK-DISTRIBUTION", 1) with { Size = "XS" };
+            await context.Cards.SaveAsync(story, 0, CancellationToken.None);
+            await context.Cards.SaveAsync(task, 0, CancellationToken.None);
+
+            var analytics = await new SqliteProjectAnalytics(context.Database, context.Catalog).ReadAsync(
+                context.Project.Handle, 8, CancellationToken.None);
+
+            Assert.Equal(2, analytics.ByKind.Sum(bucket => bucket.Count));
+            Assert.Contains(analytics.ByKind, bucket => StringComparer.Ordinal.Equals(bucket.Label, CardKind.Story));
+            Assert.Contains(analytics.ByKind, bucket => StringComparer.Ordinal.Equals(bucket.Label, CardKind.Task));
+            Assert.Contains(analytics.BySize, bucket => StringComparer.Ordinal.Equals(bucket.Label, "M"));
+            Assert.Contains(analytics.BySize, bucket => StringComparer.Ordinal.Equals(bucket.Label, "XS"));
         });
     }
 

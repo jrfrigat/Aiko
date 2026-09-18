@@ -21,7 +21,8 @@ internal sealed class CardTools(
     IProjectCatalog projects,
     ICardStore cards,
     IRelationStore relations,
-    IProjectDefinitionStore definitions) : ProjectToolBase(httpContextAccessor, projects)
+    IProjectDefinitionStore definitions,
+    ICardDiscussionStore discussion) : ProjectToolBase(httpContextAccessor, projects)
 {
     [McpServerTool(Name = "aiko_list_cards", Title = "List Aiko cards")]
     [Description("Lists cards in the current project. Get project context before taking action.")]
@@ -305,6 +306,47 @@ internal sealed class CardTools(
         };
         await cards.SaveAsync(updated, card.Revision, cancellationToken);
         return JsonSerializer.Serialize(updated, ServerJsonContext.Default.Card);
+    }
+
+    [McpServerTool(Name = "aiko_add_comment", Title = "Comment on an Aiko card")]
+    [Description(
+        "Appends a note to a card's discussion, which is the feed its page shows. Post the outcome of a "
+        + "stage here - what was done, what was left - so the card that asked for the work explains what "
+        + "came of it instead of leaving the feed empty.")]
+    public async Task<string> AddCommentAsync(
+        [Description("Card id.")]
+        string cardId,
+        [Description("The note itself.")]
+        string body,
+        [Description(
+            "Who is writing, for example the agent adapter id; left out, the note is signed 'agent'.")]
+        string? author,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(body);
+        var comment = await discussion.AppendAsync(
+            new CardReference(GetProjectId(), cardId),
+            string.IsNullOrWhiteSpace(author) ? "agent" : author,
+            body,
+            cancellationToken);
+        return JsonSerializer.Serialize(comment, ServerJsonContext.Default.CardComment);
+    }
+
+    [McpServerTool(Name = "aiko_list_comments", Title = "Read an Aiko card discussion")]
+    [Description(
+        "Reads a card's discussion, oldest first, so an agent can see what was already said about the card "
+        + "before adding to it.")]
+    public async Task<string> ListCommentsAsync(
+        [Description("Card id.")]
+        string cardId,
+        CancellationToken cancellationToken)
+    {
+        var comments = await discussion.ListAsync(
+            new CardReference(GetProjectId(), cardId),
+            cancellationToken);
+        return JsonSerializer.Serialize(
+            comments,
+            ServerJsonContext.Default.IReadOnlyListCardComment);
     }
 
     /// <summary>

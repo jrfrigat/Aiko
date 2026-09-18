@@ -29,7 +29,8 @@ aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<handle>
 
 - **Project context** - `aiko_get_project_context`, `aiko_open_ui`.
 - **Cards** - `aiko_list_cards`, `aiko_get_card`, `aiko_create_card`, `aiko_update_card`,
-  `aiko_estimate_card`, `aiko_move_card`, `aiko_take_card`, `aiko_link_cards`.
+  `aiko_estimate_card`, `aiko_move_card`, `aiko_take_card`, `aiko_link_cards`, `aiko_add_comment`,
+  `aiko_list_comments`.
 - **Execution** - `aiko_start_stage`, `aiko_report_progress`, `aiko_request_scope_expansion`,
   `aiko_complete_stage`, `aiko_pause_execution`, `aiko_handoff_execution`,
   `aiko_resume_execution`, `aiko_report_agent_state`, `aiko_report_commit`, `aiko_approve_commit`.
@@ -142,6 +143,7 @@ has no path yet, the table says so rather than pretending the sets are already e
 | Request scope expansion | `/aiko-scope` | `aiko_request_scope_expansion` | Card page - declared vs actual files |
 | Hand off to another agent | `/aiko-handoff` | `aiko_handoff_execution` | Card page - execution history |
 | Complete a stage | `/aiko-run` | `aiko_complete_stage` | Drag to the next column |
+| Post the stage's outcome into the card's discussion | `/aiko-run` | `aiko_add_comment`, `aiko_list_comments` | Card page - discussion tab |
 | Record and search memory | `/aiko-memory` | `aiko_store_memory`, `aiko_search_memory` | — (not in the UI yet) |
 | Edit the pipeline | — | — | Workflow page |
 | Read settings | — | `aiko_get_settings` | Settings page |

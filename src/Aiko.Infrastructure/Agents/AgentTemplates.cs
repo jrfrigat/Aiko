@@ -304,6 +304,10 @@ internal static class AgentTemplates
         list of the files you changed. If the work needs files outside the card's declaredScopeFiles, call
         aiko_request_scope_expansion and wait for the user's decision before touching them.
 
+        Post the outcome of the stage into the card's own feed with aiko_add_comment - what you did, what you
+        found and what is left - so the card explains what came of it instead of carrying an empty discussion.
+        Read aiko_list_comments first when the card already has one, and answer what is there.
+
         Before you complete the stage, re-score the card with aiko_estimate_card: the project context lists
         its criteria, and the one about how complete the card is (complete, or whatever the project named
         readiness) must describe the card as it is after your change, not as it was before it. Re-score the

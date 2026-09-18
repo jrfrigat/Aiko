@@ -36,6 +36,10 @@ public sealed class SqliteExecutionCoordinator(
         CardReference card,
         CancellationToken cancellationToken)
     {
+        // Executions are keyed by the project's immutable id, while a caller may address the project by its
+        // readable handle - an MCP route and the UI's URLs do. Resolving here is what keeps a card's "runs"
+        // tab from answering with an empty list for a project that plainly has runs.
+        card = await ResolveAsync(card, cancellationToken);
         await using var connection = database.CreateConnection();
         await connection.OpenAsync(cancellationToken);
         await using var command = connection.CreateCommand();
@@ -83,6 +87,13 @@ public sealed class SqliteExecutionCoordinator(
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(stageId);
         ArgumentException.ThrowIfNullOrWhiteSpace(agentAdapterId);
+
+        // The call may arrive through the project's readable handle: the MCP endpoint carries one, and both
+        // the executions table and the event journal declare a foreign key against projects(id). An
+        // unresolved handle would reach SQLite as "SQLite Error 19: 'FOREIGN KEY constraint failed'", which
+        // is what stopped every start an agent made. Resolving before the locks also means the card, the
+        // per-project lock and the run limit all speak about the same project.
+        card = await ResolveAsync(card, cancellationToken);
 
         // Serialize per card (no two starts of one card) and per project (the
         // concurrent-run limit is checked atomically against the whole project).
@@ -590,6 +601,25 @@ public sealed class SqliteExecutionCoordinator(
         CancellationToken cancellationToken) =>
         await projects.FindAsync(projectId, cancellationToken)
         ?? throw new KeyNotFoundException($"Unknown Aiko project: {projectId}");
+
+    /// <summary>
+    /// Rewrites a card reference so it carries the project's immutable id, whatever handle the caller used.
+    /// </summary>
+    /// <remarks>
+    /// Every projection of this store - executions, the event journal - is keyed by the id and declares a
+    /// foreign key against it, so a reference that still holds the readable handle cannot be stored. The
+    /// callers that pass a handle are the ones a person types into an agent's configuration, and the failure
+    /// they used to get back was an opaque constraint violation.
+    /// </remarks>
+    private async ValueTask<CardReference> ResolveAsync(
+        CardReference card,
+        CancellationToken cancellationToken)
+    {
+        var project = await FindProjectAsync(card.ProjectId, cancellationToken);
+        return StringComparer.Ordinal.Equals(project.Id, card.ProjectId)
+            ? card
+            : new CardReference(project.Id, card.CardId);
+    }
 
     private async ValueTask<long> CountActiveExecutionsAsync(
         string projectId,

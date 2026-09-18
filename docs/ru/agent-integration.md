@@ -29,7 +29,8 @@ aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<handle>
 
 - **Контекст проекта** - `aiko_get_project_context`, `aiko_open_ui`.
 - **Карточки** - `aiko_list_cards`, `aiko_get_card`, `aiko_create_card`, `aiko_update_card`,
-  `aiko_estimate_card`, `aiko_move_card`, `aiko_take_card`, `aiko_link_cards`.
+  `aiko_estimate_card`, `aiko_move_card`, `aiko_take_card`, `aiko_link_cards`, `aiko_add_comment`,
+  `aiko_list_comments`.
 - **Execution** - `aiko_start_stage`, `aiko_report_progress`, `aiko_request_scope_expansion`,
   `aiko_complete_stage`, `aiko_pause_execution`, `aiko_handoff_execution`,
   `aiko_resume_execution`, `aiko_report_agent_state`, `aiko_report_commit`, `aiko_approve_commit`.
@@ -141,6 +142,7 @@ UI пока нет, таблица говорит это прямо, а не д�
 | Запросить расширение scope | `/aiko-scope` | `aiko_request_scope_expansion` | Страница карточки - declared и actual файлы |
 | Передать этап другому агенту | `/aiko-handoff` | `aiko_handoff_execution` | Страница карточки - история исполнения |
 | Завершить этап | `/aiko-run` | `aiko_complete_stage` | Перетаскивание в следующую колонку |
+| Записать итог этапа в обсуждение карточки | `/aiko-run` | `aiko_add_comment`, `aiko_list_comments` | Страница карточки - вкладка обсуждения |
 | Записать и найти память | `/aiko-memory` | `aiko_store_memory`, `aiko_search_memory` | — (в UI пока нет) |
 | Изменить конвейер | — | — | Страница Workflow |
 | Прочитать настройки | — | `aiko_get_settings` | Страница Settings |

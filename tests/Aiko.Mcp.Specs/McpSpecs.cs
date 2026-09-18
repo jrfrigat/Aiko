@@ -25,6 +25,8 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         "aiko_move_card",
         "aiko_link_cards",
         "aiko_take_card",
+        "aiko_add_comment",
+        "aiko_list_comments",
         "aiko_start_stage",
         "aiko_report_progress",
         "aiko_request_scope_expansion",
@@ -855,4 +857,295 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
             Assert.Equal(HttpStatusCode.BadRequest, badRequest.StatusCode);
         }
     }
+
+    [Fact]
+    public async Task A_failing_tool_reports_the_cause_instead_of_a_generic_line()
+    {
+        await using var client = await ConnectAsync();
+        var result = await client.CallToolAsync(
+            "aiko_start_stage",
+            new Dictionary<string, object?>
+            {
+                ["cardId"] = "TASK-DOES-NOT-EXIST",
+                ["stageId"] = "implementation",
+                ["agentAdapterId"] = "claude-code"
+            },
+            cancellationToken: CancellationToken.None);
+
+        Assert.True(result.IsError);
+        var text = FirstText(result) ?? string.Empty;
+        // The tool used to answer with a fixed sentence and leave the cause in the daemon's log, where an
+        // agent cannot read it and therefore cannot report it either.
+        Assert.DoesNotContain("An error occurred invoking", text, StringComparison.Ordinal);
+        Assert.Contains("TASK-DOES-NOT-EXIST", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task An_agent_records_the_outcome_in_the_card_discussion()
+    {
+        await using var client = await ConnectAsync();
+        var cardId = $"TASK-COMMENT-{Guid.NewGuid():N}";
+        await client.CallToolAsync(
+            "aiko_create_card",
+            new Dictionary<string, object?>
+            {
+                ["cardId"] = cardId,
+                ["kind"] = "task",
+                ["title"] = "Record the outcome",
+                ["ownPriority"] = 1,
+                ["declaredScopeFiles"] = new[] { "src/**" }
+            },
+            cancellationToken: CancellationToken.None);
+
+        var added = await client.CallToolAsync(
+            "aiko_add_comment",
+            new Dictionary<string, object?>
+            {
+                ["cardId"] = cardId,
+                ["body"] = "Analysis finished; no file changed yet.",
+                ["author"] = "claude-code"
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.NotEqual(true, added.IsError);
+
+        // Reading it back is how an agent sees what was already said before it adds to the thread.
+        var listed = await client.CallToolAsync(
+            "aiko_list_comments",
+            new Dictionary<string, object?> { ["cardId"] = cardId },
+            cancellationToken: CancellationToken.None);
+        var text = FirstText(listed) ?? string.Empty;
+        Assert.Contains("Analysis finished", text, StringComparison.Ordinal);
+        Assert.Contains("claude-code", text, StringComparison.Ordinal);
+
+        // And the card page's feed reads the same store, so the note an agent wrote shows up there too.
+        using var http = new HttpClient { BaseAddress = fixture.BaseUrl };
+        using var feed = await http.GetAsync(
+            $"/api/v1/projects/{fixture.ProjectId}/cards/{cardId}/discussion",
+            CancellationToken.None);
+        feed.EnsureSuccessStatusCode();
+        using var document = JsonDocument.Parse(
+            await feed.Content.ReadAsStringAsync(CancellationToken.None));
+        var entry = Assert.Single(document.RootElement.EnumerateArray());
+        Assert.Equal("claude-code", entry.GetProperty("author").GetString());
+    }
+
+    [Fact]
+    public async Task An_agent_starts_a_stage_through_the_projects_readable_handle()
+    {
+        // A project of its own, because the fixture's shared project allows one run at a time and another
+        // spec in this class keeps a handed-off execution active on purpose: the run limit, not the route,
+        // would decide the outcome here.
+        var root = Path.Combine(Path.GetDirectoryName(fixture.ProjectRoot)!, "handle-project");
+        Directory.CreateDirectory(root);
+        using var http = new HttpClient { BaseAddress = fixture.BaseUrl };
+        using (var initialized = await http.PostAsJsonAsync(
+            "api/v1/projects/initialize",
+            new { rootPath = root },
+            CancellationToken.None))
+        {
+            initialized.EnsureSuccessStatusCode();
+        }
+
+        using var projects = JsonDocument.Parse(
+            await http.GetStringAsync("api/v1/projects", CancellationToken.None));
+        var project = projects.RootElement
+            .EnumerateArray()
+            .Single(item => item.GetProperty("rootPath").GetString()!
+                .EndsWith("handle-project", StringComparison.OrdinalIgnoreCase));
+        var projectId = project.GetProperty("id").GetString();
+        var handle = project.GetProperty("slug").GetString();
+        Assert.False(string.IsNullOrWhiteSpace(handle));
+        // The endpoint an agent's configuration carries is built from the handle, and the two differ.
+        Assert.NotEqual(projectId, handle);
+
+        var transport = new HttpClientTransport(new HttpClientTransportOptions
+        {
+            Endpoint = new Uri($"{fixture.BaseUrl}mcp/projects/{handle}"),
+            TransportMode = HttpTransportMode.StreamableHttp
+        });
+        await using var client = await McpClient.CreateAsync(
+            transport, cancellationToken: CancellationToken.None);
+
+        var cardId = $"TASK-HANDLE-{Guid.NewGuid():N}";
+        var create = await client.CallToolAsync(
+            "aiko_create_card",
+            new Dictionary<string, object?>
+            {
+                ["cardId"] = cardId,
+                ["kind"] = "task",
+                ["title"] = "Start through the handle",
+                ["ownPriority"] = 1,
+                ["declaredScopeFiles"] = new[] { "src/**" }
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.NotEqual(true, create.IsError);
+
+        // This is the call that used to fail on a foreign key: the handle reached the executions table
+        // instead of the immutable project id every projection is keyed by.
+        var start = await client.CallToolAsync(
+            "aiko_start_stage",
+            new Dictionary<string, object?>
+            {
+                ["cardId"] = cardId,
+                ["stageId"] = "implementation",
+                ["agentAdapterId"] = "claude-code"
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.False(
+            start.IsError == true,
+            $"aiko_start_stage through the handle failed: {FirstText(start)}");
+        using var execution = JsonDocument.Parse(FirstText(start) ?? "{}");
+        Assert.Equal(
+            projectId,
+            execution.RootElement.GetProperty("card").GetProperty("projectId").GetString());
+
+        // The card's "runs" tab reads this endpoint, and it addresses the project by the handle as well.
+        using var runs = await http.GetAsync(
+            $"/api/v1/projects/{handle}/cards/{cardId}/executions",
+            CancellationToken.None);
+        runs.EnsureSuccessStatusCode();
+        using var runsDocument = JsonDocument.Parse(
+            await runs.Content.ReadAsStringAsync(CancellationToken.None));
+        Assert.Single(runsDocument.RootElement.EnumerateArray());
+
+        // Unregister the throwaway project so the rest of this class sees the fixture's own project only;
+        // its files sit under the fixture's temp root and go away with it.
+        using var removed = await http.DeleteAsync(
+            $"/api/v1/projects/{projectId}",
+            CancellationToken.None);
+        Assert.Equal(HttpStatusCode.NoContent, removed.StatusCode);
+    }
+
+
+    [Fact]
+    public async Task The_event_stream_delivers_a_card_change_to_its_subscriber()
+    {
+        using var http = new HttpClient
+        {
+            BaseAddress = fixture.BaseUrl,
+            Timeout = TimeSpan.FromSeconds(30)
+        };
+        using var response = await http.GetAsync(
+            $"/api/v1/projects/{fixture.ProjectId}/events",
+            HttpCompletionOption.ResponseHeadersRead,
+            CancellationToken.None);
+        response.EnsureSuccessStatusCode();
+        Assert.Equal("text/event-stream", response.Content.Headers.ContentType?.MediaType);
+
+        await using var body = await response.Content.ReadAsStreamAsync(CancellationToken.None);
+        using var reader = new StreamReader(body);
+
+        // A change made while the stream is open is what the board lives on: it has to arrive as a frame
+        // carrying the project's immutable id, without anyone reloading the page.
+        await using var client = await ConnectAsync();
+        var cardId = $"TASK-SSE-{Guid.NewGuid():N}";
+        var create = await client.CallToolAsync(
+            "aiko_create_card",
+            new Dictionary<string, object?>
+            {
+                ["cardId"] = cardId,
+                ["kind"] = "task",
+                ["title"] = "Deliver me live",
+                ["ownPriority"] = 1,
+                ["declaredScopeFiles"] = new[] { "src/**" }
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.NotEqual(true, create.IsError);
+
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        var frame = await ReadEventFrameAsync(reader, cardId, timeout.Token);
+        Assert.Contains(
+            $"\"projectId\":\"{fixture.ProjectId}\"",
+            frame,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Reads server-sent event frames until one mentions <paramref name="marker"/>, and returns it.
+    /// </summary>
+    private static async Task<string> ReadEventFrameAsync(
+        StreamReader reader,
+        string marker,
+        CancellationToken cancellationToken)
+    {
+        var frame = new StringBuilder();
+        while (true)
+        {
+            var line = await reader.ReadLineAsync(cancellationToken);
+            if (line is null)
+            {
+                throw new InvalidOperationException(
+                    "The event stream ended before the expected change arrived.");
+            }
+
+            // A blank line closes a frame; anything else belongs to the frame being assembled.
+            if (line.Length == 0)
+            {
+                if (frame.ToString().Contains(marker, StringComparison.Ordinal))
+                {
+                    return frame.ToString();
+                }
+
+                frame.Clear();
+                continue;
+            }
+
+            frame.AppendLine(line);
+        }
+    }
+
+    [Fact]
+    public async Task Project_activity_is_served_by_the_readable_handle()
+    {
+        using var http = new HttpClient { BaseAddress = fixture.BaseUrl };
+        await using var client = await ConnectAsync();
+        var cardId = $"TASK-CALENDAR-{Guid.NewGuid():N}";
+        await client.CallToolAsync(
+            "aiko_create_card",
+            new Dictionary<string, object?>
+            {
+                ["cardId"] = cardId,
+                ["kind"] = "task",
+                ["title"] = "Count me on the calendar",
+                ["ownPriority"] = 1,
+                ["declaredScopeFiles"] = new[] { "src/**" }
+            },
+            cancellationToken: CancellationToken.None);
+
+        using var projects = JsonDocument.Parse(
+            await http.GetStringAsync("api/v1/projects", CancellationToken.None));
+        var handle = projects.RootElement
+            .EnumerateArray()
+            .Single(item => string.Equals(
+                item.GetProperty("id").GetString(),
+                fixture.ProjectId,
+                StringComparison.Ordinal))
+            .GetProperty("slug")
+            .GetString();
+        Assert.False(string.IsNullOrWhiteSpace(handle));
+
+        using var response = await http.GetAsync(
+            $"/api/v1/projects/{handle}/activity?days=7",
+            CancellationToken.None);
+        response.EnsureSuccessStatusCode();
+        using var document = JsonDocument.Parse(
+            await response.Content.ReadAsStringAsync(CancellationToken.None));
+
+        // The card just created published an event, so today is on this project's own calendar - read
+        // through the handle the project page holds.
+        var expectedDay = DateTime.UtcNow.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        var today = Assert.Single(
+            document.RootElement.EnumerateArray(),
+            day => string.Equals(
+                day.GetProperty("date").GetString(), expectedDay, StringComparison.Ordinal));
+        Assert.True(today.GetProperty("count").GetInt32() >= 1);
+
+        // An unknown project is a 404, like every other project route.
+        using var unknown = await http.GetAsync(
+            $"/api/v1/projects/{Guid.NewGuid():N}/activity",
+            CancellationToken.None);
+        Assert.Equal(HttpStatusCode.NotFound, unknown.StatusCode);
+    }
+
+
 }

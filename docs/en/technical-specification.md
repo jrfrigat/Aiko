@@ -433,6 +433,8 @@ The initial stable tool set:
 - `aiko_create_card`;
 - `aiko_update_card`;
 - `aiko_link_cards`;
+- `aiko_add_comment`;
+- `aiko_list_comments`;
 - `aiko_take_card`;
 - `aiko_start_stage`;
 - `aiko_report_progress`;
