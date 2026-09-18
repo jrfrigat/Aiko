@@ -104,8 +104,8 @@ are chosen too. The icon comes from a
 set of ten and the colour from Flare's palette; "Default" means there is no icon, and the column title keeps
 the theme's own colour. The two are connected - the colour tints the icon and the title - so it is visible
 together with a chosen icon. **+** opens a draft type as a tab of its own, which the same fields then fill
-in: give it an id (for example `epic`), a name and a description ("a
-global card type that groups several stories") and pick an icon and a colour - the type appears at once in
+in: give it an id (for example `bug`), a name and a description ("a
+card type for defects found in the field") and pick an icon and a colour - the type appears at once in
 the create-card picker and as a board section, and its pipeline starts with `backlog`, "In progress" and
 "Done". The id may be changed while the type has no cards; once cards exist it is fixed, because their folder
 and their board section are named after it.

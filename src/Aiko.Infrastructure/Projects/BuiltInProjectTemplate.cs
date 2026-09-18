@@ -23,17 +23,42 @@ internal static class BuiltInProjectTemplate
     public static ProjectTemplate Create() => new(
         ProjectTemplate.DefaultId,
         "Default",
-        "The set Aiko starts from: story and task pipelines with their statuses, artifacts and per-status "
-        + "instructions, the app point / user point / complete scoring criteria, two board projections and "
-        + "the empty project memory.",
+        "The set Aiko starts from: epic, story and task pipelines with their statuses, artifacts and per-status "
+        + "instructions, the app point / user point / complete scoring criteria, the epics / stories / tasks board "
+        + "projections and the empty project memory.",
         ProjectTemplate.DefaultVersion,
         Settings: new AppSettings(
             AppSettings.CurrentSchemaVersion,
             ExecutionSettings.SafeDefault,
             PrioritySettings.Standard),
-        Workflows: [StoryWorkflow(), TaskWorkflow()],
+        Workflows: [EpicWorkflow(), StoryWorkflow(), TaskWorkflow()],
         Projections: Projections(),
         MemoryFiles: MemoryFiles());
+
+    /// <summary>
+    /// The epic pipeline: a goal held across other cards rather than a unit of work of its own.
+    /// </summary>
+    /// <remarks>
+    /// Three stages on purpose. An epic is a container - the work happens in its child stories and tasks, and
+    /// decomposition belongs to the story pipeline (<c>elaboration</c> then <c>ready</c>), so a stage that
+    /// "splits" an epic would be a second place where the same planning happens. The instructions therefore say
+    /// what the container does at each step instead of describing work of its own.
+    /// </remarks>
+    private static WorkflowDefinition EpicWorkflow() =>
+        new(
+            "epic",
+            "Epics",
+            [
+                Stage("backlog", "Backlog", 10, CardKind.Epic, "Clarify what the epic is for, where its boundary is and which stories or tasks carry it, and state that on the card. An epic holds a goal together rather than being a unit of work: what fits in a single stage is a story. Re-estimate the card with aiko_estimate_card when the picture changes.", "inbox", "secondary"),
+                Stage("in-progress", "In progress", 20, CardKind.Epic, "Coordinate the child stories and tasks: keep the epic's scope honest, move the work into them instead of doing it on the epic itself, and re-estimate the card with aiko_estimate_card after every change so its score says what the epic now holds.", "code", "warning"),
+                Stage("done", "Done", 30, CardKind.Epic, "Verify that the epic's outcome was reached - its child stories are finished or deliberately dropped - and record the result. Before completing the stage, re-estimate the card with aiko_estimate_card; readiness tends to the top of its range.", "done-all", "success")
+            ],
+            1,
+            "A goal held across several stories or tasks. An epic is not implemented in one stage: it is the "
+            + "container the work of others belongs to, its score says how much of that outcome exists, and it is "
+            + "finished when its children are.",
+            "layers",
+            "info");
 
     private static WorkflowDefinition StoryWorkflow() =>
         new(
@@ -134,6 +159,7 @@ internal static class BuiltInProjectTemplate
     [
         new(1, "tasks", "Tasks", "kanban", "task", "stage", EmptyFilters()),
         new(1, "stories", "Stories", "kanban", "story", "stage", EmptyFilters()),
+        new(1, "epics", "Epics", "kanban", "epic", "stage", EmptyFilters()),
         new(1, "combined", "Combined", "swimlane", null, "story", EmptyFilters())
     ];
 

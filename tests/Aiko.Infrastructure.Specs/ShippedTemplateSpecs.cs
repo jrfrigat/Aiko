@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Aiko.Application.Contracts;
 using Aiko.Infrastructure.Projects;
 using Aiko.Infrastructure.Storage;
@@ -53,6 +54,56 @@ public sealed class ShippedTemplateSpecs
                 Directory.Delete(root, recursive: true);
             }
         }
+    }
+
+    [Fact]
+    public async Task The_base_template_ships_an_epic_pipeline_beside_stories_and_tasks()
+    {
+        var shippedPath = Path.Combine(
+            FindRepositoryRoot(),
+            "assets",
+            "templates",
+            ProjectTemplate.DefaultId,
+            "template.json");
+        using var document = JsonDocument.Parse(await File.ReadAllTextAsync(shippedPath));
+        var root = document.RootElement;
+
+        // The version travels with the content: a project's manifest says which revision of the defaults it
+        // was created from, so a template whose content changed must say so.
+        Assert.Equal(ProjectTemplate.DefaultVersion, root.GetProperty("version").GetInt32());
+
+        var workflows = root.GetProperty("workflows").EnumerateArray().ToArray();
+        var epic = Assert.Single(workflows, workflow =>
+            string.Equals(workflow.GetProperty("id").GetString(), "epic", StringComparison.Ordinal));
+        Assert.Contains(workflows, workflow =>
+            string.Equals(workflow.GetProperty("id").GetString(), "story", StringComparison.Ordinal));
+        Assert.Contains(workflows, workflow =>
+            string.Equals(workflow.GetProperty("id").GetString(), "task", StringComparison.Ordinal));
+
+        // A type an agent reads before it works a card needs a stated purpose: "test" is not one, and neither is
+        // an empty string. The same goes for every stage: without an instruction naming the work and the
+        // re-estimation rule, a stage can be travelled through without anything happening.
+        var description = epic.GetProperty("description").GetString();
+        Assert.False(string.IsNullOrWhiteSpace(description));
+        Assert.NotEqual("test", description);
+        Assert.Equal("Epics", epic.GetProperty("title").GetString());
+        Assert.Equal("layers", epic.GetProperty("icon").GetString());
+        Assert.Equal("info", epic.GetProperty("color").GetString());
+
+        var stages = epic.GetProperty("stages").EnumerateArray().ToArray();
+        Assert.Equal(3, stages.Length);
+        foreach (var stage in stages)
+        {
+            var instruction = stage.GetProperty("instruction").GetString();
+            Assert.False(string.IsNullOrWhiteSpace(instruction));
+            Assert.Contains("aiko_estimate_card", instruction, StringComparison.Ordinal);
+            Assert.Empty(stage.GetProperty("requiredArtifacts").EnumerateArray());
+        }
+
+        // The board offers the new type the way it offers the other two, so an epic is not a card nobody can see.
+        Assert.Contains(
+            root.GetProperty("projections").EnumerateArray(),
+            projection => string.Equals(projection.GetProperty("id").GetString(), "epics", StringComparison.Ordinal));
     }
 
     /// <summary>Walks up from this assembly to the solution file, as the other specs do.</summary>

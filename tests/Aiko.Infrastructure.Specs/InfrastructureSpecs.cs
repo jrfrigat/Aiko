@@ -2987,40 +2987,15 @@ public class InfrastructureSpecs
         await WithInitializedProjectAsync(async context =>
         {
             var definitions = new FileProjectDefinitionStore(context.Catalog);
-            await definitions.CreateWorkflowAsync(
-                context.Project.Id,
-                new WorkflowDefinition(
-                    "epic",
-                    "Epics",
-                    [
-                        new StageDefinition(
-                            "backlog", "Backlog", 10, "Clarify the epic.", ["Epic"], null, [],
-                            new Dictionary<string, ActionPolicy>(StringComparer.Ordinal)),
-                        new StageDefinition(
-                            "done", "Done", 20, "Record the epic.", ["Epic"], null, [],
-                            new Dictionary<string, ActionPolicy>(StringComparer.Ordinal))
-                    ],
-                    1,
-                    "A global card type that groups several stories."),
-                CancellationToken.None);
 
-            // A board section that shows the type: its card kind IS the workflow id.
+            // The type and its board section come from the project's template: the default one now ships an
+            // epic pipeline and the epics projection beside stories and tasks, so the spec starts from what a
+            // person gets rather than building the same thing by hand.
             var projections = Path.Combine(context.StitchRoot, "projections");
-            Directory.CreateDirectory(projections);
             var projectionPath = Path.Combine(projections, "epics.json");
-            await File.WriteAllTextAsync(
-                projectionPath,
-                """
-                {
-                  "schemaVersion": 1,
-                  "id": "epics",
-                  "title": "Epics",
-                  "view": "kanban",
-                  "cardKind": "epic",
-                  "groupBy": "stage",
-                  "filters": {}
-                }
-                """);
+            Assert.True(
+                File.Exists(projectionPath),
+                "The default template should ship the epics projection.");
 
             var renamed = await definitions.RenameWorkflowAsync(
                 context.Project.Id,

@@ -1,8 +1,8 @@
 {
   "id": "default",
   "name": "Default",
-  "description": "The set Aiko starts from: story and task pipelines with their statuses, artifacts and per-status instructions, the app point / user point / complete scoring criteria, two board projections and the empty project memory.",
-  "version": 4,
+  "description": "The set Aiko starts from: epic, story and task pipelines with their statuses, artifacts and per-status instructions, the app point / user point / complete scoring criteria, the epics / stories / tasks board projections and the empty project memory.",
+  "version": 5,
   "settings": {
     "schemaVersion": 1,
     "execution": {
@@ -113,6 +113,82 @@
     }
   },
   "workflows": [
+    {
+      "id": "epic",
+      "title": "Epics",
+      "stages": [
+        {
+          "id": "backlog",
+          "title": "Backlog",
+          "order": 10,
+          "instruction": "Clarify what the epic is for, where its boundary is and which stories or tasks carry it, and state that on the card. An epic holds a goal together rather than being a unit of work: what fits in a single stage is a story. Re-estimate the card with aiko_estimate_card when the picture changes.",
+          "allowedCardKinds": [
+            "Epic"
+          ],
+          "defaultAgentAdapterId": null,
+          "requiredArtifacts": [],
+          "actionPolicies": {},
+          "allowedAgentAdapterIds": null,
+          "validationCommands": null,
+          "skillsBeforeInstruction": null,
+          "skillsAfterInstruction": null,
+          "icon": "inbox",
+          "color": "secondary",
+          "allowedAgents": [],
+          "commands": [],
+          "beforeSkills": [],
+          "afterSkills": []
+        },
+        {
+          "id": "in-progress",
+          "title": "In progress",
+          "order": 20,
+          "instruction": "Coordinate the child stories and tasks: keep the epic's scope honest, move the work into them instead of doing it on the epic itself, and re-estimate the card with aiko_estimate_card after every change so its score says what the epic now holds.",
+          "allowedCardKinds": [
+            "Epic"
+          ],
+          "defaultAgentAdapterId": null,
+          "requiredArtifacts": [],
+          "actionPolicies": {},
+          "allowedAgentAdapterIds": null,
+          "validationCommands": null,
+          "skillsBeforeInstruction": null,
+          "skillsAfterInstruction": null,
+          "icon": "code",
+          "color": "warning",
+          "allowedAgents": [],
+          "commands": [],
+          "beforeSkills": [],
+          "afterSkills": []
+        },
+        {
+          "id": "done",
+          "title": "Done",
+          "order": 30,
+          "instruction": "Verify that the epic's outcome was reached - its child stories are finished or deliberately dropped - and record the result. Before completing the stage, re-estimate the card with aiko_estimate_card; readiness tends to the top of its range.",
+          "allowedCardKinds": [
+            "Epic"
+          ],
+          "defaultAgentAdapterId": null,
+          "requiredArtifacts": [],
+          "actionPolicies": {},
+          "allowedAgentAdapterIds": null,
+          "validationCommands": null,
+          "skillsBeforeInstruction": null,
+          "skillsAfterInstruction": null,
+          "icon": "done-all",
+          "color": "success",
+          "allowedAgents": [],
+          "commands": [],
+          "beforeSkills": [],
+          "afterSkills": []
+        }
+      ],
+      "revision": 1,
+      "description": "A goal held across several stories or tasks. An epic is not implemented in one stage: it is the container the work of others belongs to, its score says how much of that outcome exists, and it is finished when its children are.",
+      "icon": "layers",
+      "color": "info"
+    },
     {
       "id": "story",
       "title": "Stories",
@@ -388,6 +464,15 @@
       "title": "Stories",
       "view": "kanban",
       "cardKind": "story",
+      "groupBy": "stage",
+      "filters": {}
+    },
+    {
+      "schemaVersion": 1,
+      "id": "epics",
+      "title": "Epics",
+      "view": "kanban",
+      "cardKind": "epic",
       "groupBy": "stage",
       "filters": {}
     },

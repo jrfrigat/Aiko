@@ -33,12 +33,12 @@ rate limit) hands off to another agent without losing history.
   editor, artifacts
   and executions; the interface language follows the browser, English and Russian ship, and any other
   language falls back to English
-- **Card types you define yourself** - a card type *is* a workflow: add an `Epic` with its own
+- **Card types you define yourself** - a card type *is* a workflow: add a `Bug` with its own
   description, icon and colour right in the workflow editor, and it appears in the pickers, as a board
   section and in the backlog; every status column carries its own icon and colour too. The `backlog`
   column is standard and cannot be removed, and a dedicated **Backlog** screen gathers every card that
   has not been taken into work yet
-- **A default template that is already worked out** - a new project starts from story and task pipelines in
+- **A default template that is already worked out** - a new project starts from epic, story and task pipelines in
   which every status carries an icon, a colour and an instruction saying what the agent does there, the
   card types come with their descriptions, and cards are scored by three criteria - `app-point`,
   `user-point` and `complete` - whose readiness score the agent re-calculates after every change

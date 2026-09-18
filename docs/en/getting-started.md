@@ -52,8 +52,9 @@ In the agent (inside the project):
 ```
 
 The types are the project's own: every workflow in **Project settings - Workflow** is a card type, so a
-type you add there (an *Epic*, a *Bug*) is creatable at once - `/aiko-create` reads the project context
-instead of naming types, and `/aiko-create-<type>` is generated for each of them.
+type you add there (a *Bug*) is creatable at once - `/aiko-create` reads the project context
+instead of naming types, and `/aiko-create-<type>` is generated for each of them. An Epic, a Story and a
+Task ship with the default template, so a new project can file all three without adding anything.
 
 Or use plain language: *"Create a task to add a settings page."* The same cards can be created in
 the UI with the **Card** button on the board.

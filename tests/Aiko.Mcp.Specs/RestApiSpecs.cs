@@ -318,7 +318,7 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
         Assert.Equal("app-point", criteria[0].GetProperty("id").GetString());
         Assert.Equal("user-point", criteria[1].GetProperty("id").GetString());
         Assert.Equal("complete", criteria[2].GetProperty("id").GetString());
-        Assert.Equal(2, original.GetProperty("workflows").GetArrayLength());
+        Assert.Equal(3, original.GetProperty("workflows").GetArrayLength());
         // The execution defaults state the push policy next to the commit policy, so a project created from this
         // template answers both questions in one place.
         var execution = original.GetProperty("settings").GetProperty("execution");
@@ -343,11 +343,15 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
         Assert.Equal(HttpStatusCode.OK, saved.StatusCode);
         var afterSettings = await saved.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(version + 1, afterSettings.GetProperty("version").GetInt32());
-        Assert.Equal(2, afterSettings.GetProperty("workflows").GetArrayLength());
+        Assert.Equal(3, afterSettings.GetProperty("workflows").GetArrayLength());
         Assert.Equal(1, afterSettings.GetProperty("settings").GetProperty("priority")
             .GetProperty("sizes").GetArrayLength());
 
-        var taskWorkflow = afterSettings.GetProperty("workflows")[1];
+        var taskWorkflow = afterSettings.GetProperty("workflows").EnumerateArray()
+            .Single(workflow => string.Equals(
+                workflow.GetProperty("id").GetString(),
+                "task",
+                StringComparison.Ordinal));
         var workflowId = taskWorkflow.GetProperty("id").GetString();
         var revision = taskWorkflow.GetProperty("revision").GetInt64();
         using var workflowSaved = await http.PutAsJsonAsync(
@@ -576,13 +580,17 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
     {
         using var http = CreateClient();
         var project = fixture.ProjectId;
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var typeId = $"theme{suffix}";
+        var kind = $"Theme{suffix}";
 
         // A new type is a workflow of its own: the reserved backlog stage plus at least one working stage,
-        // with its own description, icon and colour.
+        // with its own description, icon and colour. The id is unique per run - the default template now ships
+        // an epic pipeline itself, so this spec states its own type instead of taking a name the project has.
         using var created = await http.PostAsJsonAsync($"api/v1/projects/{project}/workflows", new
         {
-            id = "epic",
-            title = "Epics",
+            id = typeId,
+            title = "Themes",
             description = "A global card type that groups several stories.",
             icon = "account-tree",
             color = "primary",
@@ -594,7 +602,7 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
                     title = "Backlog",
                     order = 10,
                     instruction = "Clarify the epic.",
-                    allowedCardKinds = new[] { "Epic" },
+                    allowedCardKinds = new[] { kind },
                     defaultAgentAdapterId = (string?)null,
                     requiredArtifacts = Array.Empty<object>(),
                     actionPolicies = new Dictionary<string, string>(),
@@ -607,7 +615,7 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
                     title = "In progress",
                     order = 20,
                     instruction = "Work the epic.",
-                    allowedCardKinds = new[] { "Epic" },
+                    allowedCardKinds = new[] { kind },
                     defaultAgentAdapterId = (string?)null,
                     requiredArtifacts = Array.Empty<object>(),
                     actionPolicies = new Dictionary<string, string>(),
@@ -620,23 +628,23 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
 
         // The board reports the type with its own words and appearance, and its own pipeline.
         var board = await http.GetFromJsonAsync<JsonElement>($"api/v1/projects/{project}/board");
-        var epic = board.GetProperty("workflows").EnumerateArray()
-            .Single(workflow => workflow.GetProperty("id").GetString() == "epic");
+        var theme = board.GetProperty("workflows").EnumerateArray()
+            .Single(workflow => workflow.GetProperty("id").GetString() == typeId);
         Assert.Equal(
             "A global card type that groups several stories.",
-            epic.GetProperty("description").GetString());
-        Assert.Equal("account-tree", epic.GetProperty("icon").GetString());
-        Assert.Equal("primary", epic.GetProperty("color").GetString());
-        Assert.Equal("inbox", epic.GetProperty("stages")[0].GetProperty("icon").GetString());
+            theme.GetProperty("description").GetString());
+        Assert.Equal("account-tree", theme.GetProperty("icon").GetString());
+        Assert.Equal("primary", theme.GetProperty("color").GetString());
+        Assert.Equal("inbox", theme.GetProperty("stages")[0].GetProperty("icon").GetString());
 
         // A card of the new type is created and moved like any built-in one.
-        var cardId = $"EPIC-{Guid.NewGuid():N}"[..12];
+        var cardId = $"THEME-{Guid.NewGuid():N}"[..12];
         using var card = await http.PostAsJsonAsync($"api/v1/projects/{project}/cards", new
         {
             cardId,
-            kind = "Epic",
-            title = "First epic",
-            workflowId = "epic",
+            kind,
+            title = "First theme",
+            workflowId = typeId,
             stageId = "backlog",
             ownPriority = 3,
             declaredScopeFiles = Array.Empty<string>()
@@ -650,10 +658,10 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
 
         // Backlog is reserved: a pipeline that drops it is refused rather than saved.
         using var withoutBacklog = await http.PutAsJsonAsync(
-            $"api/v1/projects/{project}/workflows/epic",
+            $"api/v1/projects/{project}/workflows/{typeId}",
             new
             {
-                title = "Epics",
+                title = "Themes",
                 expectedRevision = 1,
                 stages = new object[]
                 {
@@ -663,7 +671,7 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
                         title = "In progress",
                         order = 10,
                         instruction = "Work the epic.",
-                        allowedCardKinds = new[] { "Epic" },
+                        allowedCardKinds = new[] { kind },
                         defaultAgentAdapterId = (string?)null,
                         requiredArtifacts = Array.Empty<object>(),
                         actionPolicies = new Dictionary<string, string>()
@@ -675,10 +683,10 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
         // And so is a pipeline that puts something before it: a card enters its workflow in the backlog, so
         // no status may be ahead of it.
         using var beforeBacklog = await http.PutAsJsonAsync(
-            $"api/v1/projects/{project}/workflows/epic",
+            $"api/v1/projects/{project}/workflows/{typeId}",
             new
             {
-                title = "Epics",
+                title = "Themes",
                 expectedRevision = 1,
                 stages = new object[]
                 {
@@ -688,7 +696,7 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
                         title = "In progress",
                         order = 10,
                         instruction = "Work the epic.",
-                        allowedCardKinds = new[] { "Epic" },
+                        allowedCardKinds = new[] { kind },
                         defaultAgentAdapterId = (string?)null,
                         requiredArtifacts = Array.Empty<object>(),
                         actionPolicies = new Dictionary<string, string>()
@@ -699,7 +707,7 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
                         title = "Backlog",
                         order = 20,
                         instruction = "Clarify the epic.",
-                        allowedCardKinds = new[] { "Epic" },
+                        allowedCardKinds = new[] { kind },
                         defaultAgentAdapterId = (string?)null,
                         requiredArtifacts = Array.Empty<object>(),
                         actionPolicies = new Dictionary<string, string>()
@@ -709,7 +717,7 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
         Assert.Equal(HttpStatusCode.BadRequest, beforeBacklog.StatusCode);
 
         // A type that still has cards is not removed, so nothing is stranded.
-        using var removeWithCards = await http.DeleteAsync($"api/v1/projects/{project}/workflows/epic");
+        using var removeWithCards = await http.DeleteAsync($"api/v1/projects/{project}/workflows/{typeId}");
         Assert.Equal(HttpStatusCode.BadRequest, removeWithCards.StatusCode);
     }
 

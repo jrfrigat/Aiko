@@ -19,15 +19,23 @@ public static class CardKind
     /// <summary>Atomic task executed by an agent within a single workflow stage.</summary>
     public const string Task = "Task";
 
+    /// <summary>
+    /// Epic: a goal held across several stories or tasks. Shipped by the default template since it gained a
+    /// third pipeline, and named here for the same reason the other two are - it is a type Aiko is ready to
+    /// work with, not one a project had to invent.
+    /// </summary>
+    public const string Epic = "Epic";
+
     /// <summary>The types every installation has, in the order a form should offer them.</summary>
-    public static IReadOnlyList<string> WellKnown { get; } = [Task, Story];
+    public static IReadOnlyList<string> WellKnown { get; } = [Epic, Story, Task];
 
     /// <summary>Whether a type is one of the built-in ones (case-insensitive).</summary>
     /// <param name="kind">Type id to test.</param>
     public static bool IsWellKnown(string? kind) =>
         !string.IsNullOrWhiteSpace(kind) &&
         (string.Equals(kind, Story, StringComparison.OrdinalIgnoreCase) ||
-         string.Equals(kind, Task, StringComparison.OrdinalIgnoreCase));
+         string.Equals(kind, Task, StringComparison.OrdinalIgnoreCase) ||
+         string.Equals(kind, Epic, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
     /// The type a workflow defines. The workflow id is the type id, so the two cannot drift: a workflow
