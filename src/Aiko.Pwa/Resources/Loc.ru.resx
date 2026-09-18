@@ -335,6 +335,7 @@
   <data name="ArtifactMissing" xml:space="preserve"><value>отсутствует</value></data>
   <data name="FilesDeclared" xml:space="preserve"><value>Объявлено</value></data>
   <data name="FilesActual" xml:space="preserve"><value>Реально изменено</value></data>
+  <data name="AllScope" xml:space="preserve"><value>Все scope</value></data>
   <data name="DefinitionOfDone" xml:space="preserve"><value>Критерии приёмки</value></data>
   <data name="NoRequiredArtifacts" xml:space="preserve"><value>Этот этап не требует артефактов.</value></data>
   <data name="CompletedOutcomes" xml:space="preserve"><value>Что сделано по итогу</value></data>

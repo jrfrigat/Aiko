@@ -67,7 +67,7 @@
                        block as the scope below, because both are long prose about this one card. *@
                     <PromptField Name="@($"{Card.Reference.CardId}.requirements")"
                                  Title="@Loc.Get("Requirements")"
-                                 Rows="4"
+                                 Rows="8"
                                  Placeholder="@Loc.Get("RequirementsHelper")"
                                  Value="@_requirements"
                                  ValueChanged="value => _requirements = value" />
@@ -92,11 +92,26 @@
                     </FlareStack>
                 </FlareStack>
 
-                <FileGroup Title="@Loc.Get("FilesDeclared")" Files="Card.DeclaredScopeFiles" />
-                <FileGroup Title="@Loc.Get("FilesActual")" Files="Card.ActualChangedFiles" />
-                <FileGroup Title="@Loc.Get("OutOfScope")"
-                           Files="@BoardSection.FindOutOfScopeFiles(Card)"
-                           Warning="true" />
+                @* The card's files behind one tab bar instead of three lists in a row: what it declared it
+                   would touch, what it actually touched, and both together - the union is where a file changed
+                   without being declared shows up, because it is in the second list and not in the first. *@
+                <FlareTabs ActiveIndex="_scopeTab" ActiveIndexChanged="OnScopeTabChanged">
+                    <FlareTab Label="@Loc.Get("FilesDeclared")">
+                        <ChildContent>
+                            <FileGroup Title="@Loc.Get("FilesDeclared")" Files="Card.DeclaredScopeFiles" />
+                        </ChildContent>
+                    </FlareTab>
+                    <FlareTab Label="@Loc.Get("FilesActual")">
+                        <ChildContent>
+                            <FileGroup Title="@Loc.Get("FilesActual")" Files="Card.ActualChangedFiles" />
+                        </ChildContent>
+                    </FlareTab>
+                    <FlareTab Label="@Loc.Get("AllScope")">
+                        <ChildContent>
+                            <FileGroup Title="@Loc.Get("AllScope")" Files="ScopeFiles" />
+                        </ChildContent>
+                    </FlareTab>
+                </FlareTabs>
 
                 @* The stage's acceptance criteria: the artifacts it expects, marked by whether the card
                    carries them, and the commands that verify the result. *@
@@ -842,6 +857,9 @@
     private bool _saving;
     private bool _loadingExecutions;
     private int _activeTab;
+
+    /// <summary>The selected tab of the scope block, independent of the produced-work tabs below it.</summary>
+    private int _scopeTab;
     private IReadOnlyList<StageExecution> _executions = [];
     private IReadOnlyList<CardArtifactSummary> _artifacts = [];
     private GitCardDiff? _diff;
@@ -1097,6 +1115,18 @@
         $"/p/{Uri.EscapeDataString(Card.Reference.ProjectId)}/cards/{Uri.EscapeDataString(otherCardId)}";
 
     /// <summary>The project's size grid: what the human may choose from, same ladder the agent reads.</summary>
+    /// <summary>
+    /// Everything the card touched: what it declared, then whatever it actually changed without declaring.
+    /// The union is the one list in which an undeclared change stands out - it is here and not in the
+    /// declared list.
+    /// </summary>
+    private IReadOnlyList<string> ScopeFiles =>
+    [
+        .. Card.DeclaredScopeFiles,
+        .. Card.ActualChangedFiles.Where(file =>
+            !Card.DeclaredScopeFiles.Contains(file, StringComparer.OrdinalIgnoreCase))
+    ];
+
     private IReadOnlyList<SizeDefinition> SizeGrid => State.SettingsView?.EffectivePriority.Grid ?? [];
 
     /// <summary>
@@ -1131,6 +1161,8 @@
 
     /// <summary>Keeps the visible tab across the renders a live board refresh causes.</summary>
     private void OnActiveTabChanged(int index) => _activeTab = index;
+
+    private void OnScopeTabChanged(int index) => _scopeTab = index;
 
     /// <summary>Tab captions the counts belong in, the way the design's tab bar prints them.</summary>
     private string ArtifactsTabLabel => $"{Loc.Get("ArtifactsTitle")} ({_artifacts.Count})";
