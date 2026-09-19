@@ -202,6 +202,44 @@ public sealed class RazorMarkupSpecs
         }
     }
 
+    [Fact]
+    public void A_related_card_shows_its_current_status_the_way_the_board_draws_one()
+    {
+        var root = FindRepositoryRoot();
+        var cardPage = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "CardInspector.razor"));
+
+        // The related-cards row asks for the other card's state and draws it with the one badge the rest of
+        // the product uses for a status - asking is not optional, and neither is the shared view.
+        Assert.Contains("RelatedStageState(link)", cardPage, StringComparison.Ordinal);
+        Assert.Contains("aiko-tag @StageStateView.TagClass(relatedState)", cardPage, StringComparison.Ordinal);
+        Assert.Contains("Loc.Get(StageStateView.LabelKey(relatedState))", cardPage, StringComparison.Ordinal);
+
+        // A card the snapshot does not hold is left without a badge: "nothing known" is not "pending".
+        Assert.Contains("related is null", cardPage, StringComparison.Ordinal);
+
+        // The state is derived in one place. Both screens go through it, and the board no longer filters the
+        // runs itself - that second copy is what let the two screens drift apart.
+        Assert.Contains(
+            "StageStateView.Of(Board.StageRuns, related.Reference.CardId, related.StageId)",
+            cardPage,
+            StringComparison.Ordinal);
+        var board = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "BoardSection.razor"));
+        Assert.Contains(
+            "StageStateView.Of(Board.StageRuns, card.Reference.CardId, card.StageId)",
+            board,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("run.CardId", board, StringComparison.Ordinal);
+
+        var stateView = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Services", "StageStateView.cs"));
+        Assert.Contains(
+            "public static StageState Of(IReadOnlyList<StageRunSummary>? runs, string cardId, string stageId)",
+            stateView,
+            StringComparison.Ordinal);
+    }
+
     /// <summary>
     /// Walks up from this assembly to the solution file, the same way the daemon fixture does.
     /// </summary>

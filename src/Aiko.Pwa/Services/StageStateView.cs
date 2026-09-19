@@ -1,3 +1,4 @@
+using Aiko.Application.Contracts;
 using Aiko.Domain.Execution;
 
 namespace Aiko.Pwa.Services;
@@ -58,6 +59,28 @@ public static class StageStateView
         return parsed.Length == 0
             ? StageState.Pending
             : parsed.Contains(StageState.Completed) ? StageState.Completed : parsed[^1];
+    }
+
+    /// <summary>
+    /// The state of the stage a card sits in, from the runs a board snapshot carries.
+    /// </summary>
+    /// <remarks>
+    /// The board and the card page both ask where a card got to, and both must answer it the same way: a
+    /// screen that derived it a second time would sooner or later disagree with the one beside it. A snapshot
+    /// that says nothing about runs leaves the stage reading as pending, which is what "nothing known" looks
+    /// like here.
+    /// </remarks>
+    public static StageState Of(IReadOnlyList<StageRunSummary>? runs, string cardId, string stageId)
+    {
+        if (runs is null)
+        {
+            return StageState.Pending;
+        }
+
+        return Of(runs
+            .Where(run => StringComparer.Ordinal.Equals(run.CardId, cardId) &&
+                          StringComparer.Ordinal.Equals(run.StageId, stageId))
+            .Select(run => run.State));
     }
 
     /// <summary>One run's state, as a screen shows it.</summary>

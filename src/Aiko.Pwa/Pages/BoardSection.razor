@@ -273,20 +273,18 @@
     /// compares two cards. The formula's score is a share of the maximum, and a bare "0,47" beside "1" reads
     /// as almost nothing next to everything.
     /// </summary>
-    /// <summary>
-    /// Where this card's current stage got to, from the runs the board snapshot carries. A daemon that says
-    /// nothing about runs leaves every card reading as waiting, which is what "nothing known" looks like here.
-    /// </summary>
-    private StageState StageStateOf(Card card)
-    {
-        var runs = Board.StageRuns ?? [];
-        return StageStateView.Of(runs
-            .Where(run => StringComparer.Ordinal.Equals(run.CardId, card.Reference.CardId) &&
-                          StringComparer.Ordinal.Equals(run.StageId, card.StageId))
-            .Select(run => run.State));
-    }
-
     private string Score(Card card) => DisplayFormat.Priority(EffectivePriority(card));
+
+    /// <summary>
+    /// Where this card's current stage got to.
+    /// </summary>
+    /// <remarks>
+    /// The answer comes from <see cref="StageStateView"/>, which this board and the card page both ask, so
+    /// neither screen can end up deriving the state its own way. A snapshot that says nothing about runs
+    /// leaves the stage reading as pending, which is what "nothing known" looks like here.
+    /// </remarks>
+    private StageState StageStateOf(Card card) =>
+        StageStateView.Of(Board.StageRuns, card.Reference.CardId, card.StageId);
 
     private static string MetaLine(Card card) =>
         $"rev={card.Revision} · files={card.ActualChangedFiles.Count}/{card.DeclaredScopeFiles.Count}";

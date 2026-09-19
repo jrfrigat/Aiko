@@ -837,6 +837,18 @@
                                                     {
                                                         <span class="aiko-tag aiko-tag--quiet">@tag</span>
                                                     }
+                                                    @* Where the related card stands right now, drawn the one way a status is
+                                                       drawn: the same badge the board and this card's own header use, so the
+                                                       three cannot disagree about what a state looks like. Asked only for a
+                                                       card the snapshot holds - a relation to a card nobody carries says
+                                                       nothing, and "pending" would be an answer nobody gave. *@
+                                                    @if (RelatedStageState(link) is { } relatedState)
+                                                    {
+                                                        <span class="aiko-tag @StageStateView.TagClass(relatedState)"
+                                                              title="@Loc.Get(StageStateView.LabelKey(relatedState))">
+                                                            @Loc.Get(StageStateView.LabelKey(relatedState))
+                                                        </span>
+                                                    }
                                                 </FlareStack>
                                                 <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
                                                     @OtherCardTitle(link)
@@ -1312,6 +1324,25 @@
     private static string OriginDetail(CardOrigin origin) => string.IsNullOrWhiteSpace(origin.AdapterId)
         ? RelativeTime(origin.CreatedAtUtc)
         : $"{origin.AdapterId} · {RelativeTime(origin.CreatedAtUtc)}";
+
+    /// <summary>
+    /// The state of the stage a related card sits in, or null when the snapshot does not carry that card.
+    /// </summary>
+    /// <remarks>
+    /// The state comes from the one place that derives it (<see cref="StageStateView"/>), so this block and
+    /// the board cannot show a different colour for the same card. Null is not "pending": a relation whose
+    /// card the board does not hold says nothing about that card, and a badge reading "pending" would be an
+    /// answer nobody gave.
+    /// </remarks>
+    private StageState? RelatedStageState(CardRelation relation)
+    {
+        var cardId = OtherCardId(relation);
+        var related = Board.Cards.FirstOrDefault(item =>
+            StringComparer.Ordinal.Equals(item.Reference.CardId, cardId));
+        return related is null
+            ? null
+            : StageStateView.Of(Board.StageRuns, related.Reference.CardId, related.StageId);
+    }
 
     /// <summary>The project's size grid: what the human may choose from, same ladder the agent reads.</summary>
     /// <summary>
