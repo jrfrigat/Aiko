@@ -69,7 +69,42 @@ else
                 <LeadingIcon><FlareIconView Value="@FlareIcons.Add" /></LeadingIcon>
                 <ChildContent>@Loc.Get("CreateCard")</ChildContent>
             </FlareButton>
+            @* The board's own button: Aiko cannot start an agent, so this places the request in the project's
+               command queue and the state below says what became of it. An agent that runs takes it and walks
+               the board by the /aiko-run-all procedure. *@
+            <FlareButton Variant="ButtonVariant.Tonal"
+                         Size="ButtonSize.Sm"
+                         Disabled="@(BoardCommand is not null || _placingBoardRun)"
+                         Loading="@_placingBoardRun"
+                         OnClick="RunBoardAsync">
+                <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.PlayArrow" /></LeadingIcon>
+                <ChildContent>@Loc.Get("RunBoard")</ChildContent>
+            </FlareButton>
         </FlareStack>
+
+        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+            @Loc.Get("RunBoardHint")
+        </FlareText>
+
+        @if (BoardCommand is { } boardPass)
+        {
+            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
+                <FlareText Element="span" Mono="true" Typo="TypographyScale.BodySmall">@boardPass.Id</FlareText>
+                <span class="aiko-tag @BoardCommandBadgeClass(boardPass)">@BoardCommandStateCaption(boardPass)</span>
+                @if (boardPass.Message is { Length: > 0 } boardPassMessage)
+                {
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                        @boardPassMessage
+                    </FlareText>
+                }
+            </FlareStack>
+        }
+        else if (_boardMessage is { Length: > 0 } boardMessage)
+        {
+            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                @boardMessage
+            </FlareText>
+        }
 
         @* What the project is working on right now. The board's own stage runs say which (card, stage) pairs
            are unfinished, so the panel finds them without walking the cards; a card is asked for the details
@@ -134,6 +169,71 @@ else
         // open must appear in it or leave it without a reload.
         await EnsureActiveRunsAsync();
         await InvokeAsync(StateHasChanged);
+    }
+
+    private bool _placingBoardRun;
+    private string? _boardMessage;
+
+    /// <summary>
+    /// The project's most recent request to work the board, open or closed: what the button placed and what
+    /// became of it.
+    /// </summary>
+    /// <remarks>
+    /// Read from the queue rather than remembered here, for the same reason the card page does it: the queue
+    /// is the one place that knows whether an agent took the request, so a screen that kept its own answer
+    /// would be a second one. The queue arrives oldest first, so the last board pass is the newest.
+    /// </remarks>
+    private CardCommand? BoardCommand => State.Commands
+        .LastOrDefault(command => command.Action is CardCommandAction.RunBoard);
+
+    /// <summary>How the queue's state of the pass reads on the board.</summary>
+    private static string BoardCommandStateCaption(CardCommand command) => command.State switch
+    {
+        CardCommandState.Queued => Loc.Get("CommandWaiting"),
+        CardCommandState.Taken => Loc.Get("CommandTaken"),
+        CardCommandState.Completed => Loc.Get("CommandDone"),
+        CardCommandState.Failed => Loc.Get("CommandRefused"),
+        _ => Loc.Get("CommandWithdrawn")
+    };
+
+    /// <summary>Tone of the pass's badge: the same reading as the card page gives a command.</summary>
+    private static string BoardCommandBadgeClass(CardCommand command) => command.State switch
+    {
+        CardCommandState.Taken => "aiko-tag--live",
+        CardCommandState.Completed => "aiko-tag--accent",
+        CardCommandState.Failed => "aiko-tag--warn",
+        _ => "aiko-tag--quiet"
+    };
+
+    /// <summary>
+    /// Asks an agent to work the board.
+    /// </summary>
+    /// <remarks>
+    /// No card and no agent are named: this is a request for the project, and any agent that runs may take
+    /// it. Nothing is started here - Aiko does not run agents - so the screen's job ends at placing the
+    /// command and showing what the queue says about it.
+    /// </remarks>
+    private async Task RunBoardAsync()
+    {
+        if (_placingBoardRun || BoardCommand is not null)
+        {
+            return;
+        }
+
+        _placingBoardRun = true;
+        _boardMessage = null;
+        try
+        {
+            var placed = await State.PlaceCommandAsync(
+                new PlaceCommandRequest(null, CardCommandAction.RunBoard));
+            _boardMessage = placed is null
+                ? State.Error ?? Loc.Get("CommandFailed")
+                : Loc.Format("CommandPlaced", placed.Id);
+        }
+        finally
+        {
+            _placingBoardRun = false;
+        }
     }
 
     public ValueTask DisposeAsync()

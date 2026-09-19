@@ -3263,6 +3263,110 @@ public class InfrastructureSpecs
         });
     }
 
+    /// <summary>
+    /// Working the board is one command that names no card, and a project works its board once.
+    /// </summary>
+    [Fact]
+    public async Task Working_the_board_is_one_command_that_names_no_card()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            var pass = await context.Commands.PlaceAsync(
+                context.Project.Id,
+                new PlaceCommandRequest(null, CardCommandAction.RunBoard),
+                CancellationToken.None);
+
+            Assert.Equal("CMD-1", pass.Id);
+            Assert.Null(pass.CardId);
+            Assert.Equal(CardCommandState.Queued, pass.State);
+
+            // A pass is not about one card and not about one run: naming either is refused rather than
+            // quietly ignored, because a field nobody reads is how a request and its meaning drift apart.
+            await Assert.ThrowsAsync<ArgumentException>(() =>
+                context.Commands.PlaceAsync(
+                    context.Project.Id,
+                    new PlaceCommandRequest("TASK-001", CardCommandAction.RunBoard),
+                    CancellationToken.None).AsTask());
+            await Assert.ThrowsAsync<ArgumentException>(() =>
+                context.Commands.PlaceAsync(
+                    context.Project.Id,
+                    new PlaceCommandRequest(null, CardCommandAction.Start, StageId: "backlog"),
+                    CancellationToken.None).AsTask());
+
+            // A card action without its card has nothing to act on.
+            await Assert.ThrowsAsync<ArgumentException>(() =>
+                context.Commands.PlaceAsync(
+                    context.Project.Id,
+                    new PlaceCommandRequest(null, CardCommandAction.Resume, ExecutionId: "run-1"),
+                    CancellationToken.None).AsTask());
+
+            // One project works its board once: while the pass is open a second one is refused. Two passes
+            // would take the cards in the same order and interleave, and neither stop would mean anything.
+            var refusal = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                context.Commands.PlaceAsync(
+                    context.Project.Id,
+                    new PlaceCommandRequest(null, CardCommandAction.RunBoard),
+                    CancellationToken.None).AsTask());
+            Assert.Contains("already being worked", refusal.Message, StringComparison.Ordinal);
+
+            // ...and once it is closed, the button can be pressed again.
+            await context.Commands.ClaimAsync(context.Project.Id, pass.Id, "cline", CancellationToken.None);
+            await context.Commands.FinishAsync(
+                context.Project.Id,
+                pass.Id,
+                CardCommandState.Completed,
+                "Two cards done.",
+                CancellationToken.None);
+            var again = await context.Commands.PlaceAsync(
+                context.Project.Id,
+                new PlaceCommandRequest(null, CardCommandAction.RunBoard),
+                CancellationToken.None);
+            Assert.Equal("CMD-2", again.Id);
+        });
+    }
+
+    /// <summary>
+    /// The pass over the board reaches an agent as a procedure, and the procedure is where its rules live -
+    /// a pass is text, not an engine, so what it says is the whole implementation.
+    /// </summary>
+    [Fact]
+    public async Task The_board_pass_reaches_an_agent_and_says_where_it_stops()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            var installer = new UnifiedAgentInstaller(
+                [new ClineAgentAdapter()],
+                context.Catalog,
+                new FileProjectDefinitionStore(context.Catalog));
+            await installer.ApplyAsync(
+                context.Project.Id,
+                $"http://127.0.0.1:18471/mcp/projects/{context.Project.Id}",
+                "test-token",
+                ["cline"],
+                CancellationToken.None);
+
+            var procedure = await File.ReadAllTextAsync(Path.Combine(
+                context.Project.RootPath, ".cline", "skills", "aiko-run-all", "SKILL.md"));
+
+            // The order is the board's own computed priority, not the cards sorted by hand.
+            Assert.Contains("aiko_list_board", procedure, StringComparison.Ordinal);
+            // A blocked card is a skip read from the refusal - the rule keeps its one home.
+            Assert.Contains("refuses it", procedure, StringComparison.Ordinal);
+            // A question pauses the card and the pass goes on ...
+            Assert.Contains("do not stop the pass", procedure, StringComparison.Ordinal);
+            Assert.Contains("waiting-for-user", procedure, StringComparison.Ordinal);
+            // ... while a failure, a limit or a forbidden action stops it.
+            Assert.Contains("rate limit", procedure, StringComparison.Ordinal);
+            // Resumability is claimed to need no bookkeeping, and that claim is checked by a human reading
+            // it - what a spec can pin is that the pass says so at all.
+            Assert.Contains("no bookkeeping", procedure, StringComparison.Ordinal);
+            // The command that asked for the pass is closed either way.
+            Assert.Contains("aiko_finish_command", procedure, StringComparison.Ordinal);
+            // And it names the adapter it was installed for, so the stages it starts record the right agent.
+            Assert.Contains("\"cline\"", procedure, StringComparison.Ordinal);
+        });
+    }
+
     private static Card CreateCard(string projectId, string cardId, long revision) =>
         new(
             new CardReference(projectId, cardId),

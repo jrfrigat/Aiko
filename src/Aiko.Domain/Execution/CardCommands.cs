@@ -41,20 +41,48 @@ public static class CardCommands
         };
 
     /// <summary>
-    /// Rejects the actions that name nothing an agent could act on: a message that says "resume" without
-    /// saying which execution would be a command the agent has to guess its way through.
+    /// Rejects the commands that name nothing an agent could act on, in either direction: a card action
+    /// without its card, an action that names no execution, or a pass over the board that names a card.
     /// </summary>
+    /// <remarks>
+    /// The board pass is refused a card, a stage and an execution rather than having them quietly ignored:
+    /// a field nobody reads is how a request and its meaning drift apart, and the next reader would believe
+    /// the command said something it did not.
+    /// </remarks>
     /// <param name="action">Action the command asks for.</param>
+    /// <param name="cardId">Card the command is about, or null for the board pass.</param>
     /// <param name="stageId">Stage to start, when the action needs one.</param>
     /// <param name="executionId">Execution to act on, when the action needs one.</param>
     /// <param name="text">Text the action needs, when it needs one.</param>
     /// <exception cref="ArgumentException">The action is missing something it cannot do without.</exception>
     public static void Validate(
         CardCommandAction action,
+        string? cardId,
         string? stageId,
         string? executionId,
         string? text)
     {
+        if (action is CardCommandAction.RunBoard)
+        {
+            if (!string.IsNullOrWhiteSpace(cardId) ||
+                !string.IsNullOrWhiteSpace(stageId) ||
+                !string.IsNullOrWhiteSpace(executionId))
+            {
+                throw new ArgumentException(
+                    "Working the board is not about one card or one run, so it names neither.",
+                    nameof(cardId));
+            }
+
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(cardId))
+        {
+            throw new ArgumentException(
+                $"The '{action}' action needs the card it is about.",
+                nameof(cardId));
+        }
+
         if (action is CardCommandAction.Start)
         {
             if (string.IsNullOrWhiteSpace(stageId))
@@ -81,6 +109,34 @@ public static class CardCommands
                     : "Answering a question needs the answer itself.",
                 nameof(text));
         }
+    }
+
+    /// <summary>
+    /// Why the command may not be placed at all, or null when it may be.
+    /// </summary>
+    /// <param name="action">Action the command asks for.</param>
+    /// <param name="existing">The project's commands, from which the open ones are read.</param>
+    /// <remarks>
+    /// One project works its board once. Two open passes would take cards in the same order and fight over
+    /// them: the second agent would be refused by the concurrency gate on one card and start the next, so
+    /// the two passes would interleave and neither stop would mean anything. Unlike the claim rule, this one
+    /// is about placing - the person pressing the button twice is the mistake being caught.
+    /// </remarks>
+    public static string? RefusePlace(
+        CardCommandAction action,
+        IReadOnlyList<CardCommand> existing)
+    {
+        ArgumentNullException.ThrowIfNull(existing);
+        if (action is not CardCommandAction.RunBoard)
+        {
+            return null;
+        }
+
+        return existing.FirstOrDefault(command =>
+            command.Action is CardCommandAction.RunBoard && command.IsOpen) is { } open
+            ? $"the board is already being worked: command '{open.Id}' is {open.State}. "
+                + "Let that pass finish, or withdraw it first."
+            : null;
     }
 
     /// <summary>

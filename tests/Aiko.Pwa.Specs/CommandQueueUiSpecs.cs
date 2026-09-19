@@ -48,6 +48,34 @@ public sealed class CommandQueueUiSpecs
         Assert.Contains("entry.Message", text, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void The_board_asks_for_a_pass_and_reads_its_state_from_the_queue()
+    {
+        var text = File.ReadAllText(Path.Combine(
+            FindRepositoryRoot(), "src", "Aiko.Pwa", "Pages", "BoardView.razor"));
+
+        // The button places the one action that names no card, so the request is about the project.
+        Assert.Contains(
+            "new PlaceCommandRequest(null, CardCommandAction.RunBoard)",
+            text,
+            StringComparison.Ordinal);
+
+        // What became of the pass is read from the queue and not remembered here: one source, and the only
+        // one that knows whether an agent has taken it.
+        Assert.Contains("State.Commands", text, StringComparison.Ordinal);
+        Assert.Contains("BoardCommand", text, StringComparison.Ordinal);
+
+        // Every state the pass can be in has words, and the button has a name.
+        foreach (var key in new[]
+                 {
+                     "RunBoard", "CommandWaiting", "CommandTaken", "CommandDone", "CommandRefused",
+                     "CommandWithdrawn"
+                 })
+        {
+            Assert.Contains($"Loc.Get(\"{key}\")", text, StringComparison.Ordinal);
+        }
+    }
+
     /// <summary>Walks up from this assembly to the solution file, as the other specs do.</summary>
     private static string FindRepositoryRoot()
     {

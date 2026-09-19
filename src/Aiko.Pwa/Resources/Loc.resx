@@ -646,5 +646,7 @@
   <data name="CommandCaptionPause" xml:space="preserve"><value>pause the run</value></data>
   <data name="CommandCaptionResume" xml:space="preserve"><value>resume the run</value></data>
   <data name="CommandCaptionAnswer" xml:space="preserve"><value>answer the run</value></data>
+  <data name="RunBoard" xml:space="preserve"><value>Work the board</value></data>
+  <data name="RunBoardHint" xml:space="preserve"><value>Asks an agent to take every unfinished card of the board, in board order, to the end of its own pipeline.</value></data>
 
 </root>

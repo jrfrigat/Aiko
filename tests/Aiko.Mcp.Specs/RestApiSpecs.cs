@@ -1242,4 +1242,59 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
         Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
     }
 
+    /// <summary>
+    /// The board button's request over HTTP: one command that names no card, taken once, closed with the
+    /// reason the pass stopped - or with the summary it finished on.
+    /// </summary>
+    [Fact]
+    public async Task Working_the_board_is_placed_without_a_card_and_carries_its_outcome()
+    {
+        using var http = CreateClient();
+        var project = fixture.ProjectId;
+
+        using var placed = await http.PostAsJsonAsync($"api/v1/projects/{project}/commands", new
+        {
+            action = "RunBoard",
+            requestedBy = "the board"
+        });
+        Assert.Equal(HttpStatusCode.Created, placed.StatusCode);
+        var command = await placed.Content.ReadFromJsonAsync<JsonElement>();
+        var commandId = command.GetProperty("id").GetString();
+        Assert.Equal("RunBoard", command.GetProperty("action").GetString());
+        Assert.Equal(JsonValueKind.Null, command.GetProperty("cardId").ValueKind);
+
+        // One project works its board once: the second press is refused with the daemon's own words.
+        using var second = await http.PostAsJsonAsync(
+            $"api/v1/projects/{project}/commands",
+            new { action = "RunBoard" });
+        Assert.Equal(HttpStatusCode.Conflict, second.StatusCode);
+
+        // A pass that named a card is a request the action cannot honour, so it is refused rather than
+        // stored with a field nobody would read.
+        using var withCard = await http.PostAsJsonAsync(
+            $"api/v1/projects/{project}/commands",
+            new { cardId = "REST-CMD-CARD", action = "RunBoard" });
+        Assert.Equal(HttpStatusCode.BadRequest, withCard.StatusCode);
+
+        using var claimed = await http.PostAsJsonAsync(
+            $"/api/v1/projects/{project}/commands/{commandId}/claim",
+            new { agentAdapterId = "cline" });
+        claimed.EnsureSuccessStatusCode();
+
+        // Where the pass stopped is what the board shows, so the reason travels in the command's message.
+        using var failed = await http.PostAsJsonAsync(
+            $"/api/v1/projects/{project}/commands/{commandId}/fail",
+            new { message = "Stopped on the agent's rate limit." });
+        failed.EnsureSuccessStatusCode();
+        var closed = await failed.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("Failed", closed.GetProperty("state").GetString());
+        Assert.Equal("Stopped on the agent's rate limit.", closed.GetProperty("message").GetString());
+
+        // Closed, so the button works again.
+        using var again = await http.PostAsJsonAsync(
+            $"api/v1/projects/{project}/commands",
+            new { action = "RunBoard" });
+        Assert.Equal(HttpStatusCode.Created, again.StatusCode);
+    }
+
 }

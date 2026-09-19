@@ -118,6 +118,10 @@ internal static class AgentTemplates
             "Run an Aiko card - do what its current stage asks for, report progress and complete the stage.",
             Run(agentAdapterId)),
         new(
+            "aiko-run-all",
+            "Work the Aiko board - every unfinished card in board order, each driven to the end of its pipeline.",
+            RunAll(agentAdapterId)),
+        new(
             "aiko-commands",
             "Carry out the commands the Aiko board placed for an agent - start, pause, resume or answer a stage.",
             Commands(agentAdapterId)),
@@ -299,6 +303,70 @@ internal static class AgentTemplates
         """;
 
     /// <summary>
+    /// Slash command that works the project's board: every unfinished card, in board order, driven to the
+    /// end of its own pipeline.
+    /// </summary>
+    /// <remarks>
+    /// The pass is a procedure rather than an engine, because Aiko does not run agent processes: what an
+    /// agent needs is the algorithm, and the algorithm is this text. Its progress is not stored anywhere
+    /// either - the board already says it, and a second copy of "where the pass got to" is the thing that
+    /// would sooner or later disagree with the runs. What the pass must not do is duplicate a rule that
+    /// already has a gate: blocked cards are skipped by reading the refusal of <c>aiko_start_stage</c>, not
+    /// by walking the blocking graph here.
+    /// </remarks>
+    /// <param name="agentAdapterId">
+    /// The adapter this file is installed for, written into the text: every stage the pass starts records
+    /// which agent is responsible, and a file that belongs to one adapter already knows the answer.
+    /// </param>
+    public static string RunAll(string agentAdapterId) => $"""
+        Work the project's board: take the cards whose pipeline is unfinished, in board order, and drive
+        each one to the end of its own workflow. This is what the board's "work the board" button asks for,
+        and what the user means by running the board.
+
+        Read aiko_get_project_context for the card types and their pipelines, and aiko_list_board for the
+        cards, where each stage got to, and the priority the board shows them with. That order is the
+        board's own - the computed priority, then the card id - and not the card's own score, so read it
+        from the board rather than sorting the cards yourself.
+
+        For each card, in that order:
+
+        - Skip a card that is already finished: it sits in the last stage of its own workflow with a
+          completed run. Skip a card that waits for another one in the same way - aiko_start_stage refuses it
+          and names the blocking card, and that refusal is the skip. Do not walk the blocking graph
+          yourself: asking and reading the answer is the one place that rule lives.
+        - Work each unfinished stage as /aiko-run does: aiko_start_stage with "{agentAdapterId}", do what
+          the stage's instruction asks, produce the artifacts it requires, report progress, re-estimate the
+          card with aiko_estimate_card, write the outcome into the card's feed with aiko_add_comment, and
+          complete it with aiko_complete_stage. Then start the next stage of that card's own pipeline.
+        - The card is done when its last stage's run is completed. Then take the next card.
+
+        When a question for the person comes up on a card, do not stop the pass: write the question into
+        that card's feed with aiko_add_comment, put its run into the waiting state with
+        aiko_report_agent_state and "waiting-for-user", and take the next card. That card is not lost - it
+        is exactly where the person will look for it.
+
+        Stop the whole pass only when you cannot go on at all: the agent fails or hits its rate limit, a
+        policy forbids the action (a refused scope expansion, a commit or push the project denies), or a
+        required artifact cannot be produced. Everything else - a blocked card, a card waiting for an
+        answer, a card someone else has already finished - is a reason to move on, not to stop.
+
+        The pass needs no bookkeeping to be resumable: run it again and it starts from the board as it now
+        is. Finished cards are not picked again; a card waiting for an answer is skipped because
+        aiko_start_stage refuses to restart an unfinished stage; and a card the pass stopped on is picked up
+        by the same start, which continues that run instead of opening a second one.
+
+        Do not push and do not open branches: the shared checkout is the user's, and the git, commit and
+        push policies the project states say who may write to it.
+
+        Report at the end: which cards you worked and what changed, which you skipped and why, which are
+        waiting for an answer, and what is left. If an aiko_list_commands and aiko_claim_command pass
+        brought you here - the command's action reads "RunBoard" - close that command with
+        aiko_finish_command when the pass ends: "completed" with the summary, or "failed" with the reason it
+        stopped. Never leave it open, because the queue is what the person reads to see whether their
+        request happened.
+        """;
+
+    /// <summary>
     /// Slash command that carries out the commands a screen placed for an agent.
     /// </summary>
     /// <remarks>
@@ -328,6 +396,8 @@ internal static class AgentTemplates
         - resume - aiko_resume_execution for the command's executionId.
         - answer - write the command's text into the card's feed with aiko_add_comment, then call
           aiko_resume_execution, so the run that is waiting for that answer reads it and continues.
+        - work the board - a command whose action reads "RunBoard" names no card: it asks for the whole
+          board. Run the /aiko-run-all procedure and let the board decide the order and what is left.
 
         Close the command with aiko_finish_command: completed when the work the command asked for happened,
         failed when it could not be, with a message naming which. Never leave a taken command open - the

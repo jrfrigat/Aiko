@@ -130,7 +130,7 @@ contract needs.
 Project-scoped procedures (installed with `aiko agent install --project <id>`) are written as skills, and as
 slash commands for the clients that have commands - Claude Code and ZCode:
 
-`aiko-create`, `aiko-create-sub`, `aiko-estimate`, `aiko-run`, `aiko-commands`, `aiko-scope`,
+`aiko-create`, `aiko-create-sub`, `aiko-estimate`, `aiko-run`, `aiko-run-all`, `aiko-commands`, `aiko-scope`,
 `aiko-handoff`, `aiko-memory`, `aiko-status`, `aiko-ui`.
 
 `/aiko-create <type> <description>` takes the card type as its first argument (`/aiko-create bug The
@@ -172,6 +172,20 @@ it, or the person placed it for a different agent), does what its action asks - 
 `aiko_pause_execution` and `aiko_resume_execution`, `Answer` writes the text into the card's feed and wakes
 the run - and closes it with `aiko_finish_command`, `completed` or `failed` with a message. An agent must
 never leave a taken command open: the queue is what the person reads to see whether their request happened.
+
+`/aiko-run-all` works the whole board: every card whose pipeline is unfinished, in board order, each driven
+to the end of its own workflow. The order comes from `aiko_list_board`, which returns the same snapshot the
+interface draws - the board's priority is computed from the card and its parent, so sorting the cards by
+their own score would pick a different first card than the one at the top of the screen. A card that is
+already finished is skipped, and so is one that waits for another card, which is read from the refusal of
+`aiko_start_stage` rather than by walking the blocking graph in the procedure. A question for the person
+does not stop the pass: the question goes into that card's feed, its run goes into `waiting-for-user`, and
+the pass takes the next card. The pass stops when it cannot go on at all - a failure or rate limit, a
+forbidden action, an artifact that cannot be produced - and a second run resumes where the first stopped
+without any bookkeeping, because the board itself says what is left: finished cards are not picked again, a
+card waiting for an answer is refused a restart by the same gate, and a card the pass stopped on continues
+its own run. This is also what the board's *Work the board* button asks for: the button places a `RunBoard`
+command the way the card page places a command for a card, and any agent that runs may take it.
 
 Global skills/commands (installed with `aiko agent install --scope user`):
 
@@ -235,6 +249,7 @@ over is therefore the same address the UI links to itself, not a second form of 
 | Read the project's event journal | — | — | — (`GET /api/v1/projects/{id}/events/history` exists; nothing reads it) |
 | Move a card with explicit stage actions (next, return, cancel) | — | `aiko_move_card` | — (drag only; the explicit actions are not built) |
 | Ask an agent to do something from the board | `/aiko-commands` | `aiko_list_commands`, `aiko_claim_command`, `aiko_finish_command` | Card page - *Command for an agent*: place one, and see whether it is waiting or taken |
+| Work every unfinished card of the board | `/aiko-run-all` | `aiko_list_board`, then the run tools per card | Board - *Work the board*: places the request and shows what became of it |
 | Show the access token | `/aiko-token` | `aiko_token` | — (`aiko token show`) |
 | Manage agent integrations | `/aiko-agents` | — (`aiko agent list` / `install` / `uninstall`) | Dashboard - the *Agents* card: detection and Connect / Disconnect |
 

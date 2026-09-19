@@ -68,26 +68,40 @@ public sealed class FileCardCommandStore(
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
-        ArgumentException.ThrowIfNullOrWhiteSpace(request.CardId);
+        var cardId = Trim(request.CardId);
         // The action's own requirements are checked before anything is written: a command that cannot be
         // carried out is not a queued command, it is a trap for whoever takes it.
-        CardCommands.Validate(request.Action, request.StageId, request.ExecutionId, request.Text);
+        CardCommands.Validate(
+            request.Action,
+            cardId,
+            request.StageId,
+            request.ExecutionId,
+            request.Text);
 
         var project = await FindProjectAsync(projectId, cancellationToken);
-        var cardId = request.CardId.Trim();
-        // The card is named by the project's immutable id however the caller addressed the project, because
-        // that is the key every card file, relation and execution is stored under.
-        var card = new CardReference(project.Id, cardId);
-        if (await cards.FindAsync(card, cancellationToken) is null)
+        if (cardId is not null)
         {
-            throw new ArgumentException(
-                $"No card '{cardId}' in project '{project.Id}'.",
-                nameof(request));
+            // The card is named by the project's immutable id however the caller addressed the project,
+            // because that is the key every card file, relation and execution is stored under.
+            var card = new CardReference(project.Id, cardId);
+            if (await cards.FindAsync(card, cancellationToken) is null)
+            {
+                throw new ArgumentException(
+                    $"No card '{cardId}' in project '{project.Id}'.",
+                    nameof(request));
+            }
         }
 
         using (await locks.LockAsync(project.Id, cancellationToken))
         {
             var document = await ReadDocumentAsync(project.RootPath, cancellationToken);
+            // Whether the command may be placed at all is decided against the queue as it stands, so two
+            // requests arriving together cannot both be the one open pass over the board.
+            if (CardCommands.RefusePlace(request.Action, document.Entries) is { } refusal)
+            {
+                throw new InvalidOperationException(refusal);
+            }
+
             var command = new CardCommand(
                 $"{IdPrefix}{document.NextSequence}",
                 cardId,

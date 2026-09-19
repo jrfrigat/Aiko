@@ -8,8 +8,11 @@ namespace Aiko.Domain.Execution;
 /// </summary>
 /// <remarks>
 /// A closed set on purpose. Aiko does not run an agent process, so a command can only ask for something an
-/// agent already knows how to do in its own run - and the four below are exactly the operations the MCP
-/// tools offer. A fifth action that no tool can carry out would be a command nobody can execute.
+/// agent already knows how to do in its own run. Four of the actions below map onto the MCP tools one to
+/// one; <see cref="RunBoard"/> maps onto a procedure instead (<c>/aiko-run-all</c>), because a pass over the
+/// board is a sequence of those same operations and naming it as one action is what keeps a stop in the
+/// middle of the pass a stop. An action that no tool and no procedure carries out would be a command nobody
+/// can execute, and it does not belong here.
 /// </remarks>
 [JsonConverter(typeof(JsonStringEnumConverter<CardCommandAction>))]
 public enum CardCommandAction
@@ -27,5 +30,16 @@ public enum CardCommandAction
     /// Answer the question an execution is waiting on: the text is written into the card's discussion and
     /// the execution is woken up, so the answer is not left as a note nobody reads.
     /// </summary>
-    Answer
+    Answer,
+
+    /// <summary>
+    /// Work the whole board: the cards whose pipeline is unfinished, in board order, each driven to the end
+    /// of its own workflow.
+    /// </summary>
+    /// <remarks>
+    /// The one action that names no card. It is a single command rather than one per card on purpose: a pass
+    /// stops on the first failure or forbidden action, and a queue of per-card commands would keep going
+    /// after that stop - the stop has to be one decision, so the request has to be one record.
+    /// </remarks>
+    RunBoard
 }

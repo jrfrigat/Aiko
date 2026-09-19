@@ -12,10 +12,15 @@ namespace Aiko.Domain.Execution;
 /// carries its own timestamps instead of relying on a log elsewhere.
 /// </remarks>
 /// <param name="Id">Identifier of the command, unique within the project.</param>
-/// <param name="CardId">Card the command is about.</param>
+/// <param name="CardId">
+/// Card the command is about, or null for a command about the project as a whole - which only
+/// <see cref="CardCommandAction.RunBoard"/> is. The field is nullable rather than defaulted to some
+/// placeholder card, because a command that pretended to be about a card would show up on that card's
+/// screen and nowhere else.
+/// </param>
 /// <param name="Action">What to do.</param>
 /// <param name="StageId">Stage to start, for <see cref="CardCommandAction.Start"/>.</param>
-/// <param name="ExecutionId">Execution to act on, for the other three actions.</param>
+/// <param name="ExecutionId">Execution to act on, for the pause, resume and answer actions.</param>
 /// <param name="AgentAdapterId">Agent the person asked for, or null when any agent may take it.</param>
 /// <param name="Text">Reason for a pause, or the answer itself, depending on the action.</param>
 /// <param name="State">Where the command got to.</param>
@@ -26,7 +31,7 @@ namespace Aiko.Domain.Execution;
 /// <param name="Message">What the agent reported back, or the reason it could not.</param>
 public sealed record CardCommand(
     string Id,
-    string CardId,
+    string? CardId,
     CardCommandAction Action,
     string? StageId,
     string? ExecutionId,

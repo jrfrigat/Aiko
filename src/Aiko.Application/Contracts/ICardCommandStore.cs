@@ -5,15 +5,17 @@ namespace Aiko.Application.Contracts;
 /// <summary>
 /// What a client asks for when it places a command.
 /// </summary>
-/// <param name="CardId">Card the command is about.</param>
+/// <param name="CardId">
+/// Card the command is about, or null for a command about the project - which only the board pass is.
+/// </param>
 /// <param name="Action">What to do; see <see cref="CardCommands.Validate"/> for what each one requires.</param>
 /// <param name="StageId">Stage to start, for the <c>start</c> action.</param>
-/// <param name="ExecutionId">Execution to act on, for the other three actions.</param>
+/// <param name="ExecutionId">Execution to act on, for the pause, resume and answer actions.</param>
 /// <param name="AgentAdapterId">Agent the person asked for, or null when any agent may take it.</param>
 /// <param name="Text">Reason for a pause, or the answer itself.</param>
 /// <param name="RequestedBy">Who placed it, or null for the local user.</param>
 public sealed record PlaceCommandRequest(
-    string CardId,
+    string? CardId,
     CardCommandAction Action,
     string? StageId = null,
     string? ExecutionId = null,

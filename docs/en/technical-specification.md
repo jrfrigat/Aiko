@@ -407,11 +407,20 @@ A file rather than a SQLite row: the global database is a rebuildable projection
 something a person typed that must not disappear with it. `nextSequence` is stored rather than derived so
 an identifier is never reused after a command is removed.
 
-Four actions, each mapping onto an operation an agent already has: `Start` (`aiko_start_stage`), `Pause`
+Five actions. Four map onto an operation an agent already has: `Start` (`aiko_start_stage`), `Pause`
 (`aiko_pause_execution`), `Resume` (`aiko_resume_execution`) and `Answer` (a note through
 `aiko_add_comment`, then `aiko_resume_execution`, so the answer reaches the run that is waiting for it).
 `Start` needs `stageId`; the other three need `executionId`, and `Pause` and `Answer` need `text` - a
 command that names nothing an agent could act on is refused when it is placed, not queued as a trap.
+
+The fifth is `RunBoard`, the one action that names no card: it asks an agent to work the whole board, and
+the `/aiko-run-all` procedure is what carries it out. It is one command rather than one per card because a
+pass stops on the first failure or forbidden action, and a queue of per-card commands would keep going
+after that stop - the stop has to be one decision, so the request has to be one record. For the same reason
+a project refuses a second open `RunBoard` while one is unfinished: two passes would take the cards in the
+same order and interleave, and neither stop would mean anything. `cardId` is therefore nullable on a
+command, and a board pass that named a card, a stage or an execution is refused rather than having the
+field quietly ignored.
 
 States: `Queued → Taken → Completed | Failed`, and `Queued → Cancelled`. Every transition is checked in
 one place, under a per-project lock, which is what keeps two agents from carrying out one command twice;
@@ -426,10 +435,10 @@ the person as the command's `failed` message.
 | Surface | Path |
 | :-- | :-- |
 | REST | `GET/POST /api/v1/projects/{projectId}/commands`, and `POST .../commands/{commandId}/claim`, `.../complete`, `.../fail`, `.../cancel` |
-| MCP | `aiko_list_commands`, `aiko_claim_command`, `aiko_finish_command` |
+| MCP | `aiko_list_commands`, `aiko_claim_command`, `aiko_finish_command`, and `aiko_list_board` for the order the pass walks |
 | CLI | `aiko commands [--project <id>] [--card <id>] [--state <open\|all\|state>]` |
-| Agent procedure | `aiko-commands` - reads the queue, takes one command, carries it out, closes it |
-| UI | Card page - *Command for an agent*: place one, and read what became of it - waiting, taken, or the outcome the agent reported |
+| Agent procedure | `aiko-commands` - reads the queue, takes one command, carries it out, closes it; `aiko-run-all` - works the board, which is what a `RunBoard` command asks for |
+| UI | Card page - *Command for an agent*: place one, and read what became of it - waiting, taken, or the outcome the agent reported. Board - *Work the board*: places a `RunBoard` command and shows what became of it |
 | Event | `commands.updated`, published on every change |
 
 ## 13. Concurrency and workspaces

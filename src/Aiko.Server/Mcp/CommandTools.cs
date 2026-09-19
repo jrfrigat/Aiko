@@ -63,7 +63,9 @@ internal sealed class CommandTools(
     [Description(
         "Takes one command from the queue for this run. A command another agent already took is refused, and "
         + "so is one that named a different agent - leave those alone and say so. Read the command's action "
-        + "and carry it out with the tool it names, then close it with aiko_finish_command.")]
+        + "and carry it out with the tool it names; an action that reads RunBoard asks for the whole board "
+        + "rather than one card, and the /aiko-run-all procedure is what carries that out. Then close it with "
+        + "aiko_finish_command.")]
     public async Task<string> ClaimCommandAsync(
         [Description("Command id, for example CMD-1.")]
         string commandId,

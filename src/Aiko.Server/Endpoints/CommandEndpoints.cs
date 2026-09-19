@@ -44,12 +44,14 @@ internal static class CommandEndpoints
                 PlaceCommandRequest request,
                 ICardCommandStore commands,
                 CancellationToken cancellationToken) =>
-            {
-                var command = await commands.PlaceAsync(projectId, request, cancellationToken);
-                return Results.Created(
-                    $"/api/v1/projects/{projectId}/commands/{command.Id}",
-                    command);
-            });
+                // Placing goes through the same ladder as the transitions: a refusal here - the board is
+                // already being worked - is a conflict, and only this route knows which route that answer
+                // describes, so it cannot be left to the global mapper (which would call it a 500).
+                await RunAsync(
+                    async () => await commands.PlaceAsync(projectId, request, cancellationToken),
+                    command => Results.Created(
+                        $"/api/v1/projects/{projectId}/commands/{command.Id}",
+                        command)));
         app.MapGet(
             "/api/v1/projects/{projectId}/commands/{commandId}",
             async (
@@ -121,13 +123,19 @@ internal static class CommandEndpoints
 
     /// <summary>
     /// Runs a store call and turns its outcome into a response: something that is not there is a 404, a
-    /// refusal the store names is a 409 carrying that text, bad input is a 400, and success is the command.
+    /// refusal the store names is a 409 carrying that text, bad input is a 400, and success is whatever the
+    /// caller asked for - a placed command is a 201 with its address, everything else is the command itself.
     /// </summary>
-    private static async Task<IResult> RunAsync(Func<Task<CardCommand>> action)
+    private static async Task<IResult> RunAsync(
+        Func<Task<CardCommand>> action,
+        Func<CardCommand, IResult>? onSuccess = null)
     {
         try
         {
-            return Results.Ok(await action());
+            var command = await action();
+            return onSuccess is null
+                ? Results.Ok(command)
+                : onSuccess(command);
         }
         catch (FileNotFoundException exception)
         {
