@@ -20,4 +20,5 @@ internal sealed record TestContext(
     AikoDatabase Database,
     IExecutionCoordinator Executions,
     IAikoEventPublisher Events,
-    IAikoEventStore EventJournal);
+    IAikoEventStore EventJournal,
+    ICardCommandStore Commands);

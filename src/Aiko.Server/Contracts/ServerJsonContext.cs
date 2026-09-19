@@ -111,6 +111,12 @@ namespace Aiko.Server.Contracts;
 [JsonSerializable(typeof(RequestScopeExpansionRequest))]
 [JsonSerializable(typeof(ScopeResponseRequest))]
 [JsonSerializable(typeof(CommitApprovalRequest))]
+[JsonSerializable(typeof(CardCommand))]
+[JsonSerializable(typeof(IReadOnlyList<CardCommand>))]
+[JsonSerializable(typeof(PlaceCommandRequest))]
+[JsonSerializable(typeof(ClaimCommandRequest))]
+[JsonSerializable(typeof(CommandReportRequest))]
+[JsonSerializable(typeof(CancelCommandRequest))]
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     UseStringEnumConverter = true)]

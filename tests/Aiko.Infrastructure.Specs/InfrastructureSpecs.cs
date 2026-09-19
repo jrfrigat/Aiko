@@ -10,6 +10,7 @@ using Aiko.Domain.Execution;
 using Aiko.Domain.Workflow;
 using Aiko.Infrastructure.Cards;
 using Aiko.Infrastructure.Agents;
+using Aiko.Infrastructure.Commands;
 using Aiko.Infrastructure.Execution;
 using Aiko.Infrastructure.Diagnostics;
 using Aiko.Infrastructure.Events;
@@ -3087,6 +3088,181 @@ public class InfrastructureSpecs
         });
     }
 
+    /// <summary>
+    /// The command queue: what a screen places for an agent survives in the project's own file, and moves
+    /// through the states the card page reads.
+    /// </summary>
+    [Fact]
+    public async Task A_placed_command_waits_in_the_projects_own_file_and_can_be_taken_and_closed()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            await context.Cards.SaveAsync(
+                CreateCard(context.Project.Id, "TASK-001", 1),
+                0,
+                CancellationToken.None);
+
+            var placed = await context.Commands.PlaceAsync(
+                context.Project.Id,
+                new PlaceCommandRequest(
+                    "TASK-001",
+                    CardCommandAction.Start,
+                    StageId: "implementation",
+                    AgentAdapterId: "cline"),
+                CancellationToken.None);
+
+            Assert.Equal("CMD-1", placed.Id);
+            Assert.Equal(CardCommandState.Queued, placed.State);
+            Assert.Null(placed.ClaimedAtUtc);
+
+            // The queue is a file beside the other documents, which is the whole point: the agent that will
+            // carry the command out may not exist when it is placed.
+            var queuePath = Path.Combine(context.StitchRoot, "commands.json");
+            Assert.True(File.Exists(queuePath), "The command queue should be a document in .aiko.");
+            Assert.Contains("CMD-1", await File.ReadAllTextAsync(queuePath), StringComparison.Ordinal);
+
+            var claimed = await context.Commands.ClaimAsync(
+                context.Project.Id, placed.Id, "cline", CancellationToken.None);
+            Assert.Equal(CardCommandState.Taken, claimed.State);
+            Assert.NotNull(claimed.ClaimedAtUtc);
+
+            var finished = await context.Commands.FinishAsync(
+                context.Project.Id,
+                placed.Id,
+                CardCommandState.Completed,
+                "Stage started.",
+                CancellationToken.None);
+            Assert.Equal(CardCommandState.Completed, finished.State);
+            Assert.Equal("Stage started.", finished.Message);
+            Assert.NotNull(finished.FinishedAtUtc);
+
+            // A closed command is history: the open queue no longer has it, the full list still does.
+            Assert.Empty(await context.Commands.ListAsync(context.Project.Id, false, CancellationToken.None));
+            var all = await context.Commands.ListAsync(context.Project.Id, true, CancellationToken.None);
+            Assert.Single(all);
+            Assert.Equal("CMD-1", all[0].Id);
+
+            // Identifiers keep counting, so a removed command can never be confused with the next one.
+            var second = await context.Commands.PlaceAsync(
+                context.Project.Id,
+                new PlaceCommandRequest("TASK-001", CardCommandAction.Start, StageId: "review"),
+                CancellationToken.None);
+            Assert.Equal("CMD-2", second.Id);
+        });
+    }
+
+    /// <summary>
+    /// One command belongs to one agent: two of them taking it would be the same stage worked twice, and a
+    /// command the person placed for a particular agent is not another agent's to take.
+    /// </summary>
+    [Fact]
+    public async Task A_taken_command_cannot_be_taken_again_or_stolen_from_named_agent()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            await context.Cards.SaveAsync(
+                CreateCard(context.Project.Id, "TASK-001", 1),
+                0,
+                CancellationToken.None);
+
+            var mine = await context.Commands.PlaceAsync(
+                context.Project.Id,
+                new PlaceCommandRequest("TASK-001", CardCommandAction.Start, StageId: "backlog"),
+                CancellationToken.None);
+            var yours = await context.Commands.PlaceAsync(
+                context.Project.Id,
+                new PlaceCommandRequest(
+                    "TASK-001",
+                    CardCommandAction.Start,
+                    StageId: "backlog",
+                    AgentAdapterId: "codex"),
+                CancellationToken.None);
+
+            await context.Commands.ClaimAsync(context.Project.Id, mine.Id, "cline", CancellationToken.None);
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                context.Commands.ClaimAsync(
+                    context.Project.Id, mine.Id, "codex", CancellationToken.None).AsTask());
+
+            var refusal = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                context.Commands.ClaimAsync(
+                    context.Project.Id, yours.Id, "cline", CancellationToken.None).AsTask());
+            Assert.Contains("codex", refusal.Message, StringComparison.Ordinal);
+        });
+    }
+
+    /// <summary>
+    /// A command that names nothing an agent could act on is refused at the door rather than queued as a trap
+    /// for whoever takes it.
+    /// </summary>
+    [Fact]
+    public async Task An_action_missing_what_it_needs_is_not_queued()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            await context.Cards.SaveAsync(
+                CreateCard(context.Project.Id, "TASK-001", 1),
+                0,
+                CancellationToken.None);
+
+            await Assert.ThrowsAsync<ArgumentException>(() =>
+                context.Commands.PlaceAsync(
+                    context.Project.Id,
+                    new PlaceCommandRequest("TASK-001", CardCommandAction.Start),
+                    CancellationToken.None).AsTask());
+            await Assert.ThrowsAsync<ArgumentException>(() =>
+                context.Commands.PlaceAsync(
+                    context.Project.Id,
+                    new PlaceCommandRequest(
+                        "TASK-001",
+                        CardCommandAction.Pause,
+                        ExecutionId: "execution-1"),
+                    CancellationToken.None).AsTask());
+            await Assert.ThrowsAsync<ArgumentException>(() =>
+                context.Commands.PlaceAsync(
+                    context.Project.Id,
+                    new PlaceCommandRequest("TASK-404", CardCommandAction.Start, StageId: "backlog"),
+                    CancellationToken.None).AsTask());
+
+            // Nothing was written: a refused request must not leave a queued command behind.
+            Assert.Empty(await context.Commands.ListAsync(context.Project.Id, true, CancellationToken.None));
+            Assert.False(File.Exists(Path.Combine(context.StitchRoot, "commands.json")));
+        });
+    }
+
+    /// <summary>
+    /// A command an agent holds is closed by that agent: a screen cannot know whether the work it asked for
+    /// has happened, so withdrawing it would be a guess.
+    /// </summary>
+    [Fact]
+    public async Task Only_a_command_nobody_took_can_be_withdrawn()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            await context.Cards.SaveAsync(
+                CreateCard(context.Project.Id, "TASK-001", 1),
+                0,
+                CancellationToken.None);
+
+            var first = await context.Commands.PlaceAsync(
+                context.Project.Id,
+                new PlaceCommandRequest("TASK-001", CardCommandAction.Start, StageId: "backlog"),
+                CancellationToken.None);
+            var withdrawn = await context.Commands.CancelAsync(
+                context.Project.Id, first.Id, "Not needed after all.", CancellationToken.None);
+            Assert.Equal(CardCommandState.Cancelled, withdrawn.State);
+            Assert.Equal("Not needed after all.", withdrawn.Message);
+
+            var second = await context.Commands.PlaceAsync(
+                context.Project.Id,
+                new PlaceCommandRequest("TASK-001", CardCommandAction.Start, StageId: "backlog"),
+                CancellationToken.None);
+            await context.Commands.ClaimAsync(context.Project.Id, second.Id, "cline", CancellationToken.None);
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                context.Commands.CancelAsync(context.Project.Id, second.Id, null, CancellationToken.None)
+                    .AsTask());
+        });
+    }
+
     private static Card CreateCard(string projectId, string cardId, long revision) =>
         new(
             new CardReference(projectId, cardId),
@@ -3164,7 +3340,8 @@ public class InfrastructureSpecs
                 database,
                 executions,
                 eventPublisher,
-                new SqliteAikoEventStore(database, catalog)));
+                new SqliteAikoEventStore(database, catalog),
+                new FileCardCommandStore(catalog, cards)));
         }
         finally
         {

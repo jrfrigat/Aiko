@@ -882,6 +882,86 @@
                     }
                 </FlareStack>
 
+                @* A command for an agent: what the estimate block above could not be. Aiko still does not run
+                   an agent process, so this places the request in the project's own queue and shows what the
+                   queue says about it - waiting, or taken by an agent that will report back. *@
+                <FlareStack Gap="FlareSpacing.XSmall">
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
+                        @Loc.Get("CommandsTitle")
+                    </FlareText>
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                        @Loc.Get("CommandsHint")
+                    </FlareText>
+                    @if (Agents.Count == 0)
+                    {
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Get("NoAgentsDiscovered")
+                        </FlareText>
+                    }
+                    else
+                    {
+                        <AikoSelectField Label="@Loc.Get("CommandAction")"
+                                         Value="@_commandAction"
+                                         ValueChanged="value => _commandAction = value ?? CommandStartValue">
+                            <option value="@CommandStartValue">@Loc.Get("CommandStart")</option>
+                            <option value="@CommandPauseValue">@Loc.Get("CommandPause")</option>
+                            <option value="@CommandResumeValue">@Loc.Get("CommandResume")</option>
+                            <option value="@CommandAnswerValue">@Loc.Get("CommandAnswer")</option>
+                        </AikoSelectField>
+                        <AikoSelectField Label="@Loc.Get("EstimateAgent")"
+                                         Value="@_commandAgent"
+                                         ValueChanged="value => _commandAgent = value">
+                            @foreach (var agent in Agents)
+                            {
+                                var option = agent;
+                                <option value="@option.Id">@option.DisplayName</option>
+                            }
+                        </AikoSelectField>
+                        @if (CommandNeedsText)
+                        {
+                            <AikoField Label="@Loc.Get("CommandText")"
+                                       Hint="@CommandTextHint"
+                                       Rows="2"
+                                       Value="@_commandText"
+                                       ValueChanged="value => _commandText = value" />
+                        }
+                        <FlareButton Variant="ButtonVariant.Tonal"
+                                     FullWidth="true"
+                                     Disabled="@(!CanPlaceCommand)"
+                                     Loading="@_placingCommand"
+                                     OnClick="PlaceCommandAsync">
+                            <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.SmartToy" /></LeadingIcon>
+                            <ChildContent>@Loc.Get("PlaceCommand")</ChildContent>
+                        </FlareButton>
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @CommandTargetHint
+                        </FlareText>
+                    }
+                    @if (_commandMessage is { Length: > 0 } commandMessage)
+                    {
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall"
+                                   Color="@(_commandError ? FlareColor.Error : FlareColor.Tertiary)">
+                            @commandMessage
+                        </FlareText>
+                    }
+                    @* What is waiting: read from the queue itself, never from what this screen remembers, so a
+                       command another tab placed, or one an agent has just taken, shows here as it is. *@
+                    @foreach (var command in CardCommands)
+                    {
+                        var entry = command;
+                        <FlareStack Row="true" Align="FlareAlignItems.Center"
+                                    Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XSmall">
+                            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
+                                <FlareText Element="span" Mono="true" Typo="TypographyScale.BodySmall">@entry.Id</FlareText>
+                                <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant2">
+                                    @CommandCaption(entry)
+                                </FlareText>
+                            </FlareStack>
+                            <span class="aiko-tag @CommandBadgeClass(entry)">@CommandStateCaption(entry)</span>
+                        </FlareStack>
+                    }
+                </FlareStack>
+
                 <FlareButton FullWidth="true"
                              Loading="@_saving"
                              OnClick="SaveAsync">@Loc.Get("SaveCard")</FlareButton>
@@ -1085,6 +1165,25 @@
     private string? _estimateMessage;
     private bool _estimateError;
     private bool _sendingEstimate;
+    private string? _commandAction = CommandStartValue;
+    private string? _commandAgent;
+    private string? _commandText;
+    private string? _commandMessage;
+    private bool _commandError;
+    private bool _placingCommand;
+
+    /// <summary>
+    /// The actions a command can name, written as the queue's own wire values.
+    /// </summary>
+    /// <remarks>
+    /// Held here rather than taken from the domain enum because the select's option values, the request and
+    /// the domain's parsing all have to agree on the same strings, and a literal repeated in three places is
+    /// where they would stop agreeing.
+    /// </remarks>
+    private const string CommandStartValue = "start";
+    private const string CommandPauseValue = "pause";
+    private const string CommandResumeValue = "resume";
+    private const string CommandAnswerValue = "answer";
     private string? _priorityError;
     private string? _message;
     private bool _hasError;
@@ -1620,6 +1719,7 @@
 
         _estimateAgent ??= Agents.FirstOrDefault()?.Id;
         _stageAgent ??= Agents.FirstOrDefault()?.Id;
+        _commandAgent ??= Agents.FirstOrDefault()?.Id;
 
         if (cardChanged || _lastRefreshTick != ExecutionRefreshTick)
         {
@@ -1718,6 +1818,122 @@
         finally
         {
             _sendingEstimate = false;
+        }
+    }
+
+    /// <summary>
+    /// The open commands of this card, as the project's queue reports them.
+    /// </summary>
+    /// <remarks>
+    /// Read from <see cref="WorkspaceState.Commands"/> and not from anything this page keeps: the queue is
+    /// the one place that knows whether an agent has taken the request, so a screen that remembered would be
+    /// a second answer to the same question.
+    /// </remarks>
+    private IReadOnlyList<CardCommand> CardCommands =>
+        [.. State.Commands.Where(command =>
+            StringComparer.Ordinal.Equals(command.CardId, Card.Reference.CardId))];
+
+    /// <summary>Whether the selected action carries something the person has to write.</summary>
+    private bool CommandNeedsText =>
+        _commandAction is CommandPauseValue or CommandAnswerValue;
+
+    /// <summary>What the text field of the selected action is for.</summary>
+    private string CommandTextHint => _commandAction is CommandPauseValue
+        ? Loc.Get("CommandPauseHint")
+        : Loc.Get("CommandAnswerHint");
+
+    /// <summary>
+    /// Whether the command can be placed: an agent to run it, the text its action needs, and - for the three
+    /// actions that steer a run already in flight - a run to steer.
+    /// </summary>
+    private bool CanPlaceCommand =>
+        !string.IsNullOrWhiteSpace(_commandAgent) &&
+        (!CommandNeedsText || !string.IsNullOrWhiteSpace(_commandText)) &&
+        (_commandAction == CommandStartValue || LatestExecution is not null);
+
+    /// <summary>
+    /// What the command will act on, so the button never has to be pressed to find out.
+    /// </summary>
+    private string CommandTargetHint => _commandAction == CommandStartValue
+        ? Loc.Format("CommandStartHint", Card.StageId)
+        : LatestExecution is { } run
+            ? Loc.Format("CommandRunHint", run.Id)
+            : Loc.Get("CommandNoRunHint");
+
+    /// <summary>How the queue's state of a command reads on the card.</summary>
+    private static string CommandStateCaption(CardCommand command) => command.State switch
+    {
+        CardCommandState.Queued => Loc.Get("CommandWaiting"),
+        CardCommandState.Taken => Loc.Get("CommandTaken"),
+        _ => command.State.ToString()
+    };
+
+    /// <summary>The badge tone of a command's state: waiting is a warning, taken is live work.</summary>
+    private static string CommandBadgeClass(CardCommand command) => command.State switch
+    {
+        CardCommandState.Queued => "aiko-tag--warn",
+        CardCommandState.Taken => "aiko-tag--live",
+        _ => "aiko-tag--quiet"
+    };
+
+    /// <summary>The one line that says what a queued command asks for.</summary>
+    private static string CommandCaption(CardCommand command) => command.Action switch
+    {
+        CardCommandAction.Start => Loc.Format("CommandStartCaption", command.StageId ?? string.Empty),
+        CardCommandAction.Pause => Loc.Get("CommandCaptionPause"),
+        CardCommandAction.Resume => Loc.Get("CommandCaptionResume"),
+        _ => Loc.Get("CommandCaptionAnswer")
+    };
+
+    /// <summary>
+    /// Places a command for an agent and shows what the queue says about it.
+    /// </summary>
+    /// <remarks>
+    /// Nothing is started here: the daemon records the request and answers at once, and the agent carries it
+    /// out the next time one runs. That is the whole difference from the execution buttons below this block,
+    /// which record a run but cannot tell any agent that the run is waiting for it.
+    /// </remarks>
+    private async Task PlaceCommandAsync()
+    {
+        if (_placingCommand || !CanPlaceCommand)
+        {
+            return;
+        }
+
+        _placingCommand = true;
+        _commandMessage = null;
+        try
+        {
+            var action = _commandAction switch
+            {
+                CommandPauseValue => CardCommandAction.Pause,
+                CommandResumeValue => CardCommandAction.Resume,
+                CommandAnswerValue => CardCommandAction.Answer,
+                _ => CardCommandAction.Start
+            };
+            // The stage is the card's own: a command is placed on the card the person is looking at, and
+            // "the stage it is in" is the one stage this screen can name without asking.
+            var request = new PlaceCommandRequest(
+                Card.Reference.CardId,
+                action,
+                StageId: action is CardCommandAction.Start ? Card.StageId : null,
+                ExecutionId: action is CardCommandAction.Start ? null : LatestExecution?.Id,
+                AgentAdapterId: _commandAgent,
+                Text: CommandNeedsText ? _commandText : null);
+
+            var placed = await State.PlaceCommandAsync(request);
+            _commandError = placed is null;
+            _commandMessage = placed is null
+                ? State.Error ?? Loc.Get("CommandFailed")
+                : Loc.Format("CommandPlaced", placed.Id);
+            if (placed is not null)
+            {
+                _commandText = null;
+            }
+        }
+        finally
+        {
+            _placingCommand = false;
         }
     }
 

@@ -130,8 +130,8 @@ contract needs.
 Project-scoped procedures (installed with `aiko agent install --project <id>`) are written as skills, and as
 slash commands for the clients that have commands - Claude Code and ZCode:
 
-`aiko-create`, `aiko-create-sub`, `aiko-estimate`, `aiko-run`, `aiko-scope`, `aiko-handoff`,
-`aiko-memory`, `aiko-status`, `aiko-ui`.
+`aiko-create`, `aiko-create-sub`, `aiko-estimate`, `aiko-run`, `aiko-commands`, `aiko-scope`,
+`aiko-handoff`, `aiko-memory`, `aiko-status`, `aiko-ui`.
 
 `/aiko-create <type> <description>` takes the card type as its first argument (`/aiko-create bug The
 dropdown is empty`) and reads the project context to resolve it, so it covers every type without being
@@ -162,6 +162,16 @@ names the stage to start, and the start moves the card into it - which is why th
 command. Nothing about it names a stage of a particular pipeline, so it works in any of them - the
 per-stage commands it replaces (`/aiko-analyze`, `/aiko-implement`, `/aiko-review`, `/aiko-complete`) and
 `/aiko-next-stage` all named stages of the default template, the same hardcoding card types no longer have.
+
+`/aiko-commands` empties the project's command queue: the requests a person placed on a card while no agent
+was running. Aiko does not start agent processes, so the button on the card page writes a command into
+`.aiko/commands.json` and nothing else; this procedure is what carries it out. The agent reads the queue
+with `aiko_list_commands`, takes one command with `aiko_claim_command` (a refusal means another agent has
+it, or the person placed it for a different agent), does what its action asks - `Start` calls
+`aiko_start_stage` and then works the stage exactly as `/aiko-run` does, `Pause` and `Resume` call
+`aiko_pause_execution` and `aiko_resume_execution`, `Answer` writes the text into the card's feed and wakes
+the run - and closes it with `aiko_finish_command`, `completed` or `failed` with a message. An agent must
+never leave a taken command open: the queue is what the person reads to see whether their request happened.
 
 Global skills/commands (installed with `aiko agent install --scope user`):
 
@@ -224,6 +234,7 @@ over is therefore the same address the UI links to itself, not a second form of 
 | See every active run of the project | — | — (the board snapshot carries the latest run of each stage) | — (runs are visible inside a card only; no project-wide section) |
 | Read the project's event journal | — | — | — (`GET /api/v1/projects/{id}/events/history` exists; nothing reads it) |
 | Move a card with explicit stage actions (next, return, cancel) | — | `aiko_move_card` | — (drag only; the explicit actions are not built) |
+| Ask an agent to do something from the board | `/aiko-commands` | `aiko_list_commands`, `aiko_claim_command`, `aiko_finish_command` | Card page - *Command for an agent*: place one, and see whether it is waiting or taken |
 | Show the access token | `/aiko-token` | `aiko_token` | — (`aiko token show`) |
 | Manage agent integrations | `/aiko-agents` | — (`aiko agent list` / `install` / `uninstall`) | Dashboard - the *Agents* card: detection and Connect / Disconnect |
 

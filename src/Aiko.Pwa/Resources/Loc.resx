@@ -621,4 +621,27 @@
 
   <data name="CardTypeRevision" xml:space="preserve"><value>Card type · rev {0}</value></data>
 
+  <data name="CommandsTitle" xml:space="preserve"><value>Command for an agent</value></data>
+  <data name="CommandsHint" xml:space="preserve"><value>Aiko does not start agents, so the request waits in the project's queue until an agent runs and takes it.</value></data>
+  <data name="CommandAction" xml:space="preserve"><value>What to ask</value></data>
+  <data name="CommandStart" xml:space="preserve"><value>Start the stage</value></data>
+  <data name="CommandPause" xml:space="preserve"><value>Pause the run</value></data>
+  <data name="CommandResume" xml:space="preserve"><value>Resume the run</value></data>
+  <data name="CommandAnswer" xml:space="preserve"><value>Answer the run's question</value></data>
+  <data name="CommandText" xml:space="preserve"><value>What to tell the agent</value></data>
+  <data name="CommandPauseHint" xml:space="preserve"><value>Why to pause - whoever resumes the run reads this.</value></data>
+  <data name="CommandAnswerHint" xml:space="preserve"><value>The answer; it is written into the card's feed and wakes the run.</value></data>
+  <data name="PlaceCommand" xml:space="preserve"><value>Place the command</value></data>
+  <data name="CommandPlaced" xml:space="preserve"><value>Command {0} is waiting for an agent.</value></data>
+  <data name="CommandFailed" xml:space="preserve"><value>The command was not placed.</value></data>
+  <data name="CommandWaiting" xml:space="preserve"><value>waiting</value></data>
+  <data name="CommandTaken" xml:space="preserve"><value>taken</value></data>
+  <data name="CommandStartHint" xml:space="preserve"><value>An agent will start stage '{0}' of this card.</value></data>
+  <data name="CommandRunHint" xml:space="preserve"><value>An agent will act on run {0}.</value></data>
+  <data name="CommandNoRunHint" xml:space="preserve"><value>This card has no run yet, so only 'start the stage' can be asked for.</value></data>
+  <data name="CommandStartCaption" xml:space="preserve"><value>start stage {0}</value></data>
+  <data name="CommandCaptionPause" xml:space="preserve"><value>pause the run</value></data>
+  <data name="CommandCaptionResume" xml:space="preserve"><value>resume the run</value></data>
+  <data name="CommandCaptionAnswer" xml:space="preserve"><value>answer the run</value></data>
+
 </root>

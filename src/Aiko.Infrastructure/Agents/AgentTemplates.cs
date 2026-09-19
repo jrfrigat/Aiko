@@ -118,6 +118,10 @@ internal static class AgentTemplates
             "Run an Aiko card - do what its current stage asks for, report progress and complete the stage.",
             Run(agentAdapterId)),
         new(
+            "aiko-commands",
+            "Carry out the commands the Aiko board placed for an agent - start, pause, resume or answer a stage.",
+            Commands(agentAdapterId)),
+        new(
             "aiko-link",
             "Link this Aiko project to another one and say what that project is for.",
             Link),
@@ -292,6 +296,46 @@ internal static class AgentTemplates
 
         Report at the end: the size and the scores you wrote, what you judged them from, and whether the
         card looks too large to run as it stands.
+        """;
+
+    /// <summary>
+    /// Slash command that carries out the commands a screen placed for an agent.
+    /// </summary>
+    /// <remarks>
+    /// Aiko does not run an agent process, so a request that starts on the board waits in the project's own
+    /// queue until an agent is there to take it. This procedure is what empties that queue: without it the
+    /// button places a command nobody ever reads, which is the failure mode the whole channel exists against.
+    /// </remarks>
+    /// <param name="agentAdapterId">
+    /// The adapter this file is installed for, written into the text: a command names the agent it was placed
+    /// for, and a file that belongs to one adapter already knows whether it may take that command.
+    /// </param>
+    public static string Commands(string agentAdapterId) => $"""
+        Carry out what the Aiko board asked this project's agents to do. The person pressed a button while
+        no agent was running, so the request has been waiting in the project's queue since.
+
+        Read the queue with aiko_list_commands (state "open"). Take one command with aiko_claim_command,
+        passing "{agentAdapterId}" as the agent adapter id. A refusal is not a failure: it means another
+        agent already has that command, or the person placed it for a different agent - say so and take the
+        next one rather than insisting.
+
+        Do what the command's action asks, with the tool that already does it:
+
+        - start - aiko_start_stage with the command's cardId and stageId, and your own adapter id. Then work
+          that stage exactly as /aiko-run does: the same rules about one stage per run, the card's feed, the
+          artifacts the stage requires, the re-score before completing it, and no push.
+        - pause - aiko_pause_execution for the command's executionId, with the command's text as the reason.
+        - resume - aiko_resume_execution for the command's executionId.
+        - answer - write the command's text into the card's feed with aiko_add_comment, then call
+          aiko_resume_execution, so the run that is waiting for that answer reads it and continues.
+
+        Close the command with aiko_finish_command: completed when the work the command asked for happened,
+        failed when it could not be, with a message naming which. Never leave a taken command open - the
+        person reads the queue to see whether their request happened, and a command that stays open after
+        the work is done is worse than having no queue at all.
+
+        Report at the end: which commands you took, what each asked for, what you did with them, and what is
+        still waiting.
         """;
 
     /// <summary>

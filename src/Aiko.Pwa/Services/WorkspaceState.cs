@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using Aiko.Application.Agents;
 using Aiko.Application.Contracts;
 using Aiko.Domain.Cards;
+using Aiko.Domain.Execution;
 using Aiko.Pwa.Contracts;
 using Aiko.Pwa.Resources;
 using Microsoft.AspNetCore.Components;
@@ -77,6 +78,18 @@ internal sealed class WorkspaceState : IAsyncDisposable
 
     /// <summary>The open project's board, or null when no project is open.</summary>
     public ProjectBoardSnapshot? Board { get; private set; }
+
+    /// <summary>
+    /// The open project's command queue: what a screen asked an agent to do and no agent has closed yet.
+    /// </summary>
+    /// <remarks>
+    /// Read with the board rather than on demand, because it is what the card page shows next to the button
+    /// that placed a command: a request whose state the person cannot see is indistinguishable from one that
+    /// was never placed. Only open commands come back - a closed one is history, and history shown beside
+    /// "waiting" reads as work still outstanding - and the daemon hands out the whole file on one GET, so
+    /// the queue costs the same as the settings beside it.
+    /// </remarks>
+    public IReadOnlyList<CardCommand> Commands { get; private set; } = [];
 
     /// <summary>The open project's effective settings view, or null when no project is open.</summary>
     public AppSettingsView? SettingsView { get; private set; }
@@ -246,6 +259,7 @@ internal sealed class WorkspaceState : IAsyncDisposable
         if (SelectedProjectId is null)
         {
             Board = null;
+            Commands = [];
             await NotifyAsync();
             return;
         }
@@ -257,6 +271,7 @@ internal sealed class WorkspaceState : IAsyncDisposable
                 $"api/v1/projects/{projectId}/board", PwaJson.Options);
             SettingsView = await _http.GetFromJsonAsync<AppSettingsView>(
                 $"api/v1/projects/{projectId}/settings", PwaJson.Options);
+            await ReloadCommandsAsync(projectId);
         }
         catch (Exception exception)
         {
@@ -264,6 +279,75 @@ internal sealed class WorkspaceState : IAsyncDisposable
         }
 
         await NotifyAsync();
+    }
+
+    /// <summary>
+    /// Places a command for an agent and refreshes the queue so the screen shows it waiting.
+    /// </summary>
+    /// <remarks>
+    /// The daemon records the command and answers immediately; nothing is started here, because Aiko does
+    /// not run agent processes. What the person sees afterwards is the queue's own state, which is why this
+    /// re-reads it rather than remembering anything locally.
+    /// </remarks>
+    /// <param name="request">Which card, which action, and what the action needs.</param>
+    /// <returns>The placed command, or null when the daemon refused it.</returns>
+    public async Task<CardCommand?> PlaceCommandAsync(PlaceCommandRequest request)
+    {
+        if (SelectedProjectId is not { Length: > 0 } projectId)
+        {
+            return null;
+        }
+
+        Error = null;
+        try
+        {
+            var route = Uri.EscapeDataString(projectId);
+            using var response = await _http.PostAsJsonAsync(
+                $"api/v1/projects/{route}/commands",
+                request,
+                PwaJson.Options);
+            if (!response.IsSuccessStatusCode)
+            {
+                // The daemon's own words say which rule refused it - a card that is not there, or an action
+                // missing what it needs - and that is what the person can act on.
+                var refusal = await response.Content.ReadFromJsonAsync<ErrorResponse>(
+                    PwaJson.Options);
+                Error = refusal?.Message ?? FailureText.Describe(
+                    new HttpRequestException(response.ReasonPhrase));
+                await NotifyAsync();
+                return null;
+            }
+
+            var command = await response.Content.ReadFromJsonAsync<CardCommand>(PwaJson.Options);
+            await ReloadCommandsAsync(route);
+            await NotifyAsync();
+            return command;
+        }
+        catch (Exception exception)
+        {
+            Error = FailureText.Describe(exception);
+            await NotifyAsync();
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Re-reads the open project's command queue. A failure leaves it empty instead of stopping the screen:
+    /// the queue is one panel of a page, and an unreadable one must not take the board with it.
+    /// </summary>
+    /// <param name="escapedProjectId">Project id already escaped for a route.</param>
+    private async Task ReloadCommandsAsync(string escapedProjectId)
+    {
+        try
+        {
+            Commands = await _http.GetFromJsonAsync<IReadOnlyList<CardCommand>>(
+                $"api/v1/projects/{escapedProjectId}/commands?state=open",
+                PwaJson.Options) ?? [];
+        }
+        catch (Exception)
+        {
+            Commands = [];
+        }
     }
 
     /// <summary>Re-reads the shell and the open board, showing the shell's spinner while it runs.</summary>
@@ -639,6 +723,17 @@ internal sealed class WorkspaceState : IAsyncDisposable
                 break;
             case AikoEventTypes.ExecutionUpdated:
                 ExecutionPulse++;
+                await NotifyAsync();
+                break;
+            case AikoEventTypes.CommandsUpdated:
+                // The queue is what the card page draws beside the button that placed a command, so a
+                // command an agent took has to reach the screen that is watching it - otherwise "waiting"
+                // stays on the page while the work is already running.
+                if (SelectedProject is { } open)
+                {
+                    await ReloadCommandsAsync(Uri.EscapeDataString(open.Id));
+                }
+
                 await NotifyAsync();
                 break;
         }

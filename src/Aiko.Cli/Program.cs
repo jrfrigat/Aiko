@@ -4,8 +4,10 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using Aiko.Application.Agents;
 using Aiko.Application.Contracts;
+using Aiko.Domain.Execution;
 using Aiko.Infrastructure.Agents;
 using Aiko.Infrastructure.Cards;
+using Aiko.Infrastructure.Commands;
 using Aiko.Infrastructure.Diagnostics;
 using Aiko.Infrastructure.Execution;
 using Aiko.Infrastructure.Projects;
@@ -27,6 +29,7 @@ var exitCode = command switch
     "agent" => await AgentAsync(args),
     "token" => await TokenAsync(),
     "reindex" => await ReindexAsync(args),
+    "commands" => await CommandsAsync(args),
     "help" or "--help" or "-h" => Help(),
     _ => Unknown(command)
 };
@@ -65,6 +68,9 @@ static int Help()
                                                         Disconnect an agent from a project
           token show                                    Print the local access token
           reindex <projectId>                           Rebuild a project's SQLite projections
+          commands [--project <id>] [--card <id>] [--state <s>]
+                                                        Show the commands a screen placed for an agent;
+                                                        --state is open (default), all, or one state
 
         Git policies: local-only (default), track-project-knowledge, custom.
         """);
@@ -277,6 +283,89 @@ static async ValueTask<int> ConnectAgentAsync(
         ? $"Agent already connected to project {project.Handle}."
         : $"Connected {agentId} to project {project.Handle}: {changed} file(s) written.");
     return 0;
+}
+
+// Prints the commands a screen placed for an agent: what is waiting, what an agent has taken, and what
+// happened. It reads the project's own file directly instead of going through the daemon, because a queue
+// whose point is to survive until an agent runs has to be readable when nothing else is.
+static async ValueTask<int> CommandsAsync(string[] args)
+{
+    var dataPaths = AikoDataPaths.FromEnvironment();
+    var database = new AikoDatabase(dataPaths);
+    await database.InitializeAsync();
+    var catalog = new SqliteProjectCatalog(database);
+
+    var projectId = ReadOption(args, "--project");
+    if (string.IsNullOrWhiteSpace(projectId))
+    {
+        var resolved = await ProjectPathLookup.ResolveAsync(
+            catalog,
+            Directory.GetCurrentDirectory(),
+            CancellationToken.None);
+        if (resolved is not { Match: ProjectPathMatch.Registered, Project: { } current })
+        {
+            Console.Error.WriteLine(
+                "This folder is not a registered Aiko project. Name one with --project <id>.");
+            return 1;
+        }
+
+        projectId = current.Id;
+    }
+
+    var state = ReadOption(args, "--state");
+    var openOnly = string.IsNullOrWhiteSpace(state) ||
+                   string.Equals(state, "open", StringComparison.OrdinalIgnoreCase);
+    var includeClosed = !openOnly;
+
+    IReadOnlyList<CardCommand> entries;
+    try
+    {
+        var commands = new FileCardCommandStore(catalog, new FileCardStore(catalog, database));
+        entries = await commands.ListAsync(projectId, includeClosed, CancellationToken.None);
+    }
+    catch (FileNotFoundException exception)
+    {
+        Console.Error.WriteLine(exception.Message);
+        return 1;
+    }
+
+    if (!openOnly && !string.Equals(state, "all", StringComparison.OrdinalIgnoreCase))
+    {
+        var wanted = CardCommands.ParseState(state!);
+        entries = [.. entries.Where(entry => entry.State == wanted)];
+    }
+
+    if (ReadOption(args, "--card") is { Length: > 0 } cardId)
+    {
+        entries = [.. entries.Where(entry =>
+            string.Equals(entry.CardId, cardId, StringComparison.Ordinal))];
+    }
+
+    if (entries.Count == 0)
+    {
+        Console.WriteLine(openOnly ? "No commands are waiting." : "No commands match.");
+        return 0;
+    }
+
+    foreach (var entry in entries)
+    {
+        Console.WriteLine(
+            $"{entry.Id}  {entry.State,-9}  {entry.Action,-6}  {entry.CardId}  " +
+            $"{Describe(entry)}  {entry.RequestedBy}  {entry.CreatedAtUtc:u}");
+        if (!string.IsNullOrWhiteSpace(entry.Message))
+        {
+            Console.WriteLine($"    {entry.Message}");
+        }
+    }
+
+    return 0;
+
+    // What the command asks for, in the terms of the thing it names, so a person reads one line and knows
+    // whether an agent could act on it at all.
+    static string Describe(CardCommand entry) =>
+        entry.Action is CardCommandAction.Start
+            ? $"stage {entry.StageId}"
+            : $"execution {entry.ExecutionId}";
 }
 
 // Unregistering changes what the daemon shows, so it asks first. A redirected stdin means a script:

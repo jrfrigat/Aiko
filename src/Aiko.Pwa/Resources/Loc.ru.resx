@@ -621,4 +621,27 @@
 
   <data name="CardTypeRevision" xml:space="preserve"><value>Тип карточек · rev {0}</value></data>
 
+  <data name="CommandsTitle" xml:space="preserve"><value>Команда агенту</value></data>
+  <data name="CommandsHint" xml:space="preserve"><value>Aiko не запускает агентов, поэтому просьба ждёт в очереди проекта, пока агент не запустится и не заберёт её.</value></data>
+  <data name="CommandAction" xml:space="preserve"><value>Что попросить</value></data>
+  <data name="CommandStart" xml:space="preserve"><value>Начать этап</value></data>
+  <data name="CommandPause" xml:space="preserve"><value>Поставить прогон на паузу</value></data>
+  <data name="CommandResume" xml:space="preserve"><value>Продолжить прогон</value></data>
+  <data name="CommandAnswer" xml:space="preserve"><value>Ответить на вопрос прогона</value></data>
+  <data name="CommandText" xml:space="preserve"><value>Что передать агенту</value></data>
+  <data name="CommandPauseHint" xml:space="preserve"><value>Почему пауза — это прочитает тот, кто продолжит прогон.</value></data>
+  <data name="CommandAnswerHint" xml:space="preserve"><value>Ответ; он попадёт в ленту карточки и разбудит прогон.</value></data>
+  <data name="PlaceCommand" xml:space="preserve"><value>Поставить команду</value></data>
+  <data name="CommandPlaced" xml:space="preserve"><value>Команда {0} ждёт агента.</value></data>
+  <data name="CommandFailed" xml:space="preserve"><value>Команду поставить не удалось.</value></data>
+  <data name="CommandWaiting" xml:space="preserve"><value>ждёт</value></data>
+  <data name="CommandTaken" xml:space="preserve"><value>взята</value></data>
+  <data name="CommandStartHint" xml:space="preserve"><value>Агент начнёт этап «{0}» этой карточки.</value></data>
+  <data name="CommandRunHint" xml:space="preserve"><value>Агент будет действовать с прогоном {0}.</value></data>
+  <data name="CommandNoRunHint" xml:space="preserve"><value>У карточки ещё нет прогонов, поэтому можно попросить только «начать этап».</value></data>
+  <data name="CommandStartCaption" xml:space="preserve"><value>начать этап {0}</value></data>
+  <data name="CommandCaptionPause" xml:space="preserve"><value>поставить прогон на паузу</value></data>
+  <data name="CommandCaptionResume" xml:space="preserve"><value>продолжить прогон</value></data>
+  <data name="CommandCaptionAnswer" xml:space="preserve"><value>ответить на вопрос прогона</value></data>
+
 </root>

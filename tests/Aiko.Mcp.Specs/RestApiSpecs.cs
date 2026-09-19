@@ -1148,4 +1148,98 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
         }
     }
 
+    /// <summary>
+    /// The command queue end to end over HTTP: a screen places a command, an agent takes it and closes it,
+    /// and the queue reports each step. This is the channel that lets a request made in the UI reach an agent
+    /// that is not running yet.
+    /// </summary>
+    [Fact]
+    public async Task A_command_placed_over_http_is_taken_and_closed_by_an_agent()
+    {
+        using var http = CreateClient();
+        var project = fixture.ProjectId;
+        const string cardId = "REST-CMD-CARD";
+
+        using var created = await http.PostAsJsonAsync($"api/v1/projects/{project}/cards", new
+        {
+            cardId,
+            kind = "Task",
+            title = "Card for the command queue",
+            workflowId = "task",
+            stageId = "backlog",
+            ownPriority = 1
+        });
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+
+        // Placing a command the agent could not carry out is refused before anything is queued.
+        using var incomplete = await http.PostAsJsonAsync($"api/v1/projects/{project}/commands", new
+        {
+            cardId,
+            action = "Start"
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, incomplete.StatusCode);
+
+        using var placed = await http.PostAsJsonAsync($"api/v1/projects/{project}/commands", new
+        {
+            cardId,
+            action = "Start",
+            stageId = "backlog",
+            agentAdapterId = "cline"
+        });
+        Assert.Equal(HttpStatusCode.Created, placed.StatusCode);
+        var command = await placed.Content.ReadFromJsonAsync<JsonElement>();
+        var commandId = command.GetProperty("id").GetString();
+        Assert.Equal("Queued", command.GetProperty("state").GetString());
+
+        // The open queue carries it; the state filter narrows to one state.
+        var open = await http.GetFromJsonAsync<JsonElement>($"/api/v1/projects/{project}/commands");
+        Assert.Contains(
+            open.EnumerateArray(),
+            entry => entry.GetProperty("id").GetString() == commandId);
+        var queued = await http.GetFromJsonAsync<JsonElement>(
+            $"/api/v1/projects/{project}/commands?state=queued");
+        Assert.Contains(
+            queued.EnumerateArray(),
+            entry => entry.GetProperty("id").GetString() == commandId);
+
+        using var claimed = await http.PostAsJsonAsync(
+            $"/api/v1/projects/{project}/commands/{commandId}/claim",
+            new { agentAdapterId = "cline" });
+        claimed.EnsureSuccessStatusCode();
+        Assert.Equal(
+            "Taken",
+            (await claimed.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("state").GetString());
+
+        // A second agent cannot take what the first already holds.
+        using var stolen = await http.PostAsJsonAsync(
+            $"/api/v1/projects/{project}/commands/{commandId}/claim",
+            new { agentAdapterId = "codex" });
+        Assert.Equal(HttpStatusCode.Conflict, stolen.StatusCode);
+
+        using var finished = await http.PostAsJsonAsync(
+            $"/api/v1/projects/{project}/commands/{commandId}/complete",
+            new { message = "Stage started." });
+        finished.EnsureSuccessStatusCode();
+        var closed = await finished.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("Completed", closed.GetProperty("state").GetString());
+        Assert.Equal("Stage started.", closed.GetProperty("message").GetString());
+
+        // A closed command leaves the open queue but not the history.
+        var afterClose = await http.GetFromJsonAsync<JsonElement>($"/api/v1/projects/{project}/commands");
+        Assert.DoesNotContain(
+            afterClose.EnumerateArray(),
+            entry => entry.GetProperty("id").GetString() == commandId);
+        var all = await http.GetFromJsonAsync<JsonElement>(
+            $"/api/v1/projects/{project}/commands?state=all");
+        Assert.Contains(
+            all.EnumerateArray(),
+            entry => entry.GetProperty("id").GetString() == commandId);
+
+        // An unknown command is a 404, the same as an unknown run.
+        using var missing = await http.PostAsJsonAsync(
+            $"/api/v1/projects/{project}/commands/CMD-404/claim",
+            new { agentAdapterId = "cline" });
+        Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
+    }
+
 }

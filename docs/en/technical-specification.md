@@ -175,13 +175,15 @@ By default the installer adds `/.aiko/` to `.gitignore`. The user can choose ano
     architecture.md
     conventions.md
     lessons.md
+  commands.json            # the queue of commands a screen placed for an agent
   runtime/                 # always local, never committed
 ```
 
 The presence of a specific Markdown file is defined by stage requirements, not by a fixed set: `aiko init`
 creates `workflows/`, `projections/`, `stories/`, `tasks/`, `memory/` and `runtime/`, while a card's
 directory (`tasks/<TASK-ID>/` with `card.json` and its artifacts) appears with the first card, and
-`handoffs/` with the first hand-off of a stage to another agent.
+`handoffs/` with the first hand-off of a stage to another agent. `commands.json` appears with the first
+command a screen places for an agent (see 12.2).
 
 ### 7.3 Global SQLite
 
@@ -370,6 +372,65 @@ refused with the tool and the readiness criterion to use. A project that defines
 estimate and completes without the check; a caller with no settings service is not gated either. In the
 default template the rule is carried by the stage instructions themselves ("before completing the stage,
 re-estimate the card with `aiko_estimate_card`"), and the working contract states it in `aiko_get_project_context`.
+
+### 12.2 The command queue
+
+Aiko does not run agent processes, so a request that starts in the UI has to survive until an agent is
+there to take it. That is what the project's command queue is: `.aiko/commands.json`, one document per
+project, written atomically beside the cards and readable without the daemon.
+
+```text
+{
+  "schemaVersion": 1,
+  "nextSequence": 3,
+  "entries": [
+    {
+      "id": "CMD-1",
+      "cardId": "TASK-70",
+      "action": "Start",
+      "stageId": "implementation",
+      "executionId": null,
+      "agentAdapterId": "cline",
+      "text": null,
+      "state": "Queued",
+      "requestedBy": "you",
+      "createdAtUtc": "2026-09-19T21:00:00+00:00",
+      "claimedAtUtc": null,
+      "finishedAtUtc": null,
+      "message": null
+    }
+  ]
+}
+```
+
+A file rather than a SQLite row: the global database is a rebuildable projection, and a command is
+something a person typed that must not disappear with it. `nextSequence` is stored rather than derived so
+an identifier is never reused after a command is removed.
+
+Four actions, each mapping onto an operation an agent already has: `Start` (`aiko_start_stage`), `Pause`
+(`aiko_pause_execution`), `Resume` (`aiko_resume_execution`) and `Answer` (a note through
+`aiko_add_comment`, then `aiko_resume_execution`, so the answer reaches the run that is waiting for it).
+`Start` needs `stageId`; the other three need `executionId`, and `Pause` and `Answer` need `text` - a
+command that names nothing an agent could act on is refused when it is placed, not queued as a trap.
+
+States: `Queued → Taken → Completed | Failed`, and `Queued → Cancelled`. Every transition is checked in
+one place, under a per-project lock, which is what keeps two agents from carrying out one command twice;
+a command placed for a named agent is left for that agent. Only a command nobody has taken can be
+cancelled - one an agent holds is closed by that agent, because a screen cannot know whether the work it
+asked for has happened.
+
+The queue obeys no gate of its own: `Start` does not check the blocking graph, the concurrency limit or
+the completion gate, because those belong to the execution the agent then starts. A refusal there reaches
+the person as the command's `failed` message.
+
+| Surface | Path |
+| :-- | :-- |
+| REST | `GET/POST /api/v1/projects/{projectId}/commands`, and `POST .../commands/{commandId}/claim`, `.../complete`, `.../fail`, `.../cancel` |
+| MCP | `aiko_list_commands`, `aiko_claim_command`, `aiko_finish_command` |
+| CLI | `aiko commands [--project <id>] [--card <id>] [--state <open\|all\|state>]` |
+| Agent procedure | `aiko-commands` - reads the queue, takes one command, carries it out, closes it |
+| UI | Card page - *Command for an agent*: place one, and see whether it is waiting or taken |
+| Event | `commands.updated`, published on every change |
 
 ## 13. Concurrency and workspaces
 
