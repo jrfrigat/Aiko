@@ -258,6 +258,12 @@ catalog but by default carry only visual/search semantics.
 In the MVP both endpoints of a relation belong to one project. `blocks` cycles are forbidden.
 `relates-to` cycles are allowed. Reverse links are not duplicated in storage.
 
+Cross-project **card creation** is a separate decision and is allowed: an agent working in one project may
+file a card into a linked project, under the sending project's policy (`deny`, `ask` or `allow`, plus an
+optional list of allowed targets). The created card records its origin (`originProjectId`, and `originCardId`
+when a source card was named); the target project configures nothing here and only reads it. Cross-project
+relations and a shared cross-project board stay out of the MVP.
+
 ## 10. Priority
 
 Every card has its own scoring criteria. A criterion defines an id, title, range, weight and an
@@ -299,6 +305,11 @@ A Stage contains:
 
 The user can create a Stage and write an instruction. Aiko turns it into an internal skill.
 The MCP tool list stays stable; the dynamic instruction is returned through the stage context.
+
+Skills come in two scopes. **Global** (user-scope) skills manage Aiko itself and work before or outside any
+project; **project** skills are written by `/aiko-init` and belong to one project. The mapping
+"skill -> MCP tool -> UI path" is kept in `agent-integration.md`, so a capability reachable from an agent
+can be compared against the interface.
 
 Base skills are built from `SkillsExample` but drop the binding to a specific database, project
 and the old `.claude/workflow` structure.
@@ -392,6 +403,10 @@ not blocked. When detected, the result is flagged as requiring attribution revie
 
 Worktree mode is added through an `IWorkspaceStrategy` without changing the domain. In it, the
 new agent after a handoff connects to the existing worktree of the StageExecution.
+
+Decision: `WorkspaceMode.Worktree` is declared in the domain but **not executed** in the MVP - only `Shared`
+runs. Implementing it is a post-MVP step that goes through `IWorkspaceStrategy` and leaves the domain model
+untouched; until then the mode exists so the model does not have to change when it arrives.
 
 ## 14. ScopeFiles
 
@@ -547,6 +562,11 @@ Full logs, secrets, sessions, locks and SQLite are never offered for committing.
 Operations have `allow`, `ask`, `deny` with a global -> project -> stage -> execution hierarchy. In
 parallel shared mode Git mutations get a separate warning; the safe default is `deny`.
 
+Pushing from the shared checkout answers the same question with the same three values, and `deny` is the
+default. Like the commit policy it is a rule the agent reads rather than one the daemon enforces: Aiko has no
+push of its own (`IGitClient` only reads status, log and diff), so nothing pauses an execution on it. Push and
+branch handling beyond this are post-MVP.
+
 ## 21. Security
 
 - Bind to `127.0.0.1`/`::1` only by default.
@@ -569,6 +589,11 @@ The global installer:
   a free random port from `18000-18999` and saves the choice in the global `settings.json`;
 - creates the SQLite database and local configuration;
 - diagnoses the available agents.
+
+A fresh installation is usable without manual configuration: it creates the default workflow set - the
+`default` template carrying the scoring model (weights, criteria, size grid), the stage and artifact
+definitions and the action and git policies. Every project made by `aiko init` copies it, so a new project
+already runs with a sensible setup rather than an empty one.
 
 `aiko init` in a project:
 
@@ -602,8 +627,16 @@ and warnings by adapter; one adapter's failure does not hide the results of the 
 
 ## 24. Configuration
 
-Levels: global -> project -> workflow/stage -> card/execution. The more specific value wins.
+Levels of *application* settings: project -> workflow/stage -> card/execution. The more specific value wins.
 Every effective-config endpoint shows the value and its source.
+
+There is no installation-wide settings document. A project is created from a **template** (a workflow set)
+and owns its copy from then on: what a project does not state it does not inherit from anything, so the
+template is the source of defaults rather than a level that keeps acting on existing projects. Editing a
+template affects the projects created afterwards, never the ones that already exist.
+
+The daemon's own `settings.json` (port and similar host-level facts) is a different thing: it is
+infrastructure configuration, not application settings, and is not part of the levels above.
 
 Main groups:
 
