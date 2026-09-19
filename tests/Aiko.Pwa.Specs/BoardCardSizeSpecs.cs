@@ -7,28 +7,71 @@ namespace Aiko.Pwa.Specs;
 /// </summary>
 /// <remarks>
 /// The size multiplies a card's score, so two cards with the same criteria read as different priorities
-/// unless the coefficient is visible. TASK-46 put it in the card's footer, beside the stage's agents.
+/// unless the coefficient is visible. It sits in the card's top row beside the id, as a badge carrying the
+/// tone of the step it names - the same tone the settings ladder paints that step with.
 /// </remarks>
 public sealed class BoardCardSizeSpecs
 {
     [Fact]
-    public void A_board_card_shows_its_size_beside_the_stage_agents()
+    public void A_board_card_shows_its_size_in_the_top_row_as_a_badged_tone()
     {
         var text = BoardSection();
 
-        // The size is a quiet tag in the footer, drawn in the right-hand group next to the agents ...
-        Assert.Contains("@Agents(stage)", text, StringComparison.Ordinal);
+        // The size is a tag in the top row, beside the id, and its tone comes from the one shared rule rather
+        // than from a second palette written into this screen ...
         Assert.Contains("@if (!string.IsNullOrWhiteSpace(card.Size))", text, StringComparison.Ordinal);
-        Assert.Contains("<span class=\"aiko-tag aiko-tag--quiet\">@card.Size</span>", text, StringComparison.Ordinal);
+        Assert.Contains("<span class=\"aiko-tag @SizeBadgeClass(card)\">@card.Size</span>", text, StringComparison.Ordinal);
+        Assert.Contains("CardAppearance.SizeTagClass(step.Coefficient)", text, StringComparison.Ordinal);
 
-        // ... and it is the footer's right side, next to the agents, not a line of its own.
+        var topRow = text[..text.IndexOf("aiko-card__meta", StringComparison.Ordinal)];
+        Assert.Contains("card.Size", topRow, StringComparison.Ordinal);
+
+        // ... and the footer no longer states it: that row reads DoD on the left and the agents with the
+        // stage's own state on the right.
         var footer = text[text.IndexOf("aiko-card__dod", StringComparison.Ordinal)..];
         Assert.Contains("@Agents(stage)", footer, StringComparison.Ordinal);
-        Assert.Contains("<span class=\"aiko-tag aiko-tag--quiet\">@card.Size</span>", footer, StringComparison.Ordinal);
+        Assert.DoesNotContain("@card.Size", footer, StringComparison.Ordinal);
+    }
 
-        // It is not in the top row, where the type, the stage state and the priority already sit.
-        var topRow = text[..text.IndexOf("aiko-card__meta", StringComparison.Ordinal)];
-        Assert.DoesNotContain("card.Size", topRow, StringComparison.Ordinal);
+    [Fact]
+    public void A_size_with_no_step_in_the_grid_keeps_the_quiet_badge()
+    {
+        var text = BoardSection();
+
+        // A tone is a statement about a coefficient: a card that names a size the grid does not hold gets the
+        // neutral badge, not another step's colour.
+        Assert.Contains(
+            "return step is null ? \"aiko-tag--quiet\" : CardAppearance.SizeTagClass(step.Coefficient);",
+            text,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_size_tone_has_one_rule_for_the_settings_ladder_and_the_board()
+    {
+        var root = FindRepositoryRoot();
+
+        // The direction is derived once, in the cockpit's appearance helper ...
+        var appearance = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Services", "CardAppearance.cs"));
+        Assert.Contains("public static string SizeTone(decimal coefficient)", appearance, StringComparison.Ordinal);
+        Assert.Contains("public static string SizeTagClass(decimal coefficient)", appearance, StringComparison.Ordinal);
+
+        // ... the settings ladder asks that rule instead of repeating the comparison ...
+        var settings = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "SettingsEditor.razor"));
+        Assert.Contains("CardAppearance.SizeTone(coefficient)", settings, StringComparison.Ordinal);
+        Assert.DoesNotContain("> 1m => \"aiko-size--up\"", settings, StringComparison.Ordinal);
+
+        // ... and the colour is declared once, on a variable both the tile and the badge read.
+        var css = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "wwwroot", "css", "app.css"));
+        foreach (var tone in new[] { "up", "mid", "down" })
+        {
+            Assert.Contains($".aiko-tag--size-{tone}", css, StringComparison.Ordinal);
+        }
+
+        Assert.Contains("--aiko-tone:", css, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -1339,19 +1339,37 @@
     font: inherit;
 }
 
-.aiko-size--up {
-    border-color: color-mix(in srgb, var(--flare-color-tertiary) 45%, transparent);
-    background: color-mix(in srgb, var(--flare-color-tertiary) 12%, var(--flare-color-surface-container));
+/* The three tones a size step can carry, declared once on a variable that both the ladder tile and a card's
+   size badge read: the tile paints its surface with it, the badge its text and background. One declaration is
+   what keeps the settings screen and the board from drifting apart about which step is the cheap one. */
+.aiko-size--up,
+.aiko-tag--size-up {
+    --aiko-tone: var(--flare-color-tertiary);
 }
 
-.aiko-size--mid {
-    border-color: color-mix(in srgb, var(--flare-color-primary) 45%, transparent);
-    background: color-mix(in srgb, var(--flare-color-primary) 12%, var(--flare-color-surface-container));
+.aiko-size--mid,
+.aiko-tag--size-mid {
+    --aiko-tone: var(--flare-color-primary);
 }
 
+.aiko-size--down,
+.aiko-tag--size-down {
+    --aiko-tone: var(--flare-color-warning);
+}
+
+.aiko-size--up,
+.aiko-size--mid,
 .aiko-size--down {
-    border-color: color-mix(in srgb, var(--flare-color-warning) 45%, transparent);
-    background: color-mix(in srgb, var(--flare-color-warning) 12%, var(--flare-color-surface-container));
+    border-color: color-mix(in srgb, var(--aiko-tone) 45%, transparent);
+    background: color-mix(in srgb, var(--aiko-tone) 12%, var(--flare-color-surface-container));
+}
+
+/* A card's size badge: the tone of the step it names, in the tag's own small shape. */
+.aiko-tag--size-up,
+.aiko-tag--size-mid,
+.aiko-tag--size-down {
+    background: color-mix(in srgb, var(--aiko-tone) 20%, transparent);
+    color: var(--aiko-tone);
 }
 
 .aiko-size:hover {
@@ -1381,15 +1399,7 @@
     font-family: var(--aiko-font-mono, monospace);
     font-size: 0.8125rem;
     font-weight: 700;
-    color: var(--flare-color-tertiary);
-}
-
-.aiko-size--mid .aiko-size__coefficient {
-    color: var(--flare-color-primary);
-}
-
-.aiko-size--down .aiko-size__coefficient {
-    color: var(--flare-color-warning);
+    color: var(--aiko-tone, var(--flare-color-on-surface-variant));
 }
 
 /* A name that opens something - the project name in the dashboard table. It reads as text, because a table

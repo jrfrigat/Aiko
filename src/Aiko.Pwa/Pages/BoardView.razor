@@ -86,6 +86,7 @@ else
             <BoardSection Title="@current.Title"
                           Kind="@current.CardType"
                           Board="board"
+                          SizeGrid="@(State.SettingsView?.EffectivePriority.Grid ?? [])"
                           OnCardSelected="OpenCard"
                           OnCardMoved="move => MoveCardAsync(current.CardType, move)" />
         }

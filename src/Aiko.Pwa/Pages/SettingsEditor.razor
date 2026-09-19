@@ -927,12 +927,12 @@
     /// one it penalizes it, and exactly one is the neutral middle of the ladder. Derived from the number
     /// rather than stored per step, so a project that edits a coefficient sees the colour follow it.
     /// </summary>
-    private static string DirectionClass(decimal coefficient) => coefficient switch
-    {
-        > 1m => "aiko-size--up",
-        < 1m => "aiko-size--down",
-        _ => "aiko-size--mid"
-    };
+    /// <remarks>
+    /// The direction itself comes from <see cref="CardAppearance.SizeTone"/>, which a card's size badge reads
+    /// too: one rule, so the tile here and the badge on the board cannot drift apart.
+    /// </remarks>
+    private static string DirectionClass(decimal coefficient) =>
+        $"aiko-size--{CardAppearance.SizeTone(coefficient)}";
 
     /// <summary>
     /// A rough token count for a prompt, so the editor can show what the model will be handed. It is an

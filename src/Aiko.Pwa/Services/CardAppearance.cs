@@ -54,4 +54,22 @@ public static class CardAppearance
         "neutral" => FlareColor.OnSurfaceVariant,
         _ => fallback
     };
+
+    /// <summary>
+    /// The tone a size step carries: the direction its coefficient points in.
+    /// </summary>
+    /// <remarks>
+    /// A step stores no colour on purpose - a step <em>is</em> its coefficient, and the tone is what that
+    /// coefficient means at a glance. The settings ladder and a card's size badge both read this one rule, so
+    /// the two cannot disagree about which step is the cheap one.
+    /// </remarks>
+    public static string SizeTone(decimal coefficient) => coefficient switch
+    {
+        > 1m => "up",
+        < 1m => "down",
+        _ => "mid"
+    };
+
+    /// <summary>The tag class a card's size badge is drawn with, one per tone.</summary>
+    public static string SizeTagClass(decimal coefficient) => $"aiko-tag--size-{SizeTone(coefficient)}";
 }

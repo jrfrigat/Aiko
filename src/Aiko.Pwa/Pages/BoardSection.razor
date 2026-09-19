@@ -73,7 +73,11 @@
                                                     <FlareText Element="span" Mono="true" Color="FlareColor.Secondary" Weight="FontWeight.SemiBold">
                                                         #@card.Reference.CardId
                                                     </FlareText>
-                                                    <span class="aiko-tag">@KindLabel(card.Kind)</span>
+
+                                                    @if (!string.IsNullOrWhiteSpace(card.Size))
+                                                    {
+                                                        <span class="aiko-tag @SizeBadgeClass(card)">@card.Size</span>
+                                                    }
                                                 </FlareStack>
                                                 <span class="aiko-tag aiko-tag--quiet" title="@PriorityTitle(card)">★ @Score(card)</span>
                                             </FlareStack>
@@ -98,25 +102,15 @@
 
                                             <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XXSmall" Class="aiko-card__dod">
                                                 <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
-                                                    @* Where this card's stage got to, from the runs the snapshot carries. It sits
-                                                       in the bottom-left corner, opposite the size, so a glance along the
-                                                       bottom row reads both. *@
-                                                    <span class="aiko-tag @StageStateView.TagClass(StageStateOf(card))"
-                                                          title="@Loc.Get(StageStateView.LabelKey(StageStateOf(card)))">
-                                                        @Loc.Get(StageStateView.LabelKey(StageStateOf(card)))
-                                                    </span>
                                                     <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant2">@DodLine(card)</FlareText>
                                                 </FlareStack>
                                                 <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
                                                     <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant">@Agents(stage)</FlareText>
-                                                    @* The size is the coefficient the score is multiplied by, so it belongs with the
-                                                       other right-hand facts: without it two equally scored cards read as different
-                                                       priorities for no visible reason. A card nobody sized shows nothing - a dash
-                                                       or a zero would be a value the project never stated. *@
-                                                    @if (!string.IsNullOrWhiteSpace(card.Size))
-                                                    {
-                                                        <span class="aiko-tag aiko-tag--quiet">@card.Size</span>
-                                                    }
+                                                    <FlareSpacer />
+                                                    <span class="aiko-tag @StageStateView.TagClass(StageStateOf(card))"
+                                                            title="@Loc.Get(StageStateView.LabelKey(StageStateOf(card)))">
+                                                        @Loc.Get(StageStateView.LabelKey(StageStateOf(card)))
+                                                    </span>
                                                 </FlareStack>
                                             </FlareStack>
                                         </FlareStack>
@@ -142,6 +136,16 @@
     [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
     [Parameter] public string Kind { get; set; } = string.Empty;
     [Parameter, EditorRequired] public ProjectBoardSnapshot Board { get; set; } = null!;
+
+    /// <summary>
+    /// The project's size grid, so a card's size badge can carry the tone of the step it names.
+    /// </summary>
+    /// <remarks>
+    /// The board snapshot carries cards and runs but not the grid, so the page that owns the workspace hands
+    /// it down. An empty grid is honest: without a step there is no coefficient, and a badge with no tone
+    /// stays quiet rather than borrowing one.
+    /// </remarks>
+    [Parameter] public IReadOnlyList<SizeDefinition> SizeGrid { get; set; } = [];
 
     /// <summary>Raised when a card lands in another stage; the page turns it into one request.</summary>
     [Parameter] public EventCallback<BoardCardMove> OnCardMoved { get; set; }
@@ -250,11 +254,20 @@
             ? "—"
             : string.Join(", ", stage.RequiredArtifacts.Select(artifact => artifact.Path));
 
-    private string KindLabel(string kind) =>
-        Board.Workflows
-            .FirstOrDefault(workflow => StringComparer.OrdinalIgnoreCase.Equals(workflow.CardType, kind))
-            ?.Title
-        ?? kind;
+    /// <summary>
+    /// The tag class a card's size badge carries: the tone of the step it names, or the quiet one.
+    /// </summary>
+    /// <remarks>
+    /// A tone is a statement about a coefficient, so without the step there is nothing to state: a card that
+    /// names no size, and one whose step has left the grid, both keep the neutral badge rather than borrowing
+    /// a colour. The tone itself is <see cref="CardAppearance.SizeTagClass"/> - the same rule the settings
+    /// ladder colours its tiles with, so the two screens cannot disagree.
+    /// </remarks>
+    private string SizeBadgeClass(Card card)
+    {
+        var step = SizeGrid.FirstOrDefault(item => StringComparer.Ordinal.Equals(item.Id, card.Size));
+        return step is null ? "aiko-tag--quiet" : CardAppearance.SizeTagClass(step.Coefficient);
+    }
 
     /// <summary>
     /// The card's effective priority as the daemon computed it: the criterion scores, blended with the
