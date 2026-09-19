@@ -11,6 +11,7 @@
 | [User Guide](en/user-guide.md) | Board, cards, workflows, git, discussion, analytics, executions, memory |
 | [Agent Integration](en/agent-integration.md) | MCP endpoints, tools, skills, installer output |
 | [Troubleshooting](en/troubleshooting.md) | Common problems and fixes |
+| [Git and Security](en/git-and-security.md) | Threat model, access token, pairing, git and commit policies |
 | [Technical Specification](en/technical-specification.md) | Normative MVP specification |
 | [Requirements Discussion](en/requirements-discussion.md) | Journal of requirements Q&A and decisions |
 | [Original Terms of Reference](en/mcp-flow.md) | Historical source document (the Ruflo-style TZ) |
@@ -24,6 +25,7 @@
 | [Руководство пользователя](ru/user-guide.md) | Доска, карточки, workflow, git, обсуждение, аналитика, executions, память |
 | [Интеграция агентов](ru/agent-integration.md) | MCP-эндпоинты, инструменты, скиллы, вывод установщика |
 | [Решение проблем](ru/troubleshooting.md) | Типовые проблемы и решения |
+| [Git и безопасность](ru/git-and-security.md) | Модель угроз, токен доступа, сопряжение, политики git и коммитов |
 | [Техническая спецификация](ru/technical-specification.md) | Нормативная спецификация MVP |
 | [Журнал уточнения требований](ru/requirements-discussion.md) | Журнал вопросов, ответов и решений |
 | [Исходное ТЗ](ru/mcp-flow.md) | Исторический исходный документ (ТЗ в стиле Ruflo) |
