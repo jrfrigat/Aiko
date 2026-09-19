@@ -89,6 +89,11 @@ builder.Services
     .WithTools<CardTools>()
     .WithTools<ExecutionTools>()
     .WithTools<MemoryTools>()
+    // The command queue and the board are the agent's half of the two channels a screen writes to, so a
+    // tool type left out here is a screen whose request no agent can ever read. The MCP suite lists every
+    // one of them, which is what keeps a missing registration from passing unnoticed.
+    .WithTools<CommandTools>()
+    .WithTools<BoardTools>()
     .WithTools<DaemonTools>()
     .WithTools<MaintenanceTools>()
     // A tool that throws otherwise reaches the agent as "An error occurred invoking 'aiko_start_stage'",

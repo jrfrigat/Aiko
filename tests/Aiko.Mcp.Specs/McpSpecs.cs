@@ -48,7 +48,11 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         "aiko_reindex",
         "aiko_backup",
         "aiko_token",
-        "aiko_get_settings"
+        "aiko_get_settings",
+        "aiko_list_commands",
+        "aiko_claim_command",
+        "aiko_finish_command",
+        "aiko_list_board"
     ];
 
     private async Task<McpClient> ConnectAsync()
@@ -288,6 +292,80 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         var cardText = FirstText(get);
         Assert.False(string.IsNullOrWhiteSpace(cardText));
         Assert.Contains(cardId!, cardText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Board_tool_returns_the_order_the_pass_walks()
+    {
+        await using var client = await ConnectAsync();
+
+        var create = await client.CallToolAsync(
+            "aiko_create_card",
+            new Dictionary<string, object?>
+            {
+                ["kind"] = "task",
+                ["title"] = "A card the board pass would pick up",
+                ["ownPriority"] = 6
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.NotEqual(true, create.IsError);
+        using var created = JsonDocument.Parse(FirstText(create)!);
+        var cardId = created.RootElement.GetProperty("reference").GetProperty("cardId").GetString();
+
+        // The pass over the board reads its order from here, so this tool has to answer with the same
+        // snapshot the interface draws: the cards, and the priority each one is shown with.
+        var board = await client.CallToolAsync(
+            "aiko_list_board",
+            cancellationToken: CancellationToken.None);
+        Assert.False(board.IsError == true, FirstText(board));
+        var boardText = FirstText(board);
+        Assert.False(string.IsNullOrWhiteSpace(boardText));
+        using var snapshot = JsonDocument.Parse(boardText!);
+
+        Assert.True(snapshot.RootElement.GetProperty("cards").GetArrayLength() > 0);
+        Assert.Contains(
+            snapshot.RootElement.GetProperty("cards").EnumerateArray(),
+            card => card.GetProperty("reference").GetProperty("cardId").GetString() == cardId);
+        Assert.Contains(
+            snapshot.RootElement.GetProperty("cardPriorities").EnumerateArray(),
+            item => item.GetProperty("cardId").GetString() == cardId);
+    }
+
+    [Fact]
+    public async Task The_command_queue_reaches_an_agent_over_mcp()
+    {
+        await using var client = await ConnectAsync();
+
+        // A card of its own, so the test does not depend on what another one left on the board.
+        var create = await client.CallToolAsync(
+            "aiko_create_card",
+            new Dictionary<string, object?>
+            {
+                ["kind"] = "task",
+                ["title"] = "A card a command can be placed for",
+                ["ownPriority"] = 1
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.False(create.IsError == true, FirstText(create));
+        using var created = JsonDocument.Parse(FirstText(create)!);
+        var cardId = created.RootElement.GetProperty("reference").GetProperty("cardId").GetString();
+
+        using var http = new HttpClient { BaseAddress = fixture.BaseUrl };
+        using var placed = await http.PostAsJsonAsync(
+            $"api/v1/projects/{fixture.ProjectId}/commands",
+            new { cardId, action = "Start", stageId = "backlog" });
+        Assert.Equal(HttpStatusCode.Created, placed.StatusCode);
+
+        // The queue a screen writes to is the same one an agent reads: without this the button would place
+        // a request nobody can ever see.
+        var listed = await client.CallToolAsync(
+            "aiko_list_commands",
+            cancellationToken: CancellationToken.None);
+        Assert.False(listed.IsError == true, FirstText(listed));
+        var text = FirstText(listed);
+        Assert.False(string.IsNullOrWhiteSpace(text));
+        Assert.Contains(cardId!, text, StringComparison.Ordinal);
+        Assert.Contains("Queued", text, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -30,10 +30,10 @@ internal sealed class CommandTools(
         [Description(
             "Which commands to read: 'open' (default) for the ones nobody has closed, 'all' for the history "
             + "too, or a state name - queued, taken, completed, failed, cancelled.")]
-        string? state,
+        string? state = null,
         [Description("Only commands for this card, or null for the whole project.")]
-        string? cardId,
-        CancellationToken cancellationToken)
+        string? cardId = null,
+        CancellationToken cancellationToken = default)
     {
         var trimmed = state?.Trim();
         var openOnly = string.IsNullOrEmpty(trimmed) ||
