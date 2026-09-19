@@ -1824,5 +1824,57 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         Assert.Equal(HttpStatusCode.NotFound, unknown.StatusCode);
     }
 
+    [Fact]
+    public async Task The_ui_tool_returns_the_canonical_board_and_card_addresses()
+    {
+        using var http = new HttpClient { BaseAddress = fixture.BaseUrl };
+        await using var client = await ConnectAsync();
 
+        var cardId = $"TASK-OPEN-UI-{Guid.NewGuid():N}";
+        var create = await client.CallToolAsync(
+            "aiko_create_card",
+            new Dictionary<string, object?>
+            {
+                ["cardId"] = cardId,
+                ["kind"] = "task",
+                ["title"] = "Open me in the UI",
+                ["ownPriority"] = 1,
+                ["declaredScopeFiles"] = new[] { "src/**" }
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.NotEqual(true, create.IsError);
+
+        // The address has to carry the readable handle even though this client connected by the project's
+        // id: the link is copied out of the answer and pasted into a chat or a ticket, so it must be the
+        // address the product builds for its own pages, not a second form of it.
+        using var projects = JsonDocument.Parse(
+            await http.GetStringAsync("api/v1/projects", CancellationToken.None));
+        var handle = projects.RootElement
+            .EnumerateArray()
+            .Single(item => string.Equals(
+                item.GetProperty("id").GetString(),
+                fixture.ProjectId,
+                StringComparison.Ordinal))
+            .GetProperty("slug")
+            .GetString();
+        Assert.False(string.IsNullOrWhiteSpace(handle));
+        Assert.NotEqual(fixture.ProjectId, handle);
+
+        // No card: the board. That is where a link to a project already goes in the product - the
+        // dashboard's project name and the rail's board item both build it that way.
+        var board = await client.CallToolAsync(
+            "aiko_open_ui",
+            new Dictionary<string, object?> { ["cardId"] = null },
+            cancellationToken: CancellationToken.None);
+        Assert.False(board.IsError == true, FirstText(board));
+        Assert.Equal($"{fixture.BaseUrl}p/{handle}/board", FirstText(board));
+
+        // A card: its own page, the same route the board navigates to when a card is selected.
+        var card = await client.CallToolAsync(
+            "aiko_open_ui",
+            new Dictionary<string, object?> { ["cardId"] = cardId },
+            cancellationToken: CancellationToken.None);
+        Assert.False(card.IsError == true, FirstText(card));
+        Assert.Equal($"{fixture.BaseUrl}p/{handle}/cards/{cardId}", FirstText(card));
+    }
 }

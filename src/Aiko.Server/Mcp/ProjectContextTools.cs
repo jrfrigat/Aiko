@@ -342,19 +342,24 @@ internal sealed class ProjectContextTools(
 
     [McpServerTool(Name = "aiko_open_ui", Title = "Open Aiko UI")]
     [Description(
-        "Returns the local UI URL for the current project and optional card. The caller may open it for the user.")]
-    public string OpenUi(
+        "Returns the canonical local UI URL for the current project and optional card. The caller may open it "
+        + "for the user, or hand the link over: it is a page address a browser opens directly.")]
+    public async Task<string> OpenUiAsync(
         [Description("Optional card id to select. Pass null for the project board.")]
-        string? cardId)
+        string? cardId,
+        CancellationToken cancellationToken)
     {
         var context = HttpContextAccessor.HttpContext
             ?? throw new InvalidOperationException("No HTTP request context is available.");
-        var query = $"project={Uri.EscapeDataString(GetProjectId())}";
-        if (!string.IsNullOrWhiteSpace(cardId))
-        {
-            query += $"&card={Uri.EscapeDataString(cardId)}";
-        }
-
-        return $"{context.Request.Scheme}://{context.Request.Host}/?{query}";
+        // A URL handed to the user is the one the product itself builds: the readable handle - read from the
+        // registry, because the MCP route carries a handle only when the agent connected through one - and the
+        // page's own route. The shell's root with query parameters was a second address for the same page, and
+        // nothing in the PWA ever read those parameters, so the link landed on the dashboard instead.
+        var project = await GetProjectAsync(cancellationToken);
+        var handle = Uri.EscapeDataString(project.Handle);
+        var route = string.IsNullOrWhiteSpace(cardId)
+            ? $"/p/{handle}/board"
+            : $"/p/{handle}/cards/{Uri.EscapeDataString(cardId)}";
+        return $"{context.Request.Scheme}://{context.Request.Host}{route}";
     }
 }

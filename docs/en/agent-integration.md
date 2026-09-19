@@ -186,6 +186,10 @@ carrying out.
 The same work is reachable from an agent, over MCP and - for most of it - from the board. Where the UI
 has no path yet, the table says so rather than pretending the sets are already equal.
 
+`aiko_open_ui` returns a page address directly: `/p/<handle>/board` for the project and
+`/p/<handle>/cards/<cardId>` for a card, always with the project's readable handle. A link an agent hands
+over is therefore the same address the UI links to itself, not a second form of it.
+
 | Action | Agent skill | MCP tool | UI |
 | :-- | :-- | :-- | :-- |
 | Register a project from a chosen template | `/aiko-init [templateId]` | `aiko_list_templates`, `aiko_init_project` | Dashboard - *Add project* (folder browser + template select) |
