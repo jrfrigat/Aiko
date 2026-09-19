@@ -35,3 +35,9 @@ TestResults/
 /.agents/
 /AGENTS.md
 /CLAUDE.md
+
+# Scratch files left by local runs (test/publish logs written by hand).
+tests-out.txt
+tests-err.txt
+publish-out.txt
+publish-err.txt
