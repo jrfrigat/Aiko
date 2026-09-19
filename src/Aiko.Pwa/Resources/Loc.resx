@@ -275,6 +275,8 @@
   <data name="ActiveProjectTag" xml:space="preserve"><value>(active)</value></data>
   <data name="OpenProjectLabel" xml:space="preserve"><value>Open project</value></data>
   <data name="DaemonRoundTrip" xml:space="preserve"><value>round-trip</value></data>
+  <data name="UpdateAvailable" xml:space="preserve"><value>new version</value></data>
+  <data name="UpdateAvailableHint" xml:space="preserve"><value>The daemon serves a newer client than this page loaded. Reload to use it.</value></data>
   <data name="CriterionTitle" xml:space="preserve"><value>Criterion title</value></data>
   <data name="MinimumLabel" xml:space="preserve"><value>From</value></data>
   <data name="MaximumLabel" xml:space="preserve"><value>To</value></data>

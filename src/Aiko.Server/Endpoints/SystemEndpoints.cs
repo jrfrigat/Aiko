@@ -46,6 +46,37 @@ internal static class SystemEndpoints
         (RuntimeFeature.IsDynamicCodeSupported ? "JIT" : "Native AOT");
 
     /// <summary>
+    /// The version of the client bundle this daemon serves, as the build stamped it into the service worker's
+    /// asset manifest. A running client remembers the value it was loaded with and, when this changes, knows it
+    /// is older than the daemon - which is the honest way to say "reload" instead of looking healthy while
+    /// stale. Null when the daemon serves no built client (a source run), which reads as "unknown".
+    /// </summary>
+    /// <param name="environment">The host environment, whose web root holds the served files.</param>
+    internal static string? AssetsVersion(IWebHostEnvironment environment)
+    {
+        var root = string.IsNullOrWhiteSpace(environment.WebRootPath)
+            ? Path.Combine(AppContext.BaseDirectory, "wwwroot")
+            : environment.WebRootPath;
+        var manifest = Path.Combine(root, "service-worker-assets.js");
+        if (!File.Exists(manifest))
+        {
+            return null;
+        }
+
+        try
+        {
+            var match = System.Text.RegularExpressions.Regex.Match(
+                File.ReadAllText(manifest),
+                "\"version\"\\s*:\\s*\"([^\"]+)\"");
+            return match.Success ? match.Groups[1].Value : null;
+        }
+        catch (IOException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Maps /health and /api/v1/system.
     /// </summary>
     /// <param name="app">The endpoint route builder.</param>
@@ -55,7 +86,10 @@ internal static class SystemEndpoints
         app.MapGet("/health", () => TypedResults.Ok(new HealthResponse("healthy")));
         app.MapGet(
             "/api/v1/system",
-            async (IDaemonTelemetry telemetry, CancellationToken cancellationToken) => TypedResults.Ok(
+            async (
+                IDaemonTelemetry telemetry,
+                IWebHostEnvironment environment,
+                CancellationToken cancellationToken) => TypedResults.Ok(
                 new SystemResponse(
                     "Aiko",
                     DaemonVersion,
@@ -63,7 +97,8 @@ internal static class SystemEndpoints
                     Environment.ProcessId,
                     baseUri.ToString().TrimEnd('/'),
                     DateTimeOffset.UtcNow,
-                    await telemetry.ReadAsync(cancellationToken))));
+                    await telemetry.ReadAsync(cancellationToken),
+                    AssetsVersion(environment))));
         // The same inspection `aiko doctor` prints, so the settings screen can report the installation's
         // own health without a terminal. Read-only by contract: IWorkshopDiagnostics changes nothing.
         app.MapGet(

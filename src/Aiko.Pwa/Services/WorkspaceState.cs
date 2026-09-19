@@ -137,6 +137,9 @@ internal sealed class WorkspaceState : IAsyncDisposable
             System = await _http.GetFromJsonAsync<SystemInfo>("api/v1/system", PwaJson.Options);
             roundTrip.Stop();
             DaemonLatencyMs = (int)roundTrip.ElapsedMilliseconds;
+            // The bundle version this tab was loaded with, kept so a later probe can tell that the daemon now
+            // serves a different one: the client is then older than the daemon and says so.
+            _loadedAssetsVersion ??= System?.AssetsVersion;
             // Which agents the daemon can see is overview information: a failure here must not turn
             // the board into an error screen.
             try
@@ -534,6 +537,20 @@ internal sealed class WorkspaceState : IAsyncDisposable
     }
 
     /// <summary>
+    /// Whether the client that is running is older than the bundle the daemon now serves.
+    /// </summary>
+    /// <remarks>
+    /// Both sides must state a version for the answer to mean anything: a source run that serves no built
+    /// bundle says nothing, and "unknown" is not the same claim as "stale".
+    /// </remarks>
+    /// <param name="loadedAssetsVersion">The bundle version this tab was loaded with.</param>
+    /// <param name="daemonAssetsVersion">The bundle version the daemon serves now.</param>
+    internal static bool IsClientStale(string? loadedAssetsVersion, string? daemonAssetsVersion) =>
+        loadedAssetsVersion is { Length: > 0 } &&
+        daemonAssetsVersion is { Length: > 0 } &&
+        !StringComparer.Ordinal.Equals(loadedAssetsVersion, daemonAssetsVersion);
+
+    /// <summary>
     /// Applies the stream's state as the browser reports it: the shell's live badge follows a real open
     /// connection, and a failure carries the reason instead of leaving the board quietly stale.
     /// </summary>
@@ -541,8 +558,51 @@ internal sealed class WorkspaceState : IAsyncDisposable
     {
         EventsConnected = connected;
         EventsStatusMessage = connected ? null : reason;
+        if (connected)
+        {
+            // A (re)connect is how a daemon restart shows up here - and a restart is exactly when the daemon
+            // may serve a newer client than this tab loaded. Probing the version at that moment is what lets
+            // the shell say "reload" instead of hiding the mismatch under a live badge.
+            await RefreshSystemAsync();
+        }
+
         await NotifyAsync();
     }
+
+    /// <summary>
+    /// Re-reads the daemon identity and raises <see cref="UpdateAvailable"/> when the served bundle changed.
+    /// </summary>
+    private async Task RefreshSystemAsync()
+    {
+        try
+        {
+            var roundTrip = Stopwatch.StartNew();
+            var system = await _http.GetFromJsonAsync<SystemInfo>("api/v1/system", PwaJson.Options);
+            roundTrip.Stop();
+            if (system is null)
+            {
+                return;
+            }
+
+            DaemonLatencyMs = (int)roundTrip.ElapsedMilliseconds;
+            System = system;
+            if (IsClientStale(_loadedAssetsVersion, system.AssetsVersion))
+            {
+                UpdateAvailable = true;
+            }
+        }
+        catch (Exception)
+        {
+            // A failed probe must not turn the board into an error screen; the next reconnect tries again.
+        }
+    }
+
+    private string? _loadedAssetsVersion;
+
+    /// <summary>
+    /// Whether the daemon serves a newer client than the one this tab loaded, so reloading is worth it.
+    /// </summary>
+    public bool UpdateAvailable { get; private set; }
 
     private async Task OnProjectEventAsync(string projectId, AikoEvent @event)
     {

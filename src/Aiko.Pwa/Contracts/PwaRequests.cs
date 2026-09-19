@@ -169,7 +169,8 @@ internal sealed record SystemInfo(
     int ProcessId,
     string BaseUrl,
     DateTimeOffset Time,
-    DaemonTelemetry Telemetry);
+    DaemonTelemetry Telemetry,
+    string? AssetsVersion = null);
 
 /// <summary>
 /// A freshly issued one-time pairing code. The browser builds the self-pairing URL from it

@@ -198,3 +198,24 @@ If `irm` is blocked by the execution policy, run the installer explicitly:
 ```powershell
 powershell -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1 | iex"
 ```
+
+## Updating an installed daemon
+
+The installer unpacks a released build into `%LOCALAPPDATA%\Aiko\bin`; a build from a working copy never
+reaches that folder by itself. To move an installation to a newer build:
+
+1. Stop the running daemon (the daemon screen's stop action, or `aiko status` and then stopping the process).
+2. Either run the installer again - it installs the latest release - or publish the working copy yourself and
+   copy it over the folder:
+
+   ```powershell
+   dotnet publish src/Aiko.Server/Aiko.Server.csproj -c Release -p:PublishAot=false -o .\artifacts\publish
+   Copy-Item .\artifacts\publish\* "$env:LOCALAPPDATA\Aiko\bin" -Recurse -Force
+   ```
+
+3. Start the daemon again and reload the board once.
+
+The client is served by the daemon, so a page that is already open belongs to the build that served it. The
+service worker asks the daemon for the app shell first and keeps only content-hashed files in its cache, so one
+reload is enough after an update. When the running client is older than what the daemon serves, the top bar
+shows a **new version** button instead of hiding the mismatch behind a healthy badge.

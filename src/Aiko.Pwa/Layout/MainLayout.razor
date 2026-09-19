@@ -53,6 +53,14 @@
                     }
                     <span class="aiko-tag aiko-tag--quiet">@State.HostCaption</span>
                     <span class="aiko-tag aiko-tag--quiet" title="@Loc.Get("DaemonRoundTrip")">@LatencyCaption</span>
+                    @* The daemon serving a newer client than this tab loaded: saying so is the difference between
+                       a live-looking board that ignores events and one that explains itself. *@
+                    @if (State.UpdateAvailable)
+                    {
+                        <button type="button" class="aiko-tag aiko-tag--warn"
+                                title="@Loc.Get("UpdateAvailableHint")"
+                                @onclick="ReloadForUpdate">@Loc.Get("UpdateAvailable")</button>
+                    }
                 </FlareStack>
 
                 @* The open project, and the switch between projects. The rail lists the pages of one
@@ -373,6 +381,11 @@
     // The service raises the change from whatever context the SSE callback arrived on; the component
     // marshals it onto the renderer's.
     private Task OnStateChanged() => InvokeAsync(StateHasChanged);
+
+    /// <summary>
+    /// Reloads the page because the daemon serves a newer client than the one this tab loaded.
+    /// </summary>
+    private void ReloadForUpdate() => Navigation.NavigateTo(Navigation.Uri, forceLoad: true);
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs args) =>
         InvokeAsync(StateHasChanged);

@@ -275,6 +275,8 @@
   <data name="ActiveProjectTag" xml:space="preserve"><value>(активный)</value></data>
   <data name="OpenProjectLabel" xml:space="preserve"><value>Открыть проект</value></data>
   <data name="DaemonRoundTrip" xml:space="preserve"><value>отклик</value></data>
+  <data name="UpdateAvailable" xml:space="preserve"><value>новая версия</value></data>
+  <data name="UpdateAvailableHint" xml:space="preserve"><value>Демон раздаёт более новый клиент, чем загружен на этой странице. Перезагрузите, чтобы его получить.</value></data>
   <data name="CriterionTitle" xml:space="preserve"><value>Название критерия</value></data>
   <data name="MinimumLabel" xml:space="preserve"><value>От</value></data>
   <data name="MaximumLabel" xml:space="preserve"><value>До</value></data>
