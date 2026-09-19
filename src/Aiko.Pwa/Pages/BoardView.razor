@@ -63,13 +63,6 @@ else
             }
         </FlareStack>
 
-        @if (BoardMetrics.IsParallelShared(State.SettingsView?.EffectiveExecution))
-        {
-            <FlareAlert Severity="AlertSeverity.Warning"
-                        Variant="AlertVariant.Outlined"
-                        Title="@Loc.Get("ParallelSharedTitle")">@Loc.Get("ParallelSharedText")</FlareAlert>
-        }
-
         <FlareStack Row="true" Gap="FlareSpacing.XSmall">
             <FlareButton Variant="ButtonVariant.Filled" Size="ButtonSize.Sm" OnClick="OpenNewCard">
                 <LeadingIcon><FlareIconView Value="@FlareIcons.Add" /></LeadingIcon>

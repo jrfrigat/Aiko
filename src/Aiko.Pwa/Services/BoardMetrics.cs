@@ -37,17 +37,6 @@ public static class BoardMetrics
     public static int InProgressCount(ProjectBoardSnapshot? board) =>
         board is null ? 0 : board.Cards.Count(card => IsInProgress(board, card));
 
-    /// <summary>
-    /// Whether the project runs several agents at once in one checkout. That combination is the one the
-    /// board warns about: parallel runs in a shared workspace can edit the same files, and the warning is
-    /// the only place the risk is stated before it happens.
-    /// </summary>
-    /// <param name="settings">The project's effective execution settings, or null when unresolved.</param>
-    public static bool IsParallelShared(ExecutionSettings? settings) =>
-        settings is not null &&
-        settings.WorkspaceMode == WorkspaceMode.Shared &&
-        settings.MaxConcurrentRuns > 1;
-
     /// <summary>The number of files reported outside every card's declared scope.</summary>
     public static int OutOfScopeCount(ProjectBoardSnapshot? board) =>
         board?.Cards.Sum(card => OutOfScopeFiles(card).Count) ?? 0;

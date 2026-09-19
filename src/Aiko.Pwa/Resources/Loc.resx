@@ -86,8 +86,6 @@
   <data name="Relations" xml:space="preserve"><value>Relations</value></data>
   <data name="OutOfScope" xml:space="preserve"><value>Out of scope</value></data>
   <data name="Implementation" xml:space="preserve"><value>implementation</value></data>
-  <data name="ParallelSharedTitle" xml:space="preserve"><value>Parallel shared mode</value></data>
-  <data name="ParallelSharedText" xml:space="preserve"><value>Agents share one working copy and one Git index. Changes from different cards, and your own local changes, can land in the same commit, conflict, or be attributed to the wrong run.</value></data>
   <data name="CardsStagesCount" xml:space="preserve"><value>{0} cards - {1} stages</value></data>
   <data name="WorkflowNotFound" xml:space="preserve"><value>No workflow found for {0}.</value></data>
   <data name="ScopeNotSet" xml:space="preserve"><value>scope not set</value></data>

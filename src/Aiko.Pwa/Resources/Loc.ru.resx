@@ -78,8 +78,6 @@
   <data name="Relations" xml:space="preserve"><value>Связи</value></data>
   <data name="OutOfScope" xml:space="preserve"><value>Вне scope</value></data>
   <data name="Implementation" xml:space="preserve"><value>реализация</value></data>
-  <data name="ParallelSharedTitle" xml:space="preserve"><value>Параллельный shared-режим</value></data>
-  <data name="ParallelSharedText" xml:space="preserve"><value>Агенты используют общую рабочую копию и Git index. Изменения разных карточек и ваши локальные изменения могут попасть в один commit, конфликтовать или быть ошибочно отнесены к другому запуску.</value></data>
   <data name="CardsStagesCount" xml:space="preserve"><value>{0} карточек - {1} этапов</value></data>
   <data name="WorkflowNotFound" xml:space="preserve"><value>Workflow для {0} не найден.</value></data>
   <data name="ScopeNotSet" xml:space="preserve"><value>scope не задан</value></data>
