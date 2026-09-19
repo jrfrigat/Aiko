@@ -271,6 +271,34 @@ public sealed class RazorMarkupSpecs
     }
 
     [Fact]
+    public void The_board_lists_the_runs_the_project_is_working_on()
+    {
+        var root = FindRepositoryRoot();
+        var board = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "BoardView.razor"));
+
+        // The panel reads the project's own stage runs to learn which pairs are unfinished, and asks a card for
+        // its details only when that card is one of them - walking every card is what the requirement forbids.
+        Assert.Contains("board.StageRuns", board, StringComparison.Ordinal);
+        Assert.Contains("ActiveRunStates", board, StringComparison.Ordinal);
+        Assert.Contains("/cards/{Uri.EscapeDataString(cardId)}/executions", board, StringComparison.Ordinal);
+
+        // A row opens the card through the canonical address, so the link stays shareable.
+        Assert.Contains("OpenCard(row.CardId)", board, StringComparison.Ordinal);
+
+        // The captions live in both languages.
+        foreach (var resource in new[] { "Loc.resx", "Loc.ru.resx" })
+        {
+            var resx = File.ReadAllText(
+                Path.Combine(root, "src", "Aiko.Pwa", "Resources", resource));
+            foreach (var key in new[] { "ActiveRunsTitle", "ActiveRunsNone", "ActiveRunsNoAgent" })
+            {
+                Assert.Contains($"name=\"{key}\"", resx, StringComparison.Ordinal);
+            }
+        }
+    }
+
+    [Fact]
     public void The_card_page_steers_a_run_through_the_execution_endpoints()
     {
         var root = FindRepositoryRoot();

@@ -1,6 +1,7 @@
 @* The board: the type filter, the metric strip, the create form and one section per card type in scope.
    The sections are derived from the project's workflows, so a type the user adds appears here without a
    code change, and the filter narrows the same page instead of being a route of its own. *@
+@using Aiko.Domain.Execution
 @inject HttpClient Http
 @inject WorkspaceState State
 @implements IAsyncDisposable
@@ -70,6 +71,37 @@ else
             </FlareButton>
         </FlareStack>
 
+        @* What the project is working on right now. The board's own stage runs say which (card, stage) pairs
+           are unfinished, so the panel finds them without walking the cards; a card is asked for the details
+           of its active run alone. A row opens the card, so the address stays shareable. *@
+        <FlarePaper Class="aiko-tile">
+            <FlareStack Gap="FlareSpacing.XSmall">
+                <FlareText Element="span" Typo="TypographyScale.TitleSmall">@Loc.Get("ActiveRunsTitle")</FlareText>
+                @if (_activeRuns.Count == 0)
+                {
+                    <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant2">
+                        @Loc.Get("ActiveRunsNone")
+                    </FlareText>
+                }
+                else
+                {
+                    @foreach (var run in _activeRuns)
+                    {
+                        var row = run;
+                        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
+                            <FlareButton Variant="ButtonVariant.Text" OnClick="() => OpenCard(row.CardId)">
+                                <ChildContent>@row.Title</ChildContent>
+                            </FlareButton>
+                            <FlareBadge Standalone="true" Text="@row.State" Color="FlareColor.Tertiary" />
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                @($"{row.StageId} · {row.Agent} · {row.UpdatedAt:yyyy-MM-dd HH:mm}")
+                            </FlareText>
+                        </FlareStack>
+                    }
+                }
+            </FlareStack>
+        </FlarePaper>
+
         <FlareDivider />
 
         @{
@@ -96,7 +128,13 @@ else
 @code {
     protected override void OnInitialized() => State.Changed += OnStateChanged;
 
-    private Task OnStateChanged() => InvokeAsync(StateHasChanged);
+    private async Task OnStateChanged()
+    {
+        // The active panel is part of the live picture too: a card that starts or finishes while the board is
+        // open must appear in it or leave it without a reload.
+        await EnsureActiveRunsAsync();
+        await InvokeAsync(StateHasChanged);
+    }
 
     public ValueTask DisposeAsync()
     {
@@ -157,7 +195,100 @@ else
     private Task OnFilterToggledAsync(bool toggled) => Task.CompletedTask;
 
     /// <summary>The route opens the project; the board itself has no other state of its own.</summary>
-    protected override async Task OnParametersSetAsync() => await State.EnsureProjectAsync(ProjectId);
+    protected override async Task OnParametersSetAsync()
+    {
+        await State.EnsureProjectAsync(ProjectId);
+        await EnsureActiveRunsAsync();
+    }
+
+    /// <summary>The states that mean a run is not finished, which is what the active panel lists.</summary>
+    private static readonly HashSet<string> ActiveRunStates =
+        new(StringComparer.OrdinalIgnoreCase) { "Running", "Paused", "WaitingForUser", "NeedsAttention" };
+
+    /// <summary>One row of the active panel: where the project is working right now.</summary>
+    private sealed record ActiveRun(
+        string CardId,
+        string Title,
+        string StageId,
+        string State,
+        string Agent,
+        DateTimeOffset UpdatedAt);
+
+    private IReadOnlyList<ActiveRun> _activeRuns = [];
+
+    /// <summary>The active set the panel was last built from, so a refresh that changed nothing reads nothing.</summary>
+    private string _activeRunsSignature = string.Empty;
+
+    /// <summary>
+    /// Reads which runs the project is working on and what each one is doing. The board's own stage runs say
+    /// which (card, stage) pairs are unfinished, so nothing is asked about the cards that are not; a card is
+    /// read only when it carries one of those runs.
+    /// </summary>
+    private async Task EnsureActiveRunsAsync()
+    {
+        if (State.Board is not { } board)
+        {
+            _activeRuns = [];
+            _activeRunsSignature = string.Empty;
+            return;
+        }
+
+        var active = (board.StageRuns ?? [])
+            .Where(run => ActiveRunStates.Contains(run.State))
+            .OrderBy(run => run.CardId, StringComparer.Ordinal)
+            .ToArray();
+        var signature = string.Join('|', active.Select(run => $"{run.CardId}:{run.StageId}:{run.State}"));
+        if (string.Equals(signature, _activeRunsSignature, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        // The signature is remembered before the reads: a refresh arriving while the panel is loading must not
+        // start a second round of the same requests.
+        _activeRunsSignature = signature;
+        var rows = new List<ActiveRun>();
+        foreach (var run in active)
+        {
+            var execution = await FindExecutionAsync(run.CardId, run.StageId);
+            if (execution is null)
+            {
+                continue;
+            }
+
+            rows.Add(new ActiveRun(
+                run.CardId,
+                board.Cards.FirstOrDefault(card =>
+                    StringComparer.Ordinal.Equals(card.Reference.CardId, run.CardId))?.Title ?? run.CardId,
+                run.StageId,
+                execution.State.ToString(),
+                execution.Attempts.LastOrDefault()?.AgentAdapterId ?? Loc.Get("ActiveRunsNoAgent"),
+                execution.UpdatedAt));
+        }
+
+        _activeRuns = rows;
+    }
+
+    /// <summary>
+    /// The latest run of one stage of one card. A card whose history cannot be read is left out rather than
+    /// breaking the panel: the board is still usable when one card's runs are not.
+    /// </summary>
+    private async Task<StageExecution?> FindExecutionAsync(string cardId, string stageId)
+    {
+        try
+        {
+            var executions = await Http.GetFromJsonAsync<IReadOnlyList<StageExecution>>(
+                $"api/v1/projects/{Uri.EscapeDataString(ProjectId)}/cards/{Uri.EscapeDataString(cardId)}/executions",
+                PwaJson.Options);
+            return executions?
+                .Where(item => StringComparer.Ordinal.Equals(item.StageId, stageId))
+                .OrderByDescending(item => item.UpdatedAt)
+                .FirstOrDefault();
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
 
     /// <summary>Creating a card is its own page: the board only links to it.</summary>
     private void OpenNewCard() => Navigation.NavigateTo(ProjectRoutes.NewCard(ProjectId));

@@ -46,6 +46,9 @@
   <data name="ApproveCommit" xml:space="preserve"><value>Подтвердить коммит</value></data>
   <data name="RejectCommit" xml:space="preserve"><value>Отклонить коммит</value></data>
   <data name="ExecutionActionFailed" xml:space="preserve"><value>Действие не удалось: {0}</value></data>
+  <data name="ActiveRunsTitle" xml:space="preserve"><value>Сейчас в работе</value></data>
+  <data name="ActiveRunsNone" xml:space="preserve"><value>В этом проекте ничего не выполняется.</value></data>
+  <data name="ActiveRunsNoAgent" xml:space="preserve"><value>агента нет</value></data>
   <data name="CardPlaceTitle" xml:space="preserve"><value>Где она начинается</value></data>
   <data name="ScoringHint" xml:space="preserve"><value>Агент может уточнить их позже; собственный score карточки считается из них</value></data>
   <data name="CreateCardHint" xml:space="preserve"><value>Карточка откроется сразу после создания — там собираются её артефакты и запуски</value></data>
