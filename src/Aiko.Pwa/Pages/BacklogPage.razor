@@ -1,6 +1,7 @@
 @page "/p/{ProjectId}/backlog"
 @inject HttpClient Http
 @inject WorkspaceState State
+@implements IAsyncDisposable
 @inject NavigationManager Navigation
 
 @* The backlog is not a column: it is every card that has not been taken into work yet, gathered from the
@@ -88,6 +89,16 @@ else
                                 }
 
 @code {
+    protected override void OnInitialized() => State.Changed += OnStateChanged;
+
+    private Task OnStateChanged() => InvokeAsync(StateHasChanged);
+
+    public ValueTask DisposeAsync()
+    {
+        State.Changed -= OnStateChanged;
+        return ValueTask.CompletedTask;
+    }
+
     [Parameter] public string ProjectId { get; set; } = string.Empty;
 
     private string? _message;

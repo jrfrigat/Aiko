@@ -2,6 +2,7 @@
 @page "/p/{ProjectId}/stats"
 @inject HttpClient Http
 @inject WorkspaceState State
+@implements IAsyncDisposable
 
 @* The project's own page: when it was worked, how fast its pipeline moves, what its board is made of, and
    how its cards are spread across its pipelines. The board snapshot comes from the daemon and the calendar
@@ -200,6 +201,16 @@ else
 }
 
 @code {
+    protected override void OnInitialized() => State.Changed += OnStateChanged;
+
+    private Task OnStateChanged() => InvokeAsync(StateHasChanged);
+
+    public ValueTask DisposeAsync()
+    {
+        State.Changed -= OnStateChanged;
+        return ValueTask.CompletedTask;
+    }
+
     /// <summary>How many weeks the velocity chart covers.</summary>
     private const int AnalyticsWindow = 8;
 

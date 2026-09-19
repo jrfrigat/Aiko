@@ -1,6 +1,7 @@
 @page "/p/{ProjectId}/cards/new"
 @inject HttpClient Http
 @inject WorkspaceState State
+@implements IAsyncDisposable
 @inject NavigationManager Navigation
 
 @* Creating a card is a page of its own, not a form wedged into the board: it has several fields, a
@@ -195,6 +196,16 @@
 </FlareStack>
 
 @code {
+    protected override void OnInitialized() => State.Changed += OnStateChanged;
+
+    private Task OnStateChanged() => InvokeAsync(StateHasChanged);
+
+    public ValueTask DisposeAsync()
+    {
+        State.Changed -= OnStateChanged;
+        return ValueTask.CompletedTask;
+    }
+
     [Parameter] public string ProjectId { get; set; } = string.Empty;
 
     private string? _newCardKind;

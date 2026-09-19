@@ -1,6 +1,7 @@
 @page "/p/{ProjectId}/settings"
 @inject HttpClient Http
 @inject WorkspaceState State
+@implements IAsyncDisposable
 
 @* One project's settings, in the order the question is asked: what the project actually runs with and
    where each value comes from, then the values themselves, then the pipelines a card moves through. The
@@ -118,6 +119,16 @@ else
 }
 
 @code {
+    protected override void OnInitialized() => State.Changed += OnStateChanged;
+
+    private Task OnStateChanged() => InvokeAsync(StateHasChanged);
+
+    public ValueTask DisposeAsync()
+    {
+        State.Changed -= OnStateChanged;
+        return ValueTask.CompletedTask;
+    }
+
     [Parameter] public string ProjectId { get; set; } = string.Empty;
 
     /// <summary>The projects this one is linked to, as the registry holds them.</summary>

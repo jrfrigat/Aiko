@@ -1,6 +1,7 @@
 @page "/p/{ProjectId}/workflow"
 @inject HttpClient Http
 @inject WorkspaceState State
+@implements IAsyncDisposable
 
 @* The workflow editor is a page, not a drawer: it is a place you go to change the pipeline, and it
    needs the whole width to show a stage sequence and a stage's fields side by side. *@
@@ -25,6 +26,16 @@ else
 }
 
 @code {
+    protected override void OnInitialized() => State.Changed += OnStateChanged;
+
+    private Task OnStateChanged() => InvokeAsync(StateHasChanged);
+
+    public ValueTask DisposeAsync()
+    {
+        State.Changed -= OnStateChanged;
+        return ValueTask.CompletedTask;
+    }
+
     [Parameter] public string ProjectId { get; set; } = string.Empty;
 
     /// <summary>The workflow a fresh visit edits: the first type the project declares.</summary>

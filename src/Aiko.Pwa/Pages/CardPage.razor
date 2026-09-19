@@ -1,6 +1,7 @@
 @page "/p/{ProjectId}/cards/{CardId}"
 @inject HttpClient Http
 @inject WorkspaceState State
+@implements IAsyncDisposable
 
 @* A card as its own page: the board is where you work across cards, this is where you work inside one -
    and unlike a drawer it has a URL that can be linked, reloaded and shared. The header states what the card
@@ -110,6 +111,16 @@ else
 }
 
 @code {
+    protected override void OnInitialized() => State.Changed += OnStateChanged;
+
+    private Task OnStateChanged() => InvokeAsync(StateHasChanged);
+
+    public ValueTask DisposeAsync()
+    {
+        State.Changed -= OnStateChanged;
+        return ValueTask.CompletedTask;
+    }
+
     [Parameter] public string ProjectId { get; set; } = string.Empty;
     [Parameter] public string CardId { get; set; } = string.Empty;
 

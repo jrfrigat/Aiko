@@ -3,6 +3,7 @@
    code change, and the filter narrows the same page instead of being a route of its own. *@
 @inject HttpClient Http
 @inject WorkspaceState State
+@implements IAsyncDisposable
 @inject NavigationManager Navigation
 
 @if (State.Board is not { } board)
@@ -99,6 +100,16 @@ else
 }
 
 @code {
+    protected override void OnInitialized() => State.Changed += OnStateChanged;
+
+    private Task OnStateChanged() => InvokeAsync(StateHasChanged);
+
+    public ValueTask DisposeAsync()
+    {
+        State.Changed -= OnStateChanged;
+        return ValueTask.CompletedTask;
+    }
+
     /// <summary>The project id from the route.</summary>
     [Parameter, EditorRequired] public string ProjectId { get; set; } = string.Empty;
 
