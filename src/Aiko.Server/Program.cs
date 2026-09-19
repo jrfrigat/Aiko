@@ -179,6 +179,7 @@ app.MapProjectEndpoints();
 app.MapBoardEndpoints();
 app.MapWorkflowEndpoints();
 app.MapCardEndpoints();
+app.MapExecutionEndpoints();
 app.MapGitEndpoints();
 app.MapArtifactEndpoints();
 app.MapAgentEndpoints();

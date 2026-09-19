@@ -102,6 +102,15 @@ namespace Aiko.Server.Contracts;
 [JsonSerializable(typeof(UnifiedInstallationResult))]
 [JsonSerializable(typeof(UnifiedUninstallationPlan))]
 [JsonSerializable(typeof(UnifiedUninstallationResult))]
+[JsonSerializable(typeof(StartExecutionRequest))]
+[JsonSerializable(typeof(PauseExecutionRequest))]
+[JsonSerializable(typeof(ResumeExecutionRequest))]
+[JsonSerializable(typeof(HandoffExecutionRequest))]
+[JsonSerializable(typeof(CompleteStageExecutionRequest))]
+[JsonSerializable(typeof(CancelExecutionRequest))]
+[JsonSerializable(typeof(RequestScopeExpansionRequest))]
+[JsonSerializable(typeof(ScopeResponseRequest))]
+[JsonSerializable(typeof(CommitApprovalRequest))]
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     UseStringEnumConverter = true)]

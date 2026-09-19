@@ -1066,5 +1066,86 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
             handleDocument.RootElement.GetProperty("cards").GetArrayLength());
     }
 
+    [Fact]
+    public async Task The_execution_life_cycle_runs_over_http()
+    {
+        using var http = CreateClient();
+        var root = Path.Combine(Path.GetTempPath(), "Aiko.Specs", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var created = await http.PostAsJsonAsync("/api/v1/projects/initialize", new { rootPath = root });
+            created.EnsureSuccessStatusCode();
+            var project = await created.Content.ReadFromJsonAsync<JsonElement>();
+            var projectId = project.GetProperty("id").GetString();
+
+            var cardResponse = await http.PostAsJsonAsync(
+                $"/api/v1/projects/{projectId}/cards",
+                new { kind = "Task", title = "Life cycle", ownPriority = 0 });
+            cardResponse.EnsureSuccessStatusCode();
+            var card = await cardResponse.Content.ReadFromJsonAsync<JsonElement>();
+            var cardId = card.GetProperty("reference").GetProperty("cardId").GetString();
+
+            // Starting the stage the card sits in. The card enters its pipeline in `backlog`, so that is the
+            // stage the interface may start - the same one the agent's tool starts.
+            var startedResponse = await http.PostAsJsonAsync(
+                $"/api/v1/projects/{projectId}/cards/{cardId}/executions",
+                new { stageId = "backlog", agentAdapterId = "cline" });
+            startedResponse.EnsureSuccessStatusCode();
+            var started = await startedResponse.Content.ReadFromJsonAsync<JsonElement>();
+            var executionId = started.GetProperty("id").GetString();
+            Assert.False(string.IsNullOrWhiteSpace(executionId));
+            Assert.Equal("Running", started.GetProperty("state").GetString());
+            Assert.Equal("backlog", started.GetProperty("stageId").GetString());
+
+            // A second, different stage of the same card is refused: one unfinished stage is what a card can
+            // have, and the interface must not become the way around that rule.
+            var secondResponse = await http.PostAsJsonAsync(
+                $"/api/v1/projects/{projectId}/cards/{cardId}/executions",
+                new { stageId = "analysis", agentAdapterId = "cline" });
+            Assert.Equal(HttpStatusCode.Conflict, secondResponse.StatusCode);
+
+            // Pause, then resume, then the waiting-for-user path of a scope request.
+            var pausedResponse = await http.PostAsJsonAsync(
+                $"/api/v1/projects/{projectId}/executions/{executionId}/pause",
+                new { reason = "Waiting for a decision." });
+            pausedResponse.EnsureSuccessStatusCode();
+            var paused = await pausedResponse.Content.ReadFromJsonAsync<JsonElement>();
+            Assert.Equal("Paused", paused.GetProperty("state").GetString());
+
+            var resumedResponse = await http.PostAsJsonAsync(
+                $"/api/v1/projects/{projectId}/executions/{executionId}/resume",
+                new { agentAdapterId = "codex" });
+            resumedResponse.EnsureSuccessStatusCode();
+            var resumed = await resumedResponse.Content.ReadFromJsonAsync<JsonElement>();
+            Assert.Equal("Running", resumed.GetProperty("state").GetString());
+
+            var scopeResponse = await http.PostAsJsonAsync(
+                $"/api/v1/projects/{projectId}/executions/{executionId}/scope-expansion",
+                new { requestedScopeFiles = new[] { "src/outside.cs" }, reason = "The fix lives outside the scope." });
+            scopeResponse.EnsureSuccessStatusCode();
+            var waiting = await scopeResponse.Content.ReadFromJsonAsync<JsonElement>();
+            Assert.Equal("WaitingForUser", waiting.GetProperty("state").GetString());
+
+            // Answering the request: a refused expansion cannot be worked, so the run is cancelled rather than
+            // left waiting for somebody who has already answered.
+            var refusedResponse = await http.PostAsJsonAsync(
+                $"/api/v1/projects/{projectId}/executions/{executionId}/scope-response",
+                new { approved = false });
+            refusedResponse.EnsureSuccessStatusCode();
+            var cancelled = await refusedResponse.Content.ReadFromJsonAsync<JsonElement>();
+            Assert.Equal("Cancelled", cancelled.GetProperty("state").GetString());
+
+            // An unknown execution is a 404, not a failure: the interface asks about a run that may be gone.
+            var missingResponse = await http.PostAsJsonAsync(
+                $"/api/v1/projects/{projectId}/executions/no-such-run/pause",
+                new { reason = "Nothing to pause." });
+            Assert.Equal(HttpStatusCode.NotFound, missingResponse.StatusCode);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
 
 }
