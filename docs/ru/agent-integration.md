@@ -28,9 +28,17 @@ aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<handle>
 ## Набор инструментов
 
 - **Контекст проекта** - `aiko_get_project_context`, `aiko_open_ui`.
+- **Чтение состояния проекта** - `aiko_list_board`, `aiko_list_work_queue`, `aiko_get_settings`. Так агент
+  узнаёт, что говорит проект; открывать ради этого файл под `.aiko` — нарушение (исключение — карточка,
+  предмет которой сам формат `.aiko`, и она это говорит).
 - **Карточки** - `aiko_list_cards`, `aiko_get_card`, `aiko_create_card`, `aiko_update_card`,
   `aiko_estimate_card`, `aiko_move_card`, `aiko_take_card`, `aiko_link_cards`, `aiko_add_comment`,
   `aiko_list_comments`.
+- **Артефакты карточки** - `aiko_get_card_artifact`, `aiko_save_card_artifact`: Markdown рядом с карточкой
+  (`issue.md`, `analysis.md`, `implementation.md`, ...). `aiko_get_card` уже несёт список путей и текст
+  `issue.md`, поэтому обычное чтение — один вызов.
+- **Очередь команд** - `aiko_list_commands`, `aiko_claim_command`, `aiko_finish_command`: просьбы, которые
+  экран поставил агенту. Не путать с `aiko_list_work_queue` — это очередь карточек к работе.
 - **Execution** - `aiko_start_stage`, `aiko_report_progress`, `aiko_request_scope_expansion`,
   `aiko_complete_stage`, `aiko_pause_execution`, `aiko_handoff_execution`,
   `aiko_resume_execution`, `aiko_report_agent_state`, `aiko_report_commit`, `aiko_approve_commit`.

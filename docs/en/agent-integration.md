@@ -28,9 +28,17 @@ aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<handle>
 ## The tool set
 
 - **Project context** - `aiko_get_project_context`, `aiko_open_ui`.
+- **Reading the project's state** - `aiko_list_board`, `aiko_list_work_queue`, `aiko_get_settings`. These are
+  how an agent finds out what the project says; opening a file under `.aiko` to learn it is a violation (a
+  card whose subject *is* the `.aiko` format is the exception, and says so).
 - **Cards** - `aiko_list_cards`, `aiko_get_card`, `aiko_create_card`, `aiko_update_card`,
   `aiko_estimate_card`, `aiko_move_card`, `aiko_take_card`, `aiko_link_cards`, `aiko_add_comment`,
   `aiko_list_comments`.
+- **Card artifacts** - `aiko_get_card_artifact`, `aiko_save_card_artifact`: the Markdown beside a card
+  (`issue.md`, `analysis.md`, `implementation.md`, ...). `aiko_get_card` already carries the list of paths and
+  the text of `issue.md`, so the common read is one call.
+- **Queue** - `aiko_list_commands`, `aiko_claim_command`, `aiko_finish_command`: the requests a screen placed
+  for an agent, not to be confused with `aiko_list_work_queue`, which is the cards to work.
 - **Execution** - `aiko_start_stage`, `aiko_report_progress`, `aiko_request_scope_expansion`,
   `aiko_complete_stage`, `aiko_pause_execution`, `aiko_handoff_execution`,
   `aiko_resume_execution`, `aiko_report_agent_state`, `aiko_report_commit`, `aiko_approve_commit`.

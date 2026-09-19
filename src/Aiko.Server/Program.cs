@@ -94,6 +94,7 @@ builder.Services
     // one of them, which is what keeps a missing registration from passing unnoticed.
     .WithTools<CommandTools>()
     .WithTools<BoardTools>()
+    .WithTools<WorkQueueTools>()
     .WithTools<DaemonTools>()
     .WithTools<MaintenanceTools>()
     // A tool that throws otherwise reaches the agent as "An error occurred invoking 'aiko_start_stage'",

@@ -52,7 +52,10 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         "aiko_list_commands",
         "aiko_claim_command",
         "aiko_finish_command",
-        "aiko_list_board"
+        "aiko_list_board",
+        "aiko_list_work_queue",
+        "aiko_get_card_artifact",
+        "aiko_save_card_artifact"
     ];
 
     private async Task<McpClient> ConnectAsync()
@@ -366,6 +369,153 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         Assert.False(string.IsNullOrWhiteSpace(text));
         Assert.Contains(cardId!, text, StringComparison.Ordinal);
         Assert.Contains("Queued", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_project_context_requires_the_state_to_come_through_the_tools()
+    {
+        await using var client = await ConnectAsync();
+        var context = await client.CallToolAsync(
+            "aiko_get_project_context",
+            cancellationToken: CancellationToken.None);
+        var text = FirstText(context);
+        Assert.False(string.IsNullOrWhiteSpace(text));
+
+        // The card asked for a requirement rather than advice, so the contract itself has to say it - and to
+        // name the tools, because a rule that does not say where to go instead sends an agent back to the file.
+        // The sentences are wrapped in the contract, so the phrases asserted here are the ones that fit one
+        // line of it.
+        Assert.Contains("Do not open a file", text, StringComparison.Ordinal);
+        Assert.Contains("under .aiko to find out what the project says", text, StringComparison.Ordinal);
+        Assert.Contains("aiko_list_work_queue", text, StringComparison.Ordinal);
+        Assert.Contains("aiko_save_card_artifact", text, StringComparison.Ordinal);
+        // The exception is part of the rule: a card about the .aiko format itself is worked in those files.
+        Assert.Contains("format itself is the exception", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_work_queue_orders_cards_and_names_what_blocks_them()
+    {
+        await using var client = await ConnectAsync();
+
+        // Two cards and an edge between them: the queue has to say who waits for whom, because that is what
+        // makes a pass skip a card instead of being refused on it.
+        var blocking = await CreateCardAsync(client, "story", "A story the queue must rank", 9);
+        var waiting = await CreateCardAsync(client, "task", "A task that waits", 1);
+        var linked = await client.CallToolAsync(
+            "aiko_link_cards",
+            new Dictionary<string, object?>
+            {
+                ["sourceCardId"] = blocking,
+                ["targetCardId"] = waiting,
+                ["relationType"] = "blocks"
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.False(linked.IsError == true, FirstText(linked));
+
+        var queue = await client.CallToolAsync(
+            "aiko_list_work_queue",
+            cancellationToken: CancellationToken.None);
+        Assert.False(queue.IsError == true, FirstText(queue));
+        var entries = JsonDocument.Parse(FirstText(queue)!).RootElement.EnumerateArray().ToArray();
+
+        // The card that waits is there, with the blocker named rather than left out ...
+        var waitingEntry = entries.FirstOrDefault(entry =>
+            entry.GetProperty("cardId").GetString() == waiting);
+        Assert.NotEqual(JsonValueKind.Undefined, waitingEntry.ValueKind);
+        Assert.Contains(
+            waitingEntry.GetProperty("blockedBy").EnumerateArray(),
+            blocker => blocker.GetProperty("cardId").GetString() == blocking);
+        Assert.False(waitingEntry.GetProperty("finished").GetBoolean());
+        Assert.False(string.IsNullOrWhiteSpace(waitingEntry.GetProperty("stageState").GetString()));
+
+        // ... and the order is by the priority the board computes, not by the card's own score.
+        var blockingEntry = entries.First(entry => entry.GetProperty("cardId").GetString() == blocking);
+        Assert.True(
+            blockingEntry.GetProperty("effectivePriority").GetDecimal() >=
+            waitingEntry.GetProperty("effectivePriority").GetDecimal());
+        Assert.True(entries.ToList().IndexOf(blockingEntry) < entries.ToList().IndexOf(waitingEntry));
+    }
+
+    /// <summary>Creates a card over MCP and returns its id.</summary>
+    private static async Task<string> CreateCardAsync(
+        McpClient client,
+        string kind,
+        string title,
+        decimal ownPriority)
+    {
+        var created = await client.CallToolAsync(
+            "aiko_create_card",
+            new Dictionary<string, object?>
+            {
+                ["kind"] = kind,
+                ["title"] = title,
+                ["ownPriority"] = ownPriority
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.False(created.IsError == true, FirstText(created));
+        using var document = JsonDocument.Parse(FirstText(created)!);
+        return document.RootElement.GetProperty("reference").GetProperty("cardId").GetString()!;
+    }
+
+    [Fact]
+    public async Task A_card_artifact_is_read_and_written_over_mcp()
+    {
+        await using var client = await ConnectAsync();
+        var cardId = await CreateCardAsync(client, "task", "A card whose artifacts travel", 2);
+
+        var saved = await client.CallToolAsync(
+            "aiko_save_card_artifact",
+            new Dictionary<string, object?>
+            {
+                ["cardId"] = cardId,
+                ["path"] = "issue.md",
+                ["content"] = "# The request\n\nEverything the card is about.\n"
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.False(saved.IsError == true, FirstText(saved));
+        using var savedDocument = JsonDocument.Parse(FirstText(saved)!);
+        var version = savedDocument.RootElement.GetProperty("version").GetString();
+        Assert.False(string.IsNullOrWhiteSpace(version));
+
+        var read = await client.CallToolAsync(
+            "aiko_get_card_artifact",
+            new Dictionary<string, object?> { ["cardId"] = cardId, ["path"] = "issue.md" },
+            cancellationToken: CancellationToken.None);
+        Assert.False(read.IsError == true, FirstText(read));
+        using var readDocument = JsonDocument.Parse(FirstText(read)!);
+        Assert.Contains(
+            "Everything the card is about.",
+            readDocument.RootElement.GetProperty("content").GetString(),
+            StringComparison.Ordinal);
+
+        // The card carries the paths beside it and the issue document itself, so the common read is one call.
+        var card = await client.CallToolAsync(
+            "aiko_get_card",
+            new Dictionary<string, object?> { ["cardId"] = cardId },
+            cancellationToken: CancellationToken.None);
+        Assert.False(card.IsError == true, FirstText(card));
+        using var cardDocument = JsonDocument.Parse(FirstText(card)!);
+        Assert.Contains(
+            cardDocument.RootElement.GetProperty("artifacts").EnumerateArray(),
+            path => path.GetString() == "issue.md");
+        Assert.Contains(
+            "Everything the card is about.",
+            cardDocument.RootElement.GetProperty("issue").GetString(),
+            StringComparison.Ordinal);
+
+        // A write with a stale version is refused rather than overwriting what somebody else changed.
+        var stale = await client.CallToolAsync(
+            "aiko_save_card_artifact",
+            new Dictionary<string, object?>
+            {
+                ["cardId"] = cardId,
+                ["path"] = "issue.md",
+                ["content"] = "overwritten",
+                ["expectedVersion"] = "not-the-current-version"
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.True(stale.IsError == true);
     }
 
     [Fact]

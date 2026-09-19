@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using ModelContextProtocol.Server;
 using Aiko.Application.Cards;
 using Aiko.Application.Contracts;
@@ -25,16 +26,17 @@ internal sealed class CardTools(
     IProjectDefinitionStore definitions,
     ICardDiscussionStore discussion,
     ICardBlockers blockers,
+    ICardArtifactStore artifacts,
     IExecutionCoordinator executions) : ProjectToolBase(httpContextAccessor, projects)
 {
     [McpServerTool(Name = "aiko_list_cards", Title = "List Aiko cards")]
     [Description("Lists cards in the current project. Get project context before taking action.")]
     public async Task<string> ListCardsAsync(
         [Description("Optional card kind: story, task, or any type the project defines. Pass null for all.")]
-        string? kind,
+        string? kind = null,
         [Description("Optional stage id. Pass null for all stages.")]
-        string? stageId,
-        CancellationToken cancellationToken)
+        string? stageId = null,
+        CancellationToken cancellationToken = default)
     {
         var projectId = GetProjectId();
         var result = await cards.ListAsync(projectId, cancellationToken);
@@ -86,6 +88,18 @@ internal sealed class CardTools(
                     blocker.StageTitle))
                 .ToArray(),
             ServerJsonContext.Default.IReadOnlyListCardBlockerView);
+        // What sits beside the card is part of reading it: requirements often only point at issue.md, and a
+        // stage's artifacts are the work the stages before it left. The paths come along, and the issue
+        // document's own text with them - one read that saves the step a caller would otherwise have to know
+        // to take. Other artifacts are read on demand: a card's implementation.md is not something every
+        // reader of the card wants to pay for.
+        var cardArtifacts = await artifacts.ListAsync(card.Reference, cancellationToken);
+        document["artifacts"] = JsonSerializer.SerializeToNode(
+            cardArtifacts.Select(artifact => artifact.Path).ToArray(),
+            ServerJsonContext.Default.StringArray);
+        var issue = await artifacts.ReadAsync(card.Reference, "issue.md", cancellationToken);
+        document["issue"] = issue?.Content;
+
         return document.ToJsonString();
     }
 
@@ -532,4 +546,52 @@ internal sealed class CardTools(
                 out var priority)
                 ? priority
                 : throw new ArgumentException($"'{value}' is not a priority.", nameof(value));
+
+    [McpServerTool(Name = "aiko_get_card_artifact", Title = "Read an Aiko card artifact")]
+    [Description(
+        "Reads one Markdown artifact that sits beside the card - issue.md, analysis.md, implementation.md and "
+        + "the rest - by the relative path aiko_get_card listed. Read them this way rather than opening a file "
+        + "under .aiko by hand: that is Aiko's own data, and the store confines the path to the card's own "
+        + "directory, so nothing else is reachable through it.")]
+    public async Task<string> GetCardArtifactAsync(
+        [Description("Card id, for example TASK-001.")]
+        string cardId,
+        [Description("Relative path of the artifact, as aiko_get_card lists it, for example analysis.md.")]
+        string path,
+        CancellationToken cancellationToken = default)
+    {
+        var document = await artifacts.ReadAsync(
+            new CardReference(GetProjectId(), cardId),
+            path,
+            cancellationToken);
+        return document is null
+            ? $"Card '{cardId}' has no artifact '{path}'."
+            : JsonSerializer.Serialize(document, ServerJsonContext.Default.CardArtifactDocument);
+    }
+
+    [McpServerTool(Name = "aiko_save_card_artifact", Title = "Write an Aiko card artifact")]
+    [Description(
+        "Writes one Markdown artifact of a card - the analysis.md a stage asks for, its implementation.md, its "
+        + "issue.md. Use it instead of writing a file under .aiko by hand, which is Aiko's own data. Pass the "
+        + "version that aiko_get_card_artifact returned, so a document a person edited meanwhile is not "
+        + "overwritten silently; leave it out only when creating one that does not exist yet.")]
+    public async Task<string> SaveCardArtifactAsync(
+        [Description("Card id, for example TASK-001.")]
+        string cardId,
+        [Description("Relative path of the artifact, for example analysis.md.")]
+        string path,
+        [Description("Complete Markdown content of the document.")]
+        string content,
+        [Description("Version read with aiko_get_card_artifact, or null when creating a new document.")]
+        string? expectedVersion = null,
+        CancellationToken cancellationToken = default)
+    {
+        var document = await artifacts.SaveAsync(
+            new CardReference(GetProjectId(), cardId),
+            path,
+            content,
+            expectedVersion,
+            cancellationToken);
+        return JsonSerializer.Serialize(document, ServerJsonContext.Default.CardArtifactDocument);
+    }
 }

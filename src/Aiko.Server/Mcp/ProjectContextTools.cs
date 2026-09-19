@@ -82,6 +82,15 @@ internal sealed class ProjectContextTools(
             and report actualChangedFiles when completing work.
             Use aiko_store_memory for durable decisions, conventions and lessons.
 
+            The state of the project is read and written through these tools - the board and the work queue
+            with aiko_list_board and aiko_list_work_queue, the cards with aiko_list_cards and aiko_get_card,
+            what sits beside a card with aiko_get_card_artifact and aiko_save_card_artifact, the settings with
+            aiko_get_settings, the links with aiko_list_cards, the discussion with aiko_list_comments, the
+            queue of requests with aiko_list_commands, the memory with aiko_search_memory. Do not open a file
+            under .aiko to find out what the project says: the tools exist so that what you act on is what the
+            daemon knows, and so that a document you edit is the document a person sees. A card whose subject
+            is the .aiko format itself is the exception - there the file is the work, and the card says so.
+
             {DescribeGit(gitPolicy, execution.SharedCheckoutCommitPolicy, execution.SharedCheckoutPushPolicy)}
 
             {DescribeLinkedProjects(linked)}

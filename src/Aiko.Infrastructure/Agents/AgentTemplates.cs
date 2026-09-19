@@ -355,6 +355,13 @@ internal static class AgentTemplates
         aiko_start_stage refuses to restart an unfinished stage; and a card the pass stopped on is picked up
         by the same start, which continues that run instead of opening a second one.
 
+        The state of the project is read and written through these tools. Do not open a file under .aiko to
+        find out what the project says: read the order with aiko_list_work_queue, a card with aiko_get_card,
+        what sits beside it with aiko_get_card_artifact, the settings with aiko_get_settings. Produce a stage's
+        artifacts with aiko_save_card_artifact rather than by writing the file yourself - that is Aiko's own
+        data, and a document written past the daemon is a document the daemon does not know about. A card whose
+        subject is the .aiko format itself is the exception: there the file is the work.
+
         Do not push and do not open branches: the shared checkout is the user's, and the git, commit and
         push policies the project states say who may write to it.
 
@@ -473,6 +480,13 @@ internal static class AgentTemplates
         you verified the result, and keep durable conclusions with aiko_store_memory. If you cannot finish - a
         rate limit, a failure - report the state with aiko_report_agent_state and hand the execution to
         another agent with aiko_handoff_execution rather than dropping it.
+
+        The state of the project is read and written through these tools. Do not open a file under .aiko to
+        find out what the project says: read the order with aiko_list_work_queue, a card with aiko_get_card,
+        what sits beside it with aiko_get_card_artifact, the settings with aiko_get_settings. Produce a stage's
+        artifacts with aiko_save_card_artifact rather than by writing the file yourself - that is Aiko's own
+        data, and a document written past the daemon is a document the daemon does not know about. A card whose
+        subject is the .aiko format itself is the exception: there the file is the work.
 
         Report at the end: the card, the stage you ran, what changed, what is left, and whether the card is
         ready for its next stage.

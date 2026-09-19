@@ -3367,6 +3367,37 @@ public class InfrastructureSpecs
         });
     }
 
+    /// <summary>
+    /// The procedures an agent runs carry the same rule as the contract: the state of the project is read
+    /// through the tools, and a stage's artifact is written through them too.
+    /// </summary>
+    [Fact]
+    public async Task The_run_procedures_forbid_reading_the_project_state_from_files()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            var installer = new UnifiedAgentInstaller(
+                [new ClineAgentAdapter()],
+                context.Catalog,
+                new FileProjectDefinitionStore(context.Catalog));
+            await installer.ApplyAsync(
+                context.Project.Id,
+                $"http://127.0.0.1:18471/mcp/projects/{context.Project.Id}",
+                "test-token",
+                ["cline"],
+                CancellationToken.None);
+
+            foreach (var procedure in new[] { "aiko-run", "aiko-run-all" })
+            {
+                var text = await File.ReadAllTextAsync(Path.Combine(
+                    context.Project.RootPath, ".cline", "skills", procedure, "SKILL.md"));
+                Assert.Contains("Do not open a file under .aiko", text, StringComparison.Ordinal);
+                Assert.Contains("aiko_save_card_artifact", text, StringComparison.Ordinal);
+                Assert.Contains("is the exception", text, StringComparison.Ordinal);
+            }
+        });
+    }
+
     private static Card CreateCard(string projectId, string cardId, long revision) =>
         new(
             new CardReference(projectId, cardId),

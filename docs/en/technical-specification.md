@@ -538,6 +538,17 @@ separate short-lived process:
 aiko-stdio --url http://127.0.0.1:<configuredPort>/mcp/projects/{projectHandle}
 ```
 
+The tool surface is the agent's whole access to the project's own state, and that is the point of it: an
+agent working a card reads the order with `aiko_list_work_queue` (the cards to work, ranked by the same
+priority projection the board uses, each carrying the cards that block it), the board with `aiko_list_board`,
+a card with `aiko_get_card` (which carries the paths of the Markdown beside it and the text of `issue.md`),
+any of those documents with `aiko_get_card_artifact`, the settings with `aiko_get_settings`, the discussion
+with `aiko_list_comments`, the requests a screen placed with `aiko_list_commands`, and writes a stage's
+artifact with `aiko_save_card_artifact`. Opening a file under `.aiko` to learn the state of the project is a
+violation of the working contract rather than a shortcut: what the agent acts on has to be what the daemon
+knows, and a document written past the daemon is a document nobody else sees. A card whose subject is the
+`.aiko` format itself is the exception - there the file is the work.
+
 Passing the URL through `AIKO_MCP_URL` is allowed. The proxy works at the raw transport level,
 exits when stdin closes, reserves stdout for MCP only and accepts exclusively a loopback HTTP(S)
 project endpoint. The system HTTP proxy and redirects for the daemon connection are forcibly
