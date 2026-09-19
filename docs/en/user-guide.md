@@ -296,3 +296,16 @@ Which project that is comes from the **linked projects** registry, edited on the
 desktop client - UI work is filed here") and link it. The registry is `.aiko/links.json`, the same sentence is
 shown to an agent in `aiko_get_project_context`, and removing a link only stops future routing - the cards
 already filed in the other project stay where they are.
+
+Whether the hand-over is allowed at all is the **sending** project's decision, under *Cross-project writing*
+on its settings page:
+
+- **Deny** (the default) - nothing is created from outside; the agent is told to create the card by hand in
+  the target project.
+- **Ask** - every hand-over is confirmed with you first. The agent asks, then repeats the call with
+  `userConfirmed=true`, so the confirmation is needed on each attempt rather than once.
+- **Allow** - a card from another project is created without asking.
+
+The **projects this one may write to** list narrows any of the three: an empty list means any registered
+project, and a non-empty one refuses a target that is not named there. The target project configures nothing -
+it sees the origin mark on the card and decides what to do with it.

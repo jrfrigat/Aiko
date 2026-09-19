@@ -31,4 +31,10 @@ public static class AikoEventTypes
     /// A stage execution changed; the payload is the StageExecution JSON.
     /// </summary>
     public const string ExecutionUpdated = "execution.updated";
+
+    /// <summary>
+    /// A card was created in this project on behalf of another one. The payload names the created card and the
+    /// target project; the target's own journal carries the matching <see cref="CardUpdated"/>.
+    /// </summary>
+    public const string CrossProjectCardCreated = "cross-project.card-created";
 }

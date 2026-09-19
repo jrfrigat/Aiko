@@ -267,11 +267,30 @@
                             }
                         </div>
                     </FlareStack>
+                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.XSmall">
+                        <FlareStack Gap="FlareSpacing.None">
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                                @Loc.Get("CrossProjectPolicy")
+                            </FlareText>
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                @Loc.Get("CrossProjectPolicyHint")
+                            </FlareText>
+                        </FlareStack>
+                        <div class="aiko-choices">
+                            @foreach (var option in CrossProjectOptions)
+                            {
+                                @CrossProjectChoice(option)
+                            }
+                        </div>
+                        <PromptField Title="@Loc.Get("CrossProjectTargets")"
+                                     Placeholder="@Loc.Get("CrossProjectTargetsPlaceholder")"
+                                     Rows="3"
+                                     ShowMetrics="false"
+                                     Value="@_crossProjectTargets"
+                                     ValueChanged="value => _crossProjectTargets = value" />
+                    </FlareStack>
                 </FlareStack>
             </FlarePaper>
-            @* A screen can add a panel to this column: the project screen puts the pipeline there, under the
-               defaults it belongs with. The column is the narrow one on purpose - the scoring tables below
-               need the room, and a stage list reads fine in a third of the page. *@
             @ExtraNarrowContent
         </FlareStack>
 
@@ -693,6 +712,17 @@
     ];
 
     /// <summary>
+    /// The cross-project write policy's options: the same three answers the other policies take, read as what
+    /// this project allows an agent working in another one to do to it.
+    /// </summary>
+    private static readonly PolicyOption[] CrossProjectOptions =
+    [
+        new(nameof(CrossProjectWritePolicy.Deny), "CrossDenyTitle", "CrossDenyHint"),
+        new(nameof(CrossProjectWritePolicy.Ask), "CrossAskTitle", "CrossAskHint"),
+        new(nameof(CrossProjectWritePolicy.Allow), "CrossAllowTitle", "CrossAllowHint"),
+    ];
+
+    /// <summary>
     /// A panel rendered at the bottom of the narrow column. The project screen puts the pipeline there,
     /// under the defaults; the global screen passes nothing.
     /// </summary>
@@ -743,6 +773,8 @@
     private ActionPolicy _scopePolicy = ActionPolicy.Ask;
     private ActionPolicy _commitPolicy = ActionPolicy.Deny;
     private ActionPolicy _pushPolicy = ActionPolicy.Deny;
+    private CrossProjectWritePolicy _crossProjectPolicy = CrossProjectWritePolicy.Deny;
+    private string? _crossProjectTargets;
     private List<CriterionDraft> _criteria = [];
     private List<SizeDraft> _sizes = [];
     private SizeDraft? _selectedSize;
@@ -834,6 +866,10 @@
         _scopePolicy = execution.ScopeOverlapPolicy;
         _commitPolicy = execution.SharedCheckoutCommitPolicy;
         _pushPolicy = execution.SharedCheckoutPushPolicy;
+
+        var crossProject = own?.CrossProject ?? CrossProjectSettings.SafeDefault;
+        _crossProjectPolicy = crossProject.WritePolicy;
+        _crossProjectTargets = string.Join(Environment.NewLine, crossProject.Targets);
 
         var priority = own?.Priority ?? view.EffectivePriority;
         _ownWeight = (double)priority.Weights.TaskWeight;
@@ -964,6 +1000,7 @@
         try
         {
             var execution = new ExecutionSettings(_workspaceMode, _maxRuns, _scopePolicy, _commitPolicy, _pushPolicy);
+            var crossProject = new CrossProjectSettings(_crossProjectPolicy, ParseLines(_crossProjectTargets));
             var priority = new PrioritySettings(
                 new PriorityWeights(OwnWeight, ParentWeight),
                 _criteria.Select(criterion => new PriorityCriterion(
@@ -986,7 +1023,7 @@
 
             using var response = await Http.PutAsJsonAsync(
                 SettingsUrl,
-                new AppSettings(AppSettings.CurrentSchemaVersion, execution, priority),
+                new AppSettings(AppSettings.CurrentSchemaVersion, execution, priority, crossProject),
                 PwaJson.Options);
             if (!response.IsSuccessStatusCode)
             {
@@ -1248,6 +1285,27 @@
                    value="@option.Value"
                    checked="@(selected == Enum.Parse<ActionPolicy>(option.Value))"
                    @onchange="() => select(Enum.Parse<ActionPolicy>(option.Value))" />
+        </span>
+        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant">
+            @Loc.Get(option.HintKey)
+        </FlareText>
+    </label>;
+
+    /// <summary>A text area split into the list a setting holds: one id or handle per line, commas welcome.</summary>
+    private static string[] ParseLines(string? text) => (text ?? string.Empty)
+        .Split(['\r', '\n', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    /// <summary>The cross-project policy's radio card, shaped like <see cref="Choice"/>.</summary>
+    private RenderFragment CrossProjectChoice(PolicyOption option) => @<label class="aiko-choice @(_crossProjectPolicy == Enum.Parse<CrossProjectWritePolicy>(option.Value) ? "aiko-choice--on" : null)">
+        <span class="aiko-choice__head">
+            <FlareText Element="span" Typo="TypographyScale.BodySmall" Weight="FontWeight.SemiBold">
+                @Loc.Get(option.TitleKey)
+            </FlareText>
+            <input type="radio"
+                   name="aiko-cross-project"
+                   value="@option.Value"
+                   checked="@(_crossProjectPolicy == Enum.Parse<CrossProjectWritePolicy>(option.Value))"
+                   @onchange="() => _crossProjectPolicy = Enum.Parse<CrossProjectWritePolicy>(option.Value)" />
         </span>
         <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant">
             @Loc.Get(option.HintKey)

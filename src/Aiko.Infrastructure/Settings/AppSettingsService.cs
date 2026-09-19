@@ -60,6 +60,18 @@ public sealed class AppSettingsService(IAppSettingsStore store) : IAppSettingsSe
     }
 
     /// <inheritdoc />
+    public async ValueTask<CrossProjectSettings> GetEffectiveCrossProjectAsync(
+        string projectId,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
+        // Read through the store rather than the view: the policy is a single section, and a project that does
+        // not state one gets the safe default, which is what "silence means no" reads as.
+        var project = await store.ReadProjectAsync(projectId, cancellationToken);
+        return project?.CrossProject ?? CrossProjectSettings.SafeDefault;
+    }
+
+    /// <inheritdoc />
     public ValueTask SaveProjectAsync(
         string projectId,
         AppSettings settings,

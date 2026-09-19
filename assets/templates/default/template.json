@@ -110,7 +110,8 @@
           "coefficient": 0.80
         }
       ]
-    }
+    },
+    "crossProject": null
   },
   "workflows": [
     {

@@ -513,6 +513,16 @@
   <data name="PushAskHint" xml:space="preserve"><value>Агент спрашивает перед пушем и ждёт вашего ответа</value></data>
   <data name="PushAllowTitle" xml:space="preserve"><value>Пушит агент</value></data>
   <data name="PushAllowHint" xml:space="preserve"><value>Агент может пушить и сообщает, что запушил</value></data>
+  <data name="CrossProjectPolicy" xml:space="preserve"><value>Кросс-проектная запись</value></data>
+  <data name="CrossProjectPolicyHint" xml:space="preserve"><value>Что другой проект может сделать с этим: может ли агент из соседнего проекта создавать здесь карточки и на каких условиях.</value></data>
+  <data name="CrossProjectTargets" xml:space="preserve"><value>Проекты, куда этому можно писать</value></data>
+  <data name="CrossProjectTargetsPlaceholder" xml:space="preserve"><value>По одному id или handle на строку; пусто — можно любой</value></data>
+  <data name="CrossDenyTitle" xml:space="preserve"><value>Запрещать</value></data>
+  <data name="CrossDenyHint" xml:space="preserve"><value>Снаружи ничего не создаётся: агенту сообщается, что карточку нужно завести вручную</value></data>
+  <data name="CrossAskTitle" xml:space="preserve"><value>Спрашивать</value></data>
+  <data name="CrossAskHint" xml:space="preserve"><value>Каждая передача подтверждается вами до создания карточки</value></data>
+  <data name="CrossAllowTitle" xml:space="preserve"><value>Разрешать</value></data>
+  <data name="CrossAllowHint" xml:space="preserve"><value>Карточка из другого проекта создаётся без вопросов, а происхождение записывается на ней</value></data>
   <data name="LinkedProjects" xml:space="preserve"><value>Связанные проекты</value></data>
   <data name="LinkedProjectsHint" xml:space="preserve"><value>Проекты, которым этот проект передаёт работу. Описание говорит, чем каждый из них занят, и агент читает его прежде, чем решить, что запрос относится туда, а не сюда.</value></data>
   <data name="LinkedProjectsNone" xml:space="preserve"><value>Связанных проектов пока нет.</value></data>

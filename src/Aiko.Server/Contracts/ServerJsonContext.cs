@@ -73,6 +73,7 @@ namespace Aiko.Server.Contracts;
 [JsonSerializable(typeof(CardComment))]
 [JsonSerializable(typeof(IReadOnlyList<CardComment>))]
 [JsonSerializable(typeof(AddCommentRequest))]
+[JsonSerializable(typeof(CrossProjectCardEvent))]
 [JsonSerializable(typeof(ErrorResponse))]
 [JsonSerializable(typeof(RevisionConflictResponse))]
 [JsonSerializable(typeof(ArtifactConflictResponse))]

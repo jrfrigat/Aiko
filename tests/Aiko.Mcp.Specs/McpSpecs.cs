@@ -68,6 +68,67 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
             .Select(block => block.Text)
             .FirstOrDefault();
 
+    /// <summary>
+    /// Registers a throwaway project and returns its id and root. The id comes from the tool's own answer,
+    /// because Aiko names projects; the root is what the policy file is written under.
+    /// </summary>
+    private static async Task<(string Id, string Root)> InitProjectAsync(McpClient client, string name)
+    {
+        var root = Path.Combine(Path.GetTempPath(), "Aiko.Mcp.Specs", "CrossProject", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var init = await client.CallToolAsync(
+            "aiko_init_project",
+            new Dictionary<string, object?> { ["rootPath"] = root, ["name"] = name },
+            cancellationToken: CancellationToken.None);
+        Assert.NotEqual(true, init.IsError);
+        using var document = JsonDocument.Parse(FirstText(init)!);
+        return (document.RootElement.GetProperty("id").GetString()!, root);
+    }
+
+    /// <summary>
+    /// Writes the cross-project policy into a project's own settings document - the same file the settings
+    /// screen writes - so the daemon reads it the way it reads a policy a person set.
+    /// </summary>
+    private static async Task WriteCrossProjectPolicyAsync(string root, string policy, string[]? targets)
+    {
+        var document = new
+        {
+            schemaVersion = 1,
+            crossProject = new { writePolicy = policy, allowedTargetProjects = targets }
+        };
+        await File.WriteAllTextAsync(
+            Path.Combine(root, ".aiko", "settings.json"),
+            JsonSerializer.Serialize(document));
+    }
+
+    /// <summary>Creates a card in the fixture's project on behalf of <paramref name="originProjectId"/>.</summary>
+    private async Task<CallToolResult> CreateCrossProjectCardAsync(
+        McpClient client,
+        string originProjectId,
+        string cardId,
+        bool userConfirmed = false)
+    {
+        var arguments = new Dictionary<string, object?>
+        {
+            ["projectId"] = fixture.ProjectId,
+            ["cardId"] = cardId,
+            ["kind"] = "task",
+            ["title"] = cardId,
+            ["workflowId"] = "task",
+            ["ownPriority"] = 1,
+            ["originProjectId"] = originProjectId
+        };
+        if (userConfirmed)
+        {
+            arguments["userConfirmed"] = true;
+        }
+
+        return await client.CallToolAsync(
+            "aiko_create_card_in_project",
+            arguments,
+            cancellationToken: CancellationToken.None);
+    }
+
     [Fact]
     public async Task Discovers_all_required_tools_over_streamable_http()
     {
@@ -1012,6 +1073,11 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         });
         await using var client = await McpClient.CreateAsync(transport, cancellationToken: CancellationToken.None);
 
+        // The origin is a project the daemon knows: its policy is what allows the hand-over, so the source must
+        // be registered before it can grant anything.
+        var (sourceId, sourceRoot) = await InitProjectAsync(client, "Origin source");
+        await WriteCrossProjectPolicyAsync(sourceRoot, "Allow", targets: null);
+
         var create = await client.CallToolAsync(
             "aiko_create_card_in_project",
             new Dictionary<string, object?>
@@ -1024,11 +1090,61 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
                 ["stageId"] = "backlog",
                 ["ownPriority"] = 3,
                 ["declaredScopeFiles"] = new[] { "lib/**" },
-                ["originProjectId"] = "OTHER-PROJECT"
+                ["originProjectId"] = sourceId
             },
             cancellationToken: CancellationToken.None);
         Assert.NotEqual(true, create.IsError);
-        Assert.Contains("OTHER-PROJECT", FirstText(create), StringComparison.Ordinal);
+        Assert.Contains(sourceId, FirstText(create), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Cross_project_writes_follow_the_source_projects_policy()
+    {
+        var transport = new HttpClientTransport(new HttpClientTransportOptions
+        {
+            Endpoint = new Uri($"{fixture.BaseUrl}mcp"),
+            TransportMode = HttpTransportMode.StreamableHttp
+        });
+        await using var client = await McpClient.CreateAsync(transport, cancellationToken: CancellationToken.None);
+
+        var (sourceId, sourceRoot) = await InitProjectAsync(client, "Cross source");
+
+        // Silence means no: a project that never configured the hand-over refuses it, and the refusal says what
+        // to do instead rather than leaving the agent to guess.
+        var denied = await CreateCrossProjectCardAsync(client, sourceId, "TASK-CROSS-DENY");
+        Assert.True(denied.IsError);
+        Assert.Contains("denied", FirstText(denied), StringComparison.Ordinal);
+
+        // ask: refused until the agent has the user's word and repeats the call with the confirmation.
+        await WriteCrossProjectPolicyAsync(sourceRoot, "Ask", targets: null);
+        var asked = await CreateCrossProjectCardAsync(client, sourceId, "TASK-CROSS-ASK");
+        Assert.True(asked.IsError);
+        Assert.Contains("userConfirmed", FirstText(asked), StringComparison.Ordinal);
+
+        var confirmed = await CreateCrossProjectCardAsync(client, sourceId, "TASK-CROSS-OK", userConfirmed: true);
+        Assert.NotEqual(true, confirmed.IsError);
+
+        // A non-empty target list narrows the policy: a target that is not in it is refused even when the
+        // policy allows writing in general.
+        await WriteCrossProjectPolicyAsync(sourceRoot, "Allow", ["some-other-project"]);
+        var offList = await CreateCrossProjectCardAsync(client, sourceId, "TASK-CROSS-OFFLIST");
+        Assert.True(offList.IsError);
+        Assert.Contains("not in", FirstText(offList), StringComparison.Ordinal);
+
+        await WriteCrossProjectPolicyAsync(sourceRoot, "Allow", targets: null);
+        var allowed = await CreateCrossProjectCardAsync(client, sourceId, "TASK-CROSS-ALLOW");
+        Assert.NotEqual(true, allowed.IsError);
+
+        // Both journals saw the hand-over: the target carries the card, the source recorded that it left.
+        using var http = new HttpClient { BaseAddress = fixture.BaseUrl };
+        var historyText = await http.GetStringAsync($"api/v1/projects/{sourceId}/events/history?after=0&limit=100");
+        using var history = JsonDocument.Parse(historyText);
+        Assert.Contains(
+            history.RootElement.EnumerateArray(),
+            item => string.Equals(
+                item.GetProperty("type").GetString(),
+                "cross-project.card-created",
+                StringComparison.Ordinal));
     }
 
     [Fact]

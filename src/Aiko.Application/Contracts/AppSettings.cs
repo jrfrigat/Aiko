@@ -11,7 +11,8 @@ namespace Aiko.Application.Contracts;
 public sealed record AppSettings(
     int SchemaVersion,
     ExecutionSettings? Execution = null,
-    PrioritySettings? Priority = null)
+    PrioritySettings? Priority = null,
+    CrossProjectSettings? CrossProject = null)
 {
     /// <summary>
     /// Schema version written by the current application version.

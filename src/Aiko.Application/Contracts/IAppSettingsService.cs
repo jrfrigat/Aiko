@@ -30,6 +30,16 @@ public interface IAppSettingsService
         CancellationToken cancellationToken);
 
     /// <summary>
+    /// Returns the effective cross-project write policy of a project: whether an agent in another project may
+    /// create cards here, and which projects may.
+    /// </summary>
+    /// <param name="projectId">Project the policy belongs to, which is the project sending the work.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    ValueTask<CrossProjectSettings> GetEffectiveCrossProjectAsync(
+        string projectId,
+        CancellationToken cancellationToken);
+
+    /// <summary>
     /// Saves the project-local settings.
     /// </summary>
     ValueTask SaveProjectAsync(

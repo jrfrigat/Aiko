@@ -5,6 +5,7 @@ using ModelContextProtocol.Server;
 using Aiko.Application.Cards;
 using Aiko.Application.Contracts;
 using Aiko.Domain.Cards;
+using Aiko.Domain.Execution;
 using Aiko.Server.Contracts;
 using Aiko.Server.Workflow;
 
@@ -22,7 +23,9 @@ internal sealed class DaemonTools(
     IProjectTemplateStore templates,
     ICardStore cards,
     IProjectDefinitionStore definitions,
-    IProjectLinkStore links)
+    IProjectLinkStore links,
+    IAppSettingsService settings,
+    IAikoEventPublisher events)
 {
     [McpServerTool(Name = "aiko_list_projects", Title = "List Aiko projects")]
     [Description("Lists all projects registered with the Aiko daemon.")]
@@ -111,7 +114,9 @@ internal sealed class DaemonTools(
     [Description(
         "Creates a card of any type the project defines in the given project. The card lands in that "
         + "project's workflow backlog stage; Aiko names it, so pass no id unless you are importing a card "
-        + "that already has one. Pass originProjectId when reporting from another project.")]
+        + "that already has one. Pass originProjectId when reporting from another project - the project you "
+        + "are working in then decides whether the write is allowed: 'deny' refuses, 'ask' refuses until you "
+        + "have asked the user and repeat the call with userConfirmed=true, and 'allow' creates it.")]
     public async Task<string> CreateCardAsync(
         [Description("Target project id.")]
         string projectId,
@@ -133,12 +138,48 @@ internal sealed class DaemonTools(
         [Optional] string? originProjectId,
         [Description("Source card id when reporting from another project.")]
         [Optional] string? originCardId,
-        CancellationToken cancellationToken)
+        [Description(
+            "Set true only after the user agreed to the hand-over, when the source project's policy is 'ask'.")]
+        bool userConfirmed = false,
+        CancellationToken cancellationToken = default)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(ownPriority);
         // The target may be named by its readable handle; the card is filed under the project's own id.
         var project = await catalog.FindAsync(projectId, cancellationToken)
             ?? throw new KeyNotFoundException($"Unknown Aiko project: {projectId}");
+
+        // A cross-project call writes into someone else's project, so the project the agent works in decides:
+        // it may refuse, ask the user first, or allow it. The target grants nothing and configures nothing -
+        // it only sees the origin mark and decides what to do with the card.
+        string? sourceProjectId = null;
+        if (!string.IsNullOrWhiteSpace(originProjectId))
+        {
+            var source = await catalog.FindAsync(originProjectId, cancellationToken)
+                ?? throw new KeyNotFoundException($"Unknown Aiko project: {originProjectId}");
+            sourceProjectId = source.Id;
+            var policy = await settings.GetEffectiveCrossProjectAsync(source.Id, cancellationToken);
+            if (policy.Targets.Count > 0 &&
+                !policy.Targets.Contains(project.Id, StringComparer.OrdinalIgnoreCase) &&
+                !policy.Targets.Contains(project.Handle, StringComparer.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    $"Project {source.Handle} does not allow writing to {project.Handle}: the target is not in "
+                    + "its cross-project list.");
+            }
+
+            switch (policy.WritePolicy)
+            {
+                case CrossProjectWritePolicy.Deny:
+                    throw new InvalidOperationException(
+                        $"Cross-project writing is denied by project {source.Handle}: create the card manually "
+                        + $"in {project.Handle} instead.");
+                case CrossProjectWritePolicy.Ask when !userConfirmed:
+                    throw new InvalidOperationException(
+                        $"Project {source.Handle} asks before writing to {project.Handle}: ask the user, then "
+                        + "call again with userConfirmed=true.");
+            }
+        }
+
         var canonicalKind = ParseKind(kind);
         var (workflow, backlog, reason) = await CardCreation.ResolveAsync(
             definitions,
@@ -182,6 +223,19 @@ internal sealed class DaemonTools(
                 : new CardOrigin(originProjectId, originCardId, null, DateTimeOffset.UtcNow));
 
         await cards.SaveAsync(card, 0, cancellationToken);
+        if (sourceProjectId is not null)
+        {
+            // Both journals see the hand-over: the target's card.updated is written by the card store, and the
+            // source keeps its own record of what left the project.
+            await events.PublishAsync(
+                sourceProjectId,
+                AikoEventTypes.CrossProjectCardCreated,
+                JsonSerializer.Serialize(
+                    new CrossProjectCardEvent(card.Reference.CardId, project.Id),
+                    ServerJsonContext.Default.CrossProjectCardEvent),
+                cancellationToken);
+        }
+
         return JsonSerializer.Serialize(card, ServerJsonContext.Default.Card);
     }
 
