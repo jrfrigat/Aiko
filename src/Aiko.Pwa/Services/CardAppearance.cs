@@ -1,3 +1,4 @@
+using Aiko.Domain.Prioritization;
 using Flare.Components;
 using Flare.Icons;
 
@@ -72,4 +73,21 @@ public static class CardAppearance
 
     /// <summary>The tag class a card's size badge is drawn with, one per tone.</summary>
     public static string SizeTagClass(decimal coefficient) => $"aiko-tag--size-{SizeTone(coefficient)}";
+
+    /// <summary>
+    /// The tag class a card's size badge carries, resolved from the project's grid: the tone of the step the
+    /// card names, or the quiet one.
+    /// </summary>
+    /// <remarks>
+    /// A tone is a statement about a coefficient, so without the step there is nothing to state: a card with no
+    /// size, an empty grid, and a size whose step has left the grid all keep the neutral badge rather than
+    /// borrowing a colour. The board card and the card's own banner both ask this, so the two screens cannot
+    /// disagree about which step is the cheap one.
+    /// </remarks>
+    public static string SizeBadgeClass(string? size, IReadOnlyList<SizeDefinition> grid)
+    {
+        ArgumentNullException.ThrowIfNull(grid);
+        var step = grid.FirstOrDefault(item => StringComparer.Ordinal.Equals(item.Id, size));
+        return step is null ? "aiko-tag--quiet" : SizeTagClass(step.Coefficient);
+    }
 }

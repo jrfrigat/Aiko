@@ -76,7 +76,7 @@
 
                                                     @if (!string.IsNullOrWhiteSpace(card.Size))
                                                     {
-                                                        <span class="aiko-tag @SizeBadgeClass(card)">@card.Size</span>
+                                                        <span class="aiko-tag @CardAppearance.SizeBadgeClass(card.Size, SizeGrid)">@card.Size</span>
                                                     }
                                                 </FlareStack>
                                                 <span class="aiko-tag aiko-tag--quiet" title="@PriorityTitle(card)">★ @Score(card)</span>
@@ -253,21 +253,6 @@
         stage.RequiredArtifacts.Count == 0
             ? "—"
             : string.Join(", ", stage.RequiredArtifacts.Select(artifact => artifact.Path));
-
-    /// <summary>
-    /// The tag class a card's size badge carries: the tone of the step it names, or the quiet one.
-    /// </summary>
-    /// <remarks>
-    /// A tone is a statement about a coefficient, so without the step there is nothing to state: a card that
-    /// names no size, and one whose step has left the grid, both keep the neutral badge rather than borrowing
-    /// a colour. The tone itself is <see cref="CardAppearance.SizeTagClass"/> - the same rule the settings
-    /// ladder colours its tiles with, so the two screens cannot disagree.
-    /// </remarks>
-    private string SizeBadgeClass(Card card)
-    {
-        var step = SizeGrid.FirstOrDefault(item => StringComparer.Ordinal.Equals(item.Id, card.Size));
-        return step is null ? "aiko-tag--quiet" : CardAppearance.SizeTagClass(step.Coefficient);
-    }
 
     /// <summary>
     /// The card's effective priority as the daemon computed it: the criterion scores, blended with the

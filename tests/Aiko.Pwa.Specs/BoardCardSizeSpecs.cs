@@ -20,8 +20,10 @@ public sealed class BoardCardSizeSpecs
         // The size is a tag in the top row, beside the id, and its tone comes from the one shared rule rather
         // than from a second palette written into this screen ...
         Assert.Contains("@if (!string.IsNullOrWhiteSpace(card.Size))", text, StringComparison.Ordinal);
-        Assert.Contains("<span class=\"aiko-tag @SizeBadgeClass(card)\">@card.Size</span>", text, StringComparison.Ordinal);
-        Assert.Contains("CardAppearance.SizeTagClass(step.Coefficient)", text, StringComparison.Ordinal);
+        Assert.Contains(
+            "<span class=\"aiko-tag @CardAppearance.SizeBadgeClass(card.Size, SizeGrid)\">@card.Size</span>",
+            text,
+            StringComparison.Ordinal);
 
         var topRow = text[..text.IndexOf("aiko-card__meta", StringComparison.Ordinal)];
         Assert.Contains("card.Size", topRow, StringComparison.Ordinal);
@@ -36,14 +38,20 @@ public sealed class BoardCardSizeSpecs
     [Fact]
     public void A_size_with_no_step_in_the_grid_keeps_the_quiet_badge()
     {
-        var text = BoardSection();
+        var root = FindRepositoryRoot();
+        var appearance = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Services", "CardAppearance.cs"));
 
         // A tone is a statement about a coefficient: a card that names a size the grid does not hold gets the
         // neutral badge, not another step's colour.
         Assert.Contains(
-            "return step is null ? \"aiko-tag--quiet\" : CardAppearance.SizeTagClass(step.Coefficient);",
-            text,
+            "return step is null ? \"aiko-tag--quiet\" : SizeTagClass(step.Coefficient);",
+            appearance,
             StringComparison.Ordinal);
+
+        // ... and that resolution lives only there: a screen keeping its own copy is how two screens start to
+        // disagree.
+        Assert.DoesNotContain("step is null", BoardSection(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -56,6 +64,10 @@ public sealed class BoardCardSizeSpecs
             Path.Combine(root, "src", "Aiko.Pwa", "Services", "CardAppearance.cs"));
         Assert.Contains("public static string SizeTone(decimal coefficient)", appearance, StringComparison.Ordinal);
         Assert.Contains("public static string SizeTagClass(decimal coefficient)", appearance, StringComparison.Ordinal);
+        Assert.Contains(
+            "public static string SizeBadgeClass(string? size, IReadOnlyList<SizeDefinition> grid)",
+            appearance,
+            StringComparison.Ordinal);
 
         // ... the settings ladder asks that rule instead of repeating the comparison ...
         var settings = File.ReadAllText(
@@ -97,6 +109,27 @@ public sealed class BoardCardSizeSpecs
         var block = css[start..css.IndexOf('}', start)];
         Assert.Contains(".aiko-card__dod", block, StringComparison.Ordinal);
         Assert.Contains("flex-wrap: wrap;", block, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_card_page_banner_wears_the_same_size_tone()
+    {
+        var root = FindRepositoryRoot();
+        var cardPage = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "CardPage.razor"));
+
+        // The banner asks the one rule, with the project's grid, instead of printing a bare tag ...
+        Assert.Contains(
+            "CardAppearance.SizeBadgeClass(bannerSize, SizeGrid)",
+            cardPage,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "private IReadOnlyList<SizeDefinition> SizeGrid",
+            cardPage,
+            StringComparison.Ordinal);
+
+        // ... so the badge the reader sees on the card page is the same colour as the one on the board.
+        Assert.DoesNotContain("<span class=\"aiko-tag\">@bannerSize</span>", cardPage, StringComparison.Ordinal);
     }
 
     private static string BoardSection() => File.ReadAllText(Path.Combine(

@@ -70,7 +70,7 @@ else
                         <span class="aiko-tag aiko-tag--quiet">@Card.Kind · @Card.WorkflowId</span>
                         @if (Card.Size is { Length: > 0 } bannerSize)
                         {
-                            <span class="aiko-tag">@bannerSize</span>
+                            <span class="aiko-tag @CardAppearance.SizeBadgeClass(bannerSize, SizeGrid)">@bannerSize</span>
                         }
                         <span class="aiko-tag aiko-tag--quiet">@Loc.Format("RevisionTag", Card.Revision)</span>
                         @if (DefaultAgent is { Length: > 0 } agent)
@@ -111,6 +111,15 @@ else
 }
 
 @code {
+    /// <summary>
+    /// The project's size grid, so the card's size badge can carry the tone of the step it names.
+    /// </summary>
+    /// <remarks>
+    /// The board snapshot carries cards but not the grid; the workspace does. An empty grid is honest: without
+    /// a step there is no coefficient, so the badge stays quiet.
+    /// </remarks>
+    private IReadOnlyList<SizeDefinition> SizeGrid => State.SettingsView?.EffectivePriority.Grid ?? [];
+
     protected override void OnInitialized() => State.Changed += OnStateChanged;
 
     private Task OnStateChanged() => InvokeAsync(StateHasChanged);
