@@ -76,23 +76,6 @@
                    switching tabs never loses what was typed, and the save row below belongs to the card rather
                    than to one tab. *@
                 <FlareTabs ActiveIndex="_textTab" ActiveIndexChanged="OnTextTabChanged">
-                    <FlareTab Label="@Loc.Get("Request")">
-                        <ChildContent>
-                            <FlareStack Gap="FlareSpacing.XSmall">
-                                @* What the user asked for, in their own words - the raw request rather than the
-                                   reworked task. *@
-                                <PromptField Name="@($"{Card.Reference.CardId}.request")"
-                                             Title="@Loc.Get("Request")"
-                                             Rows="6"
-                                             Placeholder="@Loc.Get("RequestHelper")"
-                                             Value="@_request"
-                                             ValueChanged="value => _request = value" />
-                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                                    @Loc.Get("RequestHelper")
-                                </FlareText>
-                            </FlareStack>
-                        </ChildContent>
-                    </FlareTab>
                     <FlareTab Label="@Loc.Get("Requirements")">
                         <ChildContent>
                             <FlareStack Gap="FlareSpacing.XSmall">
@@ -101,7 +84,7 @@
                                    this one card. *@
                                 <PromptField Name="@($"{Card.Reference.CardId}.requirements")"
                                              Title="@Loc.Get("Requirements")"
-                                             Rows="8"
+                                             Rows="20"
                                              Placeholder="@Loc.Get("RequirementsHelper")"
                                              Value="@_requirements"
                                              ValueChanged="value => _requirements = value" />
@@ -111,12 +94,29 @@
                             </FlareStack>
                         </ChildContent>
                     </FlareTab>
+                    <FlareTab Label="@Loc.Get("Request")">
+                        <ChildContent>
+                            <FlareStack Gap="FlareSpacing.XSmall">
+                                @* What the user asked for, in their own words - the raw request rather than the
+                                   reworked task. *@
+                                <PromptField Name="@($"{Card.Reference.CardId}.request")"
+                                             Title="@Loc.Get("Request")"
+                                             Rows="20"
+                                             Placeholder="@Loc.Get("RequestHelper")"
+                                             Value="@_request"
+                                             ValueChanged="value => _request = value" />
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                    @Loc.Get("RequestHelper")
+                                </FlareText>
+                            </FlareStack>
+                        </ChildContent>
+                    </FlareTab>
                     <FlareTab Label="@Loc.Get("DeclaredScope")">
                         <ChildContent>
                             <FlareStack Gap="FlareSpacing.XSmall">
                                 <PromptField Name="@($"{Card.Reference.CardId}.scope")"
                                              Title="@Loc.Get("DeclaredScope")"
-                                             Rows="4"
+                                             Rows="20"
                                              ShowMetrics="false"
                                              Placeholder="@Loc.Get("ScopeHelper")"
                                              Value="@_scope"
@@ -124,28 +124,30 @@
                                 <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
                                     @Loc.Get("ScopeHelper")
                                 </FlareText>
-                                @* The card's files one level in, behind their own tab bar instead of three lists
-                                   in a row: what it declared it would touch, what it actually touched, and both
-                                   together - the union is where a file changed without being declared shows up,
-                                   because it is in the second list and not in the first. *@
-                                <FlareTabs ActiveIndex="_scopeTab" ActiveIndexChanged="OnScopeTabChanged">
-                                    <FlareTab Label="@Loc.Get("FilesDeclared")">
-                                        <ChildContent>
-                                            <FileGroup Title="@Loc.Get("FilesDeclared")" Files="Card.DeclaredScopeFiles" />
-                                        </ChildContent>
-                                    </FlareTab>
-                                    <FlareTab Label="@Loc.Get("FilesActual")">
-                                        <ChildContent>
-                                            <FileGroup Title="@Loc.Get("FilesActual")" Files="Card.ActualChangedFiles" />
-                                        </ChildContent>
-                                    </FlareTab>
-                                    <FlareTab Label="@Loc.Get("AllScope")">
-                                        <ChildContent>
-                                            <FileGroup Title="@Loc.Get("AllScope")" Files="ScopeFiles" />
-                                        </ChildContent>
-                                    </FlareTab>
-                                </FlareTabs>
                             </FlareStack>
+                        </ChildContent>
+                    </FlareTab>
+                </FlareTabs>
+
+                
+                @* The card's files one level in, behind their own tab bar instead of three lists
+                in a row: what it declared it would touch, what it actually touched, and both
+                together - the union is where a file changed without being declared shows up,
+                because it is in the second list and not in the first. *@
+                <FlareTabs ActiveIndex="_scopeTab" ActiveIndexChanged="OnScopeTabChanged">
+                    <FlareTab Label="@Loc.Get("FilesDeclared")">
+                        <ChildContent>
+                            <FileGroup Title="@Loc.Get("FilesDeclared")" Files="Card.DeclaredScopeFiles" />
+                        </ChildContent>
+                    </FlareTab>
+                    <FlareTab Label="@Loc.Get("FilesActual")">
+                        <ChildContent>
+                            <FileGroup Title="@Loc.Get("FilesActual")" Files="Card.ActualChangedFiles" />
+                        </ChildContent>
+                    </FlareTab>
+                    <FlareTab Label="@Loc.Get("AllScope")">
+                        <ChildContent>
+                            <FileGroup Title="@Loc.Get("AllScope")" Files="ScopeFiles" />
                         </ChildContent>
                     </FlareTab>
                 </FlareTabs>
