@@ -622,7 +622,7 @@
   <data name="CardTypeRevision" xml:space="preserve"><value>Card type · rev {0}</value></data>
 
   <data name="CommandsTitle" xml:space="preserve"><value>Command for an agent</value></data>
-  <data name="CommandsHint" xml:space="preserve"><value>Aiko does not start agents, so the request waits in the project's queue until an agent runs and takes it.</value></data>
+  <data name="CommandsHint" xml:space="preserve"><value>Aiko does not start agents, so the request waits in the project's queue until an agent runs and takes it - and the outcome the agent reports appears here.</value></data>
   <data name="CommandAction" xml:space="preserve"><value>What to ask</value></data>
   <data name="CommandStart" xml:space="preserve"><value>Start the stage</value></data>
   <data name="CommandPause" xml:space="preserve"><value>Pause the run</value></data>
@@ -636,6 +636,9 @@
   <data name="CommandFailed" xml:space="preserve"><value>The command was not placed.</value></data>
   <data name="CommandWaiting" xml:space="preserve"><value>waiting</value></data>
   <data name="CommandTaken" xml:space="preserve"><value>taken</value></data>
+  <data name="CommandDone" xml:space="preserve"><value>done</value></data>
+  <data name="CommandRefused" xml:space="preserve"><value>failed</value></data>
+  <data name="CommandWithdrawn" xml:space="preserve"><value>withdrawn</value></data>
   <data name="CommandStartHint" xml:space="preserve"><value>An agent will start stage '{0}' of this card.</value></data>
   <data name="CommandRunHint" xml:space="preserve"><value>An agent will act on run {0}.</value></data>
   <data name="CommandNoRunHint" xml:space="preserve"><value>This card has no run yet, so only 'start the stage' can be asked for.</value></data>

@@ -944,20 +944,30 @@
                             @commandMessage
                         </FlareText>
                     }
-                    @* What is waiting: read from the queue itself, never from what this screen remembers, so a
-                       command another tab placed, or one an agent has just taken, shows here as it is. *@
+                    @* What was asked and what came of it: read from the queue itself, never from what this
+                       screen remembers, so a command another tab placed, or one an agent has just taken,
+                       shows here as it is. A closed command stays on the card with the message the agent
+                       left - otherwise a request that failed disappears and reads like one never placed. *@
                     @foreach (var command in CardCommands)
                     {
                         var entry = command;
-                        <FlareStack Row="true" Align="FlareAlignItems.Center"
-                                    Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XSmall">
-                            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
-                                <FlareText Element="span" Mono="true" Typo="TypographyScale.BodySmall">@entry.Id</FlareText>
-                                <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant2">
-                                    @CommandCaption(entry)
-                                </FlareText>
+                        <FlareStack Gap="FlareSpacing.XXSmall">
+                            <FlareStack Row="true" Align="FlareAlignItems.Center"
+                                        Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XSmall">
+                                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
+                                    <FlareText Element="span" Mono="true" Typo="TypographyScale.BodySmall">@entry.Id</FlareText>
+                                    <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant2">
+                                        @CommandCaption(entry)
+                                    </FlareText>
+                                </FlareStack>
+                                <span class="aiko-tag @CommandBadgeClass(entry)">@CommandStateCaption(entry)</span>
                             </FlareStack>
-                            <span class="aiko-tag @CommandBadgeClass(entry)">@CommandStateCaption(entry)</span>
+                            @if (entry.Message is { Length: > 0 } message)
+                            {
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                    @message
+                                </FlareText>
+                            }
                         </FlareStack>
                     }
                 </FlareStack>
@@ -1822,16 +1832,31 @@
     }
 
     /// <summary>
-    /// The open commands of this card, as the project's queue reports them.
+    /// The commands of this card, as the project's queue reports them: the open ones first, then what
+    /// already happened.
     /// </summary>
     /// <remarks>
     /// Read from <see cref="WorkspaceState.Commands"/> and not from anything this page keeps: the queue is
     /// the one place that knows whether an agent has taken the request, so a screen that remembered would be
-    /// a second answer to the same question.
+    /// a second answer to the same question. The order says what a person needs: what is still waiting, then
+    /// the outcome of what is done - because a request that failed and vanished reads exactly like one that
+    /// was never placed.
     /// </remarks>
-    private IReadOnlyList<CardCommand> CardCommands =>
-        [.. State.Commands.Where(command =>
-            StringComparer.Ordinal.Equals(command.CardId, Card.Reference.CardId))];
+    private IReadOnlyList<CardCommand> CardCommands
+    {
+        get
+        {
+            var mine = State.Commands
+                .Where(command => StringComparer.Ordinal.Equals(command.CardId, Card.Reference.CardId))
+                .ToArray();
+            return
+            [
+                .. mine.Where(command => command.IsOpen).OrderBy(command => command.CreatedAtUtc),
+                .. mine.Where(command => !command.IsOpen)
+                    .OrderByDescending(command => command.FinishedAtUtc ?? command.CreatedAtUtc)
+            ];
+        }
+    }
 
     /// <summary>Whether the selected action carries something the person has to write.</summary>
     private bool CommandNeedsText =>
@@ -1865,14 +1890,20 @@
     {
         CardCommandState.Queued => Loc.Get("CommandWaiting"),
         CardCommandState.Taken => Loc.Get("CommandTaken"),
-        _ => command.State.ToString()
+        CardCommandState.Completed => Loc.Get("CommandDone"),
+        CardCommandState.Failed => Loc.Get("CommandRefused"),
+        _ => Loc.Get("CommandWithdrawn")
     };
 
-    /// <summary>The badge tone of a command's state: waiting is a warning, taken is live work.</summary>
+    /// <summary>
+    /// The badge tone of a command's state: waiting is quiet, taken is live work, done is the accent, and a
+    /// command the agent could not carry out is the one that has to be noticed.
+    /// </summary>
     private static string CommandBadgeClass(CardCommand command) => command.State switch
     {
-        CardCommandState.Queued => "aiko-tag--warn",
         CardCommandState.Taken => "aiko-tag--live",
+        CardCommandState.Completed => "aiko-tag--accent",
+        CardCommandState.Failed => "aiko-tag--warn",
         _ => "aiko-tag--quiet"
     };
 

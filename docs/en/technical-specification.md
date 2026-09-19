@@ -429,7 +429,7 @@ the person as the command's `failed` message.
 | MCP | `aiko_list_commands`, `aiko_claim_command`, `aiko_finish_command` |
 | CLI | `aiko commands [--project <id>] [--card <id>] [--state <open\|all\|state>]` |
 | Agent procedure | `aiko-commands` - reads the queue, takes one command, carries it out, closes it |
-| UI | Card page - *Command for an agent*: place one, and see whether it is waiting or taken |
+| UI | Card page - *Command for an agent*: place one, and read what became of it - waiting, taken, or the outcome the agent reported |
 | Event | `commands.updated`, published on every change |
 
 ## 13. Concurrency and workspaces

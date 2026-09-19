@@ -80,14 +80,14 @@ internal sealed class WorkspaceState : IAsyncDisposable
     public ProjectBoardSnapshot? Board { get; private set; }
 
     /// <summary>
-    /// The open project's command queue: what a screen asked an agent to do and no agent has closed yet.
+    /// The open project's command queue: what a screen asked an agent to do, and what came of it.
     /// </summary>
     /// <remarks>
-    /// Read with the board rather than on demand, because it is what the card page shows next to the button
-    /// that placed a command: a request whose state the person cannot see is indistinguishable from one that
-    /// was never placed. Only open commands come back - a closed one is history, and history shown beside
-    /// "waiting" reads as work still outstanding - and the daemon hands out the whole file on one GET, so
-    /// the queue costs the same as the settings beside it.
+    /// The whole queue rather than its open half, because the card shows both: "waiting" and "taken" are what
+    /// a person watches while the request is in flight, and a command the agent closed - with the message it
+    /// left - is the answer to the question the button asked. Reading only the open commands hid exactly
+    /// that, so a request that failed looked like one that was never placed. The daemon hands out the whole
+    /// file on one GET, so the cost is the same either way.
     /// </remarks>
     public IReadOnlyList<CardCommand> Commands { get; private set; } = [];
 
@@ -332,8 +332,8 @@ internal sealed class WorkspaceState : IAsyncDisposable
     }
 
     /// <summary>
-    /// Re-reads the open project's command queue. A failure leaves it empty instead of stopping the screen:
-    /// the queue is one panel of a page, and an unreadable one must not take the board with it.
+    /// Re-reads the open project's whole command queue. A failure leaves it empty instead of stopping the
+    /// screen: the queue is one panel of a page, and an unreadable one must not take the board with it.
     /// </summary>
     /// <param name="escapedProjectId">Project id already escaped for a route.</param>
     private async Task ReloadCommandsAsync(string escapedProjectId)
@@ -341,7 +341,7 @@ internal sealed class WorkspaceState : IAsyncDisposable
         try
         {
             Commands = await _http.GetFromJsonAsync<IReadOnlyList<CardCommand>>(
-                $"api/v1/projects/{escapedProjectId}/commands?state=open",
+                $"api/v1/projects/{escapedProjectId}/commands?state=all",
                 PwaJson.Options) ?? [];
         }
         catch (Exception)
