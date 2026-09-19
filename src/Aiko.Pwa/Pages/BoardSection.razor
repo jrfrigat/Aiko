@@ -74,11 +74,6 @@
                                                         #@card.Reference.CardId
                                                     </FlareText>
                                                     <span class="aiko-tag">@KindLabel(card.Kind)</span>
-                                                    @* Where this card's stage got to, from the runs the snapshot carries. *@
-                                                    <span class="aiko-tag @StageStateView.TagClass(StageStateOf(card))"
-                                                          title="@Loc.Get(StageStateView.LabelKey(StageStateOf(card)))">
-                                                        @Loc.Get(StageStateView.LabelKey(StageStateOf(card)))
-                                                    </span>
                                                 </FlareStack>
                                                 <span class="aiko-tag aiko-tag--quiet" title="@PriorityTitle(card)">★ @Score(card)</span>
                                             </FlareStack>
@@ -102,7 +97,16 @@
                                             }
 
                                             <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XXSmall" Class="aiko-card__dod">
-                                                <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant2">@DodLine(card)</FlareText>
+                                                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
+                                                    @* Where this card's stage got to, from the runs the snapshot carries. It sits
+                                                       in the bottom-left corner, opposite the size, so a glance along the
+                                                       bottom row reads both. *@
+                                                    <span class="aiko-tag @StageStateView.TagClass(StageStateOf(card))"
+                                                          title="@Loc.Get(StageStateView.LabelKey(StageStateOf(card)))">
+                                                        @Loc.Get(StageStateView.LabelKey(StageStateOf(card)))
+                                                    </span>
+                                                    <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant2">@DodLine(card)</FlareText>
+                                                </FlareStack>
                                                 <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
                                                     <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant">@Agents(stage)</FlareText>
                                                     @* The size is the coefficient the score is multiplied by, so it belongs with the
