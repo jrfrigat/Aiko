@@ -103,7 +103,17 @@
 
                                             <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XXSmall" Class="aiko-card__dod">
                                                 <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant2">@DodLine(card)</FlareText>
-                                                <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant">@Agents(stage)</FlareText>
+                                                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
+                                                    <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant">@Agents(stage)</FlareText>
+                                                    @* The size is the coefficient the score is multiplied by, so it belongs with the
+                                                       other right-hand facts: without it two equally scored cards read as different
+                                                       priorities for no visible reason. A card nobody sized shows nothing - a dash
+                                                       or a zero would be a value the project never stated. *@
+                                                    @if (!string.IsNullOrWhiteSpace(card.Size))
+                                                    {
+                                                        <span class="aiko-tag aiko-tag--quiet">@card.Size</span>
+                                                    }
+                                                </FlareStack>
                                             </FlareStack>
                                         </FlareStack>
                                     </FlareCard>
