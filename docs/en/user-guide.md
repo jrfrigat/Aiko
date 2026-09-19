@@ -289,7 +289,9 @@ lessons.
 ## Cross-project cards
 
 An agent working in one project can report a card into another project. The created card
-records its origin (`originProjectId`); the target project simply sees where it came from.
+records its origin (`originProjectId`), and the card page shows it in the *Origin* block: the
+source project, the card it was reported from when one was named, the adapter that filed it and
+how long ago. The target project configures nothing here - it is told, not asked.
 
 Which project that is comes from the **linked projects** registry, edited on the project's settings page under
 *Linked projects*: pick one of the projects registered with this installation, write what it is for ("the

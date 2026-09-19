@@ -212,6 +212,13 @@ has no path yet, the table says so rather than pretending the sets are already e
 | Repair the installation | `/aiko-repair` | — | — (`aiko repair --fix`) |
 | Back up a project | `/aiko-backup` | `aiko_backup` | — |
 | Link a project and say what it is for | `/aiko-link <slug> <description>` | `aiko_link_project`, `aiko_unlink_project` | Project settings - *Linked projects* |
+| File a card into a linked project | `/aiko-link` for the link, then the project's own contract | `aiko_create_card_in_project` (`userConfirmed` on an *Ask* project) | — (only an agent files the card; it lands on the target project's board) |
+| Decide whether a linked project may be written to | — | — (the `crossProject` section of the sending project's settings) | Project settings - *Cross-project writing* |
+| See where a cross-project card came from | — | — (the card carries its own `origin`) | Card page - *Origin*: the source project, the source card when one was named, the adapter and how long ago |
+| Manage a run - start, pause, resume, hand off, complete, cancel | `/aiko-run`, `/aiko-handoff` | `aiko_start_stage`, `aiko_pause_execution`, `aiko_resume_execution`, `aiko_handoff_execution`, `aiko_complete_stage`, `aiko_report_agent_state` | — (the card page reads the run history; the controls, and the REST lifecycle behind them, are not built) |
+| See every active run of the project | — | — (the board snapshot carries the latest run of each stage) | — (runs are visible inside a card only; no project-wide section) |
+| Read the project's event journal | — | — | — (`GET /api/v1/projects/{id}/events/history` exists; nothing reads it) |
+| Move a card with explicit stage actions (next, return, cancel) | — | `aiko_move_card` | — (drag only; the explicit actions are not built) |
 | Show the access token | `/aiko-token` | `aiko_token` | — (`aiko token show`) |
 | Manage agent integrations | `/aiko-agents` | — (`aiko agent list` / `install` / `uninstall`) | Dashboard - the *Agents* card: detection and Connect / Disconnect |
 
