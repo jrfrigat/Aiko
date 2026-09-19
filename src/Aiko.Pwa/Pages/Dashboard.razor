@@ -513,8 +513,11 @@
         get
         {
             var cards = _boards.Sum(board => board.Cards.Count);
-            var tasks = _boards.Sum(board => BoardMetrics.CountKind(board, CardKind.Task));
-            var stories = _boards.Sum(board => BoardMetrics.CountKind(board, CardKind.Story));
+            // The two type tiles are read from the projects' own data: a type that rolls its score up into
+            // its parents is the atomic work, and a type that keeps its own score is the container. No type
+            // name is written down here.
+            var tasks = _boards.Sum(BoardMetrics.BlendingCount);
+            var stories = _boards.Sum(BoardMetrics.NonBlendingCount);
             var inProgress = _boards.Sum(BoardMetrics.InProgressCount);
             var outOfScope = _boards.Sum(BoardMetrics.OutOfScopeCount);
             return

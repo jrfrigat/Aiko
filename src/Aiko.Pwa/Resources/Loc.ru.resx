@@ -66,8 +66,6 @@
   <data name="DropHere" xml:space="preserve"><value>Перетащите задачи в</value></data>
   <data name="GitPolicyTrackKnowledge" xml:space="preserve"><value>track-project-knowledge</value></data>
   <data name="GitPolicyCustom" xml:space="preserve"><value>custom</value></data>
-  <data name="TaskKind" xml:space="preserve"><value>Task</value></data>
-  <data name="StoryKind" xml:space="preserve"><value>Story</value></data>
   <data name="PathRequired" xml:space="preserve"><value>Укажите путь к проекту.</value></data>
   <data name="AddProjectFailed" xml:space="preserve"><value>Не удалось добавить проект: {0}</value></data>
   <data name="CreateCardFailed" xml:space="preserve"><value>Не удалось создать карточку: {0}</value></data>
@@ -546,6 +544,8 @@
   <data name="CardTypeDescription" xml:space="preserve"><value>Описание</value></data>
   <data name="CardTypeIcon" xml:space="preserve"><value>Иконка</value></data>
   <data name="CardTypeColor" xml:space="preserve"><value>Цвет</value></data>
+  <data name="TypeBlendsWithParent" xml:space="preserve"><value>Смешивает оценку с родителями</value></data>
+  <data name="TypeBlendsWithParentHint" xml:space="preserve"><value>Карточка этого типа смешивает свою оценку с лучшей оценкой родителей. Выключите для типа, который сохраняет свою оценку.</value></data>
   <data name="StageIcon" xml:space="preserve"><value>Иконка колонки</value></data>
   <data name="StageColor" xml:space="preserve"><value>Цвет колонки</value></data>
   <data name="AppearanceDefault" xml:space="preserve"><value>По умолчанию</value></data>

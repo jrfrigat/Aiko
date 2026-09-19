@@ -119,6 +119,18 @@
                                  SelectedTemplate="@ColorOption" />
             </FlareStack>
 
+            @* The type's behaviour, declared as data: this flag is what makes a type the atomic work whose
+               score rolls up into its parents, without the engine knowing the type by name. *@
+            <FlareStack Gap="FlareSpacing.XXSmall">
+                <label class="aiko-check-chip">
+                    <input type="checkbox" @bind="BlendsWithParent" />
+                    @Loc.Get("TypeBlendsWithParent")
+                </label>
+                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                    @Loc.Get("TypeBlendsWithParentHint")
+                </FlareText>
+            </FlareStack>
+
             @if (_newTypePanelOpen)
             {
                 <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
@@ -572,11 +584,13 @@
     private string? _workflowDescription;
     private string? _workflowIcon;
     private string? _workflowColor;
+    private bool _workflowBlendsWithParent;
     private string? _newTypeId;
     private string? _newTypeTitle;
     private string? _newTypeDescription;
     private string? _newTypeIcon;
     private string? _newTypeColor;
+    private bool _newTypeBlendsWithParent;
     private bool _creatingType;
     private bool _deleteTypeConfirm;
 
@@ -613,6 +627,26 @@
 
     /// <summary>The colour the pickers edit, chosen the same way as <see cref="PickedIcon"/>.</summary>
     private string? PickedColor => _newTypePanelOpen ? _newTypeColor : _workflowColor;
+
+    /// <summary>
+    /// Whether a card of the type being edited blends its score with its parents, chosen the same way as
+    /// <see cref="PickedIcon"/>: the draft's flag while the draft tab is open, the type's otherwise.
+    /// </summary>
+    private bool BlendsWithParent
+    {
+        get => _newTypePanelOpen ? _newTypeBlendsWithParent : _workflowBlendsWithParent;
+        set
+        {
+            if (_newTypePanelOpen)
+            {
+                _newTypeBlendsWithParent = value;
+            }
+            else
+            {
+                _workflowBlendsWithParent = value;
+            }
+        }
+    }
 
     private void OnIconPicked(string? value)
     {
@@ -661,6 +695,7 @@
         _newTypeDescription = null;
         _newTypeIcon = null;
         _newTypeColor = null;
+        _newTypeBlendsWithParent = false;
     }
 
     private StageDraft? SelectedStage => _selectedStage ?? _stages.FirstOrDefault();
@@ -768,6 +803,7 @@
         _workflowDescription = workflow.Description;
         _workflowIcon = workflow.Icon;
         _workflowColor = workflow.Color;
+        _workflowBlendsWithParent = workflow.BlendsWithParent;
         _stages = workflow.Stages
             .OrderBy(stage => stage.Order)
             .Select(StageDraft.FromDefinition)
@@ -865,7 +901,8 @@
                 Title = _workflowTitle!,
                 Description = TrimOrNull(_workflowDescription),
                 Icon = AppearanceCatalog.NormalizeIcon(_workflowIcon),
-                Color = AppearanceCatalog.NormalizeColor(_workflowColor)
+                Color = AppearanceCatalog.NormalizeColor(_workflowColor),
+                BlendsWithParent = _workflowBlendsWithParent
             });
             if (failure is not null)
             {
@@ -966,7 +1003,8 @@
                 Stages = stages,
                 Description = TrimOrNull(_workflowDescription),
                 Icon = AppearanceCatalog.NormalizeIcon(_workflowIcon),
-                Color = AppearanceCatalog.NormalizeColor(_workflowColor)
+                Color = AppearanceCatalog.NormalizeColor(_workflowColor),
+                BlendsWithParent = _workflowBlendsWithParent
             });
             if (failure is not null)
             {
@@ -1120,7 +1158,8 @@
             1,
             TrimOrNull(_newTypeDescription),
             AppearanceCatalog.NormalizeIcon(_newTypeIcon),
-            AppearanceCatalog.NormalizeColor(_newTypeColor));
+            AppearanceCatalog.NormalizeColor(_newTypeColor),
+            _newTypeBlendsWithParent);
 
         _creatingType = true;
         try

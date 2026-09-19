@@ -76,6 +76,30 @@ public static class BoardMetrics
         board?.Cards.Count(card =>
             StringComparer.OrdinalIgnoreCase.Equals(card.Kind, kind)) ?? 0;
 
+    /// <summary>Cards whose type rolls its score up into its parents - the atomic work of the board.</summary>
+    public static int BlendingCount(ProjectBoardSnapshot? board) => CountByBlending(board, blend: true);
+
+    /// <summary>Cards whose type keeps its own score - the container or planning types of the board.</summary>
+    public static int NonBlendingCount(ProjectBoardSnapshot? board) => CountByBlending(board, blend: false);
+
+    /// <summary>
+    /// Counts cards by whether their type blends with its parents. Read from the workflows, so the split is a
+    /// property of the project's data rather than of a type name.
+    /// </summary>
+    private static int CountByBlending(ProjectBoardSnapshot? board, bool blend)
+    {
+        if (board is null)
+        {
+            return 0;
+        }
+
+        var blending = board.Workflows
+            .Where(workflow => workflow.BlendsWithParent)
+            .Select(workflow => workflow.Id)
+            .ToHashSet(StringComparer.Ordinal);
+        return board.Cards.Count(card => blending.Contains(card.WorkflowId) == blend);
+    }
+
     /// <summary>
     /// The cards waiting in the reserved backlog stage of their workflow: the ones the backlog screen lists
     /// and nobody has taken into work yet.

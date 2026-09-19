@@ -126,7 +126,7 @@
     [Inject] private IJSRuntime Js { get; set; } = null!;
 
     [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
-    [Parameter] public string Kind { get; set; } = CardKind.Task;
+    [Parameter] public string Kind { get; set; } = string.Empty;
     [Parameter, EditorRequired] public ProjectBoardSnapshot Board { get; set; } = null!;
 
     /// <summary>Raised when a card lands in another stage; the page turns it into one request.</summary>
@@ -236,10 +236,11 @@
             ? "—"
             : string.Join(", ", stage.RequiredArtifacts.Select(artifact => artifact.Path));
 
-    private static string KindLabel(string kind) =>
-        StringComparer.OrdinalIgnoreCase.Equals(kind, CardKind.Story) ? Loc.Get("StoryKind")
-        : StringComparer.OrdinalIgnoreCase.Equals(kind, CardKind.Task) ? Loc.Get("TaskKind")
-        : kind;
+    private string KindLabel(string kind) =>
+        Board.Workflows
+            .FirstOrDefault(workflow => StringComparer.OrdinalIgnoreCase.Equals(workflow.CardType, kind))
+            ?.Title
+        ?? kind;
 
     /// <summary>
     /// The card's effective priority as the daemon computed it: the criterion scores, blended with the

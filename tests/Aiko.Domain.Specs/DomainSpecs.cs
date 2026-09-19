@@ -202,7 +202,7 @@ public class DomainSpecs
             "Analysis",
             20,
             "Analyse the task.",
-            [CardKind.Task],
+            ["Task"],
             "claude",
             [],
             new Dictionary<string, ActionPolicy>(StringComparer.Ordinal),
@@ -277,7 +277,7 @@ public class DomainSpecs
             id,
             order,
             "Do it.",
-            [CardKind.Task],
+            ["Task"],
             "claude",
             [],
             new Dictionary<string, ActionPolicy>(StringComparer.Ordinal),
@@ -292,7 +292,7 @@ public class DomainSpecs
         id,
         order,
         "Do it.",
-        [CardKind.Task],
+        ["Task"],
         "claude",
         [],
         new Dictionary<string, ActionPolicy>(StringComparer.Ordinal),
@@ -381,7 +381,7 @@ public class DomainSpecs
 
         static Card Card(string id, string stageId) => new(
             new CardReference("project", id),
-            CardKind.Task,
+            "Task",
             $"Title of {id}",
             "task",
             stageId,
@@ -439,7 +439,7 @@ public class DomainSpecs
 
     private static Card TextCard(string stageId) => new(
         new CardReference("project", "TASK-1"),
-        CardKind.Task,
+        "Task",
         "Fix the dropdown",
         "task",
         stageId,
@@ -457,7 +457,7 @@ public class DomainSpecs
             "Implementation",
             30,
             "Implement the task.",
-            [CardKind.Task],
+            ["Task"],
             "claude",
             [new ArtifactRequirement("implementation.md", "The outcome.", MissingArtifactPolicy.Warn)],
             new Dictionary<string, ActionPolicy>(StringComparer.Ordinal) { ["commit"] = ActionPolicy.Ask },
@@ -495,9 +495,9 @@ public class DomainSpecs
         // A card type is a plain string now - the type is the workflow a card moves through, and a project
         // may add its own - so what matters is that the id survives JSON unchanged, not the casing rule of a
         // converter. MissingArtifactPolicy is still an enum and still goes through the string converter.
-        var kindJson = JsonSerializer.Serialize(CardKind.Task, JsonSerializerOptions.Web);
+        var kindJson = JsonSerializer.Serialize("Task", JsonSerializerOptions.Web);
         Assert.Equal("\"Task\"", kindJson);
-        Assert.Equal(CardKind.Task, JsonSerializer.Deserialize<string>(kindJson, JsonSerializerOptions.Web));
+        Assert.Equal("Task", JsonSerializer.Deserialize<string>(kindJson, JsonSerializerOptions.Web));
 
         var policyJson = JsonSerializer.Serialize(MissingArtifactPolicy.Warn, JsonSerializerOptions.Web);
         Assert.Equal("\"Warn\"", policyJson);
@@ -517,9 +517,25 @@ public class DomainSpecs
 
         // A document may spell a built-in type either way; the canonical form is the one the template uses,
         // and any other id is title-cased so one type never compares unequal to itself within a project.
-        Assert.Equal(CardKind.Story, CardKind.Canonical("story"));
-        Assert.Equal(CardKind.Task, CardKind.Canonical("TASK"));
+        Assert.Equal("Story", CardKind.Canonical("story"));
+        Assert.Equal("Task", CardKind.Canonical("TASK"));
         Assert.Equal("Epic", CardKind.Canonical("epic"));
+    }
+
+    [Fact]
+    public void The_engine_names_no_card_types()
+    {
+        // A card type is the workflow a project declares, so the engine must not carry a single type name:
+        // no constant string and no list of them. Any public static string member here would be exactly the
+        // knowledge this rule removed.
+        Assert.DoesNotContain(
+            typeof(CardKind).GetFields(
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static),
+            field => field.FieldType == typeof(string));
+        Assert.DoesNotContain(
+            typeof(CardKind).GetProperties(
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static),
+            property => property.PropertyType == typeof(string));
     }
 
     [Fact]

@@ -206,7 +206,8 @@ internal static class ProjectEndpoints
                     existing.Revision + 1,
                     string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
                     AppearanceCatalog.NormalizeIcon(request.Icon),
-                    AppearanceCatalog.NormalizeColor(request.Color));
+                    AppearanceCatalog.NormalizeColor(request.Color),
+                    request.BlendsWithParent);
                 // A template has no cards, so the "stage still contains cards" rule of the project endpoint
                 // has nothing to check here: a template's pipeline is a starting point, not a live board.
                 var workflows = template.Workflows
@@ -256,7 +257,8 @@ internal static class ProjectEndpoints
                     1,
                     string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
                     AppearanceCatalog.NormalizeIcon(request.Icon),
-                    AppearanceCatalog.NormalizeColor(request.Color));
+                    AppearanceCatalog.NormalizeColor(request.Color),
+                    request.BlendsWithParent);
 
                 await templates.WriteAsync(
                     template with

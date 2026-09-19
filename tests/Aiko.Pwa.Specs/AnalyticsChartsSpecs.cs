@@ -56,8 +56,8 @@ public sealed class AnalyticsChartsSpecs
     {
         var byKind = new List<AnalyticsBucket>
         {
-            new(CardKind.Story, 2),
-            new(CardKind.Task, 5),
+            new("Story", 2),
+            new("Task", 5),
             new("Epic", 1)
         };
 

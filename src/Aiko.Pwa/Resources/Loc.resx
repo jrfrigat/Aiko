@@ -74,8 +74,6 @@
   <data name="StoryFlow" xml:space="preserve"><value>Story flow</value></data>
   <data name="GitPolicyTrackKnowledge" xml:space="preserve"><value>track-project-knowledge</value></data>
   <data name="GitPolicyCustom" xml:space="preserve"><value>custom</value></data>
-  <data name="TaskKind" xml:space="preserve"><value>Task</value></data>
-  <data name="StoryKind" xml:space="preserve"><value>Story</value></data>
   <data name="PathRequired" xml:space="preserve"><value>Enter the project path.</value></data>
   <data name="AddProjectFailed" xml:space="preserve"><value>Could not add the project: {0}</value></data>
   <data name="CreateCardFailed" xml:space="preserve"><value>Could not create the card: {0}</value></data>
@@ -547,6 +545,8 @@
   <data name="CardTypeDescription" xml:space="preserve"><value>Description</value></data>
   <data name="CardTypeIcon" xml:space="preserve"><value>Icon</value></data>
   <data name="CardTypeColor" xml:space="preserve"><value>Colour</value></data>
+  <data name="TypeBlendsWithParent" xml:space="preserve"><value>Blends with its parents' score</value></data>
+  <data name="TypeBlendsWithParentHint" xml:space="preserve"><value>A card of this type mixes its own score with the best of its parents'. Leave it off for a type that keeps its own score.</value></data>
   <data name="StageIcon" xml:space="preserve"><value>Column icon</value></data>
   <data name="StageColor" xml:space="preserve"><value>Column colour</value></data>
   <data name="AppearanceDefault" xml:space="preserve"><value>Default</value></data>

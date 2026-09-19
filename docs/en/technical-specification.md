@@ -225,7 +225,7 @@ Common Card fields:
 
 - `id`, unique within the project;
 - `projectId`;
-- `kind`: `story` or `task`;
+- `kind`: the card type id, which is the workflow id capitalised (`Story`, `Task`, or any type the project declares);
 - `title`, `summary`;
 - `workflowId`, `stageId`;
 - `revision`;

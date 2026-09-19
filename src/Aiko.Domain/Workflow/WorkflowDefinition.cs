@@ -27,6 +27,11 @@ namespace Aiko.Domain.Workflow;
 /// Which accent colour the card type draws, as an id from <see cref="AppearanceCatalog.Colors"/>, or null
 /// for the default.
 /// </param>
+/// <param name="BlendsWithParent">
+/// Whether a card of this type blends its own score with the maximum parent value, or keeps its own score.
+/// The behaviour belongs to the type, so it is declared here as data: a project picks it in the workflow
+/// editor, and the priority projector reads this flag instead of comparing a card's kind to a name.
+/// </param>
 public sealed record WorkflowDefinition(
     string Id,
     string Title,
@@ -34,7 +39,8 @@ public sealed record WorkflowDefinition(
     long Revision,
     string? Description = null,
     string? Icon = null,
-    string? Color = null)
+    string? Color = null,
+    bool BlendsWithParent = false)
 {
     /// <summary>
     /// The id of the stage every workflow starts its cards in. Backlog is not a column a user may remove:

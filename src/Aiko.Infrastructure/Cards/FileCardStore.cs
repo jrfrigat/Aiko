@@ -188,15 +188,48 @@ public sealed class FileCardStore(
     }
 
     /// <summary>
-    /// The collection a card type is filed under. The two built-in types keep the folder names projects
-    /// already have on disk; a type the user adds gets the plural of its own id, so <c>Epic</c> lives under
-    /// <c>epics</c> without anyone having to name the folder.
+    /// The collection a card type is filed under: the plural of the type's own id by the ordinary English
+    /// rule, so <c>Story</c> lives under <c>stories</c>, <c>Epic</c> under <c>epics</c> and a type the engine
+    /// never heard of - <c>Bug</c> - under <c>bugs</c>. No type name is special-cased, and the folders projects
+    /// already have on disk keep the names this rule gives them.
     /// </summary>
     /// <param name="kind">Card type id, for example <c>Story</c>.</param>
     internal static string CollectionFor(string kind) =>
-        string.Equals(kind?.Trim(), CardKind.Story, StringComparison.OrdinalIgnoreCase)
-            ? "stories"
-            : $"{kind?.Trim().ToLowerInvariant()}s";
+        Pluralize(kind?.Trim().ToLowerInvariant() ?? string.Empty);
+
+    /// <summary>
+    /// The plural of a type id by the ordinary English rule: a consonant before a final <c>y</c> becomes
+    /// <c>ies</c>, a final <c>s</c>, <c>x</c>, <c>z</c>, <c>ch</c> or <c>sh</c> takes <c>es</c>, and everything
+    /// else takes <c>s</c>. The old hand-written list existed for <c>story</c>; it is just the rule applied to
+    /// a consonant before a <c>y</c>.
+    /// </summary>
+    /// <param name="id">Lower-cased type id.</param>
+    internal static string Pluralize(string id)
+    {
+        if (id.Length == 0)
+        {
+            return id;
+        }
+
+        if (id.EndsWith('y') && id.Length >= 2 && IsConsonant(id[^2]))
+        {
+            return string.Concat(id.AsSpan(0, id.Length - 1), "ies");
+        }
+
+        if (id.EndsWith("ch", StringComparison.Ordinal) ||
+            id.EndsWith("sh", StringComparison.Ordinal) ||
+            id.EndsWith('s') ||
+            id.EndsWith('x') ||
+            id.EndsWith('z'))
+        {
+            return id + "es";
+        }
+
+        return id + "s";
+    }
+
+    private static bool IsConsonant(char value) =>
+        char.IsLetter(value) && value is not ('a' or 'e' or 'i' or 'o' or 'u');
 
     /// <summary>
     /// The card collections a project actually has: every directory below <c>.aiko</c> that is not one of the

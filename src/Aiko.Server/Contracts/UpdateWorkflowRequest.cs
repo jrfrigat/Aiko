@@ -12,13 +12,15 @@ namespace Aiko.Server.Contracts;
 /// <param name="Description">What the card type is for, or null for none.</param>
 /// <param name="Icon">Card type icon id from the appearance catalog, or null for the default.</param>
 /// <param name="Color">Card type colour id from the appearance catalog, or null for the default.</param>
+/// <param name="BlendsWithParent">Whether a card of this type blends its score with its parents'.</param>
 internal sealed record UpdateWorkflowRequest(
     string Title,
     IReadOnlyList<StageDefinition> Stages,
     long ExpectedRevision,
     string? Description = null,
     string? Icon = null,
-    string? Color = null);
+    string? Color = null,
+    bool BlendsWithParent = false);
 
 /// <summary>
 /// Creates a workflow the project does not have yet - one new card type, with its own pipeline.
@@ -29,10 +31,12 @@ internal sealed record UpdateWorkflowRequest(
 /// <param name="Description">What the card type is for, or null for none.</param>
 /// <param name="Icon">Card type icon id from the appearance catalog, or null for the default.</param>
 /// <param name="Color">Card type colour id from the appearance catalog, or null for the default.</param>
+/// <param name="BlendsWithParent">Whether a card of this type blends its score with its parents'.</param>
 internal sealed record CreateWorkflowRequest(
     string Id,
     string Title,
     IReadOnlyList<StageDefinition> Stages,
     string? Description = null,
     string? Icon = null,
-    string? Color = null);
+    string? Color = null,
+    bool BlendsWithParent = false);

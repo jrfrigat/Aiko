@@ -65,7 +65,7 @@
             @* The same editor the project screen uses, pointed at the template's pipelines: they are the
                starting point of every project created from it. *@
             <WorkflowInspector Workflows="template.Workflows"
-                               InitialWorkflowId="task"
+                               InitialWorkflowId="@template.Workflows.FirstOrDefault()?.Id"
                                Save="SaveWorkflowAsync"
                                Create="CreateWorkflowAsync"
                                Delete="DeleteWorkflowAsync" />
@@ -117,7 +117,8 @@
                     workflow.Revision,
                     workflow.Description,
                     workflow.Icon,
-                    workflow.Color),
+                    workflow.Color,
+                    workflow.BlendsWithParent),
                 PwaJson.Options);
             if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
             {
@@ -156,7 +157,8 @@
                     workflow.Stages,
                     workflow.Description,
                     workflow.Icon,
-                    workflow.Color),
+                    workflow.Color,
+                    workflow.BlendsWithParent),
                 PwaJson.Options);
             if (!response.IsSuccessStatusCode)
             {

@@ -119,9 +119,13 @@ else
     /// The projection this card belongs to, named as the board's own views are: the trail says where the
     /// reader came from - a story card lives under Stories - rather than repeating the card's kind.
     /// </summary>
-    private string ProjectionCaption => Card?.Kind == CardKind.Story
-        ? Loc.Get("StoriesNav")
-        : Loc.Get("TasksNav");
+    private string ProjectionCaption =>
+        State.Board?.Workflows
+            .FirstOrDefault(workflow => Card is not null &&
+                StringComparer.Ordinal.Equals(workflow.Id, Card.WorkflowId))
+            ?.Title
+        ?? Card?.Kind
+        ?? Loc.Get("Workflow");
 
     /// <summary>The last stage of the card's own workflow: where closing a card sends it.</summary>
     private StageDefinition? LastStage => State.Board?.Workflows

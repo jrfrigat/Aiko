@@ -97,6 +97,12 @@ its default agent, the artifacts it must produce (each with a policy for when it
 that verify its outcome. The workflow itself has a name, a description, an icon and a colour - that is how
 the type is drawn in the pickers and on the board.
 
+A card type is project data, not something Aiko knows about. The default template ships three workflows -
+`epic`, `story` and `task` - but the engine names no type itself: every behaviour that depends on a type is
+declared by that type. The one such behaviour today is **Blends with its parents' score**: a type that sets
+it (the shipped `task` does) mixes its own score with the best of its parents', and a type that leaves it off
+keeps its own score. Add a **Bug** type and it behaves exactly as you set it, with no code change.
+
 Edit them in **Project settings**: the card types are the tabs at the top of the panel, and everything below
 belongs to the tab that is open. The type's own fields - its id, its name, what it is for, and its icon and
 colour - are written by **Save type**; clicking a stage opens it in a drawer where its column icon and colour

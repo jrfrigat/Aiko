@@ -187,7 +187,8 @@
       "revision": 1,
       "description": "A goal held across several stories or tasks. An epic is not implemented in one stage: it is the container the work of others belongs to, its score says how much of that outcome exists, and it is finished when its children are.",
       "icon": "layers",
-      "color": "info"
+      "color": "info",
+      "blendsWithParent": false
     },
     {
       "id": "story",
@@ -313,7 +314,8 @@
       "revision": 1,
       "description": "A functional requirement or a user-facing capability, large enough to be decomposed into tasks. Its app-point and user-point say why it matters; its complete score is re-scored after every piece of work.",
       "icon": "account-tree",
-      "color": "primary"
+      "color": "primary",
+      "blendsWithParent": false
     },
     {
       "id": "task",
@@ -445,7 +447,8 @@
       "revision": 1,
       "description": "An atomic unit of work an agent carries out within a single stage: one change, one verification. Its complete score is recalculated after each run, so the board shows what is actually done.",
       "icon": "check-circle",
-      "color": "tertiary"
+      "color": "tertiary",
+      "blendsWithParent": true
     }
   ],
   "projections": [

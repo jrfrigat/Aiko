@@ -1,41 +1,16 @@
 namespace Aiko.Domain.Cards;
 
 /// <summary>
-/// Well-known card types of a project board.
+/// The shapes a card type id takes as it moves between a workflow id, a stored value and a label.
 /// </summary>
 /// <remarks>
-/// A card type used to be a closed enum with two members, which made <c>Story</c> and <c>Task</c> the only
-/// kinds a project could ever hold. A type is really the workflow a card moves through, and workflows are
-/// project data the user edits - the built-in template just happens to ship two of them. So the type is a
-/// string id here, and these constants name the ones Aiko is ready to work with: a project that declares a
-/// workflow called <c>epic</c> gets cards of the type <c>Epic</c> without a code change, and the two built-in
-/// ids keep their historical spelling so cards and templates written before this change still load.
+/// A card type is not something the engine knows: it is the workflow a project declares, and the type id is
+/// that workflow's id. This helper therefore only reshapes names - it never lists them. The built-in template
+/// ships workflows called <c>epic</c>, <c>story</c> and <c>task</c>, but a project that declares none of them
+/// works exactly the same.
 /// </remarks>
 public static class CardKind
 {
-    /// <summary>User story: a large functional requirement decomposed into child tasks.</summary>
-    public const string Story = "Story";
-
-    /// <summary>Atomic task executed by an agent within a single workflow stage.</summary>
-    public const string Task = "Task";
-
-    /// <summary>
-    /// Epic: a goal held across several stories or tasks. Shipped by the default template since it gained a
-    /// third pipeline, and named here for the same reason the other two are - it is a type Aiko is ready to
-    /// work with, not one a project had to invent.
-    /// </summary>
-    public const string Epic = "Epic";
-
-    /// <summary>The types every installation has, in the order a form should offer them.</summary>
-    public static IReadOnlyList<string> WellKnown { get; } = [Epic, Story, Task];
-
-    /// <summary>Whether a type is one of the built-in ones (case-insensitive).</summary>
-    /// <param name="kind">Type id to test.</param>
-    public static bool IsWellKnown(string? kind) =>
-        !string.IsNullOrWhiteSpace(kind) &&
-        (string.Equals(kind, Story, StringComparison.OrdinalIgnoreCase) ||
-         string.Equals(kind, Task, StringComparison.OrdinalIgnoreCase) ||
-         string.Equals(kind, Epic, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
     /// The type a workflow defines. The workflow id is the type id, so the two cannot drift: a workflow
@@ -55,16 +30,10 @@ public static class CardKind
     public static string ToWorkflowId(string kind) => (kind ?? string.Empty).Trim().ToLowerInvariant();
 
     /// <summary>
-    /// The canonical spelling of a type id read from a file: a well-known type keeps its historical casing,
-    /// any other id is title-cased so the same type always compares equal within a project.
+    /// The canonical spelling of a type id read from a file or a request: lower-cased and then capitalised,
+    /// so the same type always compares equal within a project however a caller spelled it.
     /// </summary>
     /// <param name="kind">Type id as stored.</param>
-    public static string Canonical(string? kind)
-    {
-        var value = kind?.Trim() ?? string.Empty;
-        return string.Equals(value, Story, StringComparison.OrdinalIgnoreCase) ? Story
-            : string.Equals(value, Task, StringComparison.OrdinalIgnoreCase) ? Task
-            : FromWorkflowId(value);
-    }
+    public static string Canonical(string? kind) => FromWorkflowId(ToWorkflowId(kind ?? string.Empty));
 }
 

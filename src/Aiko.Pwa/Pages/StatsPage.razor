@@ -293,13 +293,15 @@ else
     /// </summary>
     private static int ChartHeight(int rows) => Math.Max(110, (rows * 32) + 48);
 
-    /// <summary>A card kind's own name, falling back to the raw value the daemon stored.</summary>
-    private static string KindLabel(string kind) => kind switch
-    {
-        nameof(CardKind.Story) => Loc.Get("StoryKind"),
-        nameof(CardKind.Task) => Loc.Get("TaskKind"),
-        _ => kind
-    };
+    /// <summary>
+    /// A card type's own name, read from the project's workflows, falling back to the raw value the daemon
+    /// stored when the project has no workflow for it.
+    /// </summary>
+    private string KindLabel(string kind) =>
+        State.Board?.Workflows
+            .FirstOrDefault(workflow => StringComparer.OrdinalIgnoreCase.Equals(workflow.CardType, kind))
+            ?.Title
+        ?? kind;
 
     /// <summary>A size step, or the fact that the card has none.</summary>
     private static string SizeLabel(string size) =>

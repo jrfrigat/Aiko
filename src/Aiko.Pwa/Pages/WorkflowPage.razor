@@ -27,8 +27,9 @@ else
 @code {
     [Parameter] public string ProjectId { get; set; } = string.Empty;
 
-    /// <summary>The workflow a fresh visit edits: the task pipeline, the one agents run most.</summary>
-    private string CurrentWorkflowId => "task";
+    /// <summary>The workflow a fresh visit edits: the first type the project declares.</summary>
+    private string CurrentWorkflowId =>
+        State.Board?.Workflows.FirstOrDefault()?.Id ?? string.Empty;
 
     /// <summary>
     /// Writes one pipeline of this project and reloads the board, so the editor's revision follows. Returns
@@ -51,7 +52,8 @@ else
                     workflow.Revision,
                     workflow.Description,
                     workflow.Icon,
-                    workflow.Color),
+                    workflow.Color,
+                    workflow.BlendsWithParent),
                 PwaJson.Options);
             if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
             {
@@ -95,7 +97,8 @@ else
                     workflow.Stages,
                     workflow.Description,
                     workflow.Icon,
-                    workflow.Color),
+                    workflow.Color,
+                    workflow.BlendsWithParent),
                 PwaJson.Options);
             if (!response.IsSuccessStatusCode)
             {

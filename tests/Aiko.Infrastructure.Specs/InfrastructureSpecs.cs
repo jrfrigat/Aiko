@@ -1016,7 +1016,7 @@ public class InfrastructureSpecs
                 "Закрытие задач",
                 45,
                 "Обнови changelog и подготовь commit.",
-                [CardKind.Task],
+                ["Task"],
                 "codex",
                 [new ArtifactRequirement("closing.md", "Итог закрытия.", MissingArtifactPolicy.Warn)],
                 new Dictionary<string, ActionPolicy>(StringComparer.Ordinal));
@@ -1112,7 +1112,7 @@ public class InfrastructureSpecs
             var reference = new CardReference(context.Project.Id, "TASK-001");
             var firstRevision = new Card(
                 reference,
-                CardKind.Task,
+                "Task",
                 "Реализация хранилища",
                 "task",
                 "implementation",
@@ -1287,7 +1287,7 @@ public class InfrastructureSpecs
         {
             var story = new Card(
                 new CardReference(context.Project.Id, "STORY-PRIORITY"),
-                CardKind.Story,
+                "Story",
                 "Storage story",
                 "story",
                 "backlog",
@@ -1298,7 +1298,7 @@ public class InfrastructureSpecs
                 new Dictionary<string, string>());
             var task = new Card(
                 new CardReference(context.Project.Id, "TASK-PRIORITY"),
-                CardKind.Task,
+                "Task",
                 "Storage task",
                 "task",
                 "backlog",
@@ -1321,7 +1321,11 @@ public class InfrastructureSpecs
             var priorities = CardPriorityProjector.Project(
                 await context.Cards.ListAsync(context.Project.Id, CancellationToken.None),
                 await context.Relations.ListAsync(context.Project.Id, CancellationToken.None),
-                Aiko.Domain.Prioritization.PrioritySettings.SafeDefault);
+                Aiko.Domain.Prioritization.PrioritySettings.SafeDefault,
+                [
+                    new WorkflowDefinition("story", "Stories", [], 1),
+                    new WorkflowDefinition("task", "Tasks", [], 1, BlendsWithParent: true)
+                ]);
 
             var taskSnapshot = priorities
                 .Single(priority => priority.CardId == task.Reference.CardId)
@@ -1428,7 +1432,7 @@ public class InfrastructureSpecs
             var first = CreateCard(context.Project.Id, "TASK-EVENT", 1);
             var second = CreateCard(context.Project.Id, "STORY-EVENT", 1) with
             {
-                Kind = CardKind.Story,
+                Kind = "Story",
                 WorkflowId = "story"
             };
             await context.Cards.SaveAsync(first, 0, CancellationToken.None);
@@ -1562,7 +1566,7 @@ public class InfrastructureSpecs
             Assert.NotEqual(context.Project.Id, context.Project.Handle);
             var story = CreateCard(context.Project.Id, "STORY-DISTRIBUTION", 1) with
             {
-                Kind = CardKind.Story,
+                Kind = "Story",
                 WorkflowId = "story",
                 Size = "M"
             };
@@ -1574,8 +1578,8 @@ public class InfrastructureSpecs
                 context.Project.Handle, 8, CancellationToken.None);
 
             Assert.Equal(2, analytics.ByKind.Sum(bucket => bucket.Count));
-            Assert.Contains(analytics.ByKind, bucket => StringComparer.Ordinal.Equals(bucket.Label, CardKind.Story));
-            Assert.Contains(analytics.ByKind, bucket => StringComparer.Ordinal.Equals(bucket.Label, CardKind.Task));
+            Assert.Contains(analytics.ByKind, bucket => StringComparer.Ordinal.Equals(bucket.Label, "Story"));
+            Assert.Contains(analytics.ByKind, bucket => StringComparer.Ordinal.Equals(bucket.Label, "Task"));
             Assert.Contains(analytics.BySize, bucket => StringComparer.Ordinal.Equals(bucket.Label, "M"));
             Assert.Contains(analytics.BySize, bucket => StringComparer.Ordinal.Equals(bucket.Label, "XS"));
         });
@@ -2030,13 +2034,13 @@ public class InfrastructureSpecs
         {
             var story = new Card(
                 new CardReference(context.Project.Id, "STORY-DEEP"),
-                CardKind.Story, "story", "story", "backlog", 1, 10m, [], [], new Dictionary<string, string>());
+                "Story", "story", "story", "backlog", 1, 10m, [], [], new Dictionary<string, string>());
             var task = new Card(
                 new CardReference(context.Project.Id, "TASK-DEEP"),
-                CardKind.Task, "task", "task", "backlog", 1, 4m, [], [], new Dictionary<string, string>());
+                "Task", "task", "task", "backlog", 1, 4m, [], [], new Dictionary<string, string>());
             var subtask = new Card(
                 new CardReference(context.Project.Id, "SUB-DEEP"),
-                CardKind.Task, "subtask", "task", "backlog", 1, 1m, [], [], new Dictionary<string, string>());
+                "Task", "subtask", "task", "backlog", 1, 1m, [], [], new Dictionary<string, string>());
             await context.Cards.SaveAsync(story, 0, CancellationToken.None);
             await context.Cards.SaveAsync(task, 0, CancellationToken.None);
             await context.Cards.SaveAsync(subtask, 0, CancellationToken.None);
@@ -2050,7 +2054,11 @@ public class InfrastructureSpecs
             var priorities = CardPriorityProjector.Project(
                 await context.Cards.ListAsync(context.Project.Id, CancellationToken.None),
                 await context.Relations.ListAsync(context.Project.Id, CancellationToken.None),
-                Aiko.Domain.Prioritization.PrioritySettings.SafeDefault);
+                Aiko.Domain.Prioritization.PrioritySettings.SafeDefault,
+                [
+                    new WorkflowDefinition("story", "Stories", [], 1),
+                    new WorkflowDefinition("task", "Tasks", [], 1, BlendsWithParent: true)
+                ]);
 
             var taskSnapshot = priorities.Single(priority => priority.CardId == "TASK-DEEP").Snapshot;
             Assert.Equal(5.8m, taskSnapshot.EffectivePriority);
@@ -2089,7 +2097,7 @@ public class InfrastructureSpecs
             var tasks = Path.Combine(context.StitchRoot, "tasks", "DUP-1");
             Directory.CreateDirectory(stories);
             Directory.CreateDirectory(tasks);
-            var story = CreateCard(context.Project.Id, "DUP-1", 1) with { Kind = CardKind.Story };
+            var story = CreateCard(context.Project.Id, "DUP-1", 1) with { Kind = "Story" };
             var task = CreateCard(context.Project.Id, "DUP-1", 1);
             await File.WriteAllTextAsync(
                 Path.Combine(stories, "card.json"),
@@ -3082,7 +3090,7 @@ public class InfrastructureSpecs
     private static Card CreateCard(string projectId, string cardId, long revision) =>
         new(
             new CardReference(projectId, cardId),
-            CardKind.Task,
+            "Task",
             cardId,
             "task",
             "backlog",

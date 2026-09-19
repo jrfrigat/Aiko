@@ -308,7 +308,7 @@ public sealed class TemplateSpecs
             await cards.SaveAsync(
                 new Card(
                     new CardReference(project.Id, "FL-1"),
-                    CardKind.Task,
+                    "Task",
                     "A card in review",
                     "task",
                     "review",

@@ -42,7 +42,8 @@ internal static class WorkflowEndpoints
                     1,
                     Normalize(request.Description),
                     AppearanceCatalog.NormalizeIcon(request.Icon),
-                    AppearanceCatalog.NormalizeColor(request.Color));
+                    AppearanceCatalog.NormalizeColor(request.Color),
+                    request.BlendsWithParent);
 
                 try
                 {
@@ -112,7 +113,8 @@ internal static class WorkflowEndpoints
                     existing.Revision + 1,
                     Normalize(request.Description),
                     AppearanceCatalog.NormalizeIcon(request.Icon),
-                    AppearanceCatalog.NormalizeColor(request.Color));
+                    AppearanceCatalog.NormalizeColor(request.Color),
+                    request.BlendsWithParent);
                 try
                 {
                     await definitions.SaveWorkflowAsync(

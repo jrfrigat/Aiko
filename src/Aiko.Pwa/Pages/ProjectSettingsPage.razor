@@ -107,7 +107,7 @@ else
                 </FlarePaper>
                 <WorkflowInspector Workflows="board.Workflows"
                                    Cards="board.Cards"
-                                   InitialWorkflowId="task"
+                                   InitialWorkflowId="@board.Workflows.FirstOrDefault()?.Id"
                                    Save="SaveWorkflowAsync"
                                    Create="CreateWorkflowAsync"
                                    Rename="RenameWorkflowAsync"
@@ -222,7 +222,8 @@ else
                     workflow.Revision,
                     workflow.Description,
                     workflow.Icon,
-                    workflow.Color),
+                    workflow.Color,
+                    workflow.BlendsWithParent),
                 PwaJson.Options);
             if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
             {
@@ -266,7 +267,8 @@ else
                     workflow.Stages,
                     workflow.Description,
                     workflow.Icon,
-                    workflow.Color),
+                    workflow.Color,
+                    workflow.BlendsWithParent),
                 PwaJson.Options);
             if (!response.IsSuccessStatusCode)
             {

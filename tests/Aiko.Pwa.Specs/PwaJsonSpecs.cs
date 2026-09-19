@@ -150,7 +150,7 @@ public sealed class PwaJsonSpecs
 
         Assert.NotNull(snapshot);
         Assert.Equal("p1", snapshot!.Project.Id);
-        Assert.Equal(CardKind.Task, snapshot.Cards[0].Kind);
+        Assert.Equal("Task", snapshot.Cards[0].Kind);
         Assert.Equal("T-1", snapshot.Cards[0].Reference.CardId);
         Assert.Equal(3, snapshot.Workflows[0].Revision);
         Assert.Equal(2.0m, snapshot.Cards[0].CriterionValues!["complexity"]);

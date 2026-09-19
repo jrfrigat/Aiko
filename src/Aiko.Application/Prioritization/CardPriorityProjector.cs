@@ -1,5 +1,6 @@
 using Aiko.Domain.Cards;
 using Aiko.Domain.Prioritization;
+using Aiko.Domain.Workflow;
 
 namespace Aiko.Application.Prioritization;
 
@@ -17,15 +18,26 @@ public static class CardPriorityProjector
     /// <param name="cards">All cards of the board.</param>
     /// <param name="relations">All relations of the board; only parent-child edges are used.</param>
     /// <param name="settings">The project's priority settings: criteria, size grid and blending weights.</param>
+    /// <param name="workflows">
+    /// The project's card types. A card blends its own score with its parents' only when its type says so
+    /// (<see cref="WorkflowDefinition.BlendsWithParent"/>), so the behaviour is read from data and never from
+    /// the card's kind.
+    /// </param>
     public static IReadOnlyList<CardPriority> Project(
         IReadOnlyList<Card> cards,
         IReadOnlyList<CardRelation> relations,
-        PrioritySettings settings)
+        PrioritySettings settings,
+        IReadOnlyList<WorkflowDefinition> workflows)
     {
         ArgumentNullException.ThrowIfNull(cards);
         ArgumentNullException.ThrowIfNull(relations);
         ArgumentNullException.ThrowIfNull(settings);
+        ArgumentNullException.ThrowIfNull(workflows);
 
+        var blendingWorkflows = workflows
+            .Where(workflow => workflow.BlendsWithParent)
+            .Select(workflow => workflow.Id)
+            .ToHashSet(StringComparer.Ordinal);
         var cardsById = cards.ToDictionary(card => card.Reference.CardId, StringComparer.Ordinal);
         var parentIdsByCard = relations
             .Where(relation => StringComparer.Ordinal.Equals(relation.Type, RelationTypes.ParentChild))
@@ -55,8 +67,8 @@ public static class CardPriorityProjector
                 settings,
                 card.Size);
 
-            // Stories (and any non-task card) keep their own score.
-            if (card.Kind != CardKind.Task)
+            // A card of a type that does not blend with its parents keeps its own score.
+            if (!blendingWorkflows.Contains(card.WorkflowId))
             {
                 var own = new PrioritySnapshot(
                     ownScore,

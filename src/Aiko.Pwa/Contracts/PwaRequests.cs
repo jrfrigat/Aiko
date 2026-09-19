@@ -117,7 +117,8 @@ internal sealed record UpdateWorkflowRequest(
     long ExpectedRevision,
     string? Description = null,
     string? Icon = null,
-    string? Color = null);
+    string? Color = null,
+    bool BlendsWithParent = false);
 
 /// <summary>Creates a workflow the project does not have yet: one new card type with its own pipeline.</summary>
 internal sealed record CreateWorkflowRequest(
@@ -126,7 +127,8 @@ internal sealed record CreateWorkflowRequest(
     IReadOnlyList<StageDefinition> Stages,
     string? Description = null,
     string? Icon = null,
-    string? Color = null);
+    string? Color = null,
+    bool BlendsWithParent = false);
 
 /// <summary>Creates a template by copying one that exists.</summary>
 internal sealed record CreateTemplateRequest(string SourceId, string TemplateId, string? Name = null);

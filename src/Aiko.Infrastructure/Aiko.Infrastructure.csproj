@@ -3,4 +3,9 @@
     <ProjectReference Include="../Aiko.Application/Aiko.Application.csproj" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.12" />
   </ItemGroup>
+  <!-- The store's filing rules are internal helpers, and the specs are where they are checked: the card
+       folder a type gets is not part of the public API but it is part of the observable behaviour. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Aiko.Infrastructure.Specs" />
+  </ItemGroup>
 </Project>

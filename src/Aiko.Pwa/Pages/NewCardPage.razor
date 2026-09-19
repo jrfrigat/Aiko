@@ -220,11 +220,14 @@
     private IReadOnlyList<WorkflowDefinition> CardTypes =>
         State.Board?.Workflows.OrderBy(workflow => workflow.Title, StringComparer.Ordinal).ToArray() ?? [];
 
-    /// <summary>The type the form starts on: the task pipeline, or whatever the project actually has.</summary>
+    /// <summary>
+    /// The type the form starts on: the first type the project declares. The order is the template's own
+    /// decision, read from the project's data rather than a name the engine prefers.
+    /// </summary>
     private string DefaultCardType =>
-        CardTypes.FirstOrDefault(workflow => StringComparer.Ordinal.Equals(workflow.Id, "task"))?.CardType
+        State.Board?.Workflows.FirstOrDefault()?.CardType
         ?? CardTypes.FirstOrDefault()?.CardType
-        ?? CardKind.Task;
+        ?? string.Empty;
 
     /// <summary>The project's size grid, the same ladder the agent assigns a card from.</summary>
     private IReadOnlyList<SizeDefinition> SizeGrid => State.Board is null ? [] : _sizeGrid;

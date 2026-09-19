@@ -223,7 +223,7 @@ SQLite использует WAL, транзакции, foreign keys (с каск
 
 - `id`, уникальный внутри проекта;
 - `projectId`;
-- `kind`: `story` или `task`;
+- `kind`: id типа карточки, то есть id workflow с заглавной буквы (`Story`, `Task` или любой тип, объявленный в проекте);
 - `title`, `summary`;
 - `workflowId`, `stageId`;
 - `revision`;
