@@ -673,6 +673,8 @@ static async Task<int> StatusAsync()
     Console.WriteLine($"Data directory: {Path.GetDirectoryName(dataPaths.DatabasePath)}");
     Console.WriteLine($"Database:        {dataPaths.DatabasePath}");
 
+    await WriteAgentHintsAsync();
+
     var settings = await new DaemonEndpointConfiguration(dataPaths).TryReadAsync();
     if (settings is null)
     {
@@ -705,6 +707,33 @@ static async Task<int> StatusAsync()
     }
 
     return 0;
+}
+
+// An agent installed after Aiko is the ordinary case, and the fix is one command. `status` is what a person
+// runs when something does not work, so it names the agents it found on PATH without Aiko's global
+// configuration instead of leaving that discovery to the interface.
+static async Task WriteAgentHintsAsync()
+{
+    var dataPaths = AikoDataPaths.FromEnvironment();
+    var database = new AikoDatabase(dataPaths);
+    await database.InitializeAsync();
+    var catalog = new SqliteProjectCatalog(database);
+    var installer = new UnifiedAgentInstaller(CreateAdapters(), catalog, new FileProjectDefinitionStore(catalog));
+    var discovered = await installer.DiscoverAsync(CancellationToken.None);
+    var hints = discovered
+        .Select(AgentConnectionHint.Describe)
+        .Where(hint => hint is not null)
+        .ToArray();
+    if (hints.Length == 0)
+    {
+        return;
+    }
+
+    Console.WriteLine("Agents:          found on PATH without Aiko's global configuration:");
+    foreach (var hint in hints)
+    {
+        Console.WriteLine($"  {hint}");
+    }
 }
 
 // How a daemon is started, in the two ways it can be run.

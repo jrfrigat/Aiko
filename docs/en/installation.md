@@ -111,7 +111,8 @@ start a service and come back is not an answer to "open the board".
 
 `aiko status` shows the data directory, database path, port and daemon health; when the daemon is not
 running it also prints how to start one and the tail of the last background log, which is where a daemon that
-stopped says why.
+stopped says why. It also names any agent it finds on `PATH` without Aiko's global configuration - an agent
+installed after Aiko is the ordinary case, and the line says which command connects it.
 
 ## Configuration
 
@@ -187,7 +188,8 @@ This writes the project-scoped MCP configuration and the `/aiko-*` skills for th
 
 ## Verify
 
-- `aiko status` - daemon health, port, data directory.
+- `aiko status` - daemon health, port, data directory, and the agents found on `PATH` without Aiko's global
+  configuration, each with the command that connects it.
 - `aiko doctor` - installation report: database, token, port, projects and agent configurations that
   point at an old endpoint. It changes nothing; `aiko repair --fix` applies the fixes it names.
 - `GET http://127.0.0.1:<port>/health` - `healthy`.
