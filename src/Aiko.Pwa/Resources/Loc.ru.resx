@@ -533,6 +533,8 @@
   <data name="LinkedProjectsDescriptionPlaceholder" xml:space="preserve"><value>Например: десктопный клиент - работа по UI пишется туда</value></data>
   <data name="LinkedProjectsAdd" xml:space="preserve"><value>Связать проект</value></data>
   <data name="LinkedProjectsRemove" xml:space="preserve"><value>Убрать связь</value></data>
+  <data name="CardOriginTitle" xml:space="preserve"><value>Откуда карточка</value></data>
+  <data name="CardOriginTag" xml:space="preserve"><value>Кросс-проектная</value></data>
   <data name="PriorityFormulaTitle" xml:space="preserve"><value>Формула приоритета</value></data>
   <data name="OwnWeightLabel" xml:space="preserve"><value>Вес собственной оценки</value></data>
   <data name="ParentWeightLabel" xml:space="preserve"><value>Вес родительской оценки</value></data>

@@ -538,6 +538,62 @@
     @* The state column: the design's inspector aside. *@
     <FlareStack Class="aiko-card__side" Gap="FlareSpacing.Medium">
 
+        @* Where this card came in from. A card an agent filed into another project carries its origin, and
+           without it the board of two projects read as one project's work. It stands first in the aside
+           because it changes how everything below it is read. The link is built only when the source project
+           is registered and the originating card is named: the route carries a handle, and a project nobody
+           registered has none. *@
+        @if (Card.Origin is { } origin)
+        {
+            <FlarePaper Elevation="0" Padding="FlareSpacing.Medium" Square="true" Class="aiko-panel">
+                <FlareStack Gap="FlareSpacing.Small">
+                    <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small">
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
+                            @Loc.Get("CardOriginTitle")
+                        </FlareText>
+                        <span class="aiko-tag aiko-tag--accent">@Loc.Get("CardOriginTag")</span>
+                    </FlareStack>
+                    @if (OriginCardHref is { Length: > 0 } originHref)
+                    {
+                        <FlareNavLink Href="@originHref" Class="aiko-card__row">
+                            <IconContent>
+                                <FlareIconView Value="@MaterialDesign3Icons.Regular.AccountTree" Color="FlareColor.Secondary" />
+                            </IconContent>
+                            <ChildContent>
+                                <FlareStack Row="true" Align="FlareAlignItems.Center"
+                                            Justify="FlareJustifyContent.SpaceBetween"
+                                            Gap="FlareSpacing.XSmall" Class="aiko-card__row-body">
+                                    <FlareStack Gap="FlareSpacing.None">
+                                        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall" Wrap="true">
+                                            <span class="aiko-value">@OriginProjectCaption(origin)</span>
+                                            @if (origin.CardId is { Length: > 0 } originCardId)
+                                            {
+                                                <span class="aiko-tag aiko-tag--quiet">@originCardId</span>
+                                            }
+                                        </FlareStack>
+                                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                            @OriginDetail(origin)
+                                        </FlareText>
+                                    </FlareStack>
+                                    <FlareIconView Value="@MaterialDesign3Icons.Regular.ChevronRight"
+                                                   Color="FlareColor.OnSurfaceVariant2" />
+                                </FlareStack>
+                            </ChildContent>
+                        </FlareNavLink>
+                    }
+                    else
+                    {
+                        <FlareStack Gap="FlareSpacing.None">
+                            <span class="aiko-value">@OriginProjectCaption(origin)</span>
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                @OriginDetail(origin)
+                            </FlareText>
+                        </FlareStack>
+                    }
+                </FlareStack>
+            </FlarePaper>
+        }
+
         @* Where the card is and who has run it: the stage it sits in, the state of its latest run, and the
            agents that run passed through. *@
         <FlarePaper Elevation="0" Padding="FlareSpacing.Medium" Square="true" Class="aiko-panel">
@@ -1219,6 +1275,43 @@
     /// <summary>A link to another card of the same project, for the related-cards graph.</summary>
     private string CardHref(string otherCardId) =>
         $"/p/{Uri.EscapeDataString(Card.Reference.ProjectId)}/cards/{Uri.EscapeDataString(otherCardId)}";
+
+    /// <summary>
+    /// The project this card was reported from, or null when it came from nowhere and when the daemon does
+    /// not know that project any more.
+    /// </summary>
+    /// <remarks>
+    /// The card keeps the source project's immutable id, while everything the UI links to is addressed by
+    /// the readable handle, so the two are matched here instead of in the markup.
+    /// </remarks>
+    private RegisteredProject? OriginProject => Card.Origin is { } origin
+        ? State.Projects.FirstOrDefault(project => StringComparer.Ordinal.Equals(project.Id, origin.ProjectId))
+        : null;
+
+    /// <summary>
+    /// The source project as it should be read: its name when it is registered, its id when it is not. An
+    /// id is a poor caption but an honest one - a name the daemon cannot produce would be invented.
+    /// </summary>
+    private string OriginProjectCaption(CardOrigin origin) =>
+        OriginProject is { } project ? project.Name : origin.ProjectId;
+
+    /// <summary>
+    /// A link to the card this one came from, or null when there is nowhere to go. Both halves are needed:
+    /// the route is <c>/p/{handle}/cards/{id}</c>, and a project nobody registered has no handle, while a
+    /// card reported without a source card has no id.
+    /// </summary>
+    private string? OriginCardHref =>
+        Card.Origin is { CardId: { Length: > 0 } originCardId } && OriginProject is { } project
+            ? $"/p/{Uri.EscapeDataString(project.Handle)}/cards/{Uri.EscapeDataString(originCardId)}"
+            : null;
+
+    /// <summary>
+    /// Who filed the card and when, in the words the comment feed already uses for an age. The adapter is
+    /// left out rather than printed as an empty gap when the reporting agent did not name itself.
+    /// </summary>
+    private static string OriginDetail(CardOrigin origin) => string.IsNullOrWhiteSpace(origin.AdapterId)
+        ? RelativeTime(origin.CreatedAtUtc)
+        : $"{origin.AdapterId} · {RelativeTime(origin.CreatedAtUtc)}";
 
     /// <summary>The project's size grid: what the human may choose from, same ladder the agent reads.</summary>
     /// <summary>

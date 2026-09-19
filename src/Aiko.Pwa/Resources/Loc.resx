@@ -534,6 +534,8 @@
   <data name="LinkedProjectsDescriptionPlaceholder" xml:space="preserve"><value>For example: the desktop client - file UI work here</value></data>
   <data name="LinkedProjectsAdd" xml:space="preserve"><value>Link project</value></data>
   <data name="LinkedProjectsRemove" xml:space="preserve"><value>Remove link</value></data>
+  <data name="CardOriginTitle" xml:space="preserve"><value>Origin</value></data>
+  <data name="CardOriginTag" xml:space="preserve"><value>Cross-project</value></data>
   <data name="PriorityFormulaTitle" xml:space="preserve"><value>Priority formula</value></data>
   <data name="OwnWeightLabel" xml:space="preserve"><value>Own value weight</value></data>
   <data name="ParentWeightLabel" xml:space="preserve"><value>Parent value weight</value></data>

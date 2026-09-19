@@ -161,6 +161,47 @@ public sealed class RazorMarkupSpecs
         Assert.Contains(".aiko-diff__path {", css, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void A_card_reported_from_another_project_shows_where_it_came_from()
+    {
+        var root = FindRepositoryRoot();
+        var text = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "CardInspector.razor"));
+
+        // The block exists and is driven by the domain's own provenance: a card that came from nowhere
+        // renders nothing, so the panel is a fact about the card rather than a permanent fixture.
+        Assert.Contains("@if (Card.Origin is { } origin)", text, StringComparison.Ordinal);
+
+        // The source project is matched by its immutable id: that is what the card stores, while every
+        // link the UI builds carries the readable handle.
+        Assert.Contains(
+            "StringComparer.Ordinal.Equals(project.Id, origin.ProjectId)",
+            text,
+            StringComparison.Ordinal);
+
+        // A link to the originating card needs both halves - a registered project and a named source card -
+        // and without either the block states the project and links nowhere. A route built from a handle
+        // that does not exist would be a page nobody can open.
+        Assert.Contains(
+            "Card.Origin is { CardId: { Length: > 0 } originCardId } && OriginProject is { } project",
+            text,
+            StringComparison.Ordinal);
+        Assert.Contains("@if (OriginCardHref is { Length: > 0 } originHref)", text, StringComparison.Ordinal);
+        Assert.Contains("/cards/{Uri.EscapeDataString(originCardId)}", text, StringComparison.Ordinal);
+
+        // The captions are keys, and both languages carry them - a block that reads English on a Russian
+        // screen is the failure this pair of assertions exists to catch.
+        Assert.Contains("Loc.Get(\"CardOriginTitle\")", text, StringComparison.Ordinal);
+        Assert.Contains("Loc.Get(\"CardOriginTag\")", text, StringComparison.Ordinal);
+        foreach (var resource in new[] { "Loc.resx", "Loc.ru.resx" })
+        {
+            var resx = File.ReadAllText(
+                Path.Combine(root, "src", "Aiko.Pwa", "Resources", resource));
+            Assert.Contains("name=\"CardOriginTitle\"", resx, StringComparison.Ordinal);
+            Assert.Contains("name=\"CardOriginTag\"", resx, StringComparison.Ordinal);
+        }
+    }
+
     /// <summary>
     /// Walks up from this assembly to the solution file, the same way the daemon fixture does.
     /// </summary>
