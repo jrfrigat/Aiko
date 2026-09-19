@@ -293,8 +293,9 @@ records its origin (`originProjectId`), and the card page shows it in the *Origi
 source project, the card it was reported from when one was named, the adapter that filed it and
 how long ago. The target project configures nothing here - it is told, not asked.
 
-Which project that is comes from the **linked projects** registry, edited on the project's settings page under
-*Linked projects*: pick one of the projects registered with this installation, write what it is for ("the
+Which project that is comes from the **linked projects** registry, edited on the project's *Linked projects*
+screen - the rail item beside *Project settings*: pick one of the projects registered with this installation,
+write what it is for ("the
 desktop client - UI work is filed here") and link it. The registry is `.aiko/links.json`, the same sentence is
 shown to an agent in `aiko_get_project_context`, and removing a link only stops future routing - the cards
 already filed in the other project stay where they are.

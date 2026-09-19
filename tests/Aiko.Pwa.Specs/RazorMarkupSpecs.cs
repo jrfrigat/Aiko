@@ -268,6 +268,68 @@ public sealed class RazorMarkupSpecs
         }
     }
 
+    [Fact]
+    public void The_linked_projects_registry_has_a_rail_item_and_a_screen_of_its_own()
+    {
+        var root = FindRepositoryRoot();
+        var rail = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Layout", "MainLayout.razor"));
+        var page = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "LinkedProjectsPage.razor"));
+        var settings = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "ProjectSettingsPage.razor"));
+
+        // The rail leads to the registry, in the project's own group and addressed by its readable handle -
+        // the same shape every other project screen uses.
+        Assert.Contains("SectionHref(open.Handle, \"links\")", rail, StringComparison.Ordinal);
+        Assert.Contains("Loc.Get(\"LinkedProjectsNav\")", rail, StringComparison.Ordinal);
+
+        // The screen owns the route and the whole registry: the list, adding a link ...
+        Assert.Contains("@page \"/p/{ProjectId}/links\"", page, StringComparison.Ordinal);
+        Assert.Contains("Loc.Get(\"LinkedProjectsNone\")", page, StringComparison.Ordinal);
+        Assert.Contains("AddLinkAsync", page, StringComparison.Ordinal);
+        Assert.Contains("RemoveLinkAsync(item)", page, StringComparison.Ordinal);
+
+        // ... and correcting a description, which is the half the settings panel never had: a row opens for
+        // editing, saves with its own button and can be abandoned.
+        Assert.Contains("BeginEdit(item)", page, StringComparison.Ordinal);
+        Assert.Contains("SaveDescriptionAsync(item)", page, StringComparison.Ordinal);
+        Assert.Contains("CancelEdit", page, StringComparison.Ordinal);
+        Assert.Contains("Loc.Get(\"LinkedProjectsEdit\")", page, StringComparison.Ordinal);
+
+        // The project is excluded by either of its names, because the route carries the handle while the
+        // registry stores the id: matching only one of them would offer the project itself for linking.
+        Assert.Contains("StringComparer.Ordinal.Equals(project.Handle, ProjectId)", page, StringComparison.Ordinal);
+        Assert.Contains("StringComparer.Ordinal.Equals(project.Id, ProjectId)", page, StringComparison.Ordinal);
+
+        // The settings page points at the screen instead of carrying a second editor of the same file, and
+        // the pointer is built from the handle rather than from the id.
+        Assert.Contains("LinksHref(board.Project.Handle)", settings, StringComparison.Ordinal);
+        Assert.Contains("Loc.Get(\"LinkedProjectsOpen\")", settings, StringComparison.Ordinal);
+        Assert.DoesNotContain("LinkedProjectsAdd", settings, StringComparison.Ordinal);
+        Assert.DoesNotContain("AddLinkAsync", settings, StringComparison.Ordinal);
+
+        // Every caption the rail and the screen use exists in both languages.
+        string[] keys =
+        [
+            "LinkedProjectsNav",
+            "LinkedProjectsMovedHint",
+            "LinkedProjectsOpen",
+            "LinkedProjectsEdit",
+            "LinkedProjectsSave",
+            "LinkedProjectsCancel"
+        ];
+        foreach (var resource in new[] { "Loc.resx", "Loc.ru.resx" })
+        {
+            var resx = File.ReadAllText(
+                Path.Combine(root, "src", "Aiko.Pwa", "Resources", resource));
+            foreach (var key in keys)
+            {
+                Assert.Contains($"name=\"{key}\"", resx, StringComparison.Ordinal);
+            }
+        }
+    }
+
     /// <summary>
     /// Walks up from this assembly to the solution file, the same way the daemon fixture does.
     /// </summary>

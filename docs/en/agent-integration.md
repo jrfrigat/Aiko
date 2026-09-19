@@ -77,7 +77,8 @@ works too - and the relation is removed when the order no longer holds.
 
 A project can be **linked** to other projects, each with a sentence saying what that project is for. The
 registry lives in `.aiko/links.json`, `aiko_get_project_context` lists it under *Linked projects* for the agent
-working here, and the project's settings page edits it. Work that belongs to a linked project is filed there
+working here, and the project's *Linked projects* screen - the rail item beside *Project settings* - edits it.
+Work that belongs to a linked project is filed there
 with `aiko_create_card_in_project`, passing `originProjectId` and `originCardId` so the receiving card records
 where it came from - read that project's context first, because its card types, its stages and its rules are
 its own. `aiko_link_project` and `aiko_unlink_project` (/aiko-link) write and remove a link; a project nobody
@@ -215,7 +216,7 @@ over is therefore the same address the UI links to itself, not a second form of 
 | Diagnose the installation | `/aiko-doctor` | `aiko_doctor` | — (`aiko doctor`) |
 | Repair the installation | `/aiko-repair` | — | — (`aiko repair --fix`) |
 | Back up a project | `/aiko-backup` | `aiko_backup` | — |
-| Link a project and say what it is for | `/aiko-link <slug> <description>` | `aiko_link_project`, `aiko_unlink_project` | Project settings - *Linked projects* |
+| Link a project and say what it is for | `/aiko-link <slug> <description>` | `aiko_link_project`, `aiko_unlink_project` | Rail - *Linked projects* |
 | File a card into a linked project | `/aiko-link` for the link, then the project's own contract | `aiko_create_card_in_project` (`userConfirmed` on an *Ask* project) | — (only an agent files the card; it lands on the target project's board) |
 | Decide whether a linked project may be written to | — | — (the `crossProject` section of the sending project's settings) | Project settings - *Cross-project writing* |
 | See where a cross-project card came from | — | — (the card carries its own `origin`) | Card page - *Origin*: the source project, the source card when one was named, the adapter and how long ago |

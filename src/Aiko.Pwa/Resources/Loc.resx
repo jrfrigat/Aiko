@@ -533,6 +533,12 @@
   <data name="LinkedProjectsDescriptionPlaceholder" xml:space="preserve"><value>For example: the desktop client - file UI work here</value></data>
   <data name="LinkedProjectsAdd" xml:space="preserve"><value>Link project</value></data>
   <data name="LinkedProjectsRemove" xml:space="preserve"><value>Remove link</value></data>
+  <data name="LinkedProjectsNav" xml:space="preserve"><value>Linked projects</value></data>
+  <data name="LinkedProjectsMovedHint" xml:space="preserve"><value>Links are edited on a screen of their own, reached from the rail, so this page only points at it.</value></data>
+  <data name="LinkedProjectsOpen" xml:space="preserve"><value>Open linked projects</value></data>
+  <data name="LinkedProjectsEdit" xml:space="preserve"><value>Edit description</value></data>
+  <data name="LinkedProjectsSave" xml:space="preserve"><value>Save</value></data>
+  <data name="LinkedProjectsCancel" xml:space="preserve"><value>Cancel</value></data>
   <data name="CardOriginTitle" xml:space="preserve"><value>Origin</value></data>
   <data name="CardOriginTag" xml:space="preserve"><value>Cross-project</value></data>
   <data name="PriorityFormulaTitle" xml:space="preserve"><value>Priority formula</value></data>
