@@ -177,3 +177,35 @@ internal sealed record SystemInfo(
 /// (<c>#pair=&lt;code&gt;</c>), which is what <c>aiko pair</c> prints for a second machine.
 /// </summary>
 internal sealed record PairCodeResponse(string Code);
+
+/// <summary>
+/// Starting a stage of a card: the stage to work and the agent that takes it. The daemon decides whether the
+/// card may start at all - a card another card blocks is refused, and the refusal is what the page shows.
+/// </summary>
+internal sealed record StartStageRequest(string StageId, string AgentAdapterId);
+
+/// <summary>Pausing a run, with the reason whoever picks it up will read.</summary>
+internal sealed record PauseExecutionRequest(string Reason);
+
+/// <summary>Resuming a run with the agent that continues it.</summary>
+internal sealed record ResumeExecutionRequest(string AgentAdapterId);
+
+/// <summary>Handing a run to another agent.</summary>
+internal sealed record HandoffExecutionRequest(string TargetAgentAdapterId);
+
+/// <summary>Completing a stage: the files the run reports and the artifacts it produced.</summary>
+internal sealed record CompleteStageExecutionRequest(
+    IReadOnlyList<string> ActualChangedFiles,
+    IReadOnlyList<string> Artifacts);
+
+/// <summary>Cancelling a run. A reason is optional; the daemon records one either way.</summary>
+internal sealed record CancelExecutionRequest(string Reason);
+
+/// <summary>
+/// Answering a scope request: true accepts the extra files and resumes the run with an agent, false refuses
+/// them, which cancels the run because the work cannot be done inside the declared scope.
+/// </summary>
+internal sealed record ScopeResponseRequest(bool Approved, string? AgentAdapterId);
+
+/// <summary>Approving or rejecting the commit a run is waiting on.</summary>
+internal sealed record CommitApprovalRequest(bool Approved);

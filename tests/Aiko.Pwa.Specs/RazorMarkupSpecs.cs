@@ -271,6 +271,49 @@ public sealed class RazorMarkupSpecs
     }
 
     [Fact]
+    public void The_card_page_steers_a_run_through_the_execution_endpoints()
+    {
+        var root = FindRepositoryRoot();
+        var inspector = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "CardInspector.razor"));
+
+        // Every life-cycle action the daemon offers has a control on the runs tab, and all of them are built
+        // from one address helper: six hand-written URLs would let one of them drift from the daemon's routes.
+        Assert.Contains("ExecutionAction(run.Id, action)", inspector, StringComparison.Ordinal);
+        foreach (var action in new[]
+                 {
+                     "pause", "resume", "handoff", "complete", "cancel", "scope-response", "commit-approval"
+                 })
+        {
+            Assert.Contains($"\"{action}\"", inspector, StringComparison.Ordinal);
+        }
+
+        // Starting a stage addresses the card's own executions - the same collection the agent's tool creates -
+        // and the panel names the run it acts on, so a click cannot hit the wrong one silently.
+        Assert.Contains(
+            "/cards/{Uri.EscapeDataString(Card.Reference.CardId)}/executions",
+            inspector,
+            StringComparison.Ordinal);
+        Assert.Contains("StartStageRequest(Card.StageId", inspector, StringComparison.Ordinal);
+
+        // The captions live in both languages, and the failure text goes through the shared reader.
+        foreach (var resource in new[] { "Loc.resx", "Loc.ru.resx" })
+        {
+            var resx = File.ReadAllText(
+                Path.Combine(root, "src", "Aiko.Pwa", "Resources", resource));
+            foreach (var key in new[]
+                     {
+                         "ExecutionActions", "StartStage", "PauseRun", "ResumeRun", "CancelRun", "CompleteRun",
+                         "HandoffRun", "ApproveScope", "RefuseScope", "ApproveCommit", "RejectCommit",
+                         "ExecutionActionFailed"
+                     })
+            {
+                Assert.Contains($"name=\"{key}\"", resx, StringComparison.Ordinal);
+            }
+        }
+    }
+
+    [Fact]
     public void The_linked_projects_registry_has_a_rail_item_and_a_screen_of_its_own()
     {
         var root = FindRepositoryRoot();

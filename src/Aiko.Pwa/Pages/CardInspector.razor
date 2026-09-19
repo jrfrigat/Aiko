@@ -481,6 +481,100 @@
                 <FlareTab Label="@RunsTabLabel">
                     <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.History" /></LeadingIcon>
                     <ChildContent>
+                            @* Steering the work. Every action the daemon offers for a run has a control here, and
+                               the caption above the buttons names the run they touch. The calls go to the
+                               execution endpoints the coordinator backs, so a button cannot behave differently
+                               from the agent's tool. *@
+                            <FlarePaper Class="aiko-tile">
+                                <FlareStack Gap="FlareSpacing.XSmall">
+                                    <FlareText Element="span" Typo="TypographyScale.TitleSmall">
+                                        @Loc.Get("ExecutionActions")
+                                    </FlareText>
+                                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                        @(LatestExecution is { } steering
+                                            ? $"{steering.StageId} · {steering.State}"
+                                            : Loc.Get("NoExecutions"))
+                                    </FlareText>
+                                    @if (Agents.Count > 0)
+                                    {
+                                        <AikoSelectField Label="@Loc.Get("EstimateAgent")"
+                                                         Value="@_stageAgent"
+                                                         ValueChanged="value => _stageAgent = value">
+                                            @foreach (var agent in Agents)
+                                            {
+                                                var option = agent;
+                                                <option value="@option.Id">@option.DisplayName</option>
+                                            }
+                                        </AikoSelectField>
+                                    }
+                                    <FlareStack Row="true" Wrap="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                                        <FlareButton Variant="ButtonVariant.Tonal"
+                                                     Disabled="@(string.IsNullOrWhiteSpace(_stageAgent) || _acting)"
+                                                     Loading="@_acting"
+                                                     OnClick="StartStageAsync">
+                                            <ChildContent>@Loc.Get("StartStage")</ChildContent>
+                                        </FlareButton>
+                                        @if (LatestExecution is { } run)
+                                        {
+                                            @if (run.State is StageExecutionState.Running)
+                                            {
+                                                <FlareButton Variant="ButtonVariant.Outlined" Disabled="@_acting" OnClick="PauseRunAsync">
+                                                    <ChildContent>@Loc.Get("PauseRun")</ChildContent>
+                                                </FlareButton>
+                                                <FlareButton Variant="ButtonVariant.Outlined" Disabled="@_acting" OnClick="CompleteRunAsync">
+                                                    <ChildContent>@Loc.Get("CompleteRun")</ChildContent>
+                                                </FlareButton>
+                                            }
+                                            else if (run.State is not (StageExecutionState.Completed or StageExecutionState.Cancelled))
+                                            {
+                                                <FlareButton Variant="ButtonVariant.Outlined"
+                                                             Disabled="@(string.IsNullOrWhiteSpace(_stageAgent) || _acting)"
+                                                             OnClick="ResumeRunAsync">
+                                                    <ChildContent>@Loc.Get("ResumeRun")</ChildContent>
+                                                </FlareButton>
+                                            }
+                                            <FlareButton Variant="ButtonVariant.Outlined"
+                                                         Disabled="@(string.IsNullOrWhiteSpace(_stageAgent) || _acting)"
+                                                         OnClick="HandoffRunAsync">
+                                                <ChildContent>@Loc.Get("HandoffRun")</ChildContent>
+                                            </FlareButton>
+                                            @if (run.State is not (StageExecutionState.Completed or StageExecutionState.Cancelled))
+                                            {
+                                                <FlareButton Variant="ButtonVariant.Text" Disabled="@_acting" OnClick="CancelRunAsync">
+                                                    <ChildContent>@Loc.Get("CancelRun")</ChildContent>
+                                                </FlareButton>
+                                            }
+                                            @if (run.State is StageExecutionState.WaitingForUser)
+                                            {
+                                                @if (run.RequestedScopeFiles.Count > 0)
+                                                {
+                                                    <FlareButton Variant="ButtonVariant.Outlined"
+                                                                 Disabled="@(string.IsNullOrWhiteSpace(_stageAgent) || _acting)"
+                                                                 OnClick="ApproveScopeAsync">
+                                                        <ChildContent>@Loc.Get("ApproveScope")</ChildContent>
+                                                    </FlareButton>
+                                                }
+                                                <FlareButton Variant="ButtonVariant.Text" Disabled="@_acting" OnClick="RefuseScopeAsync">
+                                                    <ChildContent>@Loc.Get("RefuseScope")</ChildContent>
+                                                </FlareButton>
+                                                <FlareButton Variant="ButtonVariant.Outlined" Disabled="@_acting" OnClick="ApproveCommitAsync">
+                                                    <ChildContent>@Loc.Get("ApproveCommit")</ChildContent>
+                                                </FlareButton>
+                                                <FlareButton Variant="ButtonVariant.Text" Disabled="@_acting" OnClick="RejectCommitAsync">
+                                                    <ChildContent>@Loc.Get("RejectCommit")</ChildContent>
+                                                </FlareButton>
+                                            }
+                                        }
+                                        @if (_executionMessage is { Length: > 0 } executionMessage)
+                                        {
+                                            <FlareText Element="span" Typo="TypographyScale.LabelSmall"
+                                                       Color="@(_executionError ? FlareColor.Error : FlareColor.Tertiary)">
+                                                @executionMessage
+                                            </FlareText>
+                                        }
+                                    </FlareStack>
+                                </FlareStack>
+                            </FlarePaper>
                             <FlareStack Gap="FlareSpacing.Medium">
                             @if (_loadingExecutions)
                             {
@@ -1024,6 +1118,14 @@
     private bool _postingComment;
     private string? _commentBody;
 
+    /// <summary>The agent the steering panel starts, resumes or hands a run to.</summary>
+    private string? _stageAgent;
+
+    /// <summary>True while a life-cycle action is in flight, so a button cannot be pressed twice.</summary>
+    private bool _acting;
+    private string? _executionMessage;
+    private bool _executionError;
+
     /// <summary>The commands the console offers: the ones this product's agents answer to.</summary>
     private static readonly string[] PromptShortcuts = ["/benchmark", "/leak-check"];
     private readonly Dictionary<string, decimal?> _criterionValues = new(StringComparer.Ordinal);
@@ -1517,6 +1619,7 @@
         }
 
         _estimateAgent ??= Agents.FirstOrDefault()?.Id;
+        _stageAgent ??= Agents.FirstOrDefault()?.Id;
 
         if (cardChanged || _lastRefreshTick != ExecutionRefreshTick)
         {
@@ -1615,6 +1718,96 @@
         finally
         {
             _sendingEstimate = false;
+        }
+    }
+
+    /// <summary>
+    /// The address of one life-cycle action on a run. Every control builds its URL here, so the paths are
+    /// written once and a typo cannot hide in one of six buttons.
+    /// </summary>
+    private string ExecutionAction(string executionId, string action) =>
+        $"api/v1/projects/{Uri.EscapeDataString(Card.Reference.ProjectId)}/executions/{Uri.EscapeDataString(executionId)}/{action}";
+
+    private Task StartStageAsync() =>
+        ActOnExecutionAsync(
+            $"api/v1/projects/{Uri.EscapeDataString(Card.Reference.ProjectId)}/cards/{Uri.EscapeDataString(Card.Reference.CardId)}/executions",
+            new StartStageRequest(Card.StageId, _stageAgent ?? string.Empty));
+
+    private Task PauseRunAsync() => RunActionAsync(
+        "pause",
+        _ => new PauseExecutionRequest("Paused from the card."));
+
+    private Task ResumeRunAsync() => RunActionAsync(
+        "resume",
+        _ => new ResumeExecutionRequest(_stageAgent ?? string.Empty));
+
+    private Task HandoffRunAsync() => RunActionAsync(
+        "handoff",
+        _ => new HandoffExecutionRequest(_stageAgent ?? string.Empty));
+
+    private Task CompleteRunAsync() => RunActionAsync(
+        "complete",
+        // What the run itself reported: the page does not invent a file list the agent never gave.
+        run => new CompleteStageExecutionRequest(
+            run.ActualChangedFiles.ToArray(),
+            run.Artifacts.ToArray()));
+
+    private Task CancelRunAsync() => RunActionAsync(
+        "cancel",
+        _ => new CancelExecutionRequest("Cancelled from the card."));
+
+    private Task ApproveScopeAsync() => RunActionAsync(
+        "scope-response",
+        _ => new ScopeResponseRequest(true, _stageAgent));
+
+    private Task RefuseScopeAsync() => RunActionAsync(
+        "scope-response",
+        _ => new ScopeResponseRequest(false, null));
+
+    private Task ApproveCommitAsync() => RunActionAsync(
+        "commit-approval",
+        _ => new CommitApprovalRequest(true));
+
+    private Task RejectCommitAsync() => RunActionAsync(
+        "commit-approval",
+        _ => new CommitApprovalRequest(false));
+
+    /// <summary>
+    /// Runs one action against the latest run. The panel names that run above the buttons, so a person knows
+    /// which execution a click touches.
+    /// </summary>
+    private Task RunActionAsync(string action, Func<StageExecution, object> body) =>
+        LatestExecution is { } run
+            ? ActOnExecutionAsync(ExecutionAction(run.Id, action), body(run))
+            : Task.CompletedTask;
+
+    /// <summary>
+    /// Posts one life-cycle action and reads the card's runs again: the coordinator owns the state, so the
+    /// panel shows what it says now rather than what the click hoped for.
+    /// </summary>
+    private async Task ActOnExecutionAsync(string url, object body)
+    {
+        if (_acting)
+        {
+            return;
+        }
+
+        _acting = true;
+        _executionMessage = null;
+        try
+        {
+            using var response = await Http.PostAsJsonAsync(url, body, PwaJson.Options);
+            response.EnsureSuccessStatusCode();
+            await LoadExecutionsAsync(includeDiff: false);
+        }
+        catch (Exception exception)
+        {
+            _executionMessage = Loc.Format("ExecutionActionFailed", FailureText.Describe(exception));
+            _executionError = true;
+        }
+        finally
+        {
+            _acting = false;
         }
     }
 
