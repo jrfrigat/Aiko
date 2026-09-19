@@ -336,7 +336,6 @@
   <data name="ArtifactMissing" xml:space="preserve"><value>missing</value></data>
   <data name="FilesDeclared" xml:space="preserve"><value>Declared</value></data>
   <data name="FilesActual" xml:space="preserve"><value>Actually changed</value></data>
-  <data name="AllScope" xml:space="preserve"><value>All scope</value></data>
   <data name="DefinitionOfDone" xml:space="preserve"><value>Definition of done</value></data>
   <data name="NoRequiredArtifacts" xml:space="preserve"><value>This stage asks for no artifacts.</value></data>
   <data name="CompletedOutcomes" xml:space="preserve"><value>Completed outcomes &amp; report</value></data>

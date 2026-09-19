@@ -240,6 +240,34 @@ public sealed class RazorMarkupSpecs
             StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void The_file_tabs_end_with_the_files_that_fell_outside_the_declared_scope()
+    {
+        var root = FindRepositoryRoot();
+        var text = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "CardInspector.razor"));
+
+        // The third tab is the deviation, not a union of everything: it is the list a reader checks a card by,
+        // and the same one the footer's DoD line counts.
+        Assert.Contains("Loc.Get(\"OutOfScope\")", text, StringComparison.Ordinal);
+        Assert.Contains("Files=\"BoardSection.FindOutOfScopeFiles(Card)\"", text, StringComparison.Ordinal);
+        Assert.Contains("Warning=\"true\"", text, StringComparison.Ordinal);
+
+        // The union and its caption are gone: a tab that says "all scope" while the deviation is what matters
+        // is the lie this replaced.
+        Assert.DoesNotContain("AllScope", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("private IReadOnlyList<string> ScopeFiles", text, StringComparison.Ordinal);
+
+        // The caption lives in both languages, and the old key has left both.
+        foreach (var resource in new[] { "Loc.resx", "Loc.ru.resx" })
+        {
+            var resx = File.ReadAllText(
+                Path.Combine(root, "src", "Aiko.Pwa", "Resources", resource));
+            Assert.Contains("name=\"OutOfScope\"", resx, StringComparison.Ordinal);
+            Assert.DoesNotContain("name=\"AllScope\"", resx, StringComparison.Ordinal);
+        }
+    }
+
     /// <summary>
     /// Walks up from this assembly to the solution file, the same way the daemon fixture does.
     /// </summary>
