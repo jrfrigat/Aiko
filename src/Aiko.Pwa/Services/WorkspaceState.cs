@@ -5,6 +5,7 @@ using Aiko.Application.Contracts;
 using Aiko.Domain.Cards;
 using Aiko.Pwa.Contracts;
 using Aiko.Pwa.Resources;
+using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
 namespace Aiko.Pwa.Services;
@@ -24,17 +25,19 @@ internal sealed class WorkspaceState : IAsyncDisposable
 {
     private readonly HttpClient _http;
     private readonly ProjectEventClient _events;
+    private readonly NavigationManager _navigation;
     private readonly object _sync = new();
     private Task? _initialization;
     private CancellationTokenSource? _boardReloadDelay;
     private bool _disposed;
 
     /// <summary>
-    /// Creates the state over the app's HTTP client and the browser's JS runtime.
+    /// Creates the state over the app's HTTP client, the browser's navigation and its JS runtime.
     /// </summary>
-    public WorkspaceState(HttpClient http, IJSRuntime js)
+    public WorkspaceState(HttpClient http, NavigationManager navigation, IJSRuntime js)
     {
         _http = http;
+        _navigation = navigation;
         _events = new ProjectEventClient(js);
         _events.Received += OnProjectEventAsync;
         _events.ConnectionChanged += OnEventConnectionChangedAsync;
@@ -172,9 +175,22 @@ internal sealed class WorkspaceState : IAsyncDisposable
     /// Opens a project, as addressed by the route. The board is re-read only when the project actually
     /// changed, so moving between its pages keeps the snapshot and the live subscription.
     /// </summary>
+    /// <remarks>
+    /// A route that names the project by its immutable id is entered again on the handle address, and the
+    /// navigation replaces the entry so the back button never returns to an address the UI itself never
+    /// builds. The id stays valid for the REST and MCP routes - it is the key every stored file carries -
+    /// but it is not an address a person should end up reading.
+    /// </remarks>
     public async Task EnsureProjectAsync(string projectId)
     {
         await EnsureInitializedAsync();
+        if (ProjectRoutes.ReadableHandle(Projects, projectId) is { } handle &&
+            ProjectRoutes.WithHandle(_navigation.Uri, projectId, handle) is { } target)
+        {
+            _navigation.NavigateTo(target, replace: true);
+            return;
+        }
+
         if (string.Equals(SelectedProjectId, projectId, StringComparison.Ordinal))
         {
             return;

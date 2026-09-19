@@ -1289,8 +1289,12 @@
     }
 
     /// <summary>A link to another card of the same project, for the related-cards graph.</summary>
+    /// <remarks>
+    /// The address is built from the open project's readable handle, not from the id the card's relations
+    /// store: the relation carries the immutable id, and an address a person copies should not.
+    /// </remarks>
     private string CardHref(string otherCardId) =>
-        $"/p/{Uri.EscapeDataString(Card.Reference.ProjectId)}/cards/{Uri.EscapeDataString(otherCardId)}";
+        ProjectRoutes.Card(Board.Project.Handle, otherCardId);
 
     /// <summary>
     /// The project this card was reported from, or null when it came from nowhere and when the daemon does
@@ -1318,7 +1322,7 @@
     /// </summary>
     private string? OriginCardHref =>
         Card.Origin is { CardId: { Length: > 0 } originCardId } && OriginProject is { } project
-            ? $"/p/{Uri.EscapeDataString(project.Handle)}/cards/{Uri.EscapeDataString(originCardId)}"
+            ? ProjectRoutes.Card(project.Handle, originCardId)
             : null;
 
     /// <summary>

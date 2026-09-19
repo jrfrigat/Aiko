@@ -187,7 +187,9 @@ public sealed class RazorMarkupSpecs
             text,
             StringComparison.Ordinal);
         Assert.Contains("@if (OriginCardHref is { Length: > 0 } originHref)", text, StringComparison.Ordinal);
-        Assert.Contains("/cards/{Uri.EscapeDataString(originCardId)}", text, StringComparison.Ordinal);
+        // The address comes from the one helper that speaks handles, with the project's readable handle and
+        // the source card's id - never with the id the card's own reference stores.
+        Assert.Contains("ProjectRoutes.Card(project.Handle, originCardId)", text, StringComparison.Ordinal);
 
         // The captions are keys, and both languages carry them - a block that reads English on a Russian
         // screen is the failure this pair of assertions exists to catch.

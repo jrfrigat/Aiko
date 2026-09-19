@@ -160,13 +160,11 @@ else
     protected override async Task OnParametersSetAsync() => await State.EnsureProjectAsync(ProjectId);
 
     /// <summary>Creating a card is its own page: the board only links to it.</summary>
-    private void OpenNewCard() => Navigation.NavigateTo($"{ProjectHref}/cards/new");
+    private void OpenNewCard() => Navigation.NavigateTo(ProjectRoutes.NewCard(ProjectId));
 
     /// <summary>A card is its own page too, so a card can be linked, reloaded and shared.</summary>
     private void OpenCard(string cardId) =>
-        Navigation.NavigateTo($"{ProjectHref}/cards/{Uri.EscapeDataString(cardId)}");
-
-    private string ProjectHref => $"/p/{Uri.EscapeDataString(ProjectId)}";
+        Navigation.NavigateTo(ProjectRoutes.Card(ProjectId, cardId));
 
     /// <summary>
     /// The card types in scope, taken from the project's own workflows: a section exists because a workflow

@@ -223,7 +223,7 @@ else
     private string? _message;
     private bool _hasError;
 
-    private string BoardHref => $"/p/{Uri.EscapeDataString(ProjectId)}/board";
+    private string BoardHref => ProjectRoutes.Board(ProjectId);
 
     /// <summary>
     /// Rebuilds the project's index from the files it owns. It is the one write this screen performs, and

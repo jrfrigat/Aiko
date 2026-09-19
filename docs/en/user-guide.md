@@ -8,11 +8,13 @@ are doing. It shows the project's path, its workflows and how many stages they h
 and the relations, plus the cards per stage of each pipeline. "Re-index project" rebuilds the daemon's index
 from the `.aiko` files - the one write this screen performs, and one that is safe to repeat.
 
-A project has two identifiers. The readable **id** - `aiko`, as in `/p/aiko/board` - is derived from the
-folder name and can be set while the project is created; it is what every screen's links use. The internal
-project id is a generated GUID: it is written into `card.json`, into the relations and into the MCP endpoint
-of every connected agent, so it never changes. Every route accepts both, so links saved before the readable
-id existed still open.
+A project has two identifiers. The readable **handle** - `aiko`, as in `/p/aiko/board` - is derived from the
+folder name and can be set while the project is created; it is what every link the interface builds uses. An
+address that names the project by the GUID instead is rewritten to the handle as soon as the page opens, so
+the address bar never keeps a form the interface itself would not produce. The internal project id is a
+generated GUID: it is written into `card.json`, into the relations and into the MCP endpoint of every
+connected agent, so it never changes. Every route still accepts both, so a link saved before the handle
+existed keeps working.
 
 ## The board
 

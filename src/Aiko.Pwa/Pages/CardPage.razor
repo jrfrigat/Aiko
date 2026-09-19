@@ -133,7 +133,7 @@ else
     [Parameter] public string ProjectId { get; set; } = string.Empty;
     [Parameter] public string CardId { get; set; } = string.Empty;
 
-    private string BoardHref => $"/p/{Uri.EscapeDataString(ProjectId)}/board";
+    private string BoardHref => ProjectRoutes.Board(ProjectId);
 
     /// <summary>
     /// The projection this card belongs to, named as the board's own views are: the trail says where the

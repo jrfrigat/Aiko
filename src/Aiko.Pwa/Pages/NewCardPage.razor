@@ -218,7 +218,7 @@
     private IReadOnlyList<PriorityCriterion> _priorityCriteria = [];
     private readonly Dictionary<string, decimal?> _criterionValues = new(StringComparer.Ordinal);
 
-    private string BoardHref => $"/p/{Uri.EscapeDataString(ProjectId)}/board";
+    private string BoardHref => ProjectRoutes.Board(ProjectId);
 
     /// <summary>The type the form is currently creating.</summary>
     private string SelectedKind =>
@@ -373,7 +373,7 @@
             var cardId = created?.Reference.CardId;
             Navigation.NavigateTo(string.IsNullOrWhiteSpace(cardId)
                 ? BoardHref
-                : $"/p/{Uri.EscapeDataString(ProjectId)}/cards/{Uri.EscapeDataString(cardId)}");
+                : ProjectRoutes.Card(ProjectId, cardId));
         }
         catch (Exception exception)
         {

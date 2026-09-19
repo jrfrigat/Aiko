@@ -1027,5 +1027,44 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
         Assert.Equal(HttpStatusCode.NotFound, unknownDisconnect.StatusCode);
     }
 
+    [Fact]
+    public async Task A_project_route_answers_by_id_and_by_its_readable_handle()
+    {
+        using var http = CreateClient();
+        using var projects = JsonDocument.Parse(
+            await http.GetStringAsync("api/v1/projects", CancellationToken.None));
+        var project = projects.RootElement
+            .EnumerateArray()
+            .Single(item => string.Equals(
+                item.GetProperty("id").GetString(),
+                fixture.ProjectId,
+                StringComparison.Ordinal));
+        var handle = project.GetProperty("slug").GetString();
+        Assert.False(string.IsNullOrWhiteSpace(handle));
+        Assert.NotEqual(fixture.ProjectId, handle);
+
+        // The UI stopped handing out id-addressed links, and the API keeps accepting them: the id is the key
+        // every stored card, relation and execution carries, so a route that dropped it would strand them.
+        using var byId = await http.GetAsync(
+            $"api/v1/projects/{fixture.ProjectId}/board",
+            CancellationToken.None);
+        using var byHandle = await http.GetAsync(
+            $"api/v1/projects/{handle}/board",
+            CancellationToken.None);
+        byId.EnsureSuccessStatusCode();
+        byHandle.EnsureSuccessStatusCode();
+
+        using var idDocument = JsonDocument.Parse(
+            await byId.Content.ReadAsStringAsync(CancellationToken.None));
+        using var handleDocument = JsonDocument.Parse(
+            await byHandle.Content.ReadAsStringAsync(CancellationToken.None));
+        Assert.Equal(
+            idDocument.RootElement.GetProperty("project").GetProperty("id").GetString(),
+            handleDocument.RootElement.GetProperty("project").GetProperty("id").GetString());
+        Assert.Equal(
+            idDocument.RootElement.GetProperty("cards").GetArrayLength(),
+            handleDocument.RootElement.GetProperty("cards").GetArrayLength());
+    }
+
 
 }

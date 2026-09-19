@@ -712,7 +712,7 @@
 
     /// <summary>The board a project's name links to: the same place the rail's board item goes.</summary>
     private static string ProjectLink(string projectHandle) =>
-        $"/p/{Uri.EscapeDataString(projectHandle)}/board";
+        ProjectRoutes.Board(projectHandle);
 
     /// <summary>
     /// Why the id as typed cannot be used, or null when it can.
@@ -782,7 +782,7 @@
     }
 
     private void OpenProject(string projectHandle) =>
-        Navigation.NavigateTo($"/p/{Uri.EscapeDataString(projectHandle)}/board");
+        Navigation.NavigateTo(ProjectRoutes.Board(projectHandle));
 
     /// <summary>
     /// Connects or disconnects one agent on this machine. Connecting writes Aiko's global skills and

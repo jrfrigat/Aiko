@@ -83,7 +83,7 @@ else
     /// points at it instead of carrying a second editor of the same file.
     /// </summary>
     private static string LinksHref(string projectHandle) =>
-        $"/p/{Uri.EscapeDataString(projectHandle)}/links";
+        ProjectRoutes.Section(projectHandle, "links");
 
     /// <summary>
     /// Writes one pipeline of this project and reloads the board, so the editor's revision follows. Returns

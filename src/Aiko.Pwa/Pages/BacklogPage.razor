@@ -146,7 +146,7 @@ else
     protected override async Task OnParametersSetAsync() => await State.EnsureProjectAsync(ProjectId);
 
     private void OpenCard(string cardId) =>
-        Navigation.NavigateTo($"/p/{Uri.EscapeDataString(ProjectId)}/cards/{Uri.EscapeDataString(cardId)}");
+        Navigation.NavigateTo(ProjectRoutes.Card(ProjectId, cardId));
 
     /// <summary>
     /// Moves one card out of the backlog and into the next stage of its workflow - the one action this page
