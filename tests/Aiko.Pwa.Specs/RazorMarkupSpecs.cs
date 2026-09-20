@@ -500,6 +500,52 @@ public sealed class RazorMarkupSpecs
         }
     }
 
+    [Fact]
+    public void The_appearance_screen_offers_every_palette_the_theme_ships()
+    {
+        var root = FindRepositoryRoot();
+        var page = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "AppearancePage.razor"));
+
+        // The list is the theme's, not a constant and not markup: IThemeService.Palettes is what a theme
+        // ships, so a fourth palette is added in the theme and appears on this screen untouched.
+        Assert.Contains("Items=\"@PaletteIds\"", page, StringComparison.Ordinal);
+        Assert.Contains("ThemeService.Palettes", page, StringComparison.Ordinal);
+
+        // A palette names itself - the row reads the Palette's own Name and Source - so no palette name is
+        // written out here and none needs a resource key that would then need translating.
+        Assert.Contains("palette.Name", page, StringComparison.Ordinal);
+        Assert.Contains("palette.Source", page, StringComparison.Ordinal);
+        Assert.DoesNotContain("Kinetic Orchestration", page, StringComparison.Ordinal);
+        Assert.DoesNotContain("Cyber Amber", page, StringComparison.Ordinal);
+
+        // The value is the id: it is what SetPaletteAsync takes and what the provider stores, while the
+        // label is what the reader sees. Strongly-typed args, not a hand-written list of options.
+        Assert.Contains("ItemLabel=\"@PaletteLabel\"", page, StringComparison.Ordinal);
+        Assert.Contains("ThemeService.CurrentPalette.Id", page, StringComparison.Ordinal);
+        Assert.Contains("ThemeService.SetPaletteAsync(", page, StringComparison.Ordinal);
+
+        // FlareColorCustomizer repaints one role - the "paint the roles yourself" axis, which is outside
+        // this story - so it is not this screen's control.
+        Assert.DoesNotContain("<FlareColorCustomizer", page, StringComparison.Ordinal);
+
+        // Every caption the axis uses exists in both languages.
+        string[] keys =
+        [
+            "AppearancePalette",
+            "AppearancePaletteHint"
+        ];
+        foreach (var resource in new[] { "Loc.resx", "Loc.ru.resx" })
+        {
+            var resx = File.ReadAllText(
+                Path.Combine(root, "src", "Aiko.Pwa", "Resources", resource));
+            foreach (var key in keys)
+            {
+                Assert.Contains($"name=\"{key}\"", resx, StringComparison.Ordinal);
+            }
+        }
+    }
+
     /// <summary>
     /// Walks up from this assembly to the solution file, the same way the daemon fixture does.
     /// </summary>

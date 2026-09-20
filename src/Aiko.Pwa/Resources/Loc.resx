@@ -659,5 +659,7 @@
   <data name="AppearanceModeAuto" xml:space="preserve"><value>Auto</value></data>
   <data name="AppearanceModeLight" xml:space="preserve"><value>Light</value></data>
   <data name="AppearanceModeDark" xml:space="preserve"><value>Dark</value></data>
+  <data name="AppearancePalette" xml:space="preserve"><value>Palette</value></data>
+  <data name="AppearancePaletteHint" xml:space="preserve"><value>A whole colour scheme of the one theme. The choice is applied at once and kept in this browser.</value></data>
 
 </root>

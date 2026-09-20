@@ -659,5 +659,7 @@
   <data name="AppearanceModeAuto" xml:space="preserve"><value>Авто</value></data>
   <data name="AppearanceModeLight" xml:space="preserve"><value>Светлая</value></data>
   <data name="AppearanceModeDark" xml:space="preserve"><value>Тёмная</value></data>
+  <data name="AppearancePalette" xml:space="preserve"><value>Палитра</value></data>
+  <data name="AppearancePaletteHint" xml:space="preserve"><value>Целая цветовая схема одной темы. Выбор применяется сразу и хранится в этом браузере.</value></data>
 
 </root>

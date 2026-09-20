@@ -63,6 +63,18 @@
                     @Loc.Get("AppearanceModeHint")
                 </FlareText>
             </FlareStack>
+
+            @* The palette axis. The list comes from the theme - IThemeService.Palettes - and the label is
+               built from the Palette itself: its Name and its Source are the theme's own words rather than
+               interface copy, so they are never translated and never written out here. The value is the
+               id, because that is what SetPaletteAsync takes and what the provider stores; putting the
+               name in the value would only mean translating it back on every choice. *@
+            <AikoSelectField Label="@Loc.Get("AppearancePalette")"
+                             Value="@ThemeService.CurrentPalette.Id"
+                             ValueChanged="SetPaletteAsync"
+                             Items="@PaletteIds"
+                             ItemLabel="@PaletteLabel"
+                             Hint="@Loc.Get("AppearancePaletteHint")" />
         </FlareStack>
     </FlarePaper>
 </FlareStack>
@@ -122,4 +134,25 @@
     /// every change, so writing the mode to storage here too would be a second place writing one key.
     /// </summary>
     private Task SetModeAsync(ThemeMode mode) => ThemeService.SetModeAsync(mode);
+
+    /// <summary>The palettes the theme offers, by id - the value a pick is made of.</summary>
+    private IReadOnlyList<string> PaletteIds =>
+        ThemeService.Palettes.Select(palette => palette.Id).ToArray();
+
+    /// <summary>
+    /// How one palette reads in the list: its own name and where it comes from. Both belong to the theme
+    /// rather than to the interface, so neither is a resource key and neither is translated.
+    /// </summary>
+    private string PaletteLabel(string id) =>
+        ThemeService.Palettes.FirstOrDefault(palette => StringComparer.Ordinal.Equals(palette.Id, id))
+            is { } palette
+                ? $"{palette.Name} · {palette.Source}"
+                : id;
+
+    /// <summary>
+    /// Switches the palette. The provider remembers it as it does the mode, so this screen writes
+    /// nothing to storage - a second place writing one key is a second place that can be wrong.
+    /// </summary>
+    private Task SetPaletteAsync(string? id) =>
+        id is null ? Task.CompletedTask : ThemeService.SetPaletteAsync(id);
 }
