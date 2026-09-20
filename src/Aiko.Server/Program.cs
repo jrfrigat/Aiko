@@ -124,6 +124,33 @@ await app.Services.GetRequiredService<AikoDatabase>().InitializeAsync();
 // without anyone re-registering them. A handle already stated in the project's manifest wins, so this is
 // idempotent and `aiko repair --fix` performs the same step.
 await app.Services.GetRequiredService<IProjectInitializer>().EnsureSlugsAsync(CancellationToken.None);
+// Cards of a project made before they moved under .aiko/workflows are filed the new way here: an upgrade
+// path like the readable handle above - it runs once per project, says what it moved, and a second start
+// finds nothing left to do. Cards stay readable from the old place, so a failure here costs tidiness, not
+// the board: the diagnosis names what could not be moved.
+foreach (var project in await app.Services
+             .GetRequiredService<IProjectCatalog>()
+             .ListAsync(CancellationToken.None))
+{
+    var migration = CardLayoutMigrator.Migrate(project.RootPath);
+    if (migration.Moved.Count > 0)
+    {
+        app.Logger.LogInformation(
+            "Aiko: {Project}: filed {Count} card collection(s) under .aiko/workflows ({Collections}).",
+            project.Name,
+            migration.Moved.Count,
+            string.Join(", ", migration.Moved));
+    }
+
+    foreach (var collection in migration.Failed)
+    {
+        app.Logger.LogWarning(
+            "Aiko: {Project}: card collection {Collection} could not be moved; its cards stay readable " +
+            "where they are.",
+            project.Name,
+            collection);
+    }
+}
 var configuredUrl = builder.Configuration["AIKO_URL"];
 var serverBaseUri = !string.IsNullOrWhiteSpace(configuredUrl)
     ? ValidateExplicitServerUrl(configuredUrl)

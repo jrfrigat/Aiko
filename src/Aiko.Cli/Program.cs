@@ -1083,6 +1083,17 @@ static async Task<int> RepairAsync(string[] args)
             continue;
         }
 
+        // Cards filed the old way are moved under .aiko/workflows here too: a repair is where a project is
+        // brought back to the shape this build expects, and the step is idempotent - a second repair finds
+        // nothing left to move.
+        var migration = CardLayoutMigrator.Migrate(project.RootPath);
+        if (migration.Moved.Count > 0)
+        {
+            Console.WriteLine(
+                $"{project.Name}: filed {migration.Moved.Count} card collection(s) under .aiko/workflows " +
+                $"({string.Join(", ", migration.Moved)}).");
+        }
+
         var reindexed = await reindexer.ReindexAsync(project.Id, CancellationToken.None);
         Console.WriteLine(
             $"Reindexed {project.Name}: {reindexed.Cards} cards, {reindexed.Relations} relations, " +

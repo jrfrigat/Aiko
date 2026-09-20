@@ -691,10 +691,10 @@ internal static class AgentTemplates
     public const string GlobalRepair =
         """
         Repair the local Aiko installation. Run `aiko doctor` in the terminal first to see the
-        findings, then `aiko repair --fix` to reindex the projects and rewrite the agent
-        configurations that point at an old endpoint; without --fix it only reports. A repair never
-        deletes project files and never removes an installation - say what it changed and show the
-        report it prints afterwards.
+        findings, then `aiko repair --fix` to reindex the projects, file the cards of projects made
+        before they moved under .aiko/workflows, and rewrite the agent configurations that point at an
+        old endpoint; without --fix it only reports. A repair never deletes project files and never
+        removes an installation - say what it changed and show the report it prints afterwards.
         """;
 
     /// <summary>

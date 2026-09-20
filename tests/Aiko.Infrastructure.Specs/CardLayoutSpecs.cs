@@ -1,6 +1,11 @@
 using System.Text.Json;
+using Aiko.Application.Contracts;
 using Aiko.Domain.Cards;
+using Aiko.Infrastructure.Agents;
 using Aiko.Infrastructure.Cards;
+using Aiko.Infrastructure.Diagnostics;
+using Aiko.Infrastructure.Projects;
+using Aiko.Infrastructure.Settings;
 using Aiko.Infrastructure.Storage;
 using Xunit;
 
@@ -150,6 +155,95 @@ public sealed class CardLayoutSpecs
                 FileCardStore.GetExistingCardDirectory(context.ProjectRoot, cardId, "Task"));
             return Task.CompletedTask;
         });
+    }
+
+    [Fact]
+    public async Task The_migration_files_a_whole_collection_under_workflows()
+    {
+        await InfrastructureSpecs.WithInitializedProjectAsync(async context =>
+        {
+            var reference = new CardReference(context.Project.Id, "MIG-1");
+            var oldDirectory = WriteCardInTheOldPlace(context, reference.CardId, kind: "Task", title: "Old");
+            await File.WriteAllTextAsync(Path.Combine(oldDirectory, "analysis.md"), "# Analysis\n");
+            Directory.CreateDirectory(Path.Combine(oldDirectory, "handoffs"));
+
+            var migration = CardLayoutMigrator.Migrate(context.ProjectRoot);
+
+            Assert.Equal(["tasks"], migration.Moved);
+            Assert.Empty(migration.Failed);
+            Assert.False(Directory.Exists(oldDirectory), "the collection was left behind");
+            var newDirectory = Path.Combine(context.StitchRoot, "workflows", "tasks", reference.CardId);
+            Assert.True(File.Exists(Path.Combine(newDirectory, "card.json")));
+            Assert.True(File.Exists(Path.Combine(newDirectory, "analysis.md")));
+            Assert.True(Directory.Exists(Path.Combine(newDirectory, "handoffs")));
+
+            // Idempotent: a second pass has nothing to move, and the project reads exactly as before.
+            var again = CardLayoutMigrator.Migrate(context.ProjectRoot);
+            Assert.Empty(again.Moved);
+            Assert.Equal("Old", (await context.Cards.FindAsync(reference, CancellationToken.None))?.Title);
+            var reindexed = await context.Reindexer.ReindexAsync(context.Project.Id, CancellationToken.None);
+            Assert.Equal(1, reindexed.Cards);
+        });
+    }
+
+    [Fact]
+    public async Task The_migration_leaves_everything_that_is_not_a_card_collection_alone()
+    {
+        await InfrastructureSpecs.WithInitializedProjectAsync(context =>
+        {
+            // A directory somebody made by hand, and the service directories init creates: none of them holds
+            // a card, so none of them is a collection and none of them is touched.
+            Directory.CreateDirectory(Path.Combine(context.StitchRoot, "notes"));
+            Assert.Empty(CardLayoutMigrator.PlannedMoves(context.ProjectRoot));
+
+            var migration = CardLayoutMigrator.Migrate(context.ProjectRoot);
+
+            Assert.Empty(migration.Moved);
+            Assert.True(Directory.Exists(Path.Combine(context.StitchRoot, "notes")));
+            Assert.True(Directory.Exists(Path.Combine(context.StitchRoot, "runtime")));
+            Assert.True(Directory.Exists(Path.Combine(context.StitchRoot, "memory")));
+            Assert.True(Directory.Exists(Path.Combine(context.StitchRoot, "projections")));
+            return Task.CompletedTask;
+        });
+    }
+
+    [Fact]
+    public async Task The_doctor_names_the_cards_filed_the_old_way_and_stops_after_the_move()
+    {
+        await InfrastructureSpecs.WithInitializedProjectAsync(async context =>
+        {
+            WriteCardInTheOldPlace(context, "MIG-2", kind: "Task", title: "Old");
+            var doctor = BuildDoctor(context);
+
+            var before = await doctor.InspectAsync(context.Project.Id, CancellationToken.None);
+            var finding = Assert.Single(before.Findings, item => item.Area == "card-layout");
+            Assert.Equal(DiagnosticSeverity.Warning, finding.Severity);
+            Assert.Contains("repair --fix", finding.Summary, StringComparison.Ordinal);
+
+            CardLayoutMigrator.Migrate(context.ProjectRoot);
+
+            var after = await doctor.InspectAsync(context.Project.Id, CancellationToken.None);
+            Assert.DoesNotContain(after.Findings, item => item.Area == "card-layout");
+        });
+    }
+
+    /// <summary>
+    /// The doctor with the least it needs - no agent adapters and no saved port - so its project checks are
+    /// what answers. The construction follows the doctor specs beside the infrastructure ones.
+    /// </summary>
+    private static WorkshopDoctor BuildDoctor(TestContext context)
+    {
+        var dataPaths = new AikoDataPaths(context.Database.DatabasePath);
+        return new WorkshopDoctor(
+            dataPaths,
+            context.Catalog,
+            new UnifiedAgentInstaller([], context.Catalog, new FileProjectDefinitionStore(context.Catalog)),
+            [],
+            new DaemonEndpointConfiguration(dataPaths),
+            new AccessTokenStore(dataPaths),
+            context.Cards,
+            new FileProjectDefinitionStore(context.Catalog),
+            context.Executions);
     }
 
     /// <summary>

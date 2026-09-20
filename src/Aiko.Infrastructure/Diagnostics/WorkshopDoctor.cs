@@ -2,6 +2,8 @@ using Aiko.Application.Agents;
 using Aiko.Application.Contracts;
 using Aiko.Domain.Execution;
 using Aiko.Domain.Workflow;
+using Aiko.Infrastructure.Cards;
+using Aiko.Infrastructure.Projects;
 using Aiko.Infrastructure.Settings;
 using Aiko.Infrastructure.Storage;
 
@@ -134,6 +136,7 @@ public sealed class WorkshopDoctor(
             $"{project.Name}: registered and present.",
             tree));
 
+        InspectCardLayout(project, findings);
         await InspectCardProgressAsync(project, findings, cancellationToken);
 
         if (settings is null)
@@ -149,6 +152,68 @@ public sealed class WorkshopDoctor(
         {
             findings.Add(finding);
         }
+    }
+
+    /// <summary>
+    /// Reports cards still filed the old way, and cards that ended up in both places.
+    /// </summary>
+    /// <remarks>
+    /// A project keeps working with its cards in the old place - reading looks in both - so nothing else
+    /// tells the person that its tree is of two shapes at once. This is the check that says it out loud, and
+    /// it names the one command that converges the project.
+    /// </remarks>
+    private static void InspectCardLayout(RegisteredProject project, List<DiagnosticFinding> findings)
+    {
+        var pending = CardLayoutMigrator.PlannedMoves(project.RootPath);
+        if (pending.Count > 0)
+        {
+            findings.Add(new DiagnosticFinding(
+                "card-layout",
+                DiagnosticSeverity.Warning,
+                $"{project.Name}: {pending.Count} card collection(s) are filed the old way " +
+                $"({string.Join(", ", pending)}); run `aiko repair --fix` to move them under .aiko/workflows.",
+                AikoProjectPaths.DataRoot(project.RootPath)));
+        }
+
+        var duplicated = DuplicatedCards(project.RootPath);
+        if (duplicated.Count > 0)
+        {
+            findings.Add(new DiagnosticFinding(
+                "card-layout",
+                DiagnosticSeverity.Error,
+                $"{project.Name}: {duplicated.Count} card(s) exist in both the old and the new place " +
+                $"({string.Join(", ", duplicated)}); the copy under .aiko/workflows is the one read and " +
+                "written, so the other is a leftover to remove by hand.",
+                AikoProjectPaths.DataRoot(project.RootPath)));
+        }
+    }
+
+    /// <summary>Card ids that sit in the collection of their type in both roots.</summary>
+    private static IReadOnlyList<string> DuplicatedCards(string projectRoot)
+    {
+        var legacyRoot = AikoProjectPaths.DataRoot(projectRoot);
+        var collectionsRoot = AikoProjectPaths.CardCollectionsRoot(projectRoot);
+        var duplicates = new List<string>();
+        foreach (var collection in FileCardStore.Collections(projectRoot))
+        {
+            var legacy = Path.Combine(legacyRoot, collection);
+            if (!Directory.Exists(legacy))
+            {
+                continue;
+            }
+
+            foreach (var directory in Directory.EnumerateDirectories(Path.Combine(collectionsRoot, collection)))
+            {
+                var cardId = Path.GetFileName(directory);
+                if (File.Exists(Path.Combine(directory, "card.json")) &&
+                    File.Exists(Path.Combine(legacy, cardId, "card.json")))
+                {
+                    duplicates.Add(cardId);
+                }
+            }
+        }
+
+        return duplicates;
     }
 
     /// <summary>
