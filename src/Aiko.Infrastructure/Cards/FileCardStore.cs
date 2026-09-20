@@ -125,6 +125,11 @@ public sealed class FileCardStore(
                 project.RootPath,
                 card.Reference.CardId,
                 card.Kind);
+            // A card still filed the old way moves to where cards live now, and it moves whole: its artifacts,
+            // its discussion and its handoffs are inside that directory, so moving the card alone would break
+            // it. Skipped when the new place already holds this card - there the new copy is the one this
+            // write is about, and the leftover in the old place is for the diagnosis to name.
+            MoveLegacyCardDirectory(project.RootPath, card, existingPath);
             Directory.CreateDirectory(cardDirectory);
             var cardPath = Path.Combine(cardDirectory, "card.json");
             await WriteCardAtomicallyAsync(cardPath, card, cancellationToken);
@@ -140,29 +145,56 @@ public sealed class FileCardStore(
         }
     }
 
+    /// <summary>
+    /// Files a card under <c>.aiko/workflows</c> when it still sits in the project's own data root.
+    /// </summary>
+    /// <remarks>
+    /// The whole card directory is moved rather than the document copied, so everything filed beside the card
+    /// travels with it. A target that already exists is left alone: that means the card is in both places,
+    /// and the copy in the new place is the one being written.
+    /// </remarks>
+    private static void MoveLegacyCardDirectory(string projectRoot, Card card, string? existingPath)
+    {
+        if (existingPath is null)
+        {
+            return;
+        }
+
+        var source = Path.GetDirectoryName(existingPath)!;
+        var target = GetCardDirectory(projectRoot, card.Reference.CardId, card.Kind);
+        if (StringComparer.OrdinalIgnoreCase.Equals(source, target) || Directory.Exists(target))
+        {
+            return;
+        }
+
+        Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+        Directory.Move(source, target);
+    }
+
     private async ValueTask<RegisteredProject> FindProjectAsync(
         string projectId,
         CancellationToken cancellationToken) =>
         await projects.FindAsync(projectId, cancellationToken)
         ?? throw new KeyNotFoundException($"Unknown Aiko project: {projectId}");
 
+    /// <summary>
+    /// The card document, wherever the card is filed: under <c>.aiko/workflows</c> first, and under the
+    /// project's own root second, because a project made before cards moved there is still a project with
+    /// cards. The new place wins when a card is somehow in both: that is where cards are written now.
+    /// </summary>
     private static string? GetCardPath(
         string projectRoot,
         string cardId,
         string? expectedKind)
     {
         ValidateCardId(cardId);
-        var kinds = expectedKind is null
+        var collections = expectedKind is null
             ? Collections(projectRoot)
             : [CollectionFor(expectedKind)];
 
-        foreach (var collection in kinds)
+        foreach (var (root, collection) in Candidates(projectRoot, collections))
         {
-            var candidate = Path.Combine(
-                AikoProjectPaths.DataRoot(projectRoot),
-                collection,
-                cardId,
-                "card.json");
+            var candidate = Path.Combine(root, collection, cardId, "card.json");
             if (File.Exists(candidate))
             {
                 return candidate;
@@ -173,7 +205,29 @@ public sealed class FileCardStore(
     }
 
     /// <summary>
-    /// Returns the card directory inside the collection of its type.
+    /// The two places a card of one of these collections can be: the collection root cards live in now, and
+    /// the project root they used to live in.
+    /// </summary>
+    private static IEnumerable<(string Root, string Collection)> Candidates(
+        string projectRoot,
+        IReadOnlyList<string> collections)
+    {
+        foreach (var collection in collections)
+        {
+            yield return (AikoProjectPaths.CardCollectionsRoot(projectRoot), collection);
+        }
+
+        foreach (var collection in LegacyCollections(projectRoot))
+        {
+            if (!collections.Contains(collection, StringComparer.Ordinal))
+            {
+                yield return (AikoProjectPaths.DataRoot(projectRoot), collection);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Returns the card directory inside the collection of its type, where cards are filed today.
     /// </summary>
     internal static string GetCardDirectory(
         string projectRoot,
@@ -182,9 +236,24 @@ public sealed class FileCardStore(
     {
         ValidateCardId(cardId);
         return Path.Combine(
-            AikoProjectPaths.DataRoot(projectRoot),
+            AikoProjectPaths.CardCollectionsRoot(projectRoot),
             CollectionFor(kind),
             cardId);
+    }
+
+    /// <summary>
+    /// The directory a card that already exists actually sits in - the old place for a project that has not
+    /// been migrated yet. Artifacts and notes are written beside the card, not beside where it will be.
+    /// </summary>
+    internal static string GetExistingCardDirectory(
+        string projectRoot,
+        string cardId,
+        string kind)
+    {
+        var path = GetCardPath(projectRoot, cardId, kind);
+        return path is null
+            ? GetCardDirectory(projectRoot, cardId, kind)
+            : Path.GetDirectoryName(path)!;
     }
 
     /// <summary>
@@ -232,14 +301,30 @@ public sealed class FileCardStore(
         char.IsLetter(value) && value is not ('a' or 'e' or 'i' or 'o' or 'u');
 
     /// <summary>
-    /// The card collections a project actually has: every directory below <c>.aiko</c> that is not one of the
-    /// reserved ones. Derived from disk rather than from a fixed list, because the set of card types is
-    /// project data.
+    /// The card collections a project has: every directory below <c>.aiko/workflows</c>. Derived from disk
+    /// rather than from a fixed list, because the set of card types is project data - and no longer carrying
+    /// a list of service directories to steer around, since a card lives nowhere near them any more. What
+    /// keeps the two apart is the shape of the entry: a directory under <c>workflows</c> is a collection, a
+    /// <c>.json</c> file there is a workflow definition.
     /// </summary>
     /// <param name="projectRoot">Root directory of the project.</param>
-    internal static IReadOnlyList<string> Collections(string projectRoot)
+    internal static IReadOnlyList<string> Collections(string projectRoot) =>
+        Directories(AikoProjectPaths.CardCollectionsRoot(projectRoot), reserved: []);
+
+    /// <summary>
+    /// The collections of a project made before cards moved under <c>.aiko/workflows</c>: every directory in
+    /// the data root that is not a service one. Read so that such a project keeps working until it is
+    /// migrated, and used by the migration that files its cards the new way.
+    /// </summary>
+    internal static IReadOnlyList<string> LegacyCollections(string projectRoot) =>
+        Directories(AikoProjectPaths.DataRoot(projectRoot), ServiceDirectories);
+
+    /// <summary>Directories below <c>.aiko</c> that hold something other than cards.</summary>
+    internal static readonly string[] ServiceDirectories =
+        [AikoProjectPaths.WorkflowsDirectoryName, "projections", "memory", "runtime", "handoffs"];
+
+    private static IReadOnlyList<string> Directories(string root, string[] reserved)
     {
-        var root = AikoProjectPaths.DataRoot(projectRoot);
         if (!Directory.Exists(root))
         {
             return [];
@@ -248,13 +333,10 @@ public sealed class FileCardStore(
         return Directory.EnumerateDirectories(root)
             .Select(Path.GetFileName)
             .Where(name => name is { Length: > 0 } &&
-                           !ReservedDirectories.Contains(name, StringComparer.OrdinalIgnoreCase))
+                           !reserved.Contains(name, StringComparer.OrdinalIgnoreCase))
             .Select(name => name!)
             .ToArray();
     }
-
-    /// <summary>Directories below <c>.aiko</c> that hold definitions rather than cards.</summary>
-    private static readonly string[] ReservedDirectories = ["workflows", "projections", "memory", "handoffs"];
 
     /// <summary>
     /// Verifies that a card identifier is safe as a directory/file name on every

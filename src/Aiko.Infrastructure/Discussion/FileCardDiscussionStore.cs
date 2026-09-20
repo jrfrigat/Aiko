@@ -119,10 +119,13 @@ public sealed class FileCardDiscussionStore(IProjectCatalog projects, ICardStore
     {
         var project = await FindProjectAsync(card.ProjectId, cancellationToken);
         var existing = await cards.FindAsync(card, cancellationToken);
-        var collection = existing is null
-            ? "tasks"
-            : FileCardStore.CollectionFor(existing.Kind);
-        var directory = Path.Combine(AikoProjectPaths.DataRoot(project.RootPath), collection, card.CardId);
+        // The card store decides where a card is filed, and the notes go into that same directory: a card
+        // that has not been migrated yet therefore keeps its notes beside it, in the old place, rather than in
+        // a directory that does not exist. "Task" is the fallback for a note about a card nobody has yet.
+        var directory = FileCardStore.GetExistingCardDirectory(
+            project.RootPath,
+            card.CardId,
+            existing?.Kind ?? "Task");
         Directory.CreateDirectory(directory);
         return Path.Combine(directory, FileName);
     }

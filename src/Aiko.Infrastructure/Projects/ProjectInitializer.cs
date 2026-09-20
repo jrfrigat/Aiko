@@ -295,10 +295,8 @@ public sealed class ProjectInitializer(
     {
         string[] relativePaths =
         [
-            "workflows",
+            AikoProjectPaths.WorkflowsDirectoryName,
             "projections",
-            "stories",
-            "tasks",
             "memory",
             "runtime"
         ];

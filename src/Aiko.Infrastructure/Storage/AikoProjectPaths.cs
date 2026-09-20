@@ -11,10 +11,28 @@ public static class AikoProjectPaths
     public const string DirectoryName = ".aiko";
 
     /// <summary>
+    /// Name of the directory that holds the workflow definitions and, under them, the card collections.
+    /// </summary>
+    /// <remarks>
+    /// One directory holds both, and the two kinds of entry are told apart by their shape rather than by a
+    /// list: a <c>.json</c> file is a workflow definition (<c>workflows/task.json</c>), a directory is the
+    /// collection of the cards of that type (<c>workflows/tasks/TASK-1/</c>). That is what lets a project
+    /// name a type anything at all - nothing it chooses can collide with a service directory, because the
+    /// service directories are not where cards live.
+    /// </remarks>
+    public const string WorkflowsDirectoryName = "workflows";
+
+    /// <summary>
     /// Returns the full path of the .aiko directory in the project root.
     /// </summary>
     public static string DataRoot(string projectRoot) =>
         Path.Combine(projectRoot, DirectoryName);
+
+    /// <summary>
+    /// Returns the directory holding the project's card collections: <c>.aiko/workflows</c>.
+    /// </summary>
+    public static string CardCollectionsRoot(string projectRoot) =>
+        Path.Combine(DataRoot(projectRoot), WorkflowsDirectoryName);
 
     /// <summary>
     /// Returns the path of the document holding what an agent must do right after the project was created.

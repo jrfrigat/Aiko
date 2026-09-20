@@ -65,60 +65,75 @@ public sealed class ProjectReindexer(
     {
         var cards = new List<Card>();
         var seenIds = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var collection in FileCardStore.Collections(project.RootPath))
-        {
-            await ReadCollectionAsync(collection);
-        }
+        // Cards are read from where this build files them and from where they were filed before, so a project
+        // that has not been migrated yet still reindexes completely. A card that is somehow in both places is
+        // taken once, from the place this build writes to.
+        await ReadCollectionsAsync(
+            AikoProjectPaths.CardCollectionsRoot(project.RootPath),
+            FileCardStore.Collections(project.RootPath),
+            skip: null);
+        await ReadCollectionsAsync(
+            AikoProjectPaths.DataRoot(project.RootPath),
+            FileCardStore.LegacyCollections(project.RootPath),
+            skip: seenIds);
 
         return cards;
 
-        async ValueTask ReadCollectionAsync(string collection)
+        async ValueTask ReadCollectionsAsync(
+            string root,
+            IReadOnlyList<string> collections,
+            HashSet<string>? skip)
         {
-            var collectionPath = Path.Combine(
-                AikoProjectPaths.DataRoot(project.RootPath),
-                collection);
-            if (!Directory.Exists(collectionPath))
+            foreach (var collection in collections)
             {
-                return;
-            }
-
-            foreach (var directory in Directory.EnumerateDirectories(collectionPath))
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                var cardPath = Path.Combine(directory, "card.json");
-                if (!File.Exists(cardPath))
+                var collectionPath = Path.Combine(root, collection);
+                if (!Directory.Exists(collectionPath))
                 {
                     continue;
                 }
 
-                await using var input = File.OpenRead(cardPath);
-                var card = await JsonSerializer.DeserializeAsync(
-                    input,
-                    ProjectJsonContext.Default.Card,
-                    cancellationToken)
-                    ?? throw new InvalidDataException($"Invalid card document: {cardPath}");
-                // The folder is derived from the type, so a card whose type and location disagree is a
-                // corrupted project rather than a type Aiko does not know. Comparing against the derived
-                // name - instead of a fixed list of collections - is what lets a project add types.
-                if (!StringComparer.Ordinal.Equals(card.Reference.ProjectId, project.Id) ||
-                    !StringComparer.Ordinal.Equals(
-                        card.Reference.CardId,
-                        Path.GetFileName(directory)) ||
-                    !StringComparer.Ordinal.Equals(
-                        FileCardStore.CollectionFor(card.Kind),
-                        collection))
+                foreach (var directory in Directory.EnumerateDirectories(collectionPath))
                 {
-                    throw new InvalidDataException(
-                        $"Card identity does not match its location: {cardPath}");
-                }
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var cardPath = Path.Combine(directory, "card.json");
+                    if (!File.Exists(cardPath))
+                    {
+                        continue;
+                    }
 
-                if (!seenIds.Add(card.Reference.CardId))
-                {
-                    throw new InvalidDataException(
-                        $"Card id '{card.Reference.CardId}' appears in more than one collection: {cardPath}");
-                }
+                    var cardId = Path.GetFileName(directory);
+                    if (skip is not null && skip.Contains(cardId))
+                    {
+                        continue;
+                    }
 
-                cards.Add(card);
+                    await using var input = File.OpenRead(cardPath);
+                    var card = await JsonSerializer.DeserializeAsync(
+                        input,
+                        ProjectJsonContext.Default.Card,
+                        cancellationToken)
+                        ?? throw new InvalidDataException($"Invalid card document: {cardPath}");
+                    // The folder is derived from the type, so a card whose type and location disagree is a
+                    // corrupted project rather than a type Aiko does not know. Comparing against the derived
+                    // name - instead of a fixed list of collections - is what lets a project add types.
+                    if (!StringComparer.Ordinal.Equals(card.Reference.ProjectId, project.Id) ||
+                        !StringComparer.Ordinal.Equals(card.Reference.CardId, cardId) ||
+                        !StringComparer.Ordinal.Equals(
+                            FileCardStore.CollectionFor(card.Kind),
+                            collection))
+                    {
+                        throw new InvalidDataException(
+                            $"Card identity does not match its location: {cardPath}");
+                    }
+
+                    if (!seenIds.Add(card.Reference.CardId))
+                    {
+                        throw new InvalidDataException(
+                            $"Card id '{card.Reference.CardId}' appears in more than one collection: {cardPath}");
+                    }
+
+                    cards.Add(card);
+                }
             }
         }
     }

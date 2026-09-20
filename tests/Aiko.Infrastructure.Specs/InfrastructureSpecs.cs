@@ -1110,7 +1110,7 @@ public class InfrastructureSpecs
             await Assert.ThrowsAsync<ArgumentException>(async () =>
                 await artifacts.ReadAsync(card.Reference, "../outside.md", CancellationToken.None));
             Assert.False(
-                File.Exists(Path.Combine(context.StitchRoot, "tasks", "outside.md")),
+                File.Exists(Path.Combine(context.StitchRoot, "workflows", "tasks", "outside.md")),
                 "artifact escaped its card directory");
         });
     }
@@ -1142,6 +1142,7 @@ public class InfrastructureSpecs
             Assert.Equal(1L, saved?.Revision);
             var cardPath = Path.Combine(
                 context.StitchRoot,
+                "workflows",
                 "tasks",
                 reference.CardId,
                 "card.json");
@@ -2203,8 +2204,8 @@ public class InfrastructureSpecs
         await WithInitializedProjectAsync(async context =>
         {
             var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
-            var stories = Path.Combine(context.StitchRoot, "stories", "DUP-1");
-            var tasks = Path.Combine(context.StitchRoot, "tasks", "DUP-1");
+            var stories = Path.Combine(context.StitchRoot, "workflows", "stories", "DUP-1");
+            var tasks = Path.Combine(context.StitchRoot, "workflows", "tasks", "DUP-1");
             Directory.CreateDirectory(stories);
             Directory.CreateDirectory(tasks);
             var story = CreateCard(context.Project.Id, "DUP-1", 1) with { Kind = "Story" };
@@ -2426,6 +2427,7 @@ public class InfrastructureSpecs
 
             var handoffDirectory = Path.Combine(
                 context.StitchRoot,
+                "workflows",
                 "tasks",
                 card.Reference.CardId,
                 "handoffs");
@@ -3507,7 +3509,10 @@ public class InfrastructureSpecs
         });
     }
 
-    private static Card CreateCard(string projectId, string cardId, long revision) =>
+    /// <summary>
+    /// A card of a freshly invented type, with the pipeline the specs below do not care about.
+    /// </summary>
+    internal static Card CreateCard(string projectId, string cardId, long revision) =>
         new(
             new CardReference(projectId, cardId),
             "Task",
@@ -3539,7 +3544,11 @@ public class InfrastructureSpecs
             CancellationToken.None);
     }
 
-    private static async Task WithInitializedProjectAsync(Func<TestContext, Task> assertion)
+    /// <summary>
+    /// An initialized project and the stores wired to an isolated database. Shared with the layout specs,
+    /// which need the same project to file cards in.
+    /// </summary>
+    internal static async Task WithInitializedProjectAsync(Func<TestContext, Task> assertion)
     {
         var specsRoot = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "Aiko.Specs"));
         var testRoot = Path.Combine(specsRoot, Guid.NewGuid().ToString("N"));
