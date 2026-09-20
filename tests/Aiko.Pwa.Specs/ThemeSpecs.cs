@@ -1,6 +1,8 @@
 using Aiko.Theme.StitchFlow;
 using Flare.Abstractions;
 using Flare.Abstractions.Tokens;
+using System.Globalization;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using Xunit;
 
@@ -130,6 +132,165 @@ public sealed class ThemeSpecs
         // The mark is an accent bar, and the dark palette's pale periwinkle disappears on a light plane.
         Assert.Contains("var(--flare-color-primary, #4a4bc4)", css, StringComparison.Ordinal);
         Assert.Contains("html.flare-mode-dark .splash-mark i", css, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_theme_ships_more_than_one_palette_and_they_are_told_apart()
+    {
+        // The point of the story: a palette is a choice, so there has to be something to choose.
+        Assert.True(Theme.Palettes.Count >= 2, "The theme should ship more than one palette.");
+
+        // A picker draws these, so an unnamed or duplicated palette is two identical rows.
+        Assert.All(Theme.Palettes, palette => Assert.False(
+            string.IsNullOrWhiteSpace(palette.Name),
+            $"{palette.Id} has no name to show."));
+        Assert.Equal(
+            Theme.Palettes.Count,
+            Theme.Palettes.Select(palette => palette.Id).Distinct(StringComparer.Ordinal).Count());
+        Assert.Equal(
+            Theme.Palettes.Count,
+            Theme.Palettes.Select(palette => palette.Name).Distinct(StringComparer.Ordinal).Count());
+    }
+
+    [Fact]
+    public void Every_palette_carries_a_full_contract_in_both_schemes()
+    {
+        // ColorScheme declares its roles as required, so a missing one does not compile - but an empty
+        // one compiles and would paint nothing at all. The names are read off the type instead of being
+        // listed here: a fourth hand-written list of roles is a list that drifts, and the compiler
+        // would not say a word about it.
+        var roles = typeof(ColorScheme)
+            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Where(property => property.PropertyType == typeof(string))
+            .Select(property => property.Name)
+            .ToArray();
+        Assert.Equal(49, roles.Length);
+
+        foreach (var palette in Theme.Palettes)
+        {
+            foreach (var (schemeName, scheme) in new[] { ("light", palette.Light), ("dark", palette.Dark) })
+            {
+                var empty = roles.Where(role => string.IsNullOrWhiteSpace(Role(scheme, role))).ToArray();
+                Assert.True(
+                    empty.Length == 0,
+                    $"{palette.Id} {schemeName} has no value for: {string.Join(", ", empty)}");
+            }
+        }
+    }
+
+    [Fact]
+    public void The_first_frames_palette_is_the_themes_own_default()
+    {
+        var page = File.ReadAllText(Path.Combine(
+            FindRepositoryRoot(), "src", "Aiko.Pwa", "wwwroot", "index.html"));
+        var declared = Regex.Match(page, @"data-default-palette=""(?<id>[a-z0-9-]+)""");
+
+        // The bootstrap script paints the first frame from this attribute, and the theme service applies
+        // its own default once .NET is up: two different palettes named is a flash of the wrong one.
+        Assert.True(declared.Success, "index.html should name the palette a first visit paints.");
+        Assert.Equal(Theme.DefaultPaletteId, declared.Groups["id"].Value);
+        Assert.Contains(Theme.Palettes, palette => palette.Id == Theme.DefaultPaletteId);
+    }
+
+    [Fact]
+    public void Every_palette_is_readable_in_both_schemes()
+    {
+        // Measured, not eyeballed: a palette that cannot be read is not a choice, it is a trap. The
+        // values come from the theme itself, so this checks what ships rather than a copy of the table.
+        string[] text =
+        [
+            "OnPrimary/Primary",
+            "OnPrimaryContainer/PrimaryContainer",
+            "OnSecondary/Secondary",
+            "OnSecondaryContainer/SecondaryContainer",
+            "OnTertiary/Tertiary",
+            "OnTertiaryContainer/TertiaryContainer",
+            "OnError/Error",
+            "OnErrorContainer/ErrorContainer",
+            "OnSuccess/Success",
+            "OnSuccessContainer/SuccessContainer",
+            "OnWarning/Warning",
+            "OnWarningContainer/WarningContainer",
+            "OnInfo/Info",
+            "OnInfoContainer/InfoContainer",
+            "OnSurface/Surface",
+            "OnSurfaceVariant/Surface",
+            "OnSurfaceVariant2/Surface",
+            "OnBackground/Background",
+            "InverseOnSurface/InverseSurface",
+        ];
+        // An outline, or an accent used as text and icons, is not body text: WCAG asks 3.0 of those.
+        string[] nonText =
+        [
+            "Outline/Surface",
+            "Primary/Surface",
+            "Secondary/Surface",
+            "Tertiary/Surface",
+        ];
+
+        foreach (var palette in Theme.Palettes)
+        {
+            foreach (var (schemeName, scheme) in new[] { ("light", palette.Light), ("dark", palette.Dark) })
+            {
+                foreach (var pair in text)
+                {
+                    AssertReadable(palette.Id, schemeName, scheme, pair, 4.5);
+                }
+
+                foreach (var pair in nonText)
+                {
+                    AssertReadable(palette.Id, schemeName, scheme, pair, 3.0);
+                }
+            }
+        }
+    }
+
+    /// <summary>The value of one color role, by name.</summary>
+    private static string Role(ColorScheme scheme, string name) =>
+        (string)typeof(ColorScheme).GetProperty(name)!.GetValue(scheme)!;
+
+    /// <summary>
+    /// Fails with the measured ratio when <paramref name="pair"/> is below <paramref name="minimum"/>.
+    /// </summary>
+    private static void AssertReadable(
+        string paletteId,
+        string schemeName,
+        ColorScheme scheme,
+        string pair,
+        double minimum)
+    {
+        var parts = pair.Split('/');
+        var ratio = Contrast(Role(scheme, parts[0]), Role(scheme, parts[1]));
+        Assert.True(
+            ratio >= minimum,
+            $"{paletteId} {schemeName}: {pair} measures {ratio:0.00}, below {minimum:0.0}");
+    }
+
+    /// <summary>The WCAG contrast ratio of two <c>#rrggbb</c> colours.</summary>
+    private static double Contrast(string first, string second)
+    {
+        var a = Luminance(first);
+        var b = Luminance(second);
+        return (Math.Max(a, b) + 0.05) / (Math.Min(a, b) + 0.05);
+    }
+
+    /// <summary>The WCAG relative luminance of a <c>#rrggbb</c> colour.</summary>
+    private static double Luminance(string colour)
+    {
+        var value = colour.TrimStart('#');
+        var channels = new double[3];
+        for (var index = 0; index < 3; index++)
+        {
+            var channel = int.Parse(
+                value.Substring(index * 2, 2),
+                NumberStyles.HexNumber,
+                CultureInfo.InvariantCulture) / 255d;
+            channels[index] = channel <= 0.03928
+                ? channel / 12.92
+                : Math.Pow((channel + 0.055) / 1.055, 2.4);
+        }
+
+        return (0.2126 * channels[0]) + (0.7152 * channels[1]) + (0.0722 * channels[2]);
     }
 
     /// <summary>
