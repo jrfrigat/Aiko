@@ -31,6 +31,14 @@ public sealed class SqliteExecutionCoordinator(
     /// </summary>
     private readonly KeyedLockStore locks = new();
 
+    /// <summary>
+    /// The one state a run holds a concurrency slot in. Only a working agent occupies a slot, so
+    /// <see cref="StageExecutionState.Running"/> is what <c>maxConcurrentRuns</c> counts and what the scope-overlap
+    /// check weighs: a run that waits for the user, is paused or needs attention frees its slot instead of holding
+    /// it (TASK-89).
+    /// </summary>
+    private const string RunningState = nameof(StageExecutionState.Running);
+
     /// <inheritdoc />
     public async ValueTask<IReadOnlyList<StageExecution>> ListAsync(
         CardReference card,
@@ -164,17 +172,19 @@ public sealed class SqliteExecutionCoordinator(
             var effectiveSettings = settings is null
                 ? ExecutionSettings.SafeDefault
                 : await settings.GetEffectiveExecutionAsync(card.ProjectId, cancellationToken);
-            var activeInProject = await CountActiveExecutionsAsync(card.ProjectId, cancellationToken);
-            if (activeInProject >= effectiveSettings.MaxConcurrentRuns)
+            var runningInProject = await CountRunningExecutionsAsync(card.ProjectId, cancellationToken);
+            if (runningInProject >= effectiveSettings.MaxConcurrentRuns)
             {
+                // Only a running execution occupies a slot, so the way out is to finish, pause or cancel one -
+                // pausing frees the slot now (TASK-89).
                 throw new InvalidOperationException(
                     $"The project allows at most {effectiveSettings.MaxConcurrentRuns} concurrent " +
-                    "stage execution(s). Complete or pause an active execution, or raise " +
+                    "running stage execution(s). Finish, pause or cancel one of them, or raise " +
                     "maxConcurrentRuns in the project settings.");
             }
 
-            var activeExecutions = await ListActiveExecutionsAsync(card.ProjectId, cancellationToken);
-            var scopeConflicts = FindScopeConflicts(sourceCard, activeExecutions);
+            var runningExecutions = await ListRunningExecutionsAsync(card.ProjectId, cancellationToken);
+            var scopeConflicts = FindScopeConflicts(sourceCard, runningExecutions);
             string? scopeWarning = null;
             if (scopeConflicts.Count > 0)
             {
@@ -773,7 +783,12 @@ public sealed class SqliteExecutionCoordinator(
             : new CardReference(project.Id, card.CardId);
     }
 
-    private async ValueTask<long> CountActiveExecutionsAsync(
+    /// <summary>
+    /// How many runs are actually running in the project: what <c>maxConcurrentRuns</c> limits. The state is bound
+    /// from the enum rather than written into the SQL, so the query cannot drift from the model while the count
+    /// keeps meaning "an agent is working right now" (TASK-89).
+    /// </summary>
+    private async ValueTask<long> CountRunningExecutionsAsync(
         string projectId,
         CancellationToken cancellationToken)
     {
@@ -785,13 +800,18 @@ public sealed class SqliteExecutionCoordinator(
             SELECT COUNT(*)
             FROM executions
             WHERE project_id = $projectId
-              AND state NOT IN ('Completed', 'Cancelled');
+              AND state = $running;
             """;
         command.Parameters.AddWithValue("$projectId", projectId);
+        command.Parameters.AddWithValue("$running", RunningState);
         return (long)(await command.ExecuteScalarAsync(cancellationToken) ?? 0L);
     }
 
-    private async ValueTask<IReadOnlyList<StageExecution>> ListActiveExecutionsAsync(
+    /// <summary>
+    /// The runs actually running in the project, for the scope-overlap check: a parked run is not writing files
+    /// while it waits, so it does not conflict with a start (TASK-89).
+    /// </summary>
+    private async ValueTask<IReadOnlyList<StageExecution>> ListRunningExecutionsAsync(
         string projectId,
         CancellationToken cancellationToken)
     {
@@ -803,9 +823,10 @@ public sealed class SqliteExecutionCoordinator(
             SELECT document_json
             FROM executions
             WHERE project_id = $projectId
-              AND state NOT IN ('Completed', 'Cancelled');
+              AND state = $running;
             """;
         command.Parameters.AddWithValue("$projectId", projectId);
+        command.Parameters.AddWithValue("$running", RunningState);
 
         var executions = new List<StageExecution>();
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);

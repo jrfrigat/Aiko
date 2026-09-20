@@ -2028,6 +2028,105 @@ public class InfrastructureSpecs
         });
     }
 
+    /// <summary>
+    /// Only a working agent occupies a concurrency slot: a run that waits for the user, is paused or needs
+    /// attention is not doing anything, so it must not keep the project's limit exhausted (TASK-89).
+    /// </summary>
+    [Fact]
+    public async Task Only_a_running_execution_holds_a_concurrency_slot()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            var settings = new AppSettingsService(new FileAppSettingsStore(context.Catalog));
+            await settings.SaveProjectAsync(
+                context.Project.Id,
+                new AppSettings(
+                    AppSettings.CurrentSchemaVersion,
+                    new ExecutionSettings(WorkspaceMode.Shared, 1, ActionPolicy.Ask, ActionPolicy.Deny)),
+                CancellationToken.None);
+            var executions = new SqliteExecutionCoordinator(
+                context.Catalog, context.Cards, context.Database, settings);
+
+            // Each state where no agent works is checked against the same slot, so one round each.
+            foreach (var state in new[]
+            {
+                AgentAttemptState.WaitingForUser,
+                AgentAttemptState.Paused,
+                AgentAttemptState.RateLimited,
+                AgentAttemptState.Failed
+            })
+            {
+                var holder = CreateCard(context.Project.Id, $"TASK-SLOT-A-{state}", 1);
+                var waiter = CreateCard(context.Project.Id, $"TASK-SLOT-B-{state}", 1);
+                await context.Cards.SaveAsync(holder, 0, CancellationToken.None);
+                await context.Cards.SaveAsync(waiter, 0, CancellationToken.None);
+
+                var started = await executions.StartAsync(
+                    holder.Reference, "implementation", "cline", CancellationToken.None);
+                Assert.Equal(StageExecutionState.Running, started.State);
+
+                // A working run holds the only slot, so the second card waits.
+                await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                    await executions.StartAsync(
+                        waiter.Reference, "implementation", "cline", CancellationToken.None));
+
+                var parked = await executions.ReportAgentStateAsync(
+                    started.Id, state, "no agent is working here", CancellationToken.None);
+                Assert.NotEqual(StageExecutionState.Running, parked.State);
+
+                // Parked, the first run stops counting, so the second card starts.
+                var accepted = await executions.StartAsync(
+                    waiter.Reference, "implementation", "cline", CancellationToken.None);
+                Assert.Equal(StageExecutionState.Running, accepted.State);
+
+                // Release the slot for the next round without walking the card's stages.
+                await executions.ReportAgentStateAsync(
+                    accepted.Id, AgentAttemptState.Cancelled, "released", CancellationToken.None);
+            }
+        });
+    }
+
+    /// <summary>
+    /// A parked run is not writing files while it waits, so it must not block a start through scope overlap
+    /// either (TASK-89): the same declared scope conflicts while the run works and stops conflicting once it waits.
+    /// </summary>
+    [Fact]
+    public async Task A_parked_execution_does_not_block_a_start_by_scope_overlap()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            var settings = new AppSettingsService(new FileAppSettingsStore(context.Catalog));
+            await settings.SaveProjectAsync(
+                context.Project.Id,
+                new AppSettings(
+                    AppSettings.CurrentSchemaVersion,
+                    new ExecutionSettings(WorkspaceMode.Shared, 2, ActionPolicy.Ask, ActionPolicy.Deny)),
+                CancellationToken.None);
+            var executions = new SqliteExecutionCoordinator(
+                context.Catalog, context.Cards, context.Database, settings);
+
+            var first = CreateCard(context.Project.Id, "TASK-PARK-A", 1) with { DeclaredScopeFiles = ["src/**"] };
+            var second = CreateCard(context.Project.Id, "TASK-PARK-B", 1) with { DeclaredScopeFiles = ["src/Foo/**"] };
+            await context.Cards.SaveAsync(first, 0, CancellationToken.None);
+            await context.Cards.SaveAsync(second, 0, CancellationToken.None);
+
+            var started = await executions.StartAsync(
+                first.Reference, "implementation", "cline", CancellationToken.None);
+
+            // While the first run works, the overlap is real and the policy asks.
+            var denied = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await executions.StartAsync(
+                    second.Reference, "implementation", "cline", CancellationToken.None));
+            Assert.Contains("scope", denied.Message, StringComparison.OrdinalIgnoreCase);
+
+            // Parked, it holds nothing back and the same start goes through.
+            await executions.PauseAsync(started.Id, "waiting for the user", CancellationToken.None);
+            var accepted = await executions.StartAsync(
+                second.Reference, "implementation", "cline", CancellationToken.None);
+            Assert.Equal(StageExecutionState.Running, accepted.State);
+        });
+    }
+
     [Fact]
     public async Task Board_priority_propagates_through_multiple_parent_levels()
     {
