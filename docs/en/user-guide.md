@@ -154,8 +154,8 @@ and the priority model - blending weights, the criteria with their ranges and ag
 size grid.
 
 There is a third level that is not configuration at all: **Appearance** (`/appearance`, in the rail's
-overview group) holds how the interface looks and reads for the person in front of it: the language and the
-theme mode, and the palette as it arrives. Nothing there is written to a file: the choice goes to the
+overview group) holds how the interface looks and reads for the person in front of it: the language, the
+theme mode and the palette. Nothing there is written to a file: the choice goes to the
 browser's local storage, so it follows the browser rather than the project, and neither a template nor a
 project can set it.
 
@@ -175,6 +175,14 @@ setting, and follows it as it changes - switching the system theme while the app
 interface, because the preference is subscribed to rather than read once at startup. Light and Dark hold one
 scheme whatever the system says. Like the language, the choice is kept in the browser and survives a reload;
 unlike the language, switching the mode takes effect on the spot - nothing is reloaded.
+
+**Palette** is the third axis: three colour schemes of the one theme, chosen from the list the theme ships.
+**Kinetic Orchestration** is the one a first visit starts on - indigo and cyan on a navy shell; **Cyber Amber
+Parchment** is the warm one, brown-amber accents on parchment in the light scheme and on warm charcoal in the
+dark one; **Cyber Amber Operator** is the cool one, the same amber on grey-blue surfaces. Each palette carries
+both schemes, so any of them can be read in Light or Dark. Like the mode, the choice is kept in the browser,
+survives a reload and takes effect on the spot, and a saved palette is applied before the first frame - the
+interface never flashes another one.
 
 ## Workflow sets
 
