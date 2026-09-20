@@ -205,9 +205,15 @@ public sealed class FileCardStore(
     }
 
     /// <summary>
-    /// The two places a card of one of these collections can be: the collection root cards live in now, and
-    /// the project root they used to live in.
+    /// The two places a card can be: the collection root cards live in now, and the project root they used
+    /// to live in. Every new-root candidate is offered before any old-root one, so the new place always wins
+    /// when a card is in both.
     /// </summary>
+    /// <remarks>
+    /// The old root is searched under every collection it has, not only under the ones the new root lacks:
+    /// a caller that knows the card's type hands over exactly one collection name, and filtering the old
+    /// root by that list would mean never looking where the card actually is.
+    /// </remarks>
     private static IEnumerable<(string Root, string Collection)> Candidates(
         string projectRoot,
         IReadOnlyList<string> collections)
@@ -219,10 +225,7 @@ public sealed class FileCardStore(
 
         foreach (var collection in LegacyCollections(projectRoot))
         {
-            if (!collections.Contains(collection, StringComparer.Ordinal))
-            {
-                yield return (AikoProjectPaths.DataRoot(projectRoot), collection);
-            }
+            yield return (AikoProjectPaths.DataRoot(projectRoot), collection);
         }
     }
 

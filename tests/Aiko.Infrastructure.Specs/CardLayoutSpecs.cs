@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Aiko.Domain.Cards;
+using Aiko.Infrastructure.Cards;
 using Aiko.Infrastructure.Storage;
 using Xunit;
 
@@ -129,6 +130,25 @@ public sealed class CardLayoutSpecs
 
             var saved = await context.Cards.FindAsync(reference, CancellationToken.None);
             Assert.Equal("After", saved?.Title);
+        });
+    }
+
+    [Fact]
+    public async Task A_card_filed_the_old_way_keeps_its_notes_beside_it()
+    {
+        await InfrastructureSpecs.WithInitializedProjectAsync(context =>
+        {
+            var cardId = "OLD-3";
+            var oldDirectory = WriteCardInTheOldPlace(context, cardId, kind: "Task", title: "Old");
+
+            // Whoever writes beside a card hands over the card's type - so the answer has to be the directory
+            // the card is in, not the one it would be in had it been migrated. Looking in the old root only
+            // for the collections the new root lacks would make this answer wrong, and the notes would land
+            // in a directory the card is not in.
+            Assert.Equal(
+                oldDirectory,
+                FileCardStore.GetExistingCardDirectory(context.ProjectRoot, cardId, "Task"));
+            return Task.CompletedTask;
         });
     }
 
