@@ -654,5 +654,10 @@
   <data name="AppearanceLanguage" xml:space="preserve"><value>Язык</value></data>
   <data name="AppearanceLanguageHint" xml:space="preserve"><value>Сначала ваш выбор, затем язык браузера, затем английский.</value></data>
   <data name="AppearanceReloadHint" xml:space="preserve"><value>Смена языка перезагружает страницу, чтобы весь интерфейс был отрисован на нём.</value></data>
+  <data name="AppearanceMode" xml:space="preserve"><value>Режим</value></data>
+  <data name="AppearanceModeHint" xml:space="preserve"><value>Следовать системной настройке или держать одну схему, что бы она ни говорила.</value></data>
+  <data name="AppearanceModeAuto" xml:space="preserve"><value>Авто</value></data>
+  <data name="AppearanceModeLight" xml:space="preserve"><value>Светлая</value></data>
+  <data name="AppearanceModeDark" xml:space="preserve"><value>Тёмная</value></data>
 
 </root>

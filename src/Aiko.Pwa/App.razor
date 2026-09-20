@@ -1,7 +1,12 @@
 @* Stylesheets="Manual": the app writes the theme's <link> tags into its own head, so the browser
    fetches the cockpit's fonts and rules with the first wave of the page instead of after .NET has
-   started. The provider still verifies them and adds any that are missing. *@
-<FlareThemeProvider RespectSystemColorScheme="false" Stylesheets="ThemeStylesheets.Manual">
+   started. The provider still verifies them and adds any that are missing.
+
+   RespectSystemColorScheme is left at its default (true) on purpose: the app's default mode is "auto",
+   and this provider is the only thing that reads prefers-color-scheme and hands it to the theme
+   service. With it off, "auto" would have nothing to resolve against. Leaving it on also keeps the
+   mode live - the interface follows the system while it is open, not only at startup. *@
+<FlareThemeProvider Stylesheets="ThemeStylesheets.Manual">
     <Router AppAssembly="@typeof(App).Assembly">
         <Found Context="routeData">
             <RouteView RouteData="routeData" DefaultLayout="@typeof(MainLayout)" />

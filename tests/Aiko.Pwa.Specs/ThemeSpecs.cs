@@ -1,6 +1,7 @@
 using Aiko.Theme.StitchFlow;
 using Flare.Abstractions;
 using Flare.Abstractions.Tokens;
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace Aiko.Pwa.Specs;
@@ -84,5 +85,66 @@ public sealed class ThemeSpecs
 
         // Selection is a fill swap, never a reshape: the selected radius is the rest radius.
         Assert.Equal(design.Button.RadiusMd.TopLeft, design.Button.SelectedRadiusMd);
+    }
+
+    [Fact]
+    public void The_first_frames_mode_is_stated_once_and_agreed_in_three_places()
+    {
+        var root = FindRepositoryRoot();
+        var page = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "wwwroot", "index.html"));
+        var program = File.ReadAllText(Path.Combine(root, "src", "Aiko.Pwa", "Program.cs"));
+
+        // The bootstrap script paints the first frame from the attribute, and the theme service applies
+        // this default once .NET is up. The two once disagreed, and a fresh visitor got the dark frame
+        // painted over by a light theme - the one flash neither side can undo.
+        var attribute = Regex.Match(page, @"data-default-mode=""(?<mode>[a-z]+)""");
+        var configured = Regex.Match(program, @"DefaultMode\s*=\s*ThemeMode\.(?<mode>[A-Za-z]+)");
+        Assert.True(attribute.Success, "index.html should state the mode a first visit gets.");
+        Assert.True(configured.Success, "Program.cs should state the mode it configures.");
+        Assert.Equal(configured.Groups["mode"].Value, attribute.Groups["mode"].Value, ignoreCase: true);
+
+        // And it is "auto": a workspace on someone's own machine should look like the rest of it until
+        // the person says otherwise.
+        Assert.Equal("Auto", configured.Groups["mode"].Value);
+
+        // The third place is not a copy of the mode but the condition for it: the provider is the only
+        // thing that reads prefers-color-scheme, so with this off "auto" resolves against nothing.
+        var app = File.ReadAllText(Path.Combine(root, "src", "Aiko.Pwa", "App.razor"));
+        Assert.DoesNotContain("RespectSystemColorScheme=\"false\"", app, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_splash_paints_the_first_frames_own_colour()
+    {
+        var css = File.ReadAllText(Path.Combine(
+            FindRepositoryRoot(), "src", "Aiko.Pwa", "wwwroot", "css", "app.css"));
+
+        // The splash paints before the theme's variables exist, so its fallback is the colour of the
+        // first frame - and which frame that is, the bootstrap script has already said by putting
+        // `flare-mode-dark` on <html>. A single dark fallback painted a dark splash under light mode.
+        Assert.Contains("var(--flare-color-background, #f7f8fc)", css, StringComparison.Ordinal);
+        Assert.Contains("html.flare-mode-dark #flare-splash", css, StringComparison.Ordinal);
+        Assert.Contains("var(--flare-color-background, #060e20)", css, StringComparison.Ordinal);
+
+        // The mark is an accent bar, and the dark palette's pale periwinkle disappears on a light plane.
+        Assert.Contains("var(--flare-color-primary, #4a4bc4)", css, StringComparison.Ordinal);
+        Assert.Contains("html.flare-mode-dark .splash-mark i", css, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Walks up from this assembly to the solution file, the same way the markup specs do.
+    /// </summary>
+    private static string FindRepositoryRoot()
+    {
+        var directory = new DirectoryInfo(
+            Path.GetDirectoryName(typeof(ThemeSpecs).Assembly.Location)!);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Aiko.slnx")))
+        {
+            directory = directory.Parent;
+        }
+
+        return directory?.FullName
+            ?? throw new InvalidOperationException("Could not locate the Aiko repository root.");
     }
 }

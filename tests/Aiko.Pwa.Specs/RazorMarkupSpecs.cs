@@ -455,6 +455,51 @@ public sealed class RazorMarkupSpecs
         }
     }
 
+    [Fact]
+    public void The_appearance_screen_offers_the_three_modes_the_theme_service_knows()
+    {
+        var root = FindRepositoryRoot();
+        var page = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "AppearancePage.razor"));
+
+        // One control with one value out of three. FlareColorModeToggle is a boolean and cannot express
+        // "auto", and an "auto" option beside it would be a second control on the same axis - the two
+        // could then contradict each other, and the person would not know what they had changed.
+        Assert.Contains("FlareToggleGroup TValue=\"ThemeMode\"", page, StringComparison.Ordinal);
+        Assert.Contains("Mandatory=\"true\"", page, StringComparison.Ordinal);
+        Assert.DoesNotContain("<FlareColorModeToggle", page, StringComparison.Ordinal);
+
+        // The states are the enum's values rather than strings, and the choice goes to the service: the
+        // provider is what remembers it, not this screen.
+        Assert.Contains("Value=\"@ThemeMode.Auto\"", page, StringComparison.Ordinal);
+        Assert.Contains("Value=\"@ThemeMode.Light\"", page, StringComparison.Ordinal);
+        Assert.Contains("Value=\"@ThemeMode.Dark\"", page, StringComparison.Ordinal);
+        Assert.Contains("ValueChanged=\"SetModeAsync\"", page, StringComparison.Ordinal);
+        Assert.Contains("ThemeService.SetModeAsync(", page, StringComparison.Ordinal);
+
+        // Not offered while the palette carries two schemes and nothing would answer the fourth state.
+        Assert.DoesNotContain("HighContrast", page, StringComparison.Ordinal);
+
+        // Every caption exists in both languages.
+        string[] keys =
+        [
+            "AppearanceMode",
+            "AppearanceModeHint",
+            "AppearanceModeAuto",
+            "AppearanceModeLight",
+            "AppearanceModeDark"
+        ];
+        foreach (var resource in new[] { "Loc.resx", "Loc.ru.resx" })
+        {
+            var resx = File.ReadAllText(
+                Path.Combine(root, "src", "Aiko.Pwa", "Resources", resource));
+            foreach (var key in keys)
+            {
+                Assert.Contains($"name=\"{key}\"", resx, StringComparison.Ordinal);
+            }
+        }
+    }
+
     /// <summary>
     /// Walks up from this assembly to the solution file, the same way the daemon fixture does.
     /// </summary>

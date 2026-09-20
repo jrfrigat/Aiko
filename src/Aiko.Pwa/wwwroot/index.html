@@ -5,7 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Aiko</title>
     <base href="/" />
-    <meta name="theme-color" content="#0b1326" />
+    <!-- The browser's own chrome. A saved mode is unknown here - this is the static page, before any
+         script runs - so the system scheme is the honest guess: dark keeps the cockpit's plane, light
+         gets the canvas the light scheme paints. The interface's own first frame is decided below. -->
+    <meta name="theme-color" content="#0b1326" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f7f8fc" media="(prefers-color-scheme: light)" />
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" type="image/svg+xml" href="aiko.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -21,7 +25,10 @@
     <script src="_content/Flare.Components/js/flare-bootstrap.js"
             data-default-theme="stitchflow"
             data-default-palette="stitchflow-kinetic"
-            data-default-mode="dark"></script>
+            data-default-mode="auto"></script>
+    <!-- data-default-mode decides a first visit only - the script reads a saved mode from local storage
+         first - and it must name the mode Program.cs configures and App.razor lets follow the system.
+         The splash in css/app.css reads the class this script puts on <html> for the same reason. -->
 </head>
 <body>
     <!-- Static splash: index.html is plain HTML, so this one block is styled by #flare-splash in

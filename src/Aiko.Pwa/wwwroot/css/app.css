@@ -23,7 +23,13 @@
 
 /* The pre-Blazor splash, and Blazor's own error bar. Both cover Flare's surfaces rather than join them,
    so they sit above the top rung of the stacking ladder (Flare 0.38) instead of naming a number that the
-   ladder could grow past. The fallback is for the splash, which paints before any theme stylesheet. */
+   ladder could grow past.
+
+   The splash paints before any theme variable exists, so its fallback IS the colour of the first frame -
+   and which frame that is, the bootstrap script has already decided: it puts `flare-mode-dark` on <html>
+   exactly when the saved mode, or the system under "auto", is dark. One dark fallback painted a dark
+   splash under a light mode, which is the flash in reverse. The values below are the palette's own
+   (Surface/OnBackground of Light, Background/OnBackground of Dark), not invented for the occasion. */
 #flare-splash {
     position: fixed;
     inset: 0;
@@ -32,9 +38,15 @@
     place-content: center;
     justify-items: center;
     gap: var(--flare-spacing-6, 1rem);
+    background: var(--flare-color-background, #f7f8fc);
+    color: var(--flare-color-on-background, #1b1b22);
+    text-align: center;
+}
+
+/* The bootstrap's own class, and the only thing that says "this frame is dark". */
+html.flare-mode-dark #flare-splash {
     background: var(--flare-color-background, #060e20);
     color: var(--flare-color-on-background, #dae2fd);
-    text-align: center;
 }
 
 .splash-mark {
@@ -46,6 +58,12 @@
     display: block;
     width: 4px;
     height: 32px;
+    /* The accent bar. The light scheme's primary, because the dark palette's pale periwinkle reads as
+       an empty slot on a light plane - the same fallback rule as the splash around it. */
+    background: var(--flare-color-primary, #4a4bc4);
+}
+
+html.flare-mode-dark .splash-mark i {
     background: var(--flare-color-primary, #c0c1ff);
 }
 

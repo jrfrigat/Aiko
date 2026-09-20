@@ -154,8 +154,8 @@ and the priority model - blending weights, the criteria with their ranges and ag
 size grid.
 
 There is a third level that is not configuration at all: **Appearance** (`/appearance`, in the rail's
-overview group) holds how the interface looks and reads for the person in front of it - the language today,
-and the theme mode and palette as they arrive. Nothing there is written to a file: the choice goes to the
+overview group) holds how the interface looks and reads for the person in front of it: the language and the
+theme mode, and the palette as it arrives. Nothing there is written to a file: the choice goes to the
 browser's local storage, so it follows the browser rather than the project, and neither a template nor a
 project can set it.
 
@@ -169,6 +169,12 @@ English and Russian ship today, and English is the neutral resource set - the fa
 language reads. Adding another is a `Loc.<culture>.resx` beside it, the culture in `UiLanguages.Supported`,
 and the culture in the PWA project's `SatelliteResourceLanguages`, so that the satellite is actually built;
 a spec fails when the three disagree.
+
+**Mode** has three states: **Auto** (the default), Light and Dark. Auto follows the system's own light/dark
+setting, and follows it as it changes - switching the system theme while the app is open repaints the
+interface, because the preference is subscribed to rather than read once at startup. Light and Dark hold one
+scheme whatever the system says. Like the language, the choice is kept in the browser and survives a reload;
+unlike the language, switching the mode takes effect on the spot - nothing is reloaded.
 
 ## Workflow sets
 

@@ -654,5 +654,10 @@
   <data name="AppearanceLanguage" xml:space="preserve"><value>Language</value></data>
   <data name="AppearanceLanguageHint" xml:space="preserve"><value>Your own choice first, then the browser's language, then English.</value></data>
   <data name="AppearanceReloadHint" xml:space="preserve"><value>Switching the language reloads the page, so the whole interface is redrawn in it.</value></data>
+  <data name="AppearanceMode" xml:space="preserve"><value>Mode</value></data>
+  <data name="AppearanceModeHint" xml:space="preserve"><value>Follow the system setting, or hold one scheme whatever it says.</value></data>
+  <data name="AppearanceModeAuto" xml:space="preserve"><value>Auto</value></data>
+  <data name="AppearanceModeLight" xml:space="preserve"><value>Light</value></data>
+  <data name="AppearanceModeDark" xml:space="preserve"><value>Dark</value></data>
 
 </root>

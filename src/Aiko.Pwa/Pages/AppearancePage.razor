@@ -1,6 +1,9 @@
 @page "/appearance"
+@using Flare.Abstractions
+@using Flare.Abstractions.Tokens
 @inject IJSRuntime Js
 @inject NavigationManager Navigation
+@inject IThemeService ThemeService
 
 @* How the interface is set up for the person reading it. The installation's own screen, like /daemon:
    the choice is kept in this browser, not in a project, so it does not belong under one. Language is
@@ -36,6 +39,30 @@
             <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
                 @Loc.Get("AppearanceReloadHint")
             </FlareText>
+
+            @* The mode axis. A toggle group, not FlareColorModeToggle: that component is a boolean - it
+               switches light and dark - so "auto" is not one of its states but a third value of the same
+               axis. Beside the toggle there would be two controls for one value, and they can contradict
+               each other: with auto on, the toggle shows whatever scheme auto resolved to, and clicking
+               it silently turns auto off - the person cannot tell what they just changed. One group with
+               Mandatory has exactly one value out of three, and it is built from Flare's own buttons, so
+               the theme still dresses it. *@
+            <FlareStack Gap="FlareSpacing.XXSmall">
+                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
+                    @Loc.Get("AppearanceMode")
+                </FlareText>
+                <FlareToggleGroup TValue="ThemeMode"
+                                  Value="@ThemeService.Mode"
+                                  ValueChanged="SetModeAsync"
+                                  Mandatory="true">
+                    <FlareToggleButton Value="@ThemeMode.Auto">@Loc.Get("AppearanceModeAuto")</FlareToggleButton>
+                    <FlareToggleButton Value="@ThemeMode.Light">@Loc.Get("AppearanceModeLight")</FlareToggleButton>
+                    <FlareToggleButton Value="@ThemeMode.Dark">@Loc.Get("AppearanceModeDark")</FlareToggleButton>
+                </FlareToggleGroup>
+                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                    @Loc.Get("AppearanceModeHint")
+                </FlareText>
+            </FlareStack>
         </FlareStack>
     </FlarePaper>
 </FlareStack>
@@ -89,4 +116,10 @@
 
         Navigation.NavigateTo(Navigation.Uri, forceLoad: true);
     }
+
+    /// <summary>
+    /// Switches the mode. The provider is what remembers it: it writes the whole theme selection on
+    /// every change, so writing the mode to storage here too would be a second place writing one key.
+    /// </summary>
+    private Task SetModeAsync(ThemeMode mode) => ThemeService.SetModeAsync(mode);
 }
