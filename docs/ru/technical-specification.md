@@ -149,26 +149,26 @@ Blazor WebAssembly PWA на Flare.Blazor:
 .aiko/
   project.json
   workflows/
-    story.json
+    story.json               # определение workflow: один .json-файл на тип
     task.json
+    stories/<STORY-ID>/      # карточки этого типа: одна папка на карточку
+      card.json
+      request.md
+      analysis.md
+      implementation.md
+      handoffs/
+    tasks/<TASK-ID>/
+      card.json
+      request.md
+      analysis.md
+      architecture.md
+      implementation.md
+      artifacts/
+      handoffs/
   projections/
     tasks.json
     stories.json
     combined.json
-  stories/<STORY-ID>/
-    card.json
-    request.md
-    analysis.md
-    architecture.md
-    artifacts/
-  tasks/<TASK-ID>/
-    card.json
-    request.md
-    analysis.md
-    architecture.md
-    implementation.md
-    artifacts/
-    handoffs/
   memory/
     index.md
     architecture.md
@@ -179,10 +179,14 @@ Blazor WebAssembly PWA на Flare.Blazor:
 ```
 
 Наличие конкретного Markdown-файла определяется требованиями этапа, а не жестким набором: `aiko init`
-создает `workflows/`, `projections/`, `stories/`, `tasks/`, `memory/` и `runtime/`, а каталог карточки
-(`tasks/<TASK-ID>/` с `card.json` и артефактами) появляется вместе с первой карточкой; `handoffs/` - при
-первой передаче этапа другому агенту. `commands.json` появляется с первой командой, которую экран
-поставил агенту (см. 12.2).
+создает `workflows/`, `projections/`, `memory/` и `runtime/`. Карточка лежит в коллекции своего типа —
+`workflows/<collection>/<cardId>/`, то есть `workflows/tasks/TASK-1/`, — и эта папка появляется вместе с
+первой карточкой типа, а `handoffs/` — при первой передаче этапа другому агенту. Две разновидности
+записей под `workflows/` различает форма, а не список имён: `.json` — **файл** определения workflow,
+**папка** — коллекция карточек этого типа. Поэтому тип можно называть как угодно, в том числе именем
+служебной папки. Карточки проекта, созданного до этой раскладки, переезжают под `workflows/` при старте
+демона или по `aiko repair --fix`; до переезда они читаются оттуда, где лежат. `commands.json` появляется
+с первой командой, которую экран поставил агенту (см. 12.2).
 
 ### 7.3 Глобальная SQLite
 

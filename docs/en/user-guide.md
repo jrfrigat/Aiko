@@ -276,7 +276,7 @@ commits stay under the policy below, and push is post-MVP.
 ## Discussion & commands
 
 Every card has a feed: notes from people and reports from agents. A note is authored content, so it lives
-with the card, in its own folder: `.aiko/<stories|tasks>/<cardId>/discussion.json`, next to `card.json`. The
+with the card, in its own folder: `.aiko/workflows/<stories|tasks>/<cardId>/discussion.json`, next to `card.json`. The
 **Discussion & commands** tab shows the feed (who, when, what) and a box for a new note; the `/benchmark` and
 `/leak-check` chips add a command to the text. Nothing is launched from here: the daemon records work, you run
 the agent - a command in the text is addressed to whoever opens the stage.
