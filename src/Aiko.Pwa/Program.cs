@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.JSInterop;
 using Aiko.Pwa;
+using Aiko.Pwa.Resources;
 using Aiko.Pwa.Services;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
@@ -32,20 +33,36 @@ builder.Services.AddScoped<WorkspaceState>();
 var host = builder.Build();
 // The language has to be settled before the first component renders, so the host is built first and
 // run afterwards.
-await ApplyBrowserLanguageAsync(host);
+await ApplyLanguageAsync(host);
 await host.RunAsync();
 
-// Chooses the UI culture from the browser's language preferences - the app does not pin one. The
-// neutral resources are English, so a browser language we do not translate resolves through them
-// instead of showing resource keys, while Russian resolves to the satellite resources we ship. The
-// preference list is honoured in order, which is what the platform asks for: a visitor who lists
-// Ukrainian, Russian and English gets the first of those we can serve.
-static async Task ApplyBrowserLanguageAsync(WebAssemblyHost host)
+// Settles the UI language before the first frame renders: the language chosen in the interface first,
+// then the browser's ordered preferences, then the neutral (English) resources.
+//
+// The saved choice is read from the same local-storage key aiko-i18n.js reads, because that script
+// settles the document language and Blazor's error bar on the first frame while this settles the
+// culture every component renders in. Reading one stored value is what keeps the two from disagreeing
+// - the dark frame under a light theme that a single mismatched default-mode once produced came from
+// exactly this kind of split, and a language that resolves differently in the two places is the same
+// fault with the UI showing it for the whole session instead of one frame.
+static async Task ApplyLanguageAsync(WebAssemblyHost host)
 {
+    string? saved = null;
     string[] preferred;
     try
     {
         var js = host.Services.GetRequiredService<IJSRuntime>();
+
+        // A stale service-worker cache can still be serving a script that knows only the browser's
+        // languages: a missing function must cost the saved choice, not the browser's preference.
+        try
+        {
+            saved = await js.InvokeAsync<string>("aikoSavedLanguage");
+        }
+        catch (JSException)
+        {
+        }
+
         var published = await js.InvokeAsync<string>("aikoLanguages");
         preferred = published?.Split(
             ',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? [];
@@ -60,26 +77,8 @@ static async Task ApplyBrowserLanguageAsync(WebAssemblyHost host)
         preferred = [];
     }
 
-    var culture = ResolveCulture(preferred);
+    var culture = UiLanguages.Resolve(preferred, saved);
     CultureInfo.DefaultThreadCurrentCulture = culture;
     CultureInfo.DefaultThreadCurrentUICulture = culture;
 }
 
-// The first browser language the runtime can name, or the invariant culture - which resource lookup
-// treats as "use the neutral resources", i.e. English.
-static CultureInfo ResolveCulture(IReadOnlyList<string> preferred)
-{
-    foreach (var language in preferred)
-    {
-        try
-        {
-            return CultureInfo.GetCultureInfo(language);
-        }
-        catch (CultureNotFoundException)
-        {
-            // A tag the ICU data does not know (or a malformed one): try the next preference.
-        }
-    }
-
-    return CultureInfo.InvariantCulture;
-}

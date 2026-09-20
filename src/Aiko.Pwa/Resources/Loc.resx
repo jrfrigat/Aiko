@@ -648,5 +648,11 @@
   <data name="CommandCaptionAnswer" xml:space="preserve"><value>answer the run</value></data>
   <data name="RunBoard" xml:space="preserve"><value>Work the board</value></data>
   <data name="RunBoardHint" xml:space="preserve"><value>Asks an agent to take every unfinished card of the board, in board order, to the end of its own pipeline.</value></data>
+  <data name="AppearanceNav" xml:space="preserve"><value>Appearance</value></data>
+  <data name="AppearanceTitle" xml:space="preserve"><value>Appearance</value></data>
+  <data name="AppearanceHint" xml:space="preserve"><value>How the interface looks and reads for you. The choice is kept in this browser, not in a project.</value></data>
+  <data name="AppearanceLanguage" xml:space="preserve"><value>Language</value></data>
+  <data name="AppearanceLanguageHint" xml:space="preserve"><value>Your own choice first, then the browser's language, then English.</value></data>
+  <data name="AppearanceReloadHint" xml:space="preserve"><value>Switching the language reloads the page, so the whole interface is redrawn in it.</value></data>
 
 </root>

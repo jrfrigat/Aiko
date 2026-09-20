@@ -1,0 +1,92 @@
+@page "/appearance"
+@inject IJSRuntime Js
+@inject NavigationManager Navigation
+
+@* How the interface is set up for the person reading it. The installation's own screen, like /daemon:
+   the choice is kept in this browser, not in a project, so it does not belong under one. Language is
+   the first of three axes; the theme mode and the palette are added here by STORY-15 and STORY-16. *@
+<PageTitle>@Loc.Get("AppearanceTitle")</PageTitle>
+
+<FlareStack Gap="FlareSpacing.Medium">
+    <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
+        <FlareStack Gap="FlareSpacing.Medium">
+            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
+                <span class="aiko-panel__icon aiko-panel__icon--primary">
+                    <FlareIconView Value="@MaterialDesign3Icons.Regular.Language" />
+                </span>
+                <FlareStack Gap="FlareSpacing.None">
+                    <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("AppearanceTitle")</FlareText>
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                        @Loc.Get("AppearanceHint")
+                    </FlareText>
+                </FlareStack>
+            </FlareStack>
+
+            @* The list is the one place the languages are written - UiLanguages.Supported - and the names
+               come from ICU, so no language is spelled out here and none needs a resource key of its own.
+               Self-closed on purpose: AikoSelectField warns that child content wins over Items, and a
+               fragment that renders nothing is still a fragment. *@
+            <AikoSelectField Label="@Loc.Get("AppearanceLanguage")"
+                             Value="@_language"
+                             ValueChanged="ChooseLanguageAsync"
+                             Items="@UiLanguages.Supported"
+                             ItemLabel="@UiLanguages.DisplayName"
+                             Hint="@Loc.Get("AppearanceLanguageHint")" />
+
+            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                @Loc.Get("AppearanceReloadHint")
+            </FlareText>
+        </FlareStack>
+    </FlarePaper>
+</FlareStack>
+
+@code {
+    private string? _language;
+
+    protected override void OnInitialized() => _language = Current;
+
+    /// <summary>
+    /// The language the interface is rendering in right now. The culture is one of the shipped ones or
+    /// the invariant culture, which reads the neutral (English) resources - so "not shipped" is the
+    /// honest answer for it, not a blank field.
+    /// </summary>
+    private static string Current
+    {
+        get
+        {
+            var culture = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+            return UiLanguages.IsSupported(culture) ? culture : UiLanguages.Neutral;
+        }
+    }
+
+    /// <summary>
+    /// Remembers the choice and reloads, because the language is settled before the first frame renders
+    /// and the strings already on screen were read in the old culture (see STORY-14, analysis 3.4).
+    /// </summary>
+    /// <remarks>
+    /// The write has to finish before the reload: a page that reloads first comes back in the language
+    /// it had. Storage that refuses (private mode) costs the memory of the choice, not the screen - the
+    /// page still reloads and falls back to the browser's language.
+    /// </remarks>
+    private async Task ChooseLanguageAsync(string? language)
+    {
+        if (language is null || string.Equals(language, _language, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _language = language;
+        try
+        {
+            await Js.InvokeVoidAsync("localStorage.setItem", UiLanguages.PreferenceKey, language);
+        }
+        catch (JSException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
+        }
+
+        Navigation.NavigateTo(Navigation.Uri, forceLoad: true);
+    }
+}

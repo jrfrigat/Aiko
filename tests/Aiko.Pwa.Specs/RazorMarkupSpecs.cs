@@ -403,6 +403,58 @@ public sealed class RazorMarkupSpecs
         }
     }
 
+    [Fact]
+    public void The_appearance_screen_lists_the_languages_from_code_and_none_of_them_by_hand()
+    {
+        var root = FindRepositoryRoot();
+        var page = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "AppearancePage.razor"));
+
+        // The screen owns the route and offers the choice from the one list in code. The names come from
+        // ICU, so no language needs a resource key of its own either.
+        Assert.Contains("@page \"/appearance\"", page, StringComparison.Ordinal);
+        Assert.Contains("Items=\"@UiLanguages.Supported\"", page, StringComparison.Ordinal);
+        Assert.Contains("ItemLabel=\"@UiLanguages.DisplayName\"", page, StringComparison.Ordinal);
+
+        // A language spelled out in the markup would be a second copy of the list, and the copy nobody
+        // updates: adding Loc.<culture>.resx has to stay enough.
+        Assert.DoesNotContain("\"en\"", page, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"ru\"", page, StringComparison.Ordinal);
+        Assert.DoesNotContain("<option", page, StringComparison.Ordinal);
+
+        // The choice is stored under the key the .NET side reads, and only then does the page reload -
+        // the decision STORY-14's analysis records, and the order that makes it work.
+        Assert.Contains("localStorage.setItem", page, StringComparison.Ordinal);
+        Assert.Contains("UiLanguages.PreferenceKey", page, StringComparison.Ordinal);
+        Assert.Contains("forceLoad: true", page, StringComparison.Ordinal);
+
+        // The rail leads to it, in the installation's own group.
+        var rail = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Layout", "MainLayout.razor"));
+        Assert.Contains("Href=\"/appearance\"", rail, StringComparison.Ordinal);
+        Assert.Contains("Loc.Get(\"AppearanceNav\")", rail, StringComparison.Ordinal);
+
+        // Every caption the rail and the screen use exists in both languages.
+        string[] keys =
+        [
+            "AppearanceNav",
+            "AppearanceTitle",
+            "AppearanceHint",
+            "AppearanceLanguage",
+            "AppearanceLanguageHint",
+            "AppearanceReloadHint"
+        ];
+        foreach (var resource in new[] { "Loc.resx", "Loc.ru.resx" })
+        {
+            var resx = File.ReadAllText(
+                Path.Combine(root, "src", "Aiko.Pwa", "Resources", resource));
+            foreach (var key in keys)
+            {
+                Assert.Contains($"name=\"{key}\"", resx, StringComparison.Ordinal);
+            }
+        }
+    }
+
     /// <summary>
     /// Walks up from this assembly to the solution file, the same way the daemon fixture does.
     /// </summary>

@@ -153,6 +153,23 @@ Currently configured: execution (workspace mode, max concurrent runs, scope-over
 and the priority model - blending weights, the criteria with their ranges and agent instructions, and the
 size grid.
 
+There is a third level that is not configuration at all: **Appearance** (`/appearance`, in the rail's
+overview group) holds how the interface looks and reads for the person in front of it - the language today,
+and the theme mode and palette as they arrive. Nothing there is written to a file: the choice goes to the
+browser's local storage, so it follows the browser rather than the project, and neither a template nor a
+project can set it.
+
+**Language** is chosen from the ones the interface is translated into. On a first visit, with nothing
+chosen, it follows the browser's ordered language list and falls back to English; a choice made on the
+screen wins over both, and a stored language the interface no longer ships is ignored rather than honoured.
+Switching it reloads the page: the language has to be settled before the first frame is drawn, which is what
+keeps the interface from flashing in the wrong one.
+
+English and Russian ship today, and English is the neutral resource set - the fallback every untranslated
+language reads. Adding another is a `Loc.<culture>.resx` beside it, the culture in `UiLanguages.Supported`,
+and the culture in the PWA project's `SatelliteResourceLanguages`, so that the satellite is actually built;
+a spec fails when the three disagree.
+
 ## Workflow sets
 
 A project is created from a **template**, and the template decides what it starts with: the stages of each

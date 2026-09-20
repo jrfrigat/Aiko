@@ -222,6 +222,12 @@
                             }
                         </BadgeContent>
                     </FlareNavLink>
+                    @* How the interface is set up for the person reading it: language, and soon mode and
+                       palette. It sits with the daemon because it describes the installation rather than
+                       the open project - the choice belongs to the browser, not to a card or a board. *@
+                    <FlareNavLink Href="/appearance">
+                        <ChildContent>@Loc.Get("AppearanceNav")</ChildContent>
+                    </FlareNavLink>
                     @* Workflow is the last item of the overview: it is where the pipelines every project is
                        created from live, and it replaces a separate "global settings" screen - the same
                        editor, pointed at a template. *@

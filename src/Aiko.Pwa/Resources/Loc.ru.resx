@@ -648,5 +648,11 @@
   <data name="CommandCaptionAnswer" xml:space="preserve"><value>ответить на вопрос прогона</value></data>
   <data name="RunBoard" xml:space="preserve"><value>Выполнить доску</value></data>
   <data name="RunBoardHint" xml:space="preserve"><value>Просит агента довести каждую незаконченную карточку доски — в порядке доски — до конца её конвейера.</value></data>
+  <data name="AppearanceNav" xml:space="preserve"><value>Внешний вид</value></data>
+  <data name="AppearanceTitle" xml:space="preserve"><value>Внешний вид</value></data>
+  <data name="AppearanceHint" xml:space="preserve"><value>Как интерфейс выглядит и читается для вас. Выбор хранится в этом браузере, а не в проекте.</value></data>
+  <data name="AppearanceLanguage" xml:space="preserve"><value>Язык</value></data>
+  <data name="AppearanceLanguageHint" xml:space="preserve"><value>Сначала ваш выбор, затем язык браузера, затем английский.</value></data>
+  <data name="AppearanceReloadHint" xml:space="preserve"><value>Смена языка перезагружает страницу, чтобы весь интерфейс был отрисован на нём.</value></data>
 
 </root>
