@@ -361,8 +361,10 @@ the single source of truth. Five states are shown on the card page and the board
 A forward move (`aiko_move_card`) and the start of another stage (`aiko_start_stage`) are refused while the
 current stage has no `Completed` run; starting the current stage again continues that run instead of creating a
 second one. That is **one run is one stage**: the `/aiko-run` procedure performs one stage and stops, and
-`/aiko-run <cardId> --all` is the explicit exception that walks the pipeline and still stops on a question to
-the user, a failure or a rate limit, a forbidden policy or a missing required artifact. The board's REST move
+`/aiko-run <cardId> --all` is the explicit exception that walks the pipeline and descends into the card's
+children - creating the ones a container's stage calls for and working each child before returning to its
+parent, with the parent's run parked so the tree keeps one run slot - and still stops on a question to the user,
+a failure or a rate limit, a forbidden policy or a missing required artifact. The board's REST move
 endpoint is deliberately not held to the rule: the board is how a person corrects their own board, and
 `aiko doctor` reports the cards that were pushed past an unfinished stage.
 

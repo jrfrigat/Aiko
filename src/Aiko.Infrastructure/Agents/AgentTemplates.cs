@@ -456,6 +456,28 @@ internal static class AgentTemplates
         fails or hits its rate limit, when the stage's policy forbids an action, or when a required artifact
         cannot be produced.
 
+        --all descends into the card's children when the card is a container - an epic holds its goal across
+        stories, a story across tasks, and the stage that asks for the breakdown is the stage that gets it.
+        Create the children a stage calls for with aiko_create_card and link each one to its parent with
+        aiko_link_cards ("parent-child"). A created child is not stage work, so creating it costs nothing; when
+        a child has to be worked, drive it to the end of its own pipeline - the same start, artifacts,
+        re-estimate, feed note and complete - and go back to its parent only afterwards. The children and the
+        order to take them in come from the parent's own statement on its card; the board's priority is not
+        that order.
+
+        The whole tree shares one run slot. Aiko counts the runs whose state is Running against the project's
+        maxConcurrentRuns, and a run that is parked, waiting or needs attention holds no slot, so a parent left
+        running refuses its own child's start. Park the parent with aiko_pause_execution, the reason naming the
+        child you are descending into, work the child, then continue the parent with aiko_resume_execution and
+        finish the stage it was in. Park a stage that is still open: a stage that already has a completed run
+        reads as completed on the board, and parking it would hide that the card is waiting - do not do it.
+        Never leave a parent parked and forgotten: a stop names the card it stopped on and says which parent
+        was left parked and why.
+
+        A child that cannot be worked stops the pass: aiko_start_stage refusing it because another card blocks
+        it, a question to the user, a failure or a rate limit, a forbidden action. The parent's stage cannot be
+        completed honestly without its child, so do not skip it and do not complete the parent around it.
+
         Do what the stage's instruction asks for and honour its beforeSkills and afterSkills. Produce the
         artifacts the stage requires, because they are what the stage is judged by. Complete the stage with
         aiko_complete_stage once its instruction and artifacts are done - the card moves on from there, and
@@ -749,8 +771,10 @@ internal static class AgentTemplates
         complete it, so what one stage learned is not lost on the next. One run is one stage: work the next
         stage only when the user asks again, and
         /aiko-run <cardId> --all is the explicit exception - it
-        walks the pipeline, and even then it stops when a stage asks the user a question, when an agent fails or
-        hits its limit, when a stage forbids an action, or when a required artifact cannot be produced. Read the
+        walks the pipeline and descends into the card's children, creating the ones a container's stage calls
+        for and working each child before going back to its parent, and even then it stops when a stage asks the
+        user a question, when an agent fails or hits its limit, when a stage forbids an action, or when a
+        required artifact cannot be produced. Read the
         project context before touching files. Warn before modifying files outside the card scopeFiles and
         record the actual changed files. A project can be linked to other projects: aiko_get_project_context
         lists them with what each one is for. When a request belongs to a linked project, file it there with
@@ -780,8 +804,10 @@ internal static class AgentTemplates
         offer the blocking card instead of working around it. Before you complete a stage, re-estimate the
         card with aiko_estimate_card - the readiness criterion must describe the card as it is after the work.
         One run is one stage: after
-        aiko_complete_stage stop, unless the user asked for --all, which walks the pipeline and still stops on a
-        question to the user, a failure or a forbidden action. Produce the stage's artifacts and keep card
+        aiko_complete_stage stop, unless the user asked for --all, which walks the pipeline and descends into
+        the card's children, creating the ones a container's stage calls for and working each child before
+        returning to its parent, and still stops on a question to the user, a failure or a forbidden action.
+        Produce the stage's artifacts and keep card
         status, progress, scope changes, actual changed files and agent handoffs synchronized.
         """;
 }

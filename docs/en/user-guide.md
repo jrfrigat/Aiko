@@ -222,9 +222,10 @@ exactly one stage and then stops. The board itself stays free: a person may drag
 
 "Running" means the agent **said** it is running, not that its process is alive: Aiko does not start agents,
 it only records what an agent reports. A stage is completed only when its required artifacts are in place and
-the card was re-estimated; `/aiko-run <cardId> --all` is the one mode that walks the pipeline by itself, and
-even it stops for a question to the user, a failure or a rate limit, a forbidden policy or a missing required
-artifact.
+the card was re-estimated; `/aiko-run <cardId> --all` is the one mode that walks the pipeline by itself -
+descending into the children of a container, creating the ones a stage calls for and working each of them before
+returning to the parent, with the parent's run parked so the tree keeps one run slot - and even it stops for a
+question to the user, a failure or a rate limit, a forbidden policy or a missing required artifact.
 
 ## Git
 

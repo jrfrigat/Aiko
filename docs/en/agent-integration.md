@@ -68,8 +68,10 @@ exactly one stage: `aiko_start_stage` for the stage the card is in,
 the work, `aiko_complete_stage`, then stop. Running the card again while its stage is unfinished continues
 that same run, so a half-finished stage is never stepped over, and starting the next stage is refused until
 the current one is completed. `/aiko-run <cardId> --all` is the explicit exception: it walks the pipeline by
-itself, and even then it stops when a stage asks the user a question, when an agent fails or hits its rate
-limit, when a stage's policy forbids an action, or when a required artifact cannot be produced.
+itself and descends into the card's children - creating the ones a container's stage calls for and working each
+child to the end of its own pipeline before returning to its parent, with the parent's run parked so the whole
+tree keeps one run slot - and even then it stops when a stage asks the user a question, when an agent fails or
+hits its rate limit, when a stage's policy forbids an action, or when a required artifact cannot be produced.
 
 A stage is completed only when its required artifacts are in place and the card was re-estimated during that
 run: `aiko_complete_stage` refuses otherwise, because the readiness criterion is what says the work is done.

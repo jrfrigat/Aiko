@@ -746,6 +746,9 @@ public class InfrastructureSpecs
             Assert.Contains("and stop", contract, StringComparison.Ordinal);
             Assert.Contains("One run is one stage", contract, StringComparison.Ordinal);
             Assert.Contains("--all", contract, StringComparison.Ordinal);
+            // --all is not only the named card's own pipeline: a container's pass creates its children and works
+            // them. An epic run that reported the stories it would need and created none is what this closes.
+            Assert.Contains("descends into the card's children", contract, StringComparison.Ordinal);
             // An order is still only a request. The incident this line closes was an agent that read "fix X" as
             // "run X" and did the work before the user had asked for it.
             Assert.Contains("An order is still a request", contract, StringComparison.Ordinal);
@@ -755,6 +758,13 @@ public class InfrastructureSpecs
             Assert.Contains("aiko_start_stage", run, StringComparison.Ordinal);
             Assert.Contains("Run ONE stage and stop", run, StringComparison.Ordinal);
             Assert.Contains("--all", run, StringComparison.Ordinal);
+            // --all descends into the card's children. The whole tree keeps one run slot, so the parent's run has
+            // to be parked before a child can start - that parking is what makes the descent possible at all, and
+            // the procedure has to say both halves or the first child start would hit the run limit.
+            Assert.Contains("descends into the card's children", run, StringComparison.Ordinal);
+            Assert.Contains("aiko_pause_execution", run, StringComparison.Ordinal);
+            Assert.Contains("aiko_resume_execution", run, StringComparison.Ordinal);
+            Assert.Contains("maxConcurrentRuns", run, StringComparison.Ordinal);
             // The old claim - that moving the card is the only way it changes stage - was wrong and told an
             // agent to move a card it was about to start anyway.
             Assert.DoesNotContain("only way it changes stage", run, StringComparison.Ordinal);

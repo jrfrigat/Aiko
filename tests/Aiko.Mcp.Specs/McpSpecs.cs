@@ -171,6 +171,9 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         Assert.Contains("aiko_complete_stage", text, StringComparison.Ordinal);
         Assert.Contains("One run is one stage", text, StringComparison.Ordinal);
         Assert.Contains("--all", text, StringComparison.Ordinal);
+        // --all descends into the card's children as well, and this context is the first text an agent reads: a
+        // person who runs an epic expecting it to create and work its stories has to find that rule here.
+        Assert.Contains("descends into the card's children", text, StringComparison.Ordinal);
         // An order is still only a request: creating the card is the answer, and the run waits for the ask.
         Assert.Contains("An order is still a request", text, StringComparison.Ordinal);
         // The git rules the project states include push, and they say plainly that Aiko cannot enforce it: the

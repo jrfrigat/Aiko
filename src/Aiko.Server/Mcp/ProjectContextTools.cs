@@ -66,8 +66,10 @@ internal sealed class ProjectContextTools(
             and names the blocker - do not work around that, tell the user and offer the blocking card instead.
             One run is one stage:
             after you complete a stage, stop and wait to be asked for the next one - unless the user passed
-            --all, which walks the pipeline and still stops on a question to the user, a failure or a forbidden
-            action.
+            --all, which walks the pipeline and descends into the card's children: it creates the ones a
+            container's stage calls for and works each child to the end of its own pipeline before returning to
+            its parent, parking the parent's run so the whole tree keeps one run slot. It still stops on a
+            question to the user, a failure or a forbidden action.
 
             The card's feed is the notebook one stage leaves for the next: read it with aiko_list_comments
             before you start the stage - it may hold what an earlier stage learned, what the user asked for, or
