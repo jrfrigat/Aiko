@@ -1,74 +1,41 @@
 /*
  * StitchFlow cockpit - theme stylesheet.
  *
- * Everything Flare tokens can express is already expressed in StitchFlowTheme. What is left here is
- * the short list of rules a token cannot reach, and each one names the gap it works around so it can
- * be deleted when Flare grows the knob:
+ * Everything Flare tokens can express is already expressed in StitchFlowTheme. What is left here is the
+ * short list of rules a token cannot reach, and each one names the gap it works around so it can be
+ * deleted when Flare grows the knob:
  *
- *   1. FlareText's Mono switch hardcodes `font-family: monospace`, so a theme cannot point it at its
- *      own typeface.                              -> .flare-text--mono
- *   2. FlareLayout hardcodes which color role each plane uses (background for the shell and the app
- *      bar, surface-container-low for a drawer) and gives the content no background at all, so a
- *      design that paints the chrome on the darkest plane and the canvas on `surface` must override
- *      three rules instead of naming tokens.      -> .flare-layout / -drawer / -content
- *   3. ChipTokens has no label typography, so a chip cannot be the monospaced micro-tag the design
- *      needs.                                     -> .flare-chip
- *   4. The app bar's translucency and blur are a paint effect with no token.   -> .flare-layout-appbar
- *   5. The rail is separated from the canvas by a shadow rather than by a rule, and DrawerTokens
- *      carries no shadow.                        -> .flare-layout-drawer
- *   6. Live telemetry dots glow in their own colour; BadgeTokens has no shadow.       -> .flare-badge__indicator
+ *   1. The app bar's translucency and blur are a paint effect with no token.   -> .flare-layout-appbar
+ *   2. Live telemetry dots glow in their own colour; BadgeTokens has no shadow.      -> .flare-badge__indicator
+ *   3. The nav badge slot is painted as a notification badge in core - an error-coloured capsule - so a
+ *      neutral trailing tag (a count, a path, a state) cannot live there as it comes.  -> nav-badge-slot-paint.md
+ *
+ * Flare 0.38 closed five of the gaps this file used to work around: the mono face, the shell's three
+ * planes, the rail's shadow, the chip's label type and the active nav item's colour are tokens now, so
+ * the rules that repainted them are gone and their values live in StitchFlowTheme (migration to 0.38).
  */
 
-/* The cockpit's monospace stack, in one place: identifiers, triage lines, counts, telemetry. */
+/* The monospace stack itself belongs to the theme (TypographyTokens.MonoFont -> --flare-font-mono, a token
+   since Flare 0.38). The alias is for the .aiko-* hooks, which are not Flare components. */
 .flare-theme-stitchflow {
-    --aiko-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --aiko-font-mono: var(--flare-font-mono);
 }
 
-/* (1) FlareText Mono. */
-.flare-theme-stitchflow .flare-text--mono {
-    font-family: var(--aiko-font-mono);
-}
-
-/* (2) Layout planes: chrome on the darkest plane, canvas on `surface`. */
-.flare-theme-stitchflow .flare-layout-drawer,
+/* (1) The app bar is a blurred translucent plane over the canvas. */
 .flare-theme-stitchflow .flare-layout-appbar {
-    background: var(--flare-color-background);
-}
-
-.flare-theme-stitchflow .flare-layout-content {
-    background: var(--flare-color-surface);
-}
-
-/* (3) Chips are micro-tags: monospaced, 11px, tight. */
-.flare-theme-stitchflow .flare-chip {
-    font-family: var(--aiko-font-mono);
-    font-size: 0.6875rem;
-    font-weight: 500;
-    letter-spacing: 0.02em;
-}
-
-/* (4) The app bar is a blurred translucent plane over the canvas. */
-.flare-theme-stitchflow .flare-layout-appbar {
-    background: color-mix(in srgb, var(--flare-color-background) 92%, transparent);
+    background: color-mix(in srgb, var(--flare-layout-shell-bg) 92%, transparent);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
 }
 
-/* (5) The rail stands off the canvas by a shadow. */
-.flare-theme-stitchflow .flare-layout-drawer {
-    box-shadow: 1px 0 10px rgba(0, 0, 0, 0.3);
-}
-
-/* (6) Live dots glow: the telemetry indicator of the design. */
+/* (2) Live dots glow: the telemetry indicator of the design. */
 .flare-theme-stitchflow .flare-badge__indicator {
     box-shadow: 0 0 8px color-mix(in srgb, var(--fc-main, var(--flare-color-primary)) 55%, transparent);
 }
 
-/*
- * (7) The nav badge slot is painted as a NOTIFICATION badge in core - an error-coloured capsule - so a
- * neutral trailing tag (a count, a path, a state) cannot live there as it comes. The theme paints the
- * slot instead of the app avoiding it.                  -> nav-badge-slot-paint.md
- */
+/* (3) The nav badge slot is painted as a NOTIFICATION badge in core - an error-coloured capsule - so a
+   neutral trailing tag (a count, a path, a state) cannot live there as it comes. The theme paints the
+   slot instead of the app avoiding it.                  -> nav-badge-slot-paint.md */
 .flare-theme-stitchflow .flare-nav-link__badge,
 .flare-theme-stitchflow .flare-nav-group__badge {
     background: none;
@@ -78,13 +45,4 @@
     min-width: 0;
     font-size: inherit;
     font-weight: var(--flare-nav-badge-weight);
-}
-
-/*
- * (8) An active item's text colour is hardcoded to on-secondary-container in core, which is the pair
- * of the second accent - not of whatever a theme put in --flare-nav-active-indicator. The v2 frame
- * paints the active label in the accent itself over a surface-container-high row.  -> nav-active-color.md
- */
-.flare-theme-stitchflow .flare-nav-link--active {
-    color: var(--flare-color-primary);
 }

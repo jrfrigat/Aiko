@@ -11,7 +11,9 @@
  * Flare has no component for what they draw:
  *
  *   - the kanban card and column anatomy (FlareKanban carries four fields and no card template)
- *   - the static micro-tag (FlareChip always renders role="button" with a tab stop)
+ *   - the static micro-tag, which the status strip and the board tags are built from (a FlareChip with
+ *     nothing wired to it is a tag since 0.38, but the design's is a monospaced micro scale with
+ *     variants Flare's chip does not have)
  *   - the top-bar status pill and the brand tile
  *   - the uppercase eyebrow (FlareText has no text-transform override)
  *
@@ -19,11 +21,13 @@
  * from tokens - and each one disappears with its issue.
  */
 
-/* The pre-Blazor splash, and Blazor's own error bar. */
+/* The pre-Blazor splash, and Blazor's own error bar. Both cover Flare's surfaces rather than join them,
+   so they sit above the top rung of the stacking ladder (Flare 0.38) instead of naming a number that the
+   ladder could grow past. The fallback is for the splash, which paints before any theme stylesheet. */
 #flare-splash {
     position: fixed;
     inset: 0;
-    z-index: 1000;
+    z-index: calc(var(--flare-z-drag, 700) + 2);
     display: grid;
     place-content: center;
     justify-items: center;
@@ -53,7 +57,7 @@
     position: fixed;
     inset-inline: 0;
     bottom: 0;
-    z-index: 1100;
+    z-index: calc(var(--flare-z-drag, 700) + 1);
     display: none;
     padding: var(--flare-spacing-6, 1rem);
     background: var(--flare-color-error-container, #93000a);
@@ -80,8 +84,10 @@
     line-height: 1;
 }
 
-/* A static micro-tag: the design's monospaced, 2px-radius chip. FlareChip cannot be used for it,
-   because it always renders role="button" with a tab stop. */
+/* A static micro-tag: the design's monospaced, 2px-radius chip. A FlareChip could not be used for it
+   while every chip rendered role="button" with a tab stop; since Flare 0.38 a chip with nothing wired
+   to it is a tag, but the design's is a micro scale with variants (--accent, --quiet, --warn, --pill,
+   --live, --clip) that a chip does not carry, and no FlareChip is rendered anywhere in this app. */
 .aiko-tag {
     display: inline-flex;
     align-items: center;

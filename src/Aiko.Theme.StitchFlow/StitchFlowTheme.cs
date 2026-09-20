@@ -32,11 +32,21 @@ public static class StitchFlowTheme
     /// <summary>Stable theme id; also the CSS class the theme's stylesheets are scoped to.</summary>
     public const string ThemeId = "stitchflow";
 
-    /// <summary>UI typeface. Identifiers use <see cref="MonoFont"/>.</summary>
+    /// <summary>UI typeface. Identifiers use <see cref="MonoFontStack"/>.</summary>
     public const string UiFont = "Inter";
 
-    /// <summary>Typeface for identifiers, triage lines, counts and telemetry.</summary>
-    public const string MonoFont = "JetBrains Mono";
+    /// <summary>
+    /// Typeface stack for identifiers, triage lines, counts and telemetry; the value of
+    /// <see cref="TypographyTokens.MonoFont"/>.
+    /// </summary>
+    /// <remarks>
+    /// The mono face was core's own until Flare 0.38 took it as a token, and before that this stack lived
+    /// in the theme stylesheet as an override of <c>.flare-text--mono</c>. A real family comes first and the
+    /// generic is repeated last on purpose: a generic standing alone makes several engines use their own
+    /// "monospace default size", which paints text at a size nothing else measured.
+    /// </remarks>
+    public const string MonoFontStack =
+        "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
 
     /// <summary>Builds the theme. Register it once, then select it by <see cref="ThemeId"/>.</summary>
     public static ITheme Create() => new MaterialDesign3ExpressiveTheme().Derive(
@@ -67,6 +77,9 @@ public static class StitchFlowTheme
 
         Typography = new TypographyTokens
         {
+            // Core said `monospace` outright for every mono run until Flare 0.38 made the face a theme's
+            // (migration to 0.38, §1). State it, or the cockpit's identifiers fall back to the browser's.
+            MonoFont = MonoFontStack,
             DisplayLarge = Type(UiFont, "600", "2rem", "2.5rem", "-0.025em"),
             DisplayMedium = Type(UiFont, "600", "1.75rem", "2.25rem", "-0.02em"),
             DisplaySmall = Type(UiFont, "600", "1.5rem", "2rem", "-0.02em"),
@@ -286,6 +299,18 @@ public static class StitchFlowTheme
             Height = "1.25rem",
             FilledBg = "var(--flare-color-surface-container)",
             ElevatedBg = "var(--flare-color-surface-container-high)",
+            // The chip is the design's monospaced micro-tag: JetBrains Mono at 11px, medium, tight. Core
+            // declared none of the label's type, so the theme repainted `.flare-chip` in its stylesheet
+            // until Flare 0.38 added these tokens (migration to 0.38, §1). All five steps carry the same
+            // size, which is what the stylesheet said: a micro-tag does not have a size ramp.
+            LabelFont = MonoFontStack,
+            LabelWeight = "500",
+            LabelSpacing = "0.02em",
+            LabelSizeXs = "0.6875rem",
+            LabelSizeSm = "0.6875rem",
+            LabelSizeMd = "0.6875rem",
+            LabelSizeLg = "0.6875rem",
+            LabelSizeXl = "0.6875rem",
             IconSizeXs = "0.75rem",
             IconSizeSm = "0.8125rem",
             IconSizeMd = "0.875rem",
@@ -371,6 +396,13 @@ public static class StitchFlowTheme
             IndicatorRadius = "var(--flare-shape-small)",
             ActiveIndicator = "var(--flare-color-surface-container-high)",
             ActiveLeftBar = "2px solid var(--flare-color-primary)",
+            // "You are here" is the left bar plus the accent label, and the label is read against the
+            // filled row above rather than against the drawer plane. Stated rather than left to the base
+            // theme: until Flare 0.38 core fixed this to the on-secondary-container pair of an indicator
+            // this theme does not use, and the theme repainted the rule in its stylesheet to get the accent
+            // (migration to 0.38, §1). The other four colours stay inherited - the in-box values are what
+            // core held, so stating them would move nothing.
+            ActiveColor = "var(--flare-color-primary)",
             ActiveWeight = "600",
             BadgeWeight = "500",
             IconSize = "1.125rem",
@@ -379,14 +411,17 @@ public static class StitchFlowTheme
         },
 
         // ----------------------------------------------------------------- Layout ------------
-        // A 56px app bar over the darkest plane, a 256px rail, and 12px content gutters. The bar and
-        // the rail are separated from the canvas by a shadow rather than by a rule, and the rail's
-        // shadow has no token (see layout-drawer-shadow.md), so it lives in the theme stylesheet.
+        // A 56px app bar over the darkest plane, a 256px rail, and 12px content gutters. The chrome sits
+        // on the design's darkest plane and the canvas on `surface`, and the rail stands off the canvas by
+        // depth rather than by a rule. All of it belongs to the theme since Flare 0.38 gave the shell's
+        // three planes and the rail's shadow tokens (migration to 0.38, §1); before that these were three
+        // class-name rules in the theme stylesheet, because core picked the drawer's and the content's
+        // roles itself.
         Layout = d.Layout with
         {
             AppBarHeight = "3.5rem",
             AppBarHeightDense = "3rem",
-            AppBarBg = "var(--flare-color-background)",
+            AppBarBg = "var(--flare-layout-shell-bg)",
             AppBarBorder = "none",
             AppBarShadow = "0 1px 8px rgba(0, 0, 0, 0.4)",
             ContentPadding = "0.75rem",
@@ -394,6 +429,18 @@ public static class StitchFlowTheme
             DrawerWidth = "16rem",
             DrawerRailWidth = "3.5rem",
             DrawerBorder = "none",
+            // The darkest plane of the palette is the chrome; the canvas is `surface`; the rail shares the
+            // drawer's plane so the two read as one surface.
+            ShellBg = "var(--flare-color-surface-container-lowest)",
+            DrawerBg = "var(--flare-color-surface-container-lowest)",
+            RailBg = "var(--flare-layout-drawer-bg)",
+            ContentBg = "var(--flare-color-surface)",
+            // The rail's shadow: core owns the sign (it lands on the edge facing the content for either
+            // anchor and under either writing direction), so this is the magnitude. `0`, the in-box value,
+            // would draw none.
+            DrawerShadowOffset = "1px",
+            DrawerShadowBlur = "10px",
+            DrawerShadowColor = "rgba(0, 0, 0, 0.3)",
         },
 
         // ----------------------------------------------------------------- Drawer ------------

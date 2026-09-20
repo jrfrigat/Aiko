@@ -42,7 +42,10 @@ public sealed class ThemeSpecs
         Assert.Equal("#c0c1ff", dark.Primary);
         Assert.Equal("#89ceff", dark.Secondary);
         Assert.Equal("#4edea3", dark.Tertiary);
-        // The chrome plane is the darkest one; the canvas is `surface`.
+        // The chrome plane is the darkest one; the canvas is `surface`. Flare 0.38 gave the design's sixth
+        // plane a role of its own, so the chrome names SurfaceContainerLowest instead of borrowing
+        // Background - the colour of the document - as a substitute for a panel.
+        Assert.Equal("#060e20", dark.SurfaceContainerLowest);
         Assert.Equal("#060e20", dark.Background);
         Assert.Equal("#0b1326", dark.Surface);
         Assert.Equal("#131b2e", dark.SurfaceContainerLow);
@@ -61,6 +64,19 @@ public sealed class ThemeSpecs
         // 13px body text and Inter, not the baseline's Roboto at Material's sizes.
         Assert.Equal(StitchFlowTheme.UiFont, design.Typography.BodyMedium.FontFamily);
         Assert.Equal("0.8125rem", design.Typography.BodyMedium.FontSize);
+        // The mono face is the theme's own since Flare 0.38, and every identifier is read in it.
+        Assert.Equal(StitchFlowTheme.MonoFontStack, design.Typography.MonoFont);
+
+        // The shell's three planes and the rail's shadow are the theme's since 0.38, instead of three
+        // class-name rules in the stylesheet that repainted what core had decided.
+        Assert.Equal("var(--flare-color-surface-container-lowest)", design.Layout.ShellBg);
+        Assert.Equal("var(--flare-layout-drawer-bg)", design.Layout.RailBg);
+        Assert.Equal("var(--flare-color-surface)", design.Layout.ContentBg);
+        Assert.Equal("1px", design.Layout.DrawerShadowOffset);
+
+        // An active nav label is read against its own filled row, so it takes the accent - not the
+        // on-secondary-container pair of an indicator this theme does not use.
+        Assert.Equal("var(--flare-color-primary)", design.Nav.ActiveColor);
 
         // A compact control ramp: no button in this theme is taller than a 40px toolbar control.
         Assert.Equal("1.5rem", design.Button.HeightXs);

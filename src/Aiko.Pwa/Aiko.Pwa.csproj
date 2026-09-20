@@ -17,13 +17,13 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.12" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.12" PrivateAssets="all" />
-    <PackageReference Include="Flare.Blazor" Version="0.37.0" />
+    <PackageReference Include="Flare.Blazor" Version="0.38.0" />
     <!-- The cockpit's iconography is Material Symbols, which is what the design was drawn with. The
          core Flare.Icons set is the library's own chrome (about a hundred glyphs) and does not carry
          `view_kanban`, `account_tree`, `smart_toy` or the rest of the design's vocabulary. The catalog
          is self-contained inline SVG and trimmable, so a Release publish keeps only the icons
          referenced by their typed member. -->
-    <PackageReference Include="Flare.Icons.MaterialDesign3.Svg" Version="0.37.0" />
+    <PackageReference Include="Flare.Icons.MaterialDesign3.Svg" Version="0.38.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Aiko.Application/Aiko.Application.csproj" />

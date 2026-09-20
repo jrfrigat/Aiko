@@ -6,10 +6,12 @@ namespace Aiko.Theme.StitchFlow;
 /// The Aiko palette: a deep navy-indigo cockpit with a periwinkle accent.
 /// </summary>
 /// <remarks>
-/// The dark scheme is the design's own, value for value. Six surface planes are used, which is one
-/// more than Flare's color roles offer - the role set has no <c>SurfaceContainerLowest</c>, so the
-/// darkest plane (the app bar and the project rail in the design) takes <see cref="ColorScheme.Background"/>
-/// and the canvas takes <see cref="ColorScheme.Surface"/>. See <c>color-scheme-surface-lowest.md</c>.
+/// The dark scheme is the design's own, value for value. The design uses six surface planes, and Flare
+/// 0.38 added the sixth role - <see cref="ColorScheme.SurfaceContainerLowest"/> - so the darkest plane
+/// (the app bar and the project rail in the design) is named by it instead of borrowing
+/// <see cref="ColorScheme.Background"/>, the colour of the document, as a substitute for a panel. The
+/// canvas is <see cref="ColorScheme.Surface"/>. In this design the two carry the same value, which is why
+/// naming the role properly moves nothing on screen.
 /// The design defines no separate success/warning/info hues, so Success and Info deliberately reuse
 /// the tertiary green and the secondary blue; Warning is the one role the design does not name, and
 /// it is set to an amber that still belongs to the palette.
@@ -57,12 +59,13 @@ public static class StitchFlowPalettes
         OnInfo = "#00344d",
         InfoContainer = "#00a2e6",
         OnInfoContainer = "#00344e",
-        // Surfaces: Background is the darkest plane (app bar, rail), Surface the canvas.
+        // Surfaces: six planes - the darkest is the chrome (app bar, rail), Surface is the canvas.
         Surface = "#0b1326",
         OnSurface = "#dae2fd",
         SurfaceVariant = "#2d3449",
         OnSurfaceVariant = "#c7c4d7",
         OnSurfaceVariant2 = "#8e91a8",
+        SurfaceContainerLowest = "#060e20",
         SurfaceContainer = "#171f33",
         SurfaceContainerLow = "#131b2e",
         SurfaceContainerHigh = "#222a3d",
@@ -117,6 +120,8 @@ public static class StitchFlowPalettes
         SurfaceVariant = "#e2e3ee",
         OnSurfaceVariant = "#45464f",
         OnSurfaceVariant2 = "#757780",
+        // The ladder inverts with the scheme: the chrome plane is the brightest one here.
+        SurfaceContainerLowest = "#ffffff",
         SurfaceContainer = "#eceef7",
         SurfaceContainerLow = "#f2f3fa",
         SurfaceContainerHigh = "#e5e7f1",
