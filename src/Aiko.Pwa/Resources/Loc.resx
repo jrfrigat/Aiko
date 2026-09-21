@@ -627,6 +627,7 @@
 
   <data name="CommandsTitle" xml:space="preserve"><value>Command for an agent</value></data>
   <data name="CommandsHint" xml:space="preserve"><value>Aiko does not start agents, so the request waits in the project's queue until an agent runs and takes it - and the outcome the agent reports appears here.</value></data>
+  <data name="CommandExamples" xml:space="preserve"><value>To run it in a terminal yourself</value></data>
   <data name="CommandAction" xml:space="preserve"><value>What to ask</value></data>
   <data name="CommandStart" xml:space="preserve"><value>Start the stage</value></data>
   <data name="CommandPause" xml:space="preserve"><value>Pause the run</value></data>

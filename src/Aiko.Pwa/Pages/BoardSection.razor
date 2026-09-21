@@ -61,18 +61,22 @@
                                                 Id="@card.Reference.CardId"
                                                 Payload="@(new BoardCardDrag(card.Reference.CardId, card.StageId))"
                                                 Class="aiko-drag">
-                                    @* The card opens its own page; only the handle icon drags it (see
-                                       wwwroot/js/aiko-board.js). The plain wrapper carries the click
-                                       rather than FlareCard itself, so the whole card body is one target. *@
-                                    <div class="aiko-card__open" @onclick="() => OnCardSelected.InvokeAsync(card.Reference.CardId)">
+                                    @* Only the number opens the card, and it opens it as a real link, so the middle
+                                       button and Ctrl+click work the way they do everywhere else. The rest of
+                                       the card is not a target, which leaves the handle the only place a drag
+                                       starts (see wwwroot/js/aiko-board.js). *@
                                     <FlareCard Variant="CardVariant.Filled" Size="CardSize.Sm" Class="aiko-card">
                                         <FlareStack Gap="FlareSpacing.XXSmall">
                                             <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XXSmall">
                                                 <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
                                                     <FlareIconView Value="@FlareIcons.DragIndicator" Class="aiko-card__handle" />
-                                                    <FlareText Element="span" Mono="true" Color="FlareColor.Secondary" Weight="FontWeight.SemiBold">
-                                                        #@card.Reference.CardId
-                                                    </FlareText>
+                                                    <FlareNavLink Href="@CardHref(card)" Class="aiko-card__id">
+                                                        <ChildContent>
+                                                            <FlareText Element="span" Mono="true" Color="FlareColor.Secondary" Weight="FontWeight.SemiBold">
+                                                                #@card.Reference.CardId
+                                                            </FlareText>
+                                                        </ChildContent>
+                                                    </FlareNavLink>
 
                                                     @if (!string.IsNullOrWhiteSpace(card.Size))
                                                     {
@@ -115,7 +119,6 @@
                                             </FlareStack>
                                         </FlareStack>
                                     </FlareCard>
-                                    </div>
                                 </FlareDraggable>
                             }
 
@@ -149,9 +152,6 @@
 
     /// <summary>Raised when a card lands in another stage; the page turns it into one request.</summary>
     [Parameter] public EventCallback<BoardCardMove> OnCardMoved { get; set; }
-
-    /// <summary>Raised when a card is clicked; the page opens it as its own route.</summary>
-    [Parameter] public EventCallback<string> OnCardSelected { get; set; }
 
     private WorkflowDefinition? _workflow;
     private IReadOnlyList<StageDefinition> _stages = [];
@@ -207,6 +207,13 @@
 
     private IReadOnlyList<Card> CardsIn(string stageId) =>
         _cards.Where(card => StringComparer.Ordinal.Equals(card.StageId, stageId)).ToArray();
+
+    /// <summary>
+    /// Where a card of this projection opens: its own page, addressed by the project's readable handle and
+    /// built by the one helper that speaks routes.
+    /// </summary>
+    private string CardHref(Card card) =>
+        ProjectRoutes.Card(Board.Project.Handle, card.Reference.CardId);
 
     /// <summary>Cards whose scope does not cover the files the agent actually touched.</summary>
     public static IReadOnlyList<string> FindOutOfScopeFiles(Card card)

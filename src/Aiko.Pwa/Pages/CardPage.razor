@@ -60,7 +60,25 @@ else
             <FlareStack Row="true" Align="FlareAlignItems.Start" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Medium" Wrap="true">
                 <FlareStack Gap="FlareSpacing.XXSmall">
                     <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small" Wrap="true">
-                        <span class="aiko-tag aiko-tag--accent">@($"#{Card.Reference.CardId}")</span>
+                        @* The number a command names this card by, and pressing it copies exactly that - the id
+                           without the "#", which is only how the screen writes it. The copy control is Flare's,
+                           the one thing in this product that copies, and it confirms by swapping its content,
+                           so the feed of what was copied is visible without the screen keeping its own words. *@
+                        <span class="aiko-copy">
+                            <FlareClipboard Text="@Card.Reference.CardId"
+                                            Variant="ButtonVariant.Text"
+                                            Size="ButtonSize.Sm">
+                                <ChildContent>
+                                    <span class="aiko-tag aiko-tag--accent">@($"#{Card.Reference.CardId}")</span>
+                                </ChildContent>
+                                <FeedbackContent>
+                                    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
+                                        <span class="aiko-tag aiko-tag--accent">@($"#{Card.Reference.CardId}")</span>
+                                        <FlareIconView Value="@MaterialDesign3Icons.Regular.Check" Color="FlareColor.Primary" />
+                                    </FlareStack>
+                                </FeedbackContent>
+                            </FlareClipboard>
+                        </span>
                         <FlareText Element="h1" Typo="TypographyScale.HeadlineLarge">@Card.Title</FlareText>
                     </FlareStack>
                     <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small" Wrap="true">

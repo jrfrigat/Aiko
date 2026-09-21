@@ -349,13 +349,31 @@ html.flare-mode-dark .splash-mark i {
 
 .aiko-card {
     padding: 0.375rem 0.5rem;
-    cursor: pointer;
 }
 
-/* The wrapper that carries the click opening a card. Flare has no "clickable card" variant, and the
-   card's own drag gesture is confined to the handle by wwwroot/js/aiko-board.js. */
-.aiko-card__open {
-    display: block;
+/* The card's number, and the only link a board card has: it opens the card's own page, so the middle
+   button and Ctrl+click work the way they do everywhere else. The rest of the card is inert - nothing
+   else on it opens anything - and the drag gesture is confined to the handle by wwwroot/js/aiko-board.js. */
+.aiko-card__id {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+}
+
+.aiko-card__id:hover {
+    text-decoration: underline;
+}
+
+/* A copy control on a card: the number in the header and the two commands in the panel. Flare's button
+   is the control; this keeps it hugging the tag or the command it draws instead of adding a small
+   button's own padding around something that already reads as a chip. */
+.aiko-copy {
+    display: inline-flex;
+}
+
+.aiko-copy .flare-clipboard {
+    padding: 0;
+    min-height: 0;
 }
 
 /* The drag handle: the only place a card can be picked up, so it says so with the cursor and keeps the

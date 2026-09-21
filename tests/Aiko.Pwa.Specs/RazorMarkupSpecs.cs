@@ -635,6 +635,129 @@ public sealed class RazorMarkupSpecs
     }
 
 
+    [Fact]
+    public void The_card_number_is_a_copy_control_that_copies_the_id_without_the_hash()
+    {
+        var root = FindRepositoryRoot();
+        var page = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "CardPage.razor"));
+
+        // Pressing the header's number copies the id a command names the card by - without the "#", which
+        // is only how the screen writes it - through the one control in this product that copies ...
+        Assert.Contains("<FlareClipboard Text=\"@Card.Reference.CardId\"", page, StringComparison.Ordinal);
+        Assert.Contains("Variant=\"ButtonVariant.Text\"", page, StringComparison.Ordinal);
+
+        // ... while the screen keeps writing the number with its hash, and the press says what it did.
+        Assert.Contains("@($\"#{Card.Reference.CardId}\")", page, StringComparison.Ordinal);
+        Assert.Contains("<FeedbackContent>", page, StringComparison.Ordinal);
+
+        // A second way of copying is what this replaced, so there is none: the client never reaches for
+        // the browser's own clipboard API.
+        foreach (var file in Directory.EnumerateFiles(
+                     Path.Combine(root, "src", "Aiko.Pwa"), "*.razor", SearchOption.AllDirectories)
+                     .Concat(Directory.EnumerateFiles(
+                         Path.Combine(root, "src", "Aiko.Pwa"), "*.cs", SearchOption.AllDirectories)))
+        {
+            if (file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal) ||
+                file.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            Assert.DoesNotContain("navigator.clipboard", File.ReadAllText(file), StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void The_command_block_offers_the_two_run_commands_with_this_card_number()
+    {
+        var root = FindRepositoryRoot();
+        var text = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "CardInspector.razor"));
+
+        // Both examples carry this card's own number, built the way the estimate's command is built ...
+        Assert.Contains("$\"/aiko-run {Card.Reference.CardId}\"", text, StringComparison.Ordinal);
+        Assert.Contains("$\"/aiko-run {Card.Reference.CardId} --all\"", text, StringComparison.Ordinal);
+        Assert.Contains("private IReadOnlyList<string> RunCommands =>", text, StringComparison.Ordinal);
+
+        // ... and they are drawn through the copy control, so pressing one takes the command with it.
+        Assert.Contains("FlareClipboard Text=\"@example\"", text, StringComparison.Ordinal);
+        Assert.Contains("Loc.Get(\"CommandExamples\")", text, StringComparison.Ordinal);
+
+        // The block this belongs to is the one that places a request, so the examples stand inside it and
+        // before the panel closes.
+        var command = text.IndexOf("Loc.Get(\"CommandsTitle\")", StringComparison.Ordinal);
+        var examples = text.IndexOf("RunCommands", StringComparison.Ordinal);
+        var closes = text.IndexOf("</FlarePaper>", command, StringComparison.Ordinal);
+        Assert.True(
+            command >= 0 && examples > command && closes > examples,
+            "The run examples should stand inside the command block.");
+    }
+
+    [Fact]
+    public void A_related_card_states_the_stage_it_stands_in()
+    {
+        var root = FindRepositoryRoot();
+        var text = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "CardInspector.razor"));
+
+        // The row asks for the related card's stage and draws it as a tag ...
+        Assert.Contains("RelatedStageCaption(link)", text, StringComparison.Ordinal);
+        Assert.Contains("private string? RelatedStageCaption(CardRelation relation)", text, StringComparison.Ordinal);
+        Assert.Contains("<span class=\"aiko-tag aiko-tag--quiet\">@relatedStage</span>", text, StringComparison.Ordinal);
+
+        // ... named from the card's own workflow, which is what the card's header reads as well - a stage
+        // the workflow no longer holds falls back to its id rather than to a translated constant.
+        Assert.Contains(
+            "?.Stages.FirstOrDefault(stage => StringComparer.Ordinal.Equals(stage.Id, related.StageId))",
+            text,
+            StringComparison.Ordinal);
+        Assert.Contains("?.Title ?? related.StageId;", text, StringComparison.Ordinal);
+
+        // A relation to a card the snapshot does not hold says nothing - neither a stage nor a state.
+        Assert.Contains("if (RelatedCard(relation) is not { } related)", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_board_opens_a_card_by_its_number_and_by_nothing_else()
+    {
+        var root = FindRepositoryRoot();
+        var board = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "BoardSection.razor"));
+
+        // The whole card is no longer a handler: no wrapper opens it, and nothing here raises a selection.
+        Assert.DoesNotContain("aiko-card__open", board, StringComparison.Ordinal);
+        Assert.DoesNotContain("OnCardSelected", board, StringComparison.Ordinal);
+
+        // The number is a real link, built by the one helper that speaks routes, and by the project's
+        // readable handle - the shape that makes the middle button and Ctrl+click work.
+        Assert.Contains("<FlareNavLink Href=\"@CardHref(card)\" Class=\"aiko-card__id\">", board, StringComparison.Ordinal);
+        Assert.Contains("ProjectRoutes.Card(Board.Project.Handle, card.Reference.CardId)", board, StringComparison.Ordinal);
+
+        // The board page keeps no way of opening a card of its own; the link is the only one left.
+        var view = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "BoardView.razor"));
+        Assert.DoesNotContain("OnCardSelected", view, StringComparison.Ordinal);
+
+        // And the stylesheet says the same: the number looks like a link, the card keeps the plain cursor.
+        var css = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "wwwroot", "css", "app.css"));
+        Assert.Contains(".aiko-card__id {", css, StringComparison.Ordinal);
+        Assert.DoesNotContain(".aiko-card__open", css, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_command_example_caption_is_in_both_languages()
+    {
+        var root = FindRepositoryRoot();
+        foreach (var resource in new[] { "Loc.resx", "Loc.ru.resx" })
+        {
+            var resx = File.ReadAllText(
+                Path.Combine(root, "src", "Aiko.Pwa", "Resources", resource));
+            Assert.Contains("name=\"CommandExamples\"", resx, StringComparison.Ordinal);
+        }
+    }
+
     /// <summary>
     /// Walks up from this assembly to the solution file, the same way the daemon fixture does.
     /// </summary>

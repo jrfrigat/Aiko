@@ -838,6 +838,31 @@
                             }
                         </FlareStack>
                     }
+                    @* The same request, said as the thing a person types: the block above places it in the
+                       queue, these two run the card themselves. They carry this card's number already, and
+                       they copy like the number does - one copy control, not a third way of doing it. *@
+                    <FlareStack Gap="FlareSpacing.XXSmall">
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
+                            @Loc.Get("CommandExamples")
+                        </FlareText>
+                        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall" Wrap="true">
+                            @foreach (var command in RunCommands)
+                            {
+                                var example = command;
+                                <span class="aiko-copy">
+                                    <FlareClipboard Text="@example"
+                                                    Variant="ButtonVariant.Text"
+                                                    Size="ButtonSize.Sm">
+                                        <ChildContent>
+                                            <FlareText Element="span" Mono="true" Typo="TypographyScale.BodySmall">
+                                                @example
+                                            </FlareText>
+                                        </ChildContent>
+                                    </FlareClipboard>
+                                </span>
+                            }
+                        </FlareStack>
+                    </FlareStack>
                 </FlareStack>
             </FlareStack>
         </FlarePaper>
@@ -1025,6 +1050,14 @@
                                             <FlareStack Gap="FlareSpacing.None">
                                                 <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall" Wrap="true">
                                                     <span class="aiko-value">@OtherCardId(link)</span>
+                                                    @* Which column the related card stands in, named the way the card's own
+                                                       header names its stage. It is a different fact from the state badge
+                                                       below: that one says where the column's run got to, this one says where
+                                                       the card is - and a card the snapshot does not hold says neither. *@
+                                                    @if (RelatedStageCaption(link) is { Length: > 0 } relatedStage)
+                                                    {
+                                                        <span class="aiko-tag aiko-tag--quiet">@relatedStage</span>
+                                                    }
                                                     @if (RelationTag(link) is { Length: > 0 } tag)
                                                     {
                                                         <span class="aiko-tag aiko-tag--quiet">@tag</span>
@@ -1248,6 +1281,17 @@
 
     /// <summary>The command that runs this card's estimate in the chosen agent's terminal.</summary>
     private string EstimateCommand => $"/aiko-estimate {Card.Reference.CardId}";
+
+    /// <summary>
+    /// The commands that run this card in a terminal, with this card's own number already in them: what the
+    /// block above places as a request, written as the thing a person types. Built the same way the
+    /// estimate's command is, from the card's own reference.
+    /// </summary>
+    private IReadOnlyList<string> RunCommands =>
+    [
+        $"/aiko-run {Card.Reference.CardId}",
+        $"/aiko-run {Card.Reference.CardId} --all"
+    ];
 
     /// <summary>
     /// The stage the card sits in, from its own workflow: what it expects to be produced (the artifacts) and
@@ -1559,12 +1603,40 @@
     /// </remarks>
     private StageState? RelatedStageState(CardRelation relation)
     {
-        var cardId = OtherCardId(relation);
-        var related = Board.Cards.FirstOrDefault(item =>
-            StringComparer.Ordinal.Equals(item.Reference.CardId, cardId));
+        var related = RelatedCard(relation);
         return related is null
             ? null
             : StageStateView.Of(Board.StageRuns, related.Reference.CardId, related.StageId);
+    }
+
+    /// <summary>
+    /// The stage a related card stands in - backlog, in progress, done - as its own workflow names it, or
+    /// null when the snapshot does not carry that card.
+    /// </summary>
+    /// <remarks>
+    /// The words come from the card's workflow rather than from a translated constant, so a project that
+    /// renames or reorders a stage reads differently here at once, exactly as the card's own header reads it.
+    /// A stage the workflow no longer holds falls back to its id, which is what the header does as well.
+    /// </remarks>
+    private string? RelatedStageCaption(CardRelation relation)
+    {
+        if (RelatedCard(relation) is not { } related)
+        {
+            return null;
+        }
+
+        return Board.Workflows
+            .FirstOrDefault(workflow => StringComparer.Ordinal.Equals(workflow.Id, related.WorkflowId))
+            ?.Stages.FirstOrDefault(stage => StringComparer.Ordinal.Equals(stage.Id, related.StageId))
+            ?.Title ?? related.StageId;
+    }
+
+    /// <summary>The card at the other end of a relation, as the board's snapshot carries it.</summary>
+    private Card? RelatedCard(CardRelation relation)
+    {
+        var cardId = OtherCardId(relation);
+        return Board.Cards.FirstOrDefault(item =>
+            StringComparer.Ordinal.Equals(item.Reference.CardId, cardId));
     }
 
     /// <summary>The project's size grid: what the human may choose from, same ladder the agent reads.</summary>
