@@ -19,6 +19,17 @@ public enum InstallationOutcome
     /// <summary>An existing installation was replaced with the resolved version.</summary>
     Updated,
 
+    /// <summary>
+    /// Nothing was written because the run was asked to report only: the report says what is installed and
+    /// what is available.
+    /// </summary>
+    /// <remarks>
+    /// Its own outcome rather than a quiet kind of <see cref="UpToDate"/>: a report-only run on a machine with
+    /// an update waiting is not up to date, and calling it that would answer the question the person asked
+    /// with the opposite of the truth. It is equally not a refusal - nothing was declined, only not done.
+    /// </remarks>
+    Reported,
+
     /// <summary>Nothing was written, and the report says why.</summary>
     Refused
 }
