@@ -36,14 +36,19 @@ internal sealed class ProjectContextTools(
         + "read one of them on its own.")]
     public async Task<CallToolResult> GetProjectContextAsync(
         [Description(
-            "Optional section to return on its own: rules, git, links, scoring, types or initialization. "
-            + "Omit it for the whole document.")]
+            "Optional section to return on its own: rules, git, links, scoring, types, release or "
+            + "initialization. Omit it for the whole document.")]
         string? section = null,
         CancellationToken cancellationToken = default)
     {
         var project = await GetProjectAsync(cancellationToken);
         var priority = await settings.GetEffectivePriorityAsync(project.Id, cancellationToken);
         var execution = await settings.GetEffectiveExecutionAsync(project.Id, cancellationToken);
+        // The scheme a release of this project follows, resolved the way every other setting is: the project's
+        // own choice wins, the template's is what it started from, and the shipped ordinary scheme answers for
+        // a choice that names nothing. The body travels with it, so an agent asked to conduct a release reads
+        // the project's own steps instead of inventing them.
+        var release = await settings.GetEffectiveReleaseAsync(project.Id, cancellationToken);
         // The git policy lives in the project's own manifest: without it an agent cannot tell whether this
         // project's .aiko is tracked, and a project whose manifest moved answers "unknown" rather than a guess.
         var gitPolicy = await gitPolicies.ReadAsync(project, cancellationToken);
@@ -68,6 +73,7 @@ internal sealed class ProjectContextTools(
                 (LinksSection, DescribeLinkedProjects(linked)),
                 (ScoringSection, DescribeScoring(priority)),
                 (TypesSection, DescribeCardTypes(workflows)),
+                (ReleaseSection, DescribeRelease(release)),
                 (InitializationSection, initialization)
             ],
             section);
@@ -147,6 +153,9 @@ internal sealed class ProjectContextTools(
     /// <summary>The section id of the card types this project defines.</summary>
     private const string TypesSection = "types";
 
+    /// <summary>The section id of the release scheme this project follows.</summary>
+    private const string ReleaseSection = "release";
+
     /// <summary>The section id of the instruction this project's template asked for.</summary>
     private const string InitializationSection = "initialization";
 
@@ -161,6 +170,7 @@ internal sealed class ProjectContextTools(
         LinksSection,
         ScoringSection,
         TypesSection,
+        ReleaseSection,
         InitializationSection
     ];
 
@@ -520,6 +530,56 @@ internal sealed class ProjectContextTools(
             }
         }
 
+        return builder.ToString().TrimEnd();
+    }
+
+    /// <summary>
+    /// The scheme this project's releases follow, with its steps: the instruction an agent needs before it
+    /// conducts a release.
+    /// </summary>
+    /// <remarks>
+    /// The body is printed whole rather than pointed at, and that is the point of the section: the scheme is
+    /// what the project decided a release looks like, so an agent that reads it works by the project's order
+    /// instead of by one it remembers from elsewhere. Only the scheme in force is printed - a list of the ones
+    /// that were not chosen would be a second answer to the same question.
+    /// </remarks>
+    /// <param name="release">The effective release section of the project.</param>
+    private static string DescribeRelease(ReleaseSettings release)
+    {
+        var scheme = release.ResolveScheme();
+        var builder = new StringBuilder();
+        builder.AppendLine("## The release scheme this project follows");
+        builder.AppendLine();
+        builder.Append("- Scheme: ").Append(scheme.Name).Append(" (").Append(scheme.Id).Append(')').AppendLine();
+        builder.Append("- What it is for: ").AppendLine(scheme.Description);
+        if (release.IsConfigured)
+        {
+            builder.Append("- Releases are published in: ").AppendLine(release.Slug);
+        }
+        else
+        {
+            builder.AppendLine(
+                "- No GitHub repository is configured, so Aiko cannot probe what is published.");
+        }
+
+        if (release.SchemeFellBack)
+        {
+            builder.AppendLine();
+            builder.AppendLine(
+                string.IsNullOrWhiteSpace(release.Scheme)
+                    ? "The project chooses no scheme, so the ordinary one is followed."
+                    : $"The project names '{release.Scheme}', which is not one it offers, so '{scheme.Id}' is "
+                      + "followed instead.");
+        }
+
+        builder.AppendLine();
+        builder.AppendLine("The steps are the project's own; work by them rather than from memory:");
+        builder.AppendLine();
+        builder.AppendLine(scheme.Body);
+        builder.AppendLine();
+        builder.AppendLine(
+            "The history of what this project released is read with aiko_list_releases, and a conducted "
+            + "release is recorded with aiko_record_release(version, schemeId, cards).");
         return builder.ToString().TrimEnd();
     }
 

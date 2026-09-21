@@ -14,6 +14,7 @@ using Aiko.Infrastructure.Logging;
 using Aiko.Infrastructure.Memory;
 using Aiko.Infrastructure.Projects;
 using Aiko.Infrastructure.Release;
+using Aiko.Infrastructure.Releases;
 using Aiko.Infrastructure.Relations;
 using Aiko.Infrastructure.Settings;
 using Aiko.Infrastructure.Storage;
@@ -79,6 +80,9 @@ builder.Services.AddSingleton<IProjectAnalytics, SqliteProjectAnalytics>();
 builder.Services.AddSingleton<IDaemonTelemetry, SqliteDaemonTelemetry>();
 builder.Services.AddSingleton<ICardDiscussionStore, FileCardDiscussionStore>();
 builder.Services.AddSingleton<ICardCommandStore, FileCardCommandStore>();
+// The release history is a document of the project rather than a projection of the database: it holds the
+// answer to what went into v0.1.3, which nothing else in Aiko knows, so losing it would lose that answer.
+builder.Services.AddSingleton<IReleaseStore, FileReleaseStore>();
 builder.Services.AddSingleton<IProjectDefinitionStore, FileProjectDefinitionStore>();
 builder.Services.AddSingleton<IProjectGitPolicyReader, FileProjectGitPolicyReader>();
 builder.Services.AddSingleton<IProjectLinkStore, FileProjectLinkStore>();
@@ -118,6 +122,9 @@ builder.Services
     .WithTools<CommandTools>()
     .WithTools<BoardTools>()
     .WithTools<WorkQueueTools>()
+    // Reading the release history and recording a release: the procedure a project's scheme describes ends in
+    // a record, and the next release reads it to see what has shipped since.
+    .WithTools<ReleaseTools>()
     .WithTools<DaemonTools>()
     .WithTools<MaintenanceTools>()
     // A tool that throws otherwise reaches the agent as "An error occurred invoking 'aiko_start_stage'",

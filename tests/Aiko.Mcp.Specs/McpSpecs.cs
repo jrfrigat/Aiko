@@ -57,7 +57,9 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         "aiko_list_board",
         "aiko_list_work_queue",
         "aiko_get_card_artifact",
-        "aiko_save_card_artifact"
+        "aiko_save_card_artifact",
+        "aiko_list_releases",
+        "aiko_record_release"
     ];
 
     private async Task<McpClient> ConnectAsync()
@@ -1388,6 +1390,11 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
             blocks,
             block => block.Contains("## How this project scores and sizes a card", StringComparison.Ordinal));
         Assert.Contains(blocks, block => block.Contains("## Card types of this project", StringComparison.Ordinal));
+        // The scheme a release of this project follows travels with the context, its steps included: an agent
+        // asked to conduct a release must not have to invent the order it works in.
+        Assert.Contains(
+            blocks,
+            block => block.Contains("## The release scheme this project follows", StringComparison.Ordinal));
         Assert.DoesNotContain("## Git and commits", blocks[0], StringComparison.Ordinal);
 
         // A section asked for by name comes back on its own and nothing else, so a part of the answer that was
@@ -1416,10 +1423,21 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         Assert.True(unknown.IsError);
         var message = FirstText(unknown) ?? string.Empty;
         Assert.Contains("nonsense", message, StringComparison.Ordinal);
-        foreach (var id in new[] { "rules", "git", "links", "scoring", "types", "initialization" })
+        foreach (var id in new[] { "rules", "git", "links", "scoring", "types", "release", "initialization" })
         {
             Assert.Contains(id, message, StringComparison.Ordinal);
         }
+
+        // The release section on its own carries the scheme in force and its steps, which is the whole reason
+        // it is in the context: an agent works by the project's order rather than from memory.
+        var release = await client.CallToolAsync(
+            "aiko_get_project_context",
+            new Dictionary<string, object?> { ["section"] = "release" },
+            cancellationToken: CancellationToken.None);
+        Assert.NotEqual(true, release.IsError);
+        var releaseText = Assert.Single(release.Content.OfType<TextContentBlock>()).Text ?? string.Empty;
+        Assert.Contains("git-release", releaseText, StringComparison.Ordinal);
+        Assert.Contains("Make sure the tree is green", releaseText, StringComparison.Ordinal);
 
         // The links section answers even when the project hands work to nobody: a question deserves the answer
         // "none", while the whole document leaves an empty section out entirely.
