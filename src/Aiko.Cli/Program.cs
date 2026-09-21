@@ -1,10 +1,13 @@
 using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
 using Aiko.Application.Agents;
 using Aiko.Application.Contracts;
+using Aiko.Cli;
 using Aiko.Domain.Execution;
+using Aiko.Domain.Workflow;
 using Aiko.Infrastructure.Agents;
 using Aiko.Infrastructure.Cards;
 using Aiko.Infrastructure.Commands;
@@ -32,6 +35,8 @@ var exitCode = command switch
     "commands" => await CommandsAsync(args),
     "uninstall" => await UninstallAsync(args),
     "autostart" => Autostart(args),
+    "settings" => await SettingsAsync(args),
+    "workflow" => await WorkflowAsync(args),
     "help" or "--help" or "-h" => Help(),
     _ => Unknown(command)
 };
@@ -75,6 +80,14 @@ static int Help()
                                                         published binaries. The data directory and the
                                                         projects' .aiko are kept unless asked for by name
           autostart enable|disable|status               Start the daemon at sign-in, or stop doing so
+          settings get|set --project <id> | --template <id> [--port <p>]
+                                                        Read or write a project's own settings, or a
+                                                        template's defaults. There is no installation-level
+                                                        settings document: a project owns its copy from init
+          workflow get|set --project <id> [--workflow <id>] [--port <p>]
+                                                        Read the project's pipelines, or write one back.
+                                                        Writing goes through the daemon, which refuses to
+                                                        strand a card in a stage it removed
           reindex <projectId>                           Rebuild a project's SQLite projections
           commands [--project <id>] [--card <id>] [--state <s>]
                                                         Show the commands a screen placed for an agent;
@@ -1016,6 +1029,257 @@ static async Task<bool> TryStopDaemonAsync(string? requestedPort)
     {
         return false;
     }
+}
+
+// `aiko settings get|set` - the project's own settings, or a template's defaults. There is no
+// installation-level document: a project is created from a template and owns its copy from then on, so a
+// command that offered "global settings" would be the first half of the misunderstanding §24 of the
+// specification had to clear up.
+static async Task<int> SettingsAsync(string[] args)
+{
+    var action = args.Length > 1 ? args[1].ToLowerInvariant() : "get";
+    var projectId = ReadOption(args, "--project");
+    var templateId = ReadOption(args, "--template");
+    if (string.IsNullOrWhiteSpace(projectId) == string.IsNullOrWhiteSpace(templateId))
+    {
+        Console.Error.WriteLine(
+            "Name exactly one target: --project <id> for a project's own settings, or --template <id> for " +
+            "the defaults new projects start from. There is no installation-level settings document.");
+        return 2;
+    }
+
+    if (action is not ("get" or "set"))
+    {
+        Console.Error.WriteLine($"Unknown argument for `aiko settings`: {action}. Use get or set.");
+        return 2;
+    }
+
+    var settingsPath = string.IsNullOrWhiteSpace(projectId)
+        ? $"api/v1/templates/{templateId}/settings"
+        : $"api/v1/projects/{projectId}/settings";
+    // A template is read whole - its settings are one section of the document that also carries its
+    // pipelines - and written through the settings slice, which is the same body a project takes.
+    var readPath = string.IsNullOrWhiteSpace(projectId) ? $"api/v1/templates/{templateId}" : settingsPath;
+
+    using var http = await CreateDaemonClientAsync(ReadOption(args, "--port"));
+    if (http is null)
+    {
+        return 1;
+    }
+
+    if (action is "get")
+    {
+        return await SendAsync(http, HttpMethod.Get, readPath, body: null);
+    }
+
+    var document = await ReadDocumentAsync(args);
+    return document is null
+        ? 2
+        : await SendAsync(http, HttpMethod.Put, settingsPath, document);
+}
+
+// `aiko workflow get|set` - the project's pipelines. Reading takes the project's own file, because it changes
+// nothing and there is no endpoint for it; writing goes through the daemon, which validates the definition,
+// refuses to strand a card in a stage that was removed, and reprojects the board afterwards.
+static async Task<int> WorkflowAsync(string[] args)
+{
+    var action = args.Length > 1 ? args[1].ToLowerInvariant() : "get";
+    var projectId = ReadOption(args, "--project");
+    if (string.IsNullOrWhiteSpace(projectId))
+    {
+        Console.Error.WriteLine("Pass the project: --project <id>.");
+        return 2;
+    }
+
+    if (action is "get")
+    {
+        return await ReadWorkflowsAsync(projectId, ReadOption(args, "--workflow"));
+    }
+
+    if (action is not "set")
+    {
+        Console.Error.WriteLine($"Unknown argument for `aiko workflow`: {action}. Use get or set.");
+        return 2;
+    }
+
+    var document = await ReadDocumentAsync(args);
+    if (document is null)
+    {
+        return 2;
+    }
+
+    WorkflowDefinition workflow;
+    try
+    {
+        workflow = JsonSerializer.Deserialize(document, CliJsonContext.Default.WorkflowDefinition)
+            ?? throw new JsonException("the document is empty");
+    }
+    catch (JsonException exception)
+    {
+        Console.Error.WriteLine($"The document is not a workflow definition: {exception.Message}");
+        return 2;
+    }
+
+    // The stored document carries the revision it was read at; the update body names the same number
+    // `expectedRevision`, which is the one field the two shapes spell differently.
+    var update = new WorkflowUpdate(
+        workflow.Title,
+        workflow.Stages,
+        workflow.Revision,
+        workflow.Description,
+        workflow.Icon,
+        workflow.Color,
+        workflow.BlendsWithParent);
+
+    using var http = await CreateDaemonClientAsync(ReadOption(args, "--port"));
+    if (http is null)
+    {
+        return 1;
+    }
+
+    return await SendAsync(
+        http,
+        HttpMethod.Put,
+        $"api/v1/projects/{projectId}/workflows/{workflow.Id}",
+        JsonSerializer.Serialize(update, CliJsonContext.Default.WorkflowUpdate));
+}
+
+// The project's pipelines as its own file states them. Read-only, and therefore offline: nothing here
+// changes, so nothing here needs the daemon - the same reason `aiko status` reads its facts directly.
+static async Task<int> ReadWorkflowsAsync(string projectId, string? workflowId)
+{
+    var dataPaths = AikoDataPaths.FromEnvironment();
+    var database = new AikoDatabase(dataPaths);
+    await database.InitializeAsync();
+    var definitions = new FileProjectDefinitionStore(new SqliteProjectCatalog(database));
+
+    ProjectBoardDefinition definition;
+    try
+    {
+        definition = await definitions.ReadAsync(projectId, CancellationToken.None);
+    }
+    catch (KeyNotFoundException)
+    {
+        Console.Error.WriteLine($"No registered project with id {projectId}. `aiko doctor` lists them.");
+        return 1;
+    }
+
+    if (workflowId is null)
+    {
+        foreach (var workflow in definition.Workflows)
+        {
+            Console.WriteLine(
+                $"{workflow.Id}  v{workflow.Revision}  {workflow.Title}  ({workflow.Stages.Count} stages)");
+        }
+
+        return 0;
+    }
+
+    var found = definition.Workflows.FirstOrDefault(candidate =>
+        StringComparer.Ordinal.Equals(candidate.Id, workflowId));
+    if (found is null)
+    {
+        Console.Error.WriteLine($"Project {projectId} has no workflow {workflowId}.");
+        return 1;
+    }
+
+    // The document is what `set` reads back, so the round trip is get, edit, set - and nothing in between
+    // has to be retyped.
+    Console.WriteLine(JsonSerializer.Serialize(found, CliJsonContext.Default.WorkflowDefinition));
+    return 0;
+}
+
+// The daemon's address and credential, for the commands that go through it. Writes belong to the daemon
+// because it owns the projections and the event stream: a file edited behind its back leaves the board
+// showing yesterday's pipelines until someone reindexes.
+static async Task<HttpClient?> CreateDaemonClientAsync(string? requestedPort)
+{
+    var dataPaths = AikoDataPaths.FromEnvironment();
+    var port = requestedPort;
+    if (string.IsNullOrWhiteSpace(port))
+    {
+        port = (await new DaemonEndpointConfiguration(dataPaths).TryReadAsync())?.Port.ToString();
+    }
+
+    if (string.IsNullOrWhiteSpace(port))
+    {
+        Console.Error.WriteLine("No daemon port is known yet. Start one with `aiko serve -d`.");
+        return null;
+    }
+
+    var accessToken = Environment.GetEnvironmentVariable("AIKO_TOKEN");
+    if (string.IsNullOrWhiteSpace(accessToken))
+    {
+        accessToken = await new AccessTokenStore(dataPaths).GetOrCreateAsync();
+    }
+
+    var http = new HttpClient
+    {
+        BaseAddress = new Uri($"http://127.0.0.1:{port}"),
+        Timeout = TimeSpan.FromSeconds(15)
+    };
+    http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+    return http;
+}
+
+// One request, answered in the daemon's own words. The body goes out exactly as it was read, so what a person
+// edits and what the daemon receives cannot differ by anything this command did.
+static async Task<int> SendAsync(HttpClient http, HttpMethod method, string path, string? body)
+{
+    using var request = new HttpRequestMessage(method, path);
+    if (body is not null)
+    {
+        request.Content = new StringContent(body, Encoding.UTF8, "application/json");
+    }
+
+    try
+    {
+        using var response = await http.SendAsync(request);
+        var answer = await response.Content.ReadAsStringAsync();
+        if (!response.IsSuccessStatusCode)
+        {
+            // Not summarised: the daemon names the stage that would have been emptied of a card, the
+            // revision it expected, and everything else it refused the document for.
+            Console.Error.WriteLine($"The daemon answered {(int)response.StatusCode}: {answer}");
+            return 1;
+        }
+
+        Console.WriteLine(answer);
+        return 0;
+    }
+    catch (HttpRequestException)
+    {
+        Console.Error.WriteLine($"No daemon is answering on {http.BaseAddress}. Start one with `aiko serve -d`.");
+        return 1;
+    }
+    catch (TaskCanceledException)
+    {
+        Console.Error.WriteLine($"The daemon on {http.BaseAddress} did not answer in time.");
+        return 1;
+    }
+}
+
+// The document to write: inline for a small change, or a file for a whole one.
+static async Task<string?> ReadDocumentAsync(string[] args)
+{
+    if (ReadOption(args, "--json") is { Length: > 0 } inline)
+    {
+        return inline;
+    }
+
+    if (ReadOption(args, "--file") is { Length: > 0 } file)
+    {
+        if (!File.Exists(file))
+        {
+            Console.Error.WriteLine($"No such document: {file}");
+            return null;
+        }
+
+        return await File.ReadAllTextAsync(file);
+    }
+
+    Console.Error.WriteLine("Pass the document with --json \"<document>\" or --file <path>.");
+    return null;
 }
 
 static async Task<int> StatusAsync()

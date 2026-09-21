@@ -184,6 +184,25 @@ both schemes, so any of them can be read in Light or Dark. Like the mode, the ch
 survives a reload and takes effect on the spot, and a saved palette is applied before the first frame - the
 interface never flashes another one.
 
+## Settings and pipelines from the terminal
+
+The same two documents are reachable without opening the board:
+
+```powershell
+aiko settings get --project aiko      # the effective values, each with the source it came from
+aiko settings get --template default  # the defaults a new project is created from
+aiko settings set --project aiko --file settings.json
+aiko workflow get --project aiko                       # the pipelines, with their revisions
+aiko workflow get --project aiko --workflow task > task.json
+aiko workflow set --project aiko --file task.json
+```
+
+A command names exactly one target, `--project` or `--template`, because there is no installation-level
+settings document: a project is created from a template and owns its copy from then on, so editing a
+template cannot reach a project that already exists. Writing goes through the running daemon, which
+reprojects the board afterwards and refuses a pipeline that would leave a card in a stage it removed;
+`workflow get` reads the project's own file and needs no daemon.
+
 ## Workflow sets
 
 A project is created from a **template**, and the template decides what it starts with: the stages of each

@@ -941,6 +941,40 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
     }
 
     [Fact]
+    public async Task A_workflow_document_in_the_shape_the_cli_sends_is_accepted()
+    {
+        using var http = CreateClient();
+        var project = fixture.ProjectId;
+
+        // The shape `aiko workflow set` builds: a stored workflow definition with `revision` named
+        // `expectedRevision`. The CLI restates the daemon's request contract by field name, so this pins the
+        // two ends together - a rename on either side has to fail here rather than quietly drop the field.
+        var board = await http.GetFromJsonAsync<JsonElement>($"api/v1/projects/{project}/board");
+        var workflow = board.GetProperty("workflows").EnumerateArray()
+            .First(candidate => candidate.GetProperty("id").GetString() == "task");
+        var revision = workflow.GetProperty("revision").GetInt64();
+
+        using var saved = await http.PutAsJsonAsync(
+            $"api/v1/projects/{project}/workflows/task",
+            new
+            {
+                title = workflow.GetProperty("title").GetString(),
+                stages = workflow.GetProperty("stages").Clone(),
+                expectedRevision = revision,
+                description = workflow.GetProperty("description").GetString(),
+                icon = workflow.GetProperty("icon").GetString(),
+                color = workflow.GetProperty("color").GetString(),
+                blendsWithParent = workflow.GetProperty("blendsWithParent").GetBoolean()
+            });
+
+        // Writing the document back unchanged is accepted, and the revision moves on: the body was read as
+        // the update it is rather than ignored.
+        Assert.Equal(HttpStatusCode.OK, saved.StatusCode);
+        var updated = await saved.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(revision + 1, updated.GetProperty("revision").GetInt64());
+    }
+
+    [Fact]
     public async Task Settings_report_where_the_value_came_from()
     {
         using var http = CreateClient();
