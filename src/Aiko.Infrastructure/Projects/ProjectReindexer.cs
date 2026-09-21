@@ -113,14 +113,15 @@ public sealed class ProjectReindexer(
                         ProjectJsonContext.Default.Card,
                         cancellationToken)
                         ?? throw new InvalidDataException($"Invalid card document: {cardPath}");
-                    // The folder is derived from the type, so a card whose type and location disagree is a
-                    // corrupted project rather than a type Aiko does not know. Comparing against the derived
-                    // name - instead of a fixed list of collections - is what lets a project add types.
+                    // The folder is named after the type's workflow, so a card whose type and location disagree
+                    // is a corrupted project rather than a type Aiko does not know. Both names count: a project
+                    // filed its cards under the plural before the naming rule changed. Comparing against the
+                    // names derived from the type - instead of a fixed list of collections - is what lets a
+                    // project add types.
                     if (!StringComparer.Ordinal.Equals(card.Reference.ProjectId, project.Id) ||
                         !StringComparer.Ordinal.Equals(card.Reference.CardId, cardId) ||
-                        !StringComparer.Ordinal.Equals(
-                            FileCardStore.CollectionFor(card.Kind),
-                            collection))
+                        !FileCardStore.CollectionNames(project.RootPath, card.Kind)
+                            .Contains(collection, StringComparer.OrdinalIgnoreCase))
                     {
                         throw new InvalidDataException(
                             $"Card identity does not match its location: {cardPath}");

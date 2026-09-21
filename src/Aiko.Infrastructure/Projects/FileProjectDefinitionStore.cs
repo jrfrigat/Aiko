@@ -234,6 +234,42 @@ public sealed class FileProjectDefinitionStore(IProjectCatalog projects) : IProj
     private static string WorkflowPath(string projectRoot, string workflowId) =>
         Path.Combine(AikoProjectPaths.DataRoot(projectRoot), "workflows", $"{workflowId}.json");
 
+    /// <summary>
+    /// The title of one workflow, read from its own document by the project root alone.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Synchronous and by root rather than through <see cref="IProjectDefinitionStore"/> on purpose: the card
+    /// store names a card's collection after the workflow that defines its type, and its path helpers are
+    /// static - they are called from stores that hold no definition store. Reading the one document here keeps
+    /// the naming rule from having to know the document's schema as well.
+    /// </para>
+    /// <para>
+    /// A missing or unreadable document reads as null rather than throwing: a project whose definition was
+    /// removed still holds the cards that were filed under it, and a store that failed to list them would be
+    /// the worse answer.
+    /// </para>
+    /// </remarks>
+    /// <param name="projectRoot">The project's root directory.</param>
+    /// <param name="workflowId">The workflow's id, which is the card type's own id.</param>
+    internal static string? ReadWorkflowTitle(string projectRoot, string workflowId)
+    {
+        if (string.IsNullOrWhiteSpace(projectRoot) || string.IsNullOrWhiteSpace(workflowId))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var input = File.OpenRead(WorkflowPath(projectRoot, workflowId));
+            return JsonSerializer.Deserialize(input, ProjectJsonContext.Default.WorkflowDefinition)?.Title;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException)
+        {
+            return null;
+        }
+    }
+
     private static async ValueTask<IReadOnlyList<T>> ReadDocumentsAsync<T>(
         string directory,
         System.Text.Json.Serialization.Metadata.JsonTypeInfo<T> typeInfo,

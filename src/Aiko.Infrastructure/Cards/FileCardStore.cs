@@ -182,6 +182,11 @@ public sealed class FileCardStore(
     /// project's own root second, because a project made before cards moved there is still a project with
     /// cards. The new place wins when a card is somehow in both: that is where cards are written now.
     /// </summary>
+    /// <remarks>
+    /// The type is matched against the collections that are on disk, not against the name the workflow asks
+    /// for: a card filed before the naming rule changed sits under the older name, and that is exactly the
+    /// card this lookup has to find.
+    /// </remarks>
     private static string? GetCardPath(
         string projectRoot,
         string cardId,
@@ -190,7 +195,7 @@ public sealed class FileCardStore(
         ValidateCardId(cardId);
         var collections = expectedKind is null
             ? Collections(projectRoot)
-            : [CollectionFor(expectedKind)];
+            : ExistingCollections(projectRoot, expectedKind);
 
         foreach (var (root, collection) in Candidates(projectRoot, collections))
         {
@@ -240,8 +245,109 @@ public sealed class FileCardStore(
         ValidateCardId(cardId);
         return Path.Combine(
             AikoProjectPaths.CardCollectionsRoot(projectRoot),
-            CollectionFor(kind),
+            ResolvedCollection(projectRoot, kind),
             cardId);
+    }
+
+    /// <summary>
+    /// The collection a card of this type belongs in, under the name it should carry on disk.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A collection that is already there wins, whatever its spelling: two folders differing only in case would
+    /// be one folder on Windows and two on Linux. When the spelling a project has is not the one its workflow
+    /// asks for, the folder is renamed to it - that is what makes the name a person reads in the settings the
+    /// name they see on disk.
+    /// </para>
+    /// <para>
+    /// The rename goes through a temporary name because a case-only move is refused outright ("source and
+    /// destination path must be different") - measured, not assumed. It is best effort: a folder that cannot be
+    /// renamed is used as it is, because a rename must never fail a card's save.
+    /// </para>
+    /// </remarks>
+    private static string ResolvedCollection(string projectRoot, string kind)
+    {
+        var names = CollectionNames(projectRoot, kind);
+        if (names.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        var wanted = names[0];
+        var root = AikoProjectPaths.CardCollectionsRoot(projectRoot);
+        var existing = names
+            .Select(name => ExistingCollection(root, name))
+            .FirstOrDefault(name => name is not null);
+        if (existing is null || StringComparer.Ordinal.Equals(existing, wanted))
+        {
+            return existing ?? wanted;
+        }
+
+        var from = Path.Combine(root, existing);
+        var temporary = Path.Combine(root, $"{wanted}.aiko-rename");
+        try
+        {
+            Directory.Move(from, temporary);
+            Directory.Move(temporary, Path.Combine(root, wanted));
+            return wanted;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            // A half-finished rename is put back, so a failure leaves one collection rather than a stray one.
+            try
+            {
+                if (Directory.Exists(temporary) && !Directory.Exists(from))
+                {
+                    Directory.Move(temporary, from);
+                }
+            }
+            catch (Exception restore) when (restore is IOException or UnauthorizedAccessException)
+            {
+            }
+
+            return existing;
+        }
+    }
+
+    /// <summary>The name of the collection on disk that matches <paramref name="name"/>, or null.</summary>
+    private static string? ExistingCollection(string collectionsRoot, string name)
+    {
+        if (!Directory.Exists(collectionsRoot))
+        {
+            return null;
+        }
+
+        return Directory
+            .EnumerateDirectories(collectionsRoot)
+            .Select(directory => Path.GetFileName(directory))
+            .FirstOrDefault(candidate => candidate is not null &&
+                StringComparer.OrdinalIgnoreCase.Equals(candidate, name));
+    }
+
+    /// <summary>
+    /// The collections of one type as they are named on disk right now.
+    /// </summary>
+    /// <remarks>
+    /// The names found, not the names expected: a project filed its cards under the plural before this rule and
+    /// under the workflow's title after it, and on a case-sensitive filesystem those are two different
+    /// directories. Matching what is actually there is what keeps every card readable.
+    /// </remarks>
+    private static IReadOnlyList<string> ExistingCollections(string projectRoot, string kind)
+    {
+        var root = AikoProjectPaths.CardCollectionsRoot(projectRoot);
+        if (!Directory.Exists(root))
+        {
+            return [];
+        }
+
+        var wanted = CollectionNames(projectRoot, kind);
+        return Directory
+            .EnumerateDirectories(root)
+            .Select(directory => Path.GetFileName(directory))
+            .Where(name => name is not null && wanted.Contains(name, StringComparer.OrdinalIgnoreCase))
+            .Select(name => name!)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
     }
 
     /// <summary>
@@ -260,14 +366,68 @@ public sealed class FileCardStore(
     }
 
     /// <summary>
-    /// The collection a card type is filed under: the plural of the type's own id by the ordinary English
-    /// rule, so <c>Story</c> lives under <c>stories</c>, <c>Epic</c> under <c>epics</c> and a type the engine
-    /// never heard of - <c>Bug</c> - under <c>bugs</c>. No type name is special-cased, and the folders projects
-    /// already have on disk keep the names this rule gives them.
+    /// The collection a card of this type is filed under: the title of the workflow that defines it.
     /// </summary>
-    /// <param name="kind">Card type id, for example <c>Story</c>.</param>
-    internal static string CollectionFor(string kind) =>
-        Pluralize(kind?.Trim().ToLowerInvariant() ?? string.Empty);
+    /// <param name="projectRoot">The project's root directory.</param>
+    /// <param name="kind">Card type id, for example <c>Task</c>.</param>
+    internal static string CollectionFor(string projectRoot, string kind) =>
+        CollectionNames(projectRoot, kind) is [var name, ..] ? name : string.Empty;
+
+    /// <summary>
+    /// The names a card of this type may be filed under: the workflow's own title first, the plural of the
+    /// type's id second.
+    /// </summary>
+    /// <remarks>
+    /// The title is the name a person reads in the project settings, so a folder is called what the type is
+    /// called there. The plural stays in the list because every project made before this rule filed its cards
+    /// that way: looking under both names is what lets an existing project open without a migration, and what
+    /// keeps a card readable after its workflow has been renamed.
+    /// </remarks>
+    /// <param name="projectRoot">The project's root directory.</param>
+    /// <param name="kind">Card type id, for example <c>Task</c>.</param>
+    internal static IReadOnlyList<string> CollectionNames(string projectRoot, string kind)
+    {
+        var id = CardKind.ToWorkflowId(kind ?? string.Empty);
+        var names = new List<string>();
+        var fromTitle = SanitizeCollectionName(
+            FileProjectDefinitionStore.ReadWorkflowTitle(projectRoot, id));
+        if (fromTitle.Length > 0)
+        {
+            names.Add(fromTitle);
+        }
+
+        var plural = Pluralize(id);
+        if (plural.Length > 0 && !names.Contains(plural, StringComparer.OrdinalIgnoreCase))
+        {
+            names.Add(plural);
+        }
+
+        return names;
+    }
+
+    /// <summary>
+    /// A workflow title as a directory name: the characters a path cannot carry become dashes, and surrounding
+    /// whitespace and dots are dropped.
+    /// </summary>
+    /// <remarks>
+    /// A title is free text from the settings - it may hold a slash, a colon or nothing but spaces. The name is
+    /// still the project's own and is not translated; it is only made fit to be a folder.
+    /// </remarks>
+    internal static string SanitizeCollectionName(string? title)
+    {
+        if (title is null)
+        {
+            return string.Empty;
+        }
+
+        var characters = title
+            .Select(character => character is '<' or '>' or ':' or '"' or '/' or '\\' or '|' or '?' or '*'
+                || char.IsControl(character)
+                    ? '-'
+                    : character)
+            .ToArray();
+        return new string(characters).Trim().Trim('.');
+    }
 
     /// <summary>
     /// The plural of a type id by the ordinary English rule: a consonant before a final <c>y</c> becomes
@@ -275,6 +435,11 @@ public sealed class FileCardStore(
     /// else takes <c>s</c>. The old hand-written list existed for <c>story</c>; it is just the rule applied to
     /// a consonant before a <c>y</c>.
     /// </summary>
+    /// <remarks>
+    /// This is no longer the name cards are filed under - the workflow's title is - but it is still the name
+    /// of every collection written before that rule, and the name a type falls back to when the project holds
+    /// no workflow for it.
+    /// </remarks>
     /// <param name="id">Lower-cased type id.</param>
     internal static string Pluralize(string id)
     {
