@@ -342,6 +342,32 @@ public sealed class RazorMarkupSpecs
     }
 
     [Fact]
+    public void The_daemon_screen_surfaces_the_drift_the_doctor_finds_and_not_a_second_check()
+    {
+        var root = FindRepositoryRoot();
+        var page = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "DaemonPage.razor"));
+
+        // An agent configuration that points at an old port is the doctor's finding, and this screen shows
+        // the doctor's own list: it asks the diagnostics endpoint and filters by the shared area constant
+        // instead of deciding staleness here, where the two rules would drift apart.
+        Assert.Contains("api/v1/system/diagnostics", page, StringComparison.Ordinal);
+        Assert.Contains("DiagnosticFinding.AgentConfigArea", page, StringComparison.Ordinal);
+        Assert.Contains("AgentConfigDrift", page, StringComparison.Ordinal);
+
+        // Both texts the block uses exist in both languages.
+        foreach (var resource in new[] { "Loc.resx", "Loc.ru.resx" })
+        {
+            var resx = File.ReadAllText(
+                Path.Combine(root, "src", "Aiko.Pwa", "Resources", resource));
+            foreach (var key in new[] { "AgentConfigDrift", "AgentConfigDriftHint" })
+            {
+                Assert.Contains($"name=\"{key}\"", resx, StringComparison.Ordinal);
+            }
+        }
+    }
+
+    [Fact]
     public void The_linked_projects_registry_has_a_rail_item_and_a_screen_of_its_own()
     {
         var root = FindRepositoryRoot();

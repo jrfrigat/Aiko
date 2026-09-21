@@ -795,6 +795,26 @@ static async Task<int> StatusAsync()
         WriteDaemonLogTail();
     }
 
+    // The one failure that is invisible from the outside: an agent's own configuration still records the
+    // old port, so the agent silently stops reaching Aiko while everything else looks healthy. The list
+    // comes from the very inspection `aiko doctor` runs - a second check here is how the two would come to
+    // disagree about the same files.
+    var drift = (await InspectAsync(projectId: null)).Findings
+        .Where(finding =>
+            StringComparer.Ordinal.Equals(finding.Area, DiagnosticFinding.AgentConfigArea) &&
+            finding.Severity != DiagnosticSeverity.Ok)
+        .ToArray();
+    if (drift.Length > 0)
+    {
+        Console.WriteLine($"Agent configs:   {drift.Length} stale:");
+        foreach (var finding in drift)
+        {
+            Console.WriteLine($"  {finding.Summary}");
+        }
+
+        Console.WriteLine("                 run `aiko repair --fix` to rewrite them.");
+    }
+
     return 0;
 }
 

@@ -26,7 +26,19 @@ public sealed record DiagnosticFinding(
     string Area,
     DiagnosticSeverity Severity,
     string Summary,
-    string? Detail = null);
+    string? Detail = null)
+{
+    /// <summary>
+    /// Area of the findings about an agent's MCP configuration: the files that record this daemon's
+    /// endpoint and go stale the moment its port moves.
+    /// </summary>
+    /// <remarks>
+    /// Named here because more than one place reports these findings - <c>aiko doctor</c> prints them,
+    /// <c>aiko status</c> and the daemon screen of the UI surface the same ones - and a second spelling of
+    /// the value is exactly how those lists come to disagree.
+    /// </remarks>
+    public const string AgentConfigArea = "agent-config";
+}
 
 /// <summary>
 /// Result of a workshop inspection.

@@ -1,5 +1,6 @@
 @page "/daemon"
 @inject WorkspaceState State
+@inject HttpClient Http
 
 @* The daemon and the bridges to the agents: what is running, where it listens, and how each agent reaches
    it. These are the installation's own facts - one daemon serves every project - which is why they live in
@@ -190,6 +191,29 @@
                     }
                 </FlareStack>
             }
+
+            @* The drift the card list above cannot show: a configuration that is present and complete but
+               records an endpoint the daemon no longer listens on. The findings are the ones `aiko doctor`
+               prints - this screen surfaces the same inspection rather than deciding staleness itself. *@
+            @if (Drift.Count > 0)
+            {
+                <FlareAlert Severity="AlertSeverity.Warning" Variant="AlertVariant.Outlined">
+                    <FlareStack Gap="FlareSpacing.XSmall">
+                        <FlareText Element="span" Typo="TypographyScale.LabelMedium">
+                            @Loc.Format("AgentConfigDrift", Drift.Count)
+                        </FlareText>
+                        @foreach (var finding in Drift)
+                        {
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall">
+                                @finding.Summary
+                            </FlareText>
+                        }
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Get("AgentConfigDriftHint")
+                        </FlareText>
+                    </FlareStack>
+                </FlareAlert>
+            }
         </FlareStack>
     </FlarePaper>
 </FlareStack>
@@ -198,6 +222,15 @@
     private string? _busyAdapterId;
     private string? _message;
     private bool _hasError;
+
+    /// <summary>
+    /// The agents' own configurations that record an endpoint the daemon no longer listens on, taken from
+    /// the daemon's diagnostics endpoint - the same findings <c>aiko doctor</c> prints. Empty until it
+    /// answers, and empty when there is nothing stale.
+    /// </summary>
+    private IReadOnlyList<DiagnosticFinding> Drift { get; set; } = [];
+
+    protected override async Task OnInitializedAsync() => await LoadDriftAsync();
 
     /// <summary>
     /// The MCP endpoint an agent connects to: the daemon plus the open project, when one is open. It carries
@@ -314,6 +347,10 @@
                 await State.ConnectAgentAsync(adapterId);
             }
 
+            // Attaching or detaching rewrites this agent's own files, so what was stale a moment ago may not
+            // be any more - and the other way round.
+            await LoadDriftAsync();
+
             if (State.Error is { Length: > 0 } error)
             {
                 _message = Loc.Format("AgentConnectFailed", name, error);
@@ -328,6 +365,31 @@
         finally
         {
             _busyAdapterId = null;
+        }
+    }
+
+    /// <summary>
+    /// Asks the daemon for the installation report and keeps the findings about the agents' own files. The
+    /// screen does not decide staleness itself: the doctor owns that rule, and a second copy of it here is
+    /// how the two would come to contradict each other about the same file.
+    /// </summary>
+    private async Task LoadDriftAsync()
+    {
+        try
+        {
+            var diagnostics = await Http.GetFromJsonAsync<WorkshopDiagnostics>(
+                "api/v1/system/diagnostics", PwaJson.Options);
+            Drift = (diagnostics?.Findings ?? [])
+                .Where(finding =>
+                    StringComparer.Ordinal.Equals(finding.Area, DiagnosticFinding.AgentConfigArea) &&
+                    finding.Severity != DiagnosticSeverity.Ok)
+                .ToArray();
+        }
+        catch (Exception)
+        {
+            // A daemon that cannot answer leaves the screen with the bridges it already has: this block is
+            // one more fact about the installation, not the page's reason for existing.
+            Drift = [];
         }
     }
 }

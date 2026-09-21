@@ -391,7 +391,7 @@ public sealed class WorkshopDoctor(
                 if (IsStaleProjectEndpoint(content, expectedEndpoint))
                 {
                     findings.Add(new DiagnosticFinding(
-                        "agent-config",
+                        DiagnosticFinding.AgentConfigArea,
                         DiagnosticSeverity.Warning,
                         $"{project.Name}: {adapterPlan.AdapterId} points at a stale endpoint. " +
                         "Run `aiko repair --fix`.",
@@ -404,7 +404,7 @@ public sealed class WorkshopDoctor(
                     // The endpoint is right but nothing authenticates: the daemon answers 401 and the
                     // agent never sees Aiko. This is what an installation predating the token looks like.
                     findings.Add(new DiagnosticFinding(
-                        "agent-config",
+                        DiagnosticFinding.AgentConfigArea,
                         DiagnosticSeverity.Warning,
                         $"{project.Name}: {adapterPlan.AdapterId} has no access token, so the agent gets " +
                         "401 from the daemon. Run `aiko repair --fix`.",
@@ -443,7 +443,7 @@ public sealed class WorkshopDoctor(
                 }
 
                 findings.Add(new DiagnosticFinding(
-                    "agent-config",
+                    DiagnosticFinding.AgentConfigArea,
                     DiagnosticSeverity.Warning,
                     $"{adapter.Id} (user scope) points at a stale endpoint. Run `aiko repair --fix`.",
                     change.Path));

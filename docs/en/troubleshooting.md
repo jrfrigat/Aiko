@@ -105,7 +105,10 @@ aiko repair --fix    # reindexes the projects and rewrites the stale configurati
 ```
 
 `aiko doctor` changes nothing; `aiko repair` without `--fix` only reports. The same report is available
-to an agent through the `aiko_doctor` MCP tool.
+to an agent through the `aiko_doctor` MCP tool, and the drift it names is surfaced in two more places
+without a second check behind them: `aiko status` prints the stale agent configurations after the
+daemon's own state, and the *Daemon and MCP bridges* screen of the UI shows the same findings beside
+the bridges.
 
 ## 409 Conflict
 

@@ -373,6 +373,8 @@
   <data name="BridgeNotInstalledHint" xml:space="preserve"><value>Not found on PATH: install the agent, then attach its bridge</value></data>
   <data name="AgentBridgeChanged" xml:space="preserve"><value>Bridge for {0} updated.</value></data>
   <data name="AgentBridgesHint" xml:space="preserve"><value>Which agents this machine has, and whether Aiko has connected to them</value></data>
+  <data name="AgentConfigDrift" xml:space="preserve"><value>{0} agent configurations still record an old endpoint</value></data>
+  <data name="AgentConfigDriftHint" xml:space="preserve"><value>The agent is installed and connected, but its configuration points at a port the daemon no longer listens on. Run `aiko repair --fix` to rewrite them.</value></data>
   <data name="BridgeConnected" xml:space="preserve"><value>connected</value></data>
   <data name="BridgePartial" xml:space="preserve"><value>partial</value></data>
   <data name="BridgeInstalled" xml:space="preserve"><value>found, not connected</value></data>
