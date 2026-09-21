@@ -12,7 +12,8 @@ public sealed record AppSettings(
     int SchemaVersion,
     ExecutionSettings? Execution = null,
     PrioritySettings? Priority = null,
-    CrossProjectSettings? CrossProject = null)
+    CrossProjectSettings? CrossProject = null,
+    ReleaseSettings? Release = null)
 {
     /// <summary>
     /// Schema version written by the current application version.

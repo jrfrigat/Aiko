@@ -267,7 +267,7 @@ over is therefore the same address the UI links to itself, not a second form of 
 | Move a card with explicit stage actions (next, return, cancel) | — | `aiko_move_card` | — (drag only; the explicit actions are not built) |
 | Ask an agent to do something from the board | `/aiko-commands` | `aiko_list_commands`, `aiko_claim_command`, `aiko_finish_command` | Card page - *Command for an agent*: place one, and see whether it is waiting or taken |
 | Work every unfinished card of the board | `/aiko-run-all` | `aiko_list_board`, then the run tools per card | Board - *Work the board*: places the request and shows what became of it |
-| Conduct a release of a version | `/aiko-release` | — (the procedure walks terminal commands: the tag, the workflow and the installer stay outside Aiko) | — (the release screen is not built) |
+| Conduct a release of a version | `/aiko-release` | — (the procedure walks terminal commands: the tag, the workflow and the installer stay outside Aiko) | Release screen - *Release*: the running daemon's version, the last release and the tree state, and a button that places the command; project settings - *How a release is conducted*: the order in words |
 | Show the access token | `/aiko-token` | `aiko_token` | — (`aiko token show`) |
 | Manage agent integrations | `/aiko-agents` | — (`aiko agent list` / `install` / `uninstall`) | Dashboard - the *Agents* card: detection and Connect / Disconnect |
 

@@ -1,0 +1,296 @@
+@page "/p/{Handle}/release"
+@using Aiko.Application.Contracts
+@using Aiko.Domain.Execution
+@using Aiko.Pwa.Services
+@implements IDisposable
+@inject HttpClient Http
+@inject WorkspaceState State
+
+@* The release screen. Aiko never runs an agent and never touches the repository, so the most this page can
+   do is show what the daemon knows and put a command in the queue for an agent to take. It promises no
+   push and installs nothing: the steps below are commands a person runs, and the screen says so.
+
+   "Unknown" is drawn as a value everywhere a fact is missing, with the reason the daemon gave - an empty
+   place would read as "nothing to report" instead of "I could not find out". *@
+<PageTitle>@($"{Loc.Get("ReleaseTitle")} · {ProjectName}")</PageTitle>
+
+<FlareStack Gap="FlareSpacing.Medium">
+    <FlareStack Gap="FlareSpacing.XXSmall">
+        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
+            <span class="aiko-tag aiko-tag--accent">@Loc.Get("ReleaseTag")</span>
+            @if (Repository is { Length: > 0 } repository)
+            {
+                <span class="aiko-tag aiko-tag--quiet">@repository</span>
+            }
+        </FlareStack>
+        <FlareText Element="h1" Typo="TypographyScale.HeadlineMedium">@Loc.Get("ReleaseTitle")</FlareText>
+        <FlareText Element="p" Typo="TypographyScale.BodyMedium" Color="FlareColor.OnSurfaceVariant">
+            @Loc.Get("ReleaseHint")
+        </FlareText>
+    </FlareStack>
+
+    <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
+        <FlareStack Gap="FlareSpacing.Medium">
+            <FlareStack Row="true" Align="FlareAlignItems.Start" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small">
+                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
+                    <span class="aiko-panel__icon aiko-panel__icon--secondary">
+                        <FlareIconView Value="@MaterialDesign3Icons.Regular.Info" />
+                    </span>
+                    <FlareStack Gap="FlareSpacing.None">
+                        <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("ReleaseFactsTitle")</FlareText>
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Get("ReleaseFactsHint")
+                        </FlareText>
+                    </FlareStack>
+                </FlareStack>
+                <FlareButton Variant="ButtonVariant.Tonal" Size="ButtonSize.Sm" Loading="@_loading" OnClick="ReloadAsync">
+                    <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.Refresh" /></LeadingIcon>
+                    <ChildContent>@Loc.Get("ReleaseRefresh")</ChildContent>
+                </FlareButton>
+            </FlareStack>
+
+            <div class="aiko-tiles">
+                <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                        @Loc.Get("ReleaseDaemonVersion")
+                    </FlareText>
+                    <span class="aiko-value">@DaemonVersion</span>
+                </FlareStack>
+                <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                        @Loc.Get("ReleaseBundleVersion")
+                    </FlareText>
+                    <span class="aiko-value">@BundleVersion</span>
+                </FlareStack>
+                <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                        @Loc.Get("ReleaseLatest")
+                    </FlareText>
+                    <span class="aiko-value">@LatestReleaseValue</span>
+                    @if (LatestReleaseReason is { Length: > 0 } reason)
+                    {
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @reason
+                        </FlareText>
+                    }
+                </FlareStack>
+                <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                        @Loc.Get("ReleaseTreeState")
+                    </FlareText>
+                    <span class="aiko-value">@TreeStateValue</span>
+                    @if (TreeStateReason is { Length: > 0 } reason)
+                    {
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @reason
+                        </FlareText>
+                    }
+                </FlareStack>
+            </div>
+        </FlareStack>
+    </FlarePaper>
+
+    <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
+        <FlareStack Gap="FlareSpacing.Medium">
+            <FlareStack Row="true" Align="FlareAlignItems.Start" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small">
+                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
+                    <span class="aiko-panel__icon aiko-panel__icon--primary">
+                        <FlareIconView Value="@MaterialDesign3Icons.Regular.Publish" />
+                    </span>
+                    <FlareStack Gap="FlareSpacing.None">
+                        <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("ReleaseCommandTitle")</FlareText>
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Get("ReleaseCommandHint")
+                        </FlareText>
+                    </FlareStack>
+                </FlareStack>
+                <FlareButton Variant="ButtonVariant.Filled"
+                             Size="ButtonSize.Sm"
+                             Disabled="@(OpenReleaseCommand is not null || _placing)"
+                             Loading="@_placing"
+                             OnClick="PlaceReleaseAsync">
+                    <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.Send" /></LeadingIcon>
+                    <ChildContent>@Loc.Get("ReleaseCommandButton")</ChildContent>
+                </FlareButton>
+            </FlareStack>
+
+            <AikoField Label="@Loc.Get("ReleaseVersionLabel")"
+                       Hint="@Loc.Get("ReleaseVersionHint")"
+                       Placeholder="@Loc.Get("ReleaseVersionPlaceholder")"
+                       Value="@_version"
+                       ValueChanged="value => _version = value" />
+
+            @if (OpenReleaseCommand is { } waiting)
+            {
+                <span class="aiko-tag">@Loc.Format("ReleaseCommandWaiting", waiting.Id)</span>
+            }
+            else
+            {
+                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                    @Loc.Get("ReleaseNoOpenCommand")
+                </FlareText>
+            }
+
+            @if (_message is { Length: > 0 } message)
+            {
+                <FlareAlert Severity="@(_hasError ? AlertSeverity.Error : AlertSeverity.Success)"
+                            Variant="AlertVariant.Outlined">@message</FlareAlert>
+            }
+        </FlareStack>
+    </FlarePaper>
+
+    <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
+        <FlareStack Gap="FlareSpacing.Medium">
+            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
+                <span class="aiko-panel__icon aiko-panel__icon--secondary">
+                    <FlareIconView Value="@MaterialDesign3Icons.Regular.ListAlt" />
+                </span>
+                <FlareStack Gap="FlareSpacing.None">
+                    <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("ReleaseOrderTitle")</FlareText>
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                        @Loc.Get("ReleaseOrderHint")
+                    </FlareText>
+                </FlareStack>
+            </FlareStack>
+
+            @* The steps are commands a person runs, so the list says who acts. Nothing here is done by
+               opening this page, and nothing here is done by Aiko on its own. *@
+            <FlareStack Gap="FlareSpacing.XSmall">
+                <FlareText Element="span"><span class="aiko-value">1</span> @Loc.Get("ReleaseOrderStep1")</FlareText>
+                <FlareText Element="span"><span class="aiko-value">2</span> @Loc.Get("ReleaseOrderStep2")</FlareText>
+                <FlareText Element="span"><span class="aiko-value">3</span> @Loc.Get("ReleaseOrderStep3")</FlareText>
+                <FlareText Element="span"><span class="aiko-value">4</span> @Loc.Get("ReleaseOrderStep4")</FlareText>
+            </FlareStack>
+
+            <FlareNavLink Href="@SettingsHref">
+                <ChildContent>@Loc.Get("ReleaseSettingsLink")</ChildContent>
+            </FlareNavLink>
+        </FlareStack>
+    </FlarePaper>
+</FlareStack>
+
+@code {
+    /// <summary>The project's readable handle, taken from the route.</summary>
+    [Parameter] public string Handle { get; set; } = string.Empty;
+
+    private ReleaseInfo? _facts;
+    private string? _version;
+    private string? _message;
+    private bool _hasError;
+    private bool _loading;
+    private bool _placing;
+
+    private string ProjectName => State.SelectedProject?.Name ?? Handle;
+
+    /// <summary>The repository the release facts belong to, or null when the project states none.</summary>
+    private string? Repository => _facts?.Repository;
+
+    /// <summary>
+    /// The release command still asking for work, or null. Read from the queue rather than remembered here:
+    /// the daemon records what the person asked for, and the screen's job is to show that record.
+    /// </summary>
+    private CardCommand? OpenReleaseCommand => State.Commands.FirstOrDefault(command =>
+        command.Action == CardCommandAction.Release && command.IsOpen);
+
+    private string DaemonVersion =>
+        State.System?.Version is { Length: > 0 } version ? version : Loc.Get("ReleaseUnknown");
+
+    private string BundleVersion =>
+        State.System?.AssetsVersion is { Length: > 0 } assets ? assets : Loc.Get("ReleaseUnknown");
+
+    private string LatestReleaseValue =>
+        _facts?.Latest is { Known: true, Tag: { Length: > 0 } tag } ? tag : Loc.Get("ReleaseUnknown");
+
+    private string? LatestReleaseReason =>
+        _facts?.Latest is { Known: false, Failure: { Length: > 0 } failure } ? failure : null;
+
+    /// <summary>The branch and commit the tree is on, or the word for "not known".</summary>
+    private string TreeStateValue =>
+        _facts?.Head is { Known: true, Commit: { Length: > 0 } commit }
+            ? _facts.Head.Branch is { Length: > 0 } branch
+                ? $"{branch} · {commit}"
+                : commit
+            : Loc.Get("ReleaseUnknown");
+
+    private string? TreeStateReason =>
+        _facts?.Head is { Known: false, Failure: { Length: > 0 } failure } ? failure : null;
+
+    /// <summary>Where the order a release follows is written down, so nobody has to go looking for it.</summary>
+    private string SettingsHref => ProjectRoutes.Section(Handle, "settings");
+
+    /// <summary>
+    /// Subscribed once, when the component is created. Doing it while the parameters are set would add a
+    /// handler on every navigation, and the page would then redraw as many times as it had been visited.
+    /// </summary>
+    protected override void OnInitialized() => State.Changed += OnStateChanged;
+
+    protected override async Task OnParametersSetAsync() => await ReloadAsync();
+
+    /// <summary>
+    /// Reads the facts the daemon gathers: the last release and the state of the tree. Both arrive as answers
+    /// rather than failures - "unknown" with its reason is what a missing network or a missing repository
+    /// looks like - so this screen never turns a probe into an error.
+    /// </summary>
+    private async Task ReloadAsync()
+    {
+        _loading = true;
+        try
+        {
+            _facts = await Http.GetFromJsonAsync<ReleaseInfo>(
+                $"api/v1/projects/{Uri.EscapeDataString(Handle)}/release",
+                PwaJson.Options);
+        }
+        catch (Exception exception)
+        {
+            // The route itself answered with something other than facts - a project the daemon does not
+            // know, or a daemon that is not there. That is worth saying, and it is not "unknown": it is a
+            // refused read.
+            _message = Loc.Format("ReleaseFactsFailed", FailureText.Describe(exception));
+            _hasError = true;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    /// <summary>
+    /// Puts the release command in the queue. Nothing is started here: Aiko does not run agents, and a
+    /// release is the project's own, so the command carries no card - the version the person typed rides in
+    /// the text, and an empty one leaves the choice to the procedure.
+    /// </summary>
+    private async Task PlaceReleaseAsync()
+    {
+        if (_placing || OpenReleaseCommand is not null)
+        {
+            return;
+        }
+
+        _placing = true;
+        _message = null;
+        _hasError = false;
+        try
+        {
+            var placed = await State.PlaceCommandAsync(new PlaceCommandRequest(
+                CardId: null,
+                Action: CardCommandAction.Release,
+                Text: string.IsNullOrWhiteSpace(_version) ? null : _version!.Trim()));
+            _hasError = placed is null;
+            _message = placed is null
+                ? State.Error ?? Loc.Get("CommandFailed")
+                : Loc.Format("CommandPlaced", placed.Id);
+        }
+        finally
+        {
+            _placing = false;
+        }
+    }
+
+    private Task OnStateChanged()
+    {
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    public void Dispose() => State.Changed -= OnStateChanged;
+}

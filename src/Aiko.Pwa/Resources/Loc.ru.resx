@@ -676,5 +676,42 @@
   <data name="AppearanceModeDark" xml:space="preserve"><value>Тёмная</value></data>
   <data name="AppearancePalette" xml:space="preserve"><value>Палитра</value></data>
   <data name="AppearancePaletteHint" xml:space="preserve"><value>Целая цветовая схема одной темы. Выбор применяется сразу и хранится в этом браузере.</value></data>
+  <data name="ReleaseNav" xml:space="preserve"><value>Выпуск</value></data>
+  <data name="ReleaseTitle" xml:space="preserve"><value>Выпуск</value></data>
+  <data name="ReleaseTag" xml:space="preserve"><value>выпуск</value></data>
+  <data name="ReleaseHint" xml:space="preserve"><value>Что уже вышло, что будет следующим и откуда выпуск запускают. Aiko не запускает агента и ничего не пишет в репозиторий: экран показывает то, что знает демон, и кладёт просьбу в очередь.</value></data>
+  <data name="ReleaseFactsTitle" xml:space="preserve"><value>Сведения о выпуске</value></data>
+  <data name="ReleaseFactsHint" xml:space="preserve"><value>Из репозитория проекта, его дерева и работающего демона.</value></data>
+  <data name="ReleaseRefresh" xml:space="preserve"><value>Прочитать снова</value></data>
+  <data name="ReleaseDaemonVersion" xml:space="preserve"><value>Версия демона</value></data>
+  <data name="ReleaseBundleVersion" xml:space="preserve"><value>Версия клиентского бандла</value></data>
+  <data name="ReleaseLatest" xml:space="preserve"><value>Последний выпуск</value></data>
+  <data name="ReleaseTreeState" xml:space="preserve"><value>Состояние дерева</value></data>
+  <data name="ReleaseUnknown" xml:space="preserve"><value>неизвестно</value></data>
+  <data name="ReleaseCommandTitle" xml:space="preserve"><value>Провести выпуск</value></data>
+  <data name="ReleaseCommandHint" xml:space="preserve"><value>Aiko не запускает агентов. Это кладёт команду в очередь, и агент, который её возьмёт, проводит выпуск процедурой /aiko-release.</value></data>
+  <data name="ReleaseCommandButton" xml:space="preserve"><value>Положить команду в очередь</value></data>
+  <data name="ReleaseVersionLabel" xml:space="preserve"><value>Версия</value></data>
+  <data name="ReleaseVersionHint" xml:space="preserve"><value>Оставьте пустым — процедура выберет версию и объяснит выбор.</value></data>
+  <data name="ReleaseVersionPlaceholder" xml:space="preserve"><value>v0.4.0</value></data>
+  <data name="ReleaseCommandWaiting" xml:space="preserve"><value>Команда {0} ждёт агента.</value></data>
+  <data name="ReleaseNoOpenCommand" xml:space="preserve"><value>Ни один выпуск не ждёт.</value></data>
+  <data name="ReleaseOrderTitle" xml:space="preserve"><value>Порядок — для человека</value></data>
+  <data name="ReleaseOrderHint" xml:space="preserve"><value>Если агент не подключён, эти шаги выполняете вы. Ничего из этого не делается открытием страницы, и Aiko ничего не устанавливает на вашу машину.</value></data>
+  <data name="ReleaseOrderStep1" xml:space="preserve"><value>Убедиться, что дерево зелёное в Debug и в Release.</value></data>
+  <data name="ReleaseOrderStep2" xml:space="preserve"><value>Выбрать версию по тому, что изменилось: новая возможность — минор, исправление — патч, — и поставить тег.</value></data>
+  <data name="ReleaseOrderStep3" xml:space="preserve"><value>Дождаться, пока workflow выпуска по этому тегу соберёт архив.</value></data>
+  <data name="ReleaseOrderStep4" xml:space="preserve"><value>Подключить агентов заново: «aiko agent install --project ваш-проект».</value></data>
+  <data name="ReleaseSettingsLink" xml:space="preserve"><value>Как проводится релиз</value></data>
+  <data name="ReleaseFactsFailed" xml:space="preserve"><value>Не удалось прочитать сведения о выпуске: {0}</value></data>
+  <data name="ReleaseProcedureTitle" xml:space="preserve"><value>Как проводится релиз</value></data>
+  <data name="ReleaseProcedureHint" xml:space="preserve"><value>Порядок выпуска — чтобы его не приходилось собирать из файлов workflow.</value></data>
+  <data name="ReleaseProcedureOrder" xml:space="preserve"><value>Поставить тег, дождаться, пока workflow выпуска соберёт архив, установить его и подключить агентов заново.</value></data>
+  <data name="ReleaseProcedureTouches" xml:space="preserve"><value>Установка пишет в %LOCALAPPDATA%\Aiko\bin и добавляет этот каталог в пользовательский PATH.</value></data>
+  <data name="ReleaseProcedureKeeps" xml:space="preserve"><value>Проект не затрагивается: .aiko, aiko.db и токен доступа остаются на месте.</value></data>
+  <data name="ReleaseProcedureOpen" xml:space="preserve"><value>Открыть экран выпуска</value></data>
+  <data name="ReleaseScheme" xml:space="preserve"><value>Схема выпуска</value></data>
+  <data name="ReleaseSchemeHint" xml:space="preserve"><value>Как проводится выпуск этого проекта. Решает выбор самого проекта; шаблонный — то, с чего начинается новый проект.</value></data>
+  <data name="ReleaseSchemeFellBack" xml:space="preserve"><value>Схемы «{0}» нет, поэтому выпуск идёт по обычной.</value></data>
 
 </root>

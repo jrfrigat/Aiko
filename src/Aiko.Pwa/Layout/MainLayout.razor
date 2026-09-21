@@ -281,6 +281,11 @@
                         <FlareNavLink Href="@SectionHref(open.Handle, "links")">
                             <ChildContent>@Loc.Get("LinkedProjectsNav")</ChildContent>
                         </FlareNavLink>
+                        @* The release screen sits with the project's own pages: it answers "what is out, and
+                           what would be next" - the same kind of question as the overview and the board. *@
+                        <FlareNavLink Href="@SectionHref(open.Handle, "release")">
+                            <ChildContent>@Loc.Get("ReleaseNav")</ChildContent>
+                        </FlareNavLink>
                     }
                 </FlareStack>
             </ChildContent>

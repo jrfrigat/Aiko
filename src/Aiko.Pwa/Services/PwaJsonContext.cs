@@ -34,6 +34,7 @@ namespace Aiko.Pwa.Services;
 [JsonSerializable(typeof(IReadOnlyList<BoardProjectionDefinition>))]
 [JsonSerializable(typeof(StageDefinition))]
 [JsonSerializable(typeof(AppSettings))]
+[JsonSerializable(typeof(ReleaseInfo))]
 [JsonSerializable(typeof(AppSettingsView))]
 [JsonSerializable(typeof(ExecutionSettings))]
 [JsonSerializable(typeof(PrioritySettings))]

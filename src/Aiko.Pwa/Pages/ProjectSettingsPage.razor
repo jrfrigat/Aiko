@@ -53,6 +53,28 @@ else
                         </FlareNavLink>
                     </FlareStack>
                 </FlarePaper>
+                @* How a release is conducted, in words. The order used to live in the workflow files and in
+                   whoever remembered it; here it is where a person looks for it, and it says plainly what the
+                   installation touches and what it leaves alone - the second half is the one people are
+                   actually asking about. The screen itself is one link away rather than repeated here. *@
+                <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
+                    <FlareStack Gap="FlareSpacing.XSmall">
+                        <FlareText Element="h3" Typo="TypographyScale.TitleSmall">@Loc.Get("ReleaseProcedureTitle")</FlareText>
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Get("ReleaseProcedureHint")
+                        </FlareText>
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall">@Loc.Get("ReleaseProcedureOrder")</FlareText>
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Get("ReleaseProcedureTouches")
+                        </FlareText>
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.Success">
+                            @Loc.Get("ReleaseProcedureKeeps")
+                        </FlareText>
+                        <FlareNavLink Href="@ReleaseHref(board.Project.Handle)">
+                            <ChildContent>@Loc.Get("ReleaseProcedureOpen")</ChildContent>
+                        </FlareNavLink>
+                    </FlareStack>
+                </FlarePaper>
                 <WorkflowInspector Workflows="board.Workflows"
                                    Cards="board.Cards"
                                    InitialWorkflowId="@board.Workflows.FirstOrDefault()?.Id"
@@ -84,6 +106,13 @@ else
     /// </summary>
     private static string LinksHref(string projectHandle) =>
         ProjectRoutes.Section(projectHandle, "links");
+
+    /// <summary>
+    /// Where the release screen of this project lives. It goes through <c>ProjectRoutes.Release</c> so the
+    /// section is named once - the page, the rail and this panel all follow the same helper.
+    /// </summary>
+    private static string ReleaseHref(string projectHandle) =>
+        ProjectRoutes.Release(projectHandle);
 
     /// <summary>
     /// Writes one pipeline of this project and reloads the board, so the editor's revision follows. Returns

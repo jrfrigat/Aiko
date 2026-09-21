@@ -307,6 +307,39 @@
                                      Value="@_crossProjectTargets"
                                      ValueChanged="value => _crossProjectTargets = value" />
                     </FlareStack>
+
+                    @* How this project's releases are conducted. One choice for the project, and the same
+                       control on the template's screen decides what a new project starts from - which is what
+                       "the project's own choice wins" means here: the template's answer reaches a project as
+                       the copy it took at init, and from then on the project's own file decides. *@
+                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.XSmall">
+                        <FlareStack Gap="FlareSpacing.None">
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                                @Loc.Get("ReleaseScheme")
+                            </FlareText>
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                @Loc.Get("ReleaseSchemeHint")
+                            </FlareText>
+                        </FlareStack>
+                        @* Said only when it is true: a choice naming a scheme that is no longer there is
+                           followed by the ordinary one, and a person who made that choice should be told
+                           rather than left to notice the list disagreeing with itself. *@
+                        @if (_releaseSchemeFellBack)
+                        {
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                @Loc.Format("ReleaseSchemeFellBack", _releaseScheme ?? string.Empty)
+                            </FlareText>
+                        }
+                        <AikoSelectField Label="@Loc.Get("ReleaseScheme")"
+                                         Value="@_releaseScheme"
+                                         ValueChanged="value => _releaseScheme = value">
+                            @foreach (var scheme in _releaseSchemes)
+                            {
+                                var option = scheme;
+                                <option value="@option.Id">@option.Name</option>
+                            }
+                        </AikoSelectField>
+                    </FlareStack>
                 </FlareStack>
             </FlarePaper>
             @ExtraNarrowContent
@@ -793,6 +826,9 @@
     private ActionPolicy _pushPolicy = ActionPolicy.Deny;
     private CrossProjectWritePolicy _crossProjectPolicy = CrossProjectWritePolicy.Deny;
     private string? _crossProjectTargets;
+    private IReadOnlyList<ReleaseScheme> _releaseSchemes = ReleaseSchemes.BuiltIn;
+    private string? _releaseScheme;
+    private bool _releaseSchemeFellBack;
     private List<CriterionDraft> _criteria = [];
     private List<SizeDraft> _sizes = [];
     private SizeDraft? _selectedSize;
@@ -888,6 +924,14 @@
         var crossProject = own?.CrossProject ?? CrossProjectSettings.SafeDefault;
         _crossProjectPolicy = crossProject.WritePolicy;
         _crossProjectTargets = string.Join(Environment.NewLine, crossProject.Targets);
+
+        // The schemes this level can choose from, and the one in force. Seeded with the resolved scheme
+        // rather than the stated one, so the list shows what a release would actually follow; the notice
+        // above it says when those two differ.
+        var release = own?.Release ?? ReleaseSettings.SafeDefault;
+        _releaseSchemes = release.AvailableSchemes;
+        _releaseScheme = release.ResolveScheme().Id;
+        _releaseSchemeFellBack = release.SchemeFellBack;
 
         var priority = own?.Priority ?? view.EffectivePriority;
         _ownWeight = (double)priority.Weights.TaskWeight;
@@ -1041,7 +1085,21 @@
 
             using var response = await Http.PutAsJsonAsync(
                 SettingsUrl,
-                new AppSettings(AppSettings.CurrentSchemaVersion, execution, priority, crossProject),
+                // The release section keeps what this form does not edit - the repository, and the schemes
+                // when the project states its own - and takes the scheme the person chose. A section that
+                // states no schemes keeps them unstated, so a project follows the ones Aiko ships rather
+                // than materialising copies of them into its file, where a later improvement would not
+                // reach it.
+                new AppSettings(
+                    AppSettings.CurrentSchemaVersion,
+                    execution,
+                    priority,
+                    crossProject,
+                    new ReleaseSettings(
+                        Owner: _view?.Snapshot?.Release?.Owner,
+                        Repository: _view?.Snapshot?.Release?.Repository,
+                        Scheme: _releaseScheme,
+                        Schemes: _view?.Snapshot?.Release?.Schemes)),
                 PwaJson.Options);
             if (!response.IsSuccessStatusCode)
             {

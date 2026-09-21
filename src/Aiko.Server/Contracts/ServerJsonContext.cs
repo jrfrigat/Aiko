@@ -44,6 +44,7 @@ namespace Aiko.Server.Contracts;
 [JsonSerializable(typeof(IReadOnlyList<CardPriority>))]
 [JsonSerializable(typeof(AppSettings))]
 [JsonSerializable(typeof(AppSettingsView))]
+[JsonSerializable(typeof(ReleaseInfo))]
 [JsonSerializable(typeof(AikoEvent))]
 [JsonSerializable(typeof(IReadOnlyList<AikoEvent>))]
 [JsonSerializable(typeof(MoveCardRequest))]

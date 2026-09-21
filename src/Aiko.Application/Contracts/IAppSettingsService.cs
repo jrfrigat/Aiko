@@ -40,6 +40,16 @@ public interface IAppSettingsService
         CancellationToken cancellationToken);
 
     /// <summary>
+    /// Returns the effective release section of a project: the GitHub repository its releases are published
+    /// in, or the safe default when it states none.
+    /// </summary>
+    /// <param name="projectId">Project to read.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    ValueTask<ReleaseSettings> GetEffectiveReleaseAsync(
+        string projectId,
+        CancellationToken cancellationToken);
+
+    /// <summary>
     /// Saves the project-local settings.
     /// </summary>
     ValueTask SaveProjectAsync(

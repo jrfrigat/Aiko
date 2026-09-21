@@ -676,5 +676,42 @@
   <data name="AppearanceModeDark" xml:space="preserve"><value>Dark</value></data>
   <data name="AppearancePalette" xml:space="preserve"><value>Palette</value></data>
   <data name="AppearancePaletteHint" xml:space="preserve"><value>A whole colour scheme of the one theme. The choice is applied at once and kept in this browser.</value></data>
+  <data name="ReleaseNav" xml:space="preserve"><value>Release</value></data>
+  <data name="ReleaseTitle" xml:space="preserve"><value>Release</value></data>
+  <data name="ReleaseTag" xml:space="preserve"><value>release</value></data>
+  <data name="ReleaseHint" xml:space="preserve"><value>What is out, what would be next, and where a release is asked for. Aiko runs no agent and writes nothing to the repository: this screen shows what the daemon knows and puts the request in the queue.</value></data>
+  <data name="ReleaseFactsTitle" xml:space="preserve"><value>Release facts</value></data>
+  <data name="ReleaseFactsHint" xml:space="preserve"><value>From the project's repository, its own tree, and the daemon that is running.</value></data>
+  <data name="ReleaseRefresh" xml:space="preserve"><value>Read again</value></data>
+  <data name="ReleaseDaemonVersion" xml:space="preserve"><value>Daemon version</value></data>
+  <data name="ReleaseBundleVersion" xml:space="preserve"><value>Client bundle version</value></data>
+  <data name="ReleaseLatest" xml:space="preserve"><value>Last release</value></data>
+  <data name="ReleaseTreeState" xml:space="preserve"><value>Tree state</value></data>
+  <data name="ReleaseUnknown" xml:space="preserve"><value>unknown</value></data>
+  <data name="ReleaseCommandTitle" xml:space="preserve"><value>Conduct a release</value></data>
+  <data name="ReleaseCommandHint" xml:space="preserve"><value>Aiko does not run agents. This puts a command in the queue, and an agent that takes it conducts the release by the /aiko-release procedure.</value></data>
+  <data name="ReleaseCommandButton" xml:space="preserve"><value>Put the command in the queue</value></data>
+  <data name="ReleaseVersionLabel" xml:space="preserve"><value>Version</value></data>
+  <data name="ReleaseVersionHint" xml:space="preserve"><value>Leave it empty and the procedure chooses the version and explains the choice.</value></data>
+  <data name="ReleaseVersionPlaceholder" xml:space="preserve"><value>v0.4.0</value></data>
+  <data name="ReleaseCommandWaiting" xml:space="preserve"><value>Command {0} is waiting for an agent.</value></data>
+  <data name="ReleaseNoOpenCommand" xml:space="preserve"><value>No release is waiting.</value></data>
+  <data name="ReleaseOrderTitle" xml:space="preserve"><value>The order, for a person</value></data>
+  <data name="ReleaseOrderHint" xml:space="preserve"><value>With no agent connected, these are the steps you run yourself. Nothing here is done by opening this page, and Aiko installs nothing on your machine.</value></data>
+  <data name="ReleaseOrderStep1" xml:space="preserve"><value>Make sure the tree is green in Debug and in Release.</value></data>
+  <data name="ReleaseOrderStep2" xml:space="preserve"><value>Choose the version from what changed - a new capability is a minor, a fix is a patch - and write the tag.</value></data>
+  <data name="ReleaseOrderStep3" xml:space="preserve"><value>Wait for the release workflow on that tag to build the archive.</value></data>
+  <data name="ReleaseOrderStep4" xml:space="preserve"><value>Connect the agents again with 'aiko agent install --project your-project'.</value></data>
+  <data name="ReleaseSettingsLink" xml:space="preserve"><value>How a release is conducted</value></data>
+  <data name="ReleaseFactsFailed" xml:space="preserve"><value>The release facts could not be read: {0}</value></data>
+  <data name="ReleaseProcedureTitle" xml:space="preserve"><value>How a release is conducted</value></data>
+  <data name="ReleaseProcedureHint" xml:space="preserve"><value>The order a release follows, so nobody has to reconstruct it from the workflow files.</value></data>
+  <data name="ReleaseProcedureOrder" xml:space="preserve"><value>Write the tag, wait for the release workflow to build the archive, install it, and connect the agents again.</value></data>
+  <data name="ReleaseProcedureTouches" xml:space="preserve"><value>Installing writes to %LOCALAPPDATA%\Aiko\bin and adds that directory to your user PATH.</value></data>
+  <data name="ReleaseProcedureKeeps" xml:space="preserve"><value>Your project is not touched: .aiko, aiko.db and the access token stay where they are.</value></data>
+  <data name="ReleaseProcedureOpen" xml:space="preserve"><value>Open the release screen</value></data>
+  <data name="ReleaseScheme" xml:space="preserve"><value>Release scheme</value></data>
+  <data name="ReleaseSchemeHint" xml:space="preserve"><value>How a release of this project is conducted. A project's own choice decides; the template's is what a new project starts from.</value></data>
+  <data name="ReleaseSchemeFellBack" xml:space="preserve"><value>Scheme '{0}' is not available, so releases follow the ordinary one.</value></data>
 
 </root>

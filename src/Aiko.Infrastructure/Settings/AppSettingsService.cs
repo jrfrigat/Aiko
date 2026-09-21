@@ -72,6 +72,18 @@ public sealed class AppSettingsService(IAppSettingsStore store) : IAppSettingsSe
     }
 
     /// <inheritdoc />
+    public async ValueTask<ReleaseSettings> GetEffectiveReleaseAsync(
+        string projectId,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
+        // Read through the store, like the cross-project policy: the release section is a single section, and
+        // a project that does not state one gets the safe default rather than another project's address.
+        var project = await store.ReadProjectAsync(projectId, cancellationToken);
+        return project?.Release ?? ReleaseSettings.SafeDefault;
+    }
+
+    /// <inheritdoc />
     public ValueTask SaveProjectAsync(
         string projectId,
         AppSettings settings,

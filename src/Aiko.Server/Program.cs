@@ -13,6 +13,7 @@ using Aiko.Infrastructure.Git;
 using Aiko.Infrastructure.Logging;
 using Aiko.Infrastructure.Memory;
 using Aiko.Infrastructure.Projects;
+using Aiko.Infrastructure.Release;
 using Aiko.Infrastructure.Relations;
 using Aiko.Infrastructure.Settings;
 using Aiko.Infrastructure.Storage;
@@ -67,6 +68,13 @@ builder.Services.AddSingleton<IProjectInitializer, ProjectInitializer>();
 builder.Services.AddSingleton<IProjectTemplateStore, FileProjectTemplateStore>();
 builder.Services.AddSingleton<IProjectTemplateApplier, ProjectTemplateApplier>();
 builder.Services.AddSingleton<IGitClient, GitClient>();
+// The daemon's first outbound HTTP client. Registered as one instance rather than through
+// AddHttpClient, because it is used for a single HEAD probe and owns no handler pipeline of its own; the
+// timeout is a backstop under the provider's own ten-second cap.
+builder.Services.AddSingleton(new HttpClient { Timeout = TimeSpan.FromSeconds(15) });
+builder.Services.AddSingleton<GitHubReleaseProbe>();
+builder.Services.AddSingleton<IGitRefReader, GitRefReader>();
+builder.Services.AddSingleton<IReleaseInfoProvider, ReleaseInfoProvider>();
 builder.Services.AddSingleton<IProjectAnalytics, SqliteProjectAnalytics>();
 builder.Services.AddSingleton<IDaemonTelemetry, SqliteDaemonTelemetry>();
 builder.Services.AddSingleton<ICardDiscussionStore, FileCardDiscussionStore>();
@@ -253,6 +261,7 @@ app.MapGitEndpoints();
 app.MapArtifactEndpoints();
 app.MapAgentEndpoints();
 app.MapSettingsEndpoints();
+app.MapReleaseEndpoints();
 app.MapLinkEndpoints();
 app.MapEventEndpoints();
 app.MapActivityEndpoints();

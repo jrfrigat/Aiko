@@ -28,6 +28,13 @@ internal static class ProjectRoutes
     public static string Section(string projectHandle, string section) =>
         $"{Overview(projectHandle)}/{Escape(section)}";
 
+    /// <summary>
+    /// The release screen: what the daemon knows about the project's releases, and where a release is asked
+    /// for. Named because the rail links to it and the page answers at it, and a section name typed twice is
+    /// a section that can drift.
+    /// </summary>
+    public static string Release(string projectHandle) => Section(projectHandle, "release");
+
     /// <summary>One card of the project.</summary>
     public static string Card(string projectHandle, string cardId) =>
         $"{Overview(projectHandle)}/cards/{Escape(cardId)}";

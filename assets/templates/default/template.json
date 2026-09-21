@@ -111,7 +111,8 @@
         }
       ]
     },
-    "crossProject": null
+    "crossProject": null,
+    "release": null
   },
   "workflows": [
     {
