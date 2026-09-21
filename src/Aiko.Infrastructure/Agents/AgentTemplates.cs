@@ -600,6 +600,10 @@ internal static class AgentTemplates
         show the access token (/aiko-token), back a project up (/aiko-backup), read the log tail
         (/aiko-logs) and open the UI (/aiko-ui). After /aiko-init, restart this agent so the
         project-scoped MCP configuration and skills are loaded.
+
+        If the Aiko tools are missing, check that AIKO_TOKEN is set to the value of `aiko token show` - a
+        client that cannot store an authorization header reads the credential from that variable - and
+        restart this agent so it is read.
         """;
 
     /// <summary>

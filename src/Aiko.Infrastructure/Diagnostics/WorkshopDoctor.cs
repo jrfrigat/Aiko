@@ -65,6 +65,9 @@ public sealed class WorkshopDoctor(
                 $"Daemon port {settings.Port}.",
                 settings.BaseUri.ToString()));
 
+        // One machine-wide fact, reported once however many projects carry a file that names it.
+        var credentialVariables = new HashSet<string>(StringComparer.Ordinal);
+
         var registered = await projects.ListAsync(cancellationToken);
         if (projectId is { Length: > 0 } requested)
         {
@@ -84,7 +87,7 @@ public sealed class WorkshopDoctor(
 
         foreach (var project in registered)
         {
-            await InspectProjectAsync(project, settings, findings, cancellationToken);
+            await InspectProjectAsync(project, settings, findings, credentialVariables, cancellationToken);
         }
 
         if (settings is not null)
@@ -106,6 +109,7 @@ public sealed class WorkshopDoctor(
         RegisteredProject project,
         DaemonEndpointSettings? settings,
         List<DiagnosticFinding> findings,
+        HashSet<string> credentialVariables,
         CancellationToken cancellationToken)
     {
         if (!Directory.Exists(project.RootPath))
@@ -148,6 +152,7 @@ public sealed class WorkshopDoctor(
         foreach (var finding in await FindAgentConfigDriftAsync(
                      project,
                      expectedEndpoint,
+                     credentialVariables,
                      cancellationToken))
         {
             findings.Add(finding);
@@ -357,6 +362,7 @@ public sealed class WorkshopDoctor(
     private async ValueTask<IReadOnlyList<DiagnosticFinding>> FindAgentConfigDriftAsync(
         RegisteredProject project,
         string expectedEndpoint,
+        HashSet<string> reportedCredentialVariables,
         CancellationToken cancellationToken)
     {
         var discovery = await agents.DiscoverAsync(cancellationToken);
@@ -369,10 +375,14 @@ public sealed class WorkshopDoctor(
             return [];
         }
 
+        // The token the daemon falls back on. What it actually checks is this value unless the daemon was
+        // started with the variable set - which is asked per finding below, because it depends on the name.
+        var storedToken = await tokens.GetOrCreateAsync(cancellationToken);
+
         var plan = await agents.PlanAsync(
             project.Id,
             expectedEndpoint,
-            await tokens.GetOrCreateAsync(cancellationToken),
+            storedToken,
             installedAdapterIds,
             cancellationToken);
 
@@ -408,6 +418,36 @@ public sealed class WorkshopDoctor(
                         DiagnosticSeverity.Warning,
                         $"{project.Name}: {adapterPlan.AdapterId} has no access token, so the agent gets " +
                         "401 from the daemon. Run `aiko repair --fix`.",
+                        change.Path));
+                    continue;
+                }
+
+                // A record that names the variable it reads its credential from - Codex cannot store the
+                // header itself. A name is not a credential: what counts is the value an agent starting now
+                // would read, and whether the daemon would accept it. Reported once per name, however many
+                // projects carry such a file, because the variable is one machine-wide fact.
+                var variable = AccessTokenVariable(content);
+                if (variable is null || !reportedCredentialVariables.Add(variable))
+                {
+                    continue;
+                }
+
+                var available = CredentialVariableValue(variable);
+                var daemonToken = Environment.GetEnvironmentVariable(variable) ?? storedToken;
+                if (!CredentialVariableIsUsable(available, daemonToken))
+                {
+                    findings.Add(new DiagnosticFinding(
+                        DiagnosticFinding.AgentCredentialArea,
+                        DiagnosticSeverity.Warning,
+                        string.IsNullOrWhiteSpace(available)
+                            ? $"{adapterPlan.AdapterId}: its configuration reads the access token from " +
+                              $"{variable}, which is not set, so the agent reaches the daemon without a " +
+                              "credential and gets 401. Export it with the value of `aiko token show` in the " +
+                              "shell you start the agent from, then restart it."
+                            : $"{adapterPlan.AdapterId}: its configuration reads the access token from " +
+                              $"{variable}, which holds a different value than the token the daemon checks, " +
+                              "so the agent gets 401. Set it to the value of `aiko token show` and restart " +
+                              "the agent.",
                         change.Path));
                 }
             }
@@ -468,6 +508,84 @@ public sealed class WorkshopDoctor(
         content.Contains("Authorization", StringComparison.OrdinalIgnoreCase) ||
         content.Contains("Bearer ", StringComparison.OrdinalIgnoreCase) ||
         content.Contains("bearer_token_env_var", StringComparison.Ordinal);
+
+    /// <summary>
+    /// The name of the environment variable a record reads its credential from, or null when the record
+    /// carries the credential itself.
+    /// </summary>
+    /// <remarks>
+    /// Read out of the file rather than taken from a constant: what the doctor answers is whether the
+    /// variable <b>this record</b> names is usable, and a constant read here would answer about a different
+    /// variable the moment the two disagreed. A spec ties the text the Codex adapter writes to the constant
+    /// the adapter writes it from.
+    /// </remarks>
+    /// <param name="content">Contents of an agent configuration file.</param>
+    public static string? AccessTokenVariable(string content)
+    {
+        ArgumentNullException.ThrowIfNull(content);
+
+        const string Marker = "bearer_token_env_var";
+        var marker = content.IndexOf(Marker, StringComparison.Ordinal);
+        if (marker < 0)
+        {
+            return null;
+        }
+
+        // The name is the quoted value that follows the key, whatever whitespace the client's own writer
+        // chose around the equals sign.
+        var open = content.IndexOf('"', marker + Marker.Length);
+        if (open < 0)
+        {
+            return null;
+        }
+
+        var close = content.IndexOf('"', open + 1);
+        if (close < 0)
+        {
+            return null;
+        }
+
+        var name = content[(open + 1)..close].Trim();
+        return name.Length == 0 ? null : name;
+    }
+
+    /// <summary>
+    /// Whether the value a process started now would read is the credential the daemon checks.
+    /// </summary>
+    /// <remarks>
+    /// Not "is it set": a variable holding some other value authenticates nothing, and the daemon prefers
+    /// this very variable when it was started with it - so a value that differs from the daemon's is a 401
+    /// that looks like nothing at all. The value is never part of a finding.
+    /// </remarks>
+    /// <param name="value">Value the variable would yield, or null.</param>
+    /// <param name="daemonToken">The token the daemon checks.</param>
+    public static bool CredentialVariableIsUsable(string? value, string daemonToken) =>
+        !string.IsNullOrWhiteSpace(value) &&
+        string.Equals(value, daemonToken, StringComparison.Ordinal);
+
+    /// <summary>
+    /// The value of a variable as a process started <b>now</b> would see it.
+    /// </summary>
+    /// <remarks>
+    /// The machine's stored value first, because that is what an agent reads when it starts - the daemon
+    /// asking this question may have started before the variable was set, and then its own process value
+    /// says nothing about the agent's. On a platform without stored variables the process is all there is.
+    /// </remarks>
+    private static string? CredentialVariableValue(string variable)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            var stored =
+                Environment.GetEnvironmentVariable(variable, EnvironmentVariableTarget.User) ??
+                Environment.GetEnvironmentVariable(variable, EnvironmentVariableTarget.Machine);
+            if (!string.IsNullOrWhiteSpace(stored))
+            {
+                return stored;
+            }
+        }
+
+        return Environment.GetEnvironmentVariable(variable);
+    }
 
     /// <summary>
     /// Whether a project-scope file embeds a project MCP endpoint that is not the current one. An

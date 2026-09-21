@@ -355,12 +355,24 @@ public sealed class RazorMarkupSpecs
         Assert.Contains("DiagnosticFinding.AgentConfigArea", page, StringComparison.Ordinal);
         Assert.Contains("AgentConfigDrift", page, StringComparison.Ordinal);
 
-        // Both texts the block uses exist in both languages.
+        // The other failure the same inspection reports: the entry is present and current, so the agent reads
+        // as connected, while the credential it names cannot be used. Its own area, so the drift wording
+        // above cannot be printed about it.
+        Assert.Contains("DiagnosticFinding.AgentCredentialArea", page, StringComparison.Ordinal);
+        Assert.Contains("AgentCredentialProblem", page, StringComparison.Ordinal);
+
+        // Both texts each block uses exist in both languages.
         foreach (var resource in new[] { "Loc.resx", "Loc.ru.resx" })
         {
             var resx = File.ReadAllText(
                 Path.Combine(root, "src", "Aiko.Pwa", "Resources", resource));
-            foreach (var key in new[] { "AgentConfigDrift", "AgentConfigDriftHint" })
+            foreach (var key in new[]
+                     {
+                         "AgentConfigDrift",
+                         "AgentConfigDriftHint",
+                         "AgentCredentialProblem",
+                         "AgentCredentialProblemHint"
+                     })
             {
                 Assert.Contains($"name=\"{key}\"", resx, StringComparison.Ordinal);
             }

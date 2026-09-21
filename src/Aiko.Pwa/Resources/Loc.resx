@@ -375,6 +375,8 @@
   <data name="AgentBridgesHint" xml:space="preserve"><value>Which agents this machine has, and whether Aiko has connected to them</value></data>
   <data name="AgentConfigDrift" xml:space="preserve"><value>{0} agent configurations still record an old endpoint</value></data>
   <data name="AgentConfigDriftHint" xml:space="preserve"><value>The agent is installed and connected, but its configuration points at a port the daemon no longer listens on. Run `aiko repair --fix` to rewrite them.</value></data>
+  <data name="AgentCredentialProblem" xml:space="preserve"><value>An agent has no usable credential</value></data>
+  <data name="AgentCredentialProblemHint" xml:space="preserve"><value>The agent's entry reads its token from an environment variable that is not set, or that holds a different value than the token the daemon checks. Run `aiko token show`, export AIKO_TOKEN with that value in the shell you start the agent from, and restart it.</value></data>
   <data name="BridgeConnected" xml:space="preserve"><value>connected</value></data>
   <data name="BridgePartial" xml:space="preserve"><value>partial</value></data>
   <data name="BridgeInstalled" xml:space="preserve"><value>found, not connected</value></data>

@@ -375,6 +375,8 @@
   <data name="AgentBridgesHint" xml:space="preserve"><value>Какие агенты есть на машине и подключён ли к ним Aiko</value></data>
   <data name="AgentConfigDrift" xml:space="preserve"><value>{0} конфигураций агентов всё ещё записаны на старый адрес</value></data>
   <data name="AgentConfigDriftHint" xml:space="preserve"><value>Агент установлен и подключён, но его конфигурация указывает на порт, который демон больше не слушает. Перезапишите их командой `aiko repair --fix`.</value></data>
+  <data name="AgentCredentialProblem" xml:space="preserve"><value>Агенту не доступны учётные данные</value></data>
+  <data name="AgentCredentialProblemHint" xml:space="preserve"><value>Запись агента берёт токен из переменной окружения, которой нет или которая не совпадает с токеном демона. Выполните `aiko token show`, экспортируйте AIKO_TOKEN с этим значением в той оболочке, из которой запускаете агента, и перезапустите его.</value></data>
   <data name="BridgeConnected" xml:space="preserve"><value>подключён</value></data>
   <data name="BridgePartial" xml:space="preserve"><value>частично</value></data>
   <data name="BridgeInstalled" xml:space="preserve"><value>найден, не подключён</value></data>

@@ -2872,6 +2872,19 @@ public class InfrastructureSpecs
             Assert.True(WorkshopDoctor.HasEndpoint(claude));
             Assert.True(WorkshopDoctor.HasCredential(claude));
             Assert.True(WorkshopDoctor.HasCredential(codex));
+
+            // The doctor reads the name out of the record, and the record names the constant the adapter
+            // writes it from: a rename on one side cannot leave the other checking a variable nobody uses.
+            Assert.Equal(AgentTemplates.AccessTokenEnvironmentVariable, WorkshopDoctor.AccessTokenVariable(codex));
+            Assert.Null(WorkshopDoctor.AccessTokenVariable(claude));
+            Assert.Null(WorkshopDoctor.AccessTokenVariable("# /aiko-status\nShows the daemon status."));
+
+            // A name is not a credential: what counts is the value a process starting now would read, and
+            // whether the daemon would accept it.
+            Assert.False(WorkshopDoctor.CredentialVariableIsUsable(null, "token"));
+            Assert.False(WorkshopDoctor.CredentialVariableIsUsable("   ", "token"));
+            Assert.False(WorkshopDoctor.CredentialVariableIsUsable("another", "token"));
+            Assert.True(WorkshopDoctor.CredentialVariableIsUsable("token", "token"));
         });
     }
 

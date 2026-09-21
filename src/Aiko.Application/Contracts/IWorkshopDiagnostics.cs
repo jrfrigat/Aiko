@@ -38,6 +38,17 @@ public sealed record DiagnosticFinding(
     /// the value is exactly how those lists come to disagree.
     /// </remarks>
     public const string AgentConfigArea = "agent-config";
+
+    /// <summary>
+    /// Area of the findings about the credential an agent's MCP entry authenticates with.
+    /// </summary>
+    /// <remarks>
+    /// Separate from <see cref="AgentConfigArea"/> on purpose: a configuration that is present and current
+    /// but whose credential cannot be used is a different problem from one that points at an old endpoint,
+    /// and the summaries that count drift by that area would otherwise report a missing token as "written at
+    /// an old address" - a cause that is not the cause.
+    /// </remarks>
+    public const string AgentCredentialArea = "agent-credential";
 }
 
 /// <summary>

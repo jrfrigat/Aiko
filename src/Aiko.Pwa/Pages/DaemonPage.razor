@@ -214,6 +214,29 @@
                     </FlareStack>
                 </FlareAlert>
             }
+
+            @* The other failure the card list above cannot show: the file is present and current, so the
+               agent reads as connected, but the credential it names cannot be used - the agent reaches the
+               daemon with no working token and never says so. Same inspection, different cause. *@
+            @if (Credential.Count > 0)
+            {
+                <FlareAlert Severity="AlertSeverity.Warning" Variant="AlertVariant.Outlined">
+                    <FlareStack Gap="FlareSpacing.XSmall">
+                        <FlareText Element="span" Typo="TypographyScale.LabelMedium">
+                            @Loc.Get("AgentCredentialProblem")
+                        </FlareText>
+                        @foreach (var finding in Credential)
+                        {
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall">
+                                @finding.Summary
+                            </FlareText>
+                        }
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Get("AgentCredentialProblemHint")
+                        </FlareText>
+                    </FlareStack>
+                </FlareAlert>
+            }
         </FlareStack>
     </FlarePaper>
 </FlareStack>
@@ -229,6 +252,13 @@
     /// answers, and empty when there is nothing stale.
     /// </summary>
     private IReadOnlyList<DiagnosticFinding> Drift { get; set; } = [];
+
+    /// <summary>
+    /// The findings about a credential that cannot be used: the entry is present and current, so the list
+    /// above calls the agent connected, while the agent reaches the daemon with no working token. Separate
+    /// from <see cref="Drift"/> because it is a different cause with a different fix.
+    /// </summary>
+    private IReadOnlyList<DiagnosticFinding> Credential { get; set; } = [];
 
     protected override async Task OnInitializedAsync() => await LoadDriftAsync();
 
@@ -379,9 +409,15 @@
         {
             var diagnostics = await Http.GetFromJsonAsync<WorkshopDiagnostics>(
                 "api/v1/system/diagnostics", PwaJson.Options);
-            Drift = (diagnostics?.Findings ?? [])
+            var findings = diagnostics?.Findings ?? [];
+            Drift = findings
                 .Where(finding =>
                     StringComparer.Ordinal.Equals(finding.Area, DiagnosticFinding.AgentConfigArea) &&
+                    finding.Severity != DiagnosticSeverity.Ok)
+                .ToArray();
+            Credential = findings
+                .Where(finding =>
+                    StringComparer.Ordinal.Equals(finding.Area, DiagnosticFinding.AgentCredentialArea) &&
                     finding.Severity != DiagnosticSeverity.Ok)
                 .ToArray();
         }
@@ -390,6 +426,7 @@
             // A daemon that cannot answer leaves the screen with the bridges it already has: this block is
             // one more fact about the installation, not the page's reason for existing.
             Drift = [];
+            Credential = [];
         }
     }
 }
