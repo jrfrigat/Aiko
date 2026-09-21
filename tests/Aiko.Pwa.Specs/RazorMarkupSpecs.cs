@@ -572,6 +572,57 @@ public sealed class RazorMarkupSpecs
         }
     }
 
+    [Fact]
+    public void The_command_block_is_a_panel_of_its_own_between_the_state_and_the_triage()
+    {
+        var text = File.ReadAllText(Path.Combine(
+            FindRepositoryRoot(), "src", "Aiko.Pwa", "Pages", "CardInspector.razor"));
+
+        var state = text.IndexOf("@Loc.Get(\"ExecutionState\")", StringComparison.Ordinal);
+        var command = text.IndexOf("@Loc.Get(\"CommandsTitle\")", StringComparison.Ordinal);
+        var triage = text.IndexOf("@Loc.Get(\"TriageScore\")", StringComparison.Ordinal);
+
+        // The order on the page is the order in the markup: the state, then the command, then the triage the
+        // command used to be drawn inside of.
+        Assert.True(
+            state >= 0 && command > state && triage > command,
+            "The command block should stand between the execution state and the triage panel.");
+
+        // Its own container rather than the triage's: the nearest panel opening above the command title has
+        // no trace of the triage header after it, so the two headings belong to different panels.
+        var panel = text.LastIndexOf("<FlarePaper", command, StringComparison.Ordinal);
+        Assert.True(panel >= 0, "The command block should sit inside a panel.");
+        Assert.DoesNotContain("TriageScore", text[panel..command], StringComparison.Ordinal);
+
+        // And that panel closes before the save button: saving the card is not part of placing a command.
+        var closes = text.IndexOf("</FlarePaper>", command, StringComparison.Ordinal);
+        var save = text.IndexOf("<FlareButton FullWidth=\"true\"", command, StringComparison.Ordinal);
+        Assert.True(
+            closes > 0 && save > closes,
+            "The save button belongs to the triage panel, not to the command block.");
+    }
+
+    [Fact]
+    public void The_card_banner_reports_the_effective_priority_the_way_the_panel_does()
+    {
+        var root = FindRepositoryRoot();
+        var page = File.ReadAllText(Path.Combine(root, "src", "Aiko.Pwa", "Pages", "CardPage.razor"));
+        var inspector = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "CardInspector.razor"));
+
+        // The fifth counter: the label the dictionary already carries, and the figure the formula produces.
+        Assert.Contains(
+            "(Loc.Get(\"EstimateTitle\"), DisplayFormat.Priority(effective), false)",
+            page,
+            StringComparison.Ordinal);
+
+        // The same entry, the same fallback and the same formatter as the card's own panel - one page
+        // stating one figure in two ways is what adding the counter was meant to avoid.
+        Assert.Contains("?.Snapshot.EffectivePriority ?? card.OwnPriority", page, StringComparison.Ordinal);
+        Assert.Contains("DisplayFormat.Priority(", inspector, StringComparison.Ordinal);
+    }
+
+
     /// <summary>
     /// Walks up from this assembly to the solution file, the same way the daemon fixture does.
     /// </summary>

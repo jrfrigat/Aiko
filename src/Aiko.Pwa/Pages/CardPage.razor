@@ -223,9 +223,14 @@ else
     }
 
     /// <summary>
-    /// The counts the banner reports: what the card declares, what it touched, what it left outside the
-    /// scope and how many cards it is linked to. All four are about this card, because that is what the
-    /// banner is about - the board's own totals belong to the board.
+    /// The figures the banner reports: what the card declares, what it touched, what it left outside the
+    /// scope, how many cards it is linked to and what the board's formula makes of it. All five are about
+    /// this card, because that is what the banner is about - the board's own totals belong to the board.
+    /// <para>
+    /// The score is the card's effective priority, read exactly the way the card's own panel reads it: the
+    /// same snapshot entry, the same fallback and the same formatter, so one page cannot state one figure
+    /// in two ways.
+    /// </para>
     /// </summary>
     private IReadOnlyList<(string Label, string Value, bool Warn)> Counters
     {
@@ -241,12 +246,21 @@ else
                 .Count(relation =>
                     StringComparer.Ordinal.Equals(relation.Source.CardId, card.Reference.CardId) ||
                     StringComparer.Ordinal.Equals(relation.Target.CardId, card.Reference.CardId));
+
+            // The card's effective priority, or its own number while the board carries no computed entry for
+            // it: the fallback is the panel's own, so the two cannot disagree about which figure they show.
+            var effective = State.Board?.CardPriorities
+                .FirstOrDefault(priority => StringComparer.Ordinal.Equals(
+                    priority.CardId, card.Reference.CardId))
+                ?.Snapshot.EffectivePriority ?? card.OwnPriority;
+
             return
             [
                 (Loc.Get("FilesDeclared"), DisplayFormat.Number(card.DeclaredScopeFiles.Count), false),
                 (Loc.Get("FilesActual"), DisplayFormat.Number(card.ActualChangedFiles.Count), false),
                 (Loc.Get("OutOfScope"), DisplayFormat.Number(outOfScope), outOfScope > 0),
-                (Loc.Get("Relations"), DisplayFormat.Number(relations), false)
+                (Loc.Get("Relations"), DisplayFormat.Number(relations), false),
+                (Loc.Get("EstimateTitle"), DisplayFormat.Priority(effective), false)
             ];
         }
     }

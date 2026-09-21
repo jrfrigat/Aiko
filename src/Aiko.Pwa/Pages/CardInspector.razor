@@ -748,6 +748,100 @@
             </FlareStack>
         </FlarePaper>
 
+        <FlarePaper Elevation="0" Padding="FlareSpacing.Medium" Square="true" Class="aiko-panel">
+            <FlareStack Gap="FlareSpacing.Medium">
+                @* A command for an agent: what the estimate block in the panel below could not be. Aiko still does not run
+                   an agent process, so this places the request in the project's own queue and shows what the
+                   queue says about it - waiting, or taken by an agent that will report back. *@
+                <FlareStack Gap="FlareSpacing.XSmall">
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
+                        @Loc.Get("CommandsTitle")
+                    </FlareText>
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                        @Loc.Get("CommandsHint")
+                    </FlareText>
+                    @if (Agents.Count == 0)
+                    {
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Get("NoAgentsDiscovered")
+                        </FlareText>
+                    }
+                    else
+                    {
+                        <AikoSelectField Label="@Loc.Get("CommandAction")"
+                                         Value="@_commandAction"
+                                         ValueChanged="value => _commandAction = value ?? CommandStartValue">
+                            <option value="@CommandStartValue">@Loc.Get("CommandStart")</option>
+                            <option value="@CommandPauseValue">@Loc.Get("CommandPause")</option>
+                            <option value="@CommandResumeValue">@Loc.Get("CommandResume")</option>
+                            <option value="@CommandAnswerValue">@Loc.Get("CommandAnswer")</option>
+                        </AikoSelectField>
+                        <AikoSelectField Label="@Loc.Get("EstimateAgent")"
+                                         Value="@_commandAgent"
+                                         ValueChanged="value => _commandAgent = value">
+                            @foreach (var agent in Agents)
+                            {
+                                var option = agent;
+                                <option value="@option.Id">@option.DisplayName</option>
+                            }
+                        </AikoSelectField>
+                        @if (CommandNeedsText)
+                        {
+                            <AikoField Label="@Loc.Get("CommandText")"
+                                       Hint="@CommandTextHint"
+                                       Rows="2"
+                                       Value="@_commandText"
+                                       ValueChanged="value => _commandText = value" />
+                        }
+                        <FlareButton Variant="ButtonVariant.Tonal"
+                                     FullWidth="true"
+                                     Disabled="@(!CanPlaceCommand)"
+                                     Loading="@_placingCommand"
+                                     OnClick="PlaceCommandAsync">
+                            <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.SmartToy" /></LeadingIcon>
+                            <ChildContent>@Loc.Get("PlaceCommand")</ChildContent>
+                        </FlareButton>
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                            @CommandTargetHint
+                        </FlareText>
+                    }
+                    @if (_commandMessage is { Length: > 0 } commandMessage)
+                    {
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall"
+                                   Color="@(_commandError ? FlareColor.Error : FlareColor.Tertiary)">
+                            @commandMessage
+                        </FlareText>
+                    }
+                    @* What was asked and what came of it: read from the queue itself, never from what this
+                       screen remembers, so a command another tab placed, or one an agent has just taken,
+                       shows here as it is. A closed command stays on the card with the message the agent
+                       left - otherwise a request that failed disappears and reads like one never placed. *@
+                    @foreach (var command in CardCommands)
+                    {
+                        var entry = command;
+                        <FlareStack Gap="FlareSpacing.XXSmall">
+                            <FlareStack Row="true" Align="FlareAlignItems.Center"
+                                        Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XSmall">
+                                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
+                                    <FlareText Element="span" Mono="true" Typo="TypographyScale.BodySmall">@entry.Id</FlareText>
+                                    <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant2">
+                                        @CommandCaption(entry)
+                                    </FlareText>
+                                </FlareStack>
+                                <span class="aiko-tag @CommandBadgeClass(entry)">@CommandStateCaption(entry)</span>
+                            </FlareStack>
+                            @if (entry.Message is { Length: > 0 } message)
+                            {
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                    @message
+                                </FlareText>
+                            }
+                        </FlareStack>
+                    }
+                </FlareStack>
+            </FlareStack>
+        </FlarePaper>
+
         @* What the daemon computed for this card, and what a person can change about it: the effective
            priority, the rank it earns among the board's cards, the size step from the project's grid and
            the values behind the score. The size and the criteria live here rather than in a panel of their
@@ -879,96 +973,6 @@
                                    Color="@(_estimateError ? FlareColor.Error : FlareColor.Tertiary)">
                             @estimateMessage
                         </FlareText>
-                    }
-                </FlareStack>
-
-                @* A command for an agent: what the estimate block above could not be. Aiko still does not run
-                   an agent process, so this places the request in the project's own queue and shows what the
-                   queue says about it - waiting, or taken by an agent that will report back. *@
-                <FlareStack Gap="FlareSpacing.XSmall">
-                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
-                        @Loc.Get("CommandsTitle")
-                    </FlareText>
-                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                        @Loc.Get("CommandsHint")
-                    </FlareText>
-                    @if (Agents.Count == 0)
-                    {
-                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                            @Loc.Get("NoAgentsDiscovered")
-                        </FlareText>
-                    }
-                    else
-                    {
-                        <AikoSelectField Label="@Loc.Get("CommandAction")"
-                                         Value="@_commandAction"
-                                         ValueChanged="value => _commandAction = value ?? CommandStartValue">
-                            <option value="@CommandStartValue">@Loc.Get("CommandStart")</option>
-                            <option value="@CommandPauseValue">@Loc.Get("CommandPause")</option>
-                            <option value="@CommandResumeValue">@Loc.Get("CommandResume")</option>
-                            <option value="@CommandAnswerValue">@Loc.Get("CommandAnswer")</option>
-                        </AikoSelectField>
-                        <AikoSelectField Label="@Loc.Get("EstimateAgent")"
-                                         Value="@_commandAgent"
-                                         ValueChanged="value => _commandAgent = value">
-                            @foreach (var agent in Agents)
-                            {
-                                var option = agent;
-                                <option value="@option.Id">@option.DisplayName</option>
-                            }
-                        </AikoSelectField>
-                        @if (CommandNeedsText)
-                        {
-                            <AikoField Label="@Loc.Get("CommandText")"
-                                       Hint="@CommandTextHint"
-                                       Rows="2"
-                                       Value="@_commandText"
-                                       ValueChanged="value => _commandText = value" />
-                        }
-                        <FlareButton Variant="ButtonVariant.Tonal"
-                                     FullWidth="true"
-                                     Disabled="@(!CanPlaceCommand)"
-                                     Loading="@_placingCommand"
-                                     OnClick="PlaceCommandAsync">
-                            <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.SmartToy" /></LeadingIcon>
-                            <ChildContent>@Loc.Get("PlaceCommand")</ChildContent>
-                        </FlareButton>
-                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                            @CommandTargetHint
-                        </FlareText>
-                    }
-                    @if (_commandMessage is { Length: > 0 } commandMessage)
-                    {
-                        <FlareText Element="span" Typo="TypographyScale.LabelSmall"
-                                   Color="@(_commandError ? FlareColor.Error : FlareColor.Tertiary)">
-                            @commandMessage
-                        </FlareText>
-                    }
-                    @* What was asked and what came of it: read from the queue itself, never from what this
-                       screen remembers, so a command another tab placed, or one an agent has just taken,
-                       shows here as it is. A closed command stays on the card with the message the agent
-                       left - otherwise a request that failed disappears and reads like one never placed. *@
-                    @foreach (var command in CardCommands)
-                    {
-                        var entry = command;
-                        <FlareStack Gap="FlareSpacing.XXSmall">
-                            <FlareStack Row="true" Align="FlareAlignItems.Center"
-                                        Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XSmall">
-                                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
-                                    <FlareText Element="span" Mono="true" Typo="TypographyScale.BodySmall">@entry.Id</FlareText>
-                                    <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant2">
-                                        @CommandCaption(entry)
-                                    </FlareText>
-                                </FlareStack>
-                                <span class="aiko-tag @CommandBadgeClass(entry)">@CommandStateCaption(entry)</span>
-                            </FlareStack>
-                            @if (entry.Message is { Length: > 0 } message)
-                            {
-                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                                    @message
-                                </FlareText>
-                            }
-                        </FlareStack>
                     }
                 </FlareStack>
 
