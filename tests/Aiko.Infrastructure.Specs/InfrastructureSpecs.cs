@@ -1691,10 +1691,19 @@ public class InfrastructureSpecs
                 await File.ReadAllTextAsync(Path.Combine(fakeHome, ".claude", "commands", "aiko-init.md")),
                 StringComparison.Ordinal);
 
+            // The settings command is installed with the rest, and it keeps the two targets it writes apart:
+            // a project's own document and a template's defaults. A skill that blurred them would send the
+            // user to edit a template believing they were changing a project.
+            var settings = await File.ReadAllTextAsync(
+                Path.Combine(fakeHome, ".claude", "commands", "aiko-settings.md"));
+            Assert.Contains("aiko_update_settings", settings, StringComparison.Ordinal);
+            Assert.Contains("never changes a project", settings, StringComparison.Ordinal);
+
             var removed = await adapter.UninstallUserAsync(CancellationToken.None);
             Assert.True(removed.Succeeded);
             Assert.False(File.Exists(Path.Combine(fakeHome, ".claude", "skills", "aiko", "SKILL.md")));
             Assert.False(File.Exists(Path.Combine(fakeHome, ".claude", "commands", "aiko-init.md")));
+            Assert.False(File.Exists(Path.Combine(fakeHome, ".claude", "commands", "aiko-settings.md")));
         }
         finally
         {

@@ -596,9 +596,10 @@ internal static class AgentTemplates
         Aiko coordinates project work between agents. Use the global commands to register the
         current project (/aiko-init), list projects (/aiko-list-projects), check the daemon
         (/aiko-status), diagnose it (/aiko-doctor), repair what the diagnosis found (/aiko-repair),
-        manage the agents' integrations (/aiko-agents), show the access token (/aiko-token), back a
-        project up (/aiko-backup) and open the UI (/aiko-ui). After /aiko-init, restart this agent so
-        the project-scoped MCP configuration and skills are loaded.
+        manage the agents' integrations (/aiko-agents), read and change settings (/aiko-settings),
+        show the access token (/aiko-token), back a project up (/aiko-backup) and open the UI
+        (/aiko-ui). After /aiko-init, restart this agent so the project-scoped MCP configuration and
+        skills are loaded.
         """;
 
     /// <summary>
@@ -707,6 +708,31 @@ internal static class AgentTemplates
         project, `aiko agent install --scope user` for the global skills and MCP entry, and
         `aiko agent uninstall ...` to remove it. Tell the user to restart the agent afterwards so it
         loads the new MCP server.
+        """;
+
+    /// <summary>
+    /// Global slash command that reads and writes settings.
+    /// </summary>
+    /// <remarks>
+    /// The two targets are stated apart on purpose: a project's own document is what it runs with, a
+    /// template's is the defaults a new project is created from, and a template never reaches a project that
+    /// already took its copy. A skill that blurred them would repeat the drift §24 of the specification had
+    /// to explain away.
+    /// </remarks>
+    public const string GlobalSettings =
+        """
+        Read and change Aiko settings. Read with the aiko_get_settings MCP tool: pass a project id for a
+        project, or omit it for the built-in defaults a screen with no project open falls back to.
+        Write with aiko_update_settings, naming exactly one target:
+        - `projectId` edits the project's own settings - what that project runs with, and what its Settings
+          screen shows. Send the whole document as JSON (the execution, priority and crossProject sections
+          you mean to state), not a fragment: a section you state is written as it stands, so a field left
+          out of it falls back to its type's default.
+        - `templateId` edits the defaults a new project starts from. This never changes a project that
+          already exists - its settings were copied when it was created and are its own from then on - so
+          say that to the user before writing a template.
+        The answer names the source of each value (the project or the built-in default): report it instead
+        of assuming the write landed. There is no installation-level settings document.
         """;
 
     /// <summary>

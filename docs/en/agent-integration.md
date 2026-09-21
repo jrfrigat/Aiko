@@ -200,7 +200,7 @@ command the way the card page places a command for a card, and any agent that ru
 Global skills/commands (installed with `aiko agent install --scope user`):
 
 `/aiko-init [templateId]`, `/aiko-list-projects`, `/aiko-status`, `/aiko-doctor`, `/aiko-repair`, `/aiko-agents`,
-`/aiko-token`, `/aiko-backup`, `/aiko-ui`.
+`/aiko-settings`, `/aiko-token`, `/aiko-backup`, `/aiko-ui`.
 
 User scope is the machine-wide connection: it is what the dashboard's *Agents* card reports as
 **connected**, and its Connect / Disconnect buttons write and remove exactly these files. The
@@ -245,7 +245,7 @@ over is therefore the same address the UI links to itself, not a second form of 
 | Record and search memory | `/aiko-memory` | `aiko_store_memory`, `aiko_search_memory` | — (not in the UI yet) |
 | Edit the pipeline | — | — | Workflow page |
 | Read settings | — | `aiko_get_settings` | Settings page |
-| Change settings | — (planned `/aiko-settings`) | `aiko_update_settings` | Settings page |
+| Change settings | `/aiko-settings` | `aiko_update_settings` | Settings page |
 | Rebuild projections | — | `aiko_reindex` | — (`aiko reindex`) |
 | Diagnose the installation | `/aiko-doctor` | `aiko_doctor` | — (`aiko doctor`) |
 | Repair the installation | `/aiko-repair` | — | — (`aiko repair --fix`) |

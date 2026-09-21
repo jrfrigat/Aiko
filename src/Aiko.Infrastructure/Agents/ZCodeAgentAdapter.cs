@@ -103,6 +103,7 @@ public sealed class ZCodeAgentAdapter : BuiltInAgentAdapter
             Command("aiko-doctor", AgentTemplates.GlobalDoctor),
             Command("aiko-repair", AgentTemplates.GlobalRepair),
             Command("aiko-agents", AgentTemplates.GlobalAgents),
+            Command("aiko-settings", AgentTemplates.GlobalSettings),
             Command("aiko-token", AgentTemplates.GlobalToken),
             Command("aiko-backup", AgentTemplates.GlobalBackup),
             Command("aiko-ui", AgentTemplates.GlobalUi)

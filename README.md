@@ -226,6 +226,7 @@ themselves are commands:
 | `/aiko-doctor` | Diagnose the installation (changes nothing) |
 | `/aiko-repair` | Apply the fixes the diagnosis named |
 | `/aiko-agents` | List, install and uninstall the agents' integrations |
+| `/aiko-settings` | Read and change settings - a project's own, or a template's defaults for new projects |
 | `/aiko-token` | Show the local access token |
 | `/aiko-backup` | Back up a project's `.aiko` tree |
 | `/aiko-ui` | Open the UI |
