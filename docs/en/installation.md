@@ -183,8 +183,15 @@ This writes the project-scoped MCP configuration and the `/aiko-*` skills for th
 
 - Update: re-run the installer (release or source) - it replaces the binaries and keeps project data
   and settings. Pin a release with `-Version` when you do not want the newest one.
-- Uninstall: delete `%LOCALAPPDATA%\Aiko\bin` and remove it from the user `PATH`. Project `.aiko`
-  directories and the database are never deleted automatically.
+- Uninstall: `aiko uninstall`. It stops a running daemon, drops the install directory from the user
+  `PATH` and deletes the published binaries - the running `aiko` is one of them, so it says which files
+  it had to leave and they can be deleted once the command has exited. Running it again reports that
+  there is nothing left to remove.
+- What is kept: the data directory (`%LOCALAPPDATA%\Aiko` - database, settings, access token, backups)
+  and every project's `.aiko`. Both are asked about separately, and both default to *kept*:
+  `aiko uninstall --remove-data` removes the database and the machine's registration of every project,
+  `aiko uninstall --remove-project-data` removes the projects' own `.aiko` directories and prints the
+  list before it does. `--yes` consents to the uninstall itself, not to deleting either kind of data.
 
 ## Verify
 

@@ -30,6 +30,7 @@ var exitCode = command switch
     "token" => await TokenAsync(),
     "reindex" => await ReindexAsync(args),
     "commands" => await CommandsAsync(args),
+    "uninstall" => await UninstallAsync(args),
     "help" or "--help" or "-h" => Help(),
     _ => Unknown(command)
 };
@@ -67,6 +68,11 @@ static int Help()
           agent uninstall --project <id> [--agent <ids>] [--scope user]
                                                         Disconnect an agent from a project
           token show                                    Print the local access token
+          uninstall [--yes] [--remove-data] [--remove-project-data]
+                                                        Remove the installation: stop the daemon, drop the
+                                                        install directory from the user PATH and delete the
+                                                        published binaries. The data directory and the
+                                                        projects' .aiko are kept unless asked for by name
           reindex <projectId>                           Rebuild a project's SQLite projections
           commands [--project <id>] [--card <id>] [--state <s>]
                                                         Show the commands a screen placed for an agent;
@@ -754,6 +760,200 @@ static async Task<int> UiAsync()
     Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
     Console.WriteLine($"Opened {url}");
     return 0;
+}
+
+// `aiko uninstall` takes back what the installer put on the machine. The three things are separate on
+// purpose - the PATH entry, the published binaries, the data - and the data is never removed unless it is
+// asked for by name, because it holds every registered project, the event journal and the access token.
+static async Task<int> UninstallAsync(string[] args)
+{
+    var dataPaths = AikoDataPaths.FromEnvironment();
+    var installation = new AikoInstallation(dataPaths);
+    Console.WriteLine($"Install directory: {installation.BinDirectory}");
+    Console.WriteLine($"Data directory:    {installation.DataDirectory}");
+
+    // The project list is read before anything is deleted: it is what the .aiko question is about, and it
+    // lives in the database the last step may remove.
+    var projects = await ReadRegisteredProjectsAsync(dataPaths);
+
+    var stopped = await TryStopDaemonAsync(ReadOption(args, "--port"));
+    Console.WriteLine(stopped ? "Stopped the running daemon." : "No daemon was running.");
+
+    var pathRemoved = installation.RemoveFromUserPath();
+    Console.WriteLine(pathRemoved
+        ? $"Removed {installation.BinDirectory} from the user PATH; open a new terminal."
+        : "The user PATH does not name the install directory.");
+
+    var binaries = installation.RemoveBinaries();
+    if (!binaries.Removed)
+    {
+        Console.WriteLine("The published binaries were not there.");
+    }
+    else if (binaries.Blocked.Count == 0)
+    {
+        Console.WriteLine("Removed the published binaries.");
+    }
+    else
+    {
+        // The running `aiko` is one of these files, so an uninstall started from it keeps something back -
+        // which is worth saying rather than hiding behind a "done".
+        Console.WriteLine($"Kept {binaries.Blocked.Count} file(s) that are in use, including this one:");
+        foreach (var file in binaries.Blocked)
+        {
+            Console.WriteLine($"  {file}");
+        }
+
+        Console.WriteLine("Delete them after this command has exited.");
+    }
+
+    // Neither kind of data goes by default, and each is asked about on its own: a project's .aiko is its
+    // own work, and the data directory is this installation's registration of every project.
+    var projectDataRemoved = RemoveProjectData(installation, projects, args);
+    var dataRemoved = RemoveData(installation, args);
+
+    Console.WriteLine();
+    if (!pathRemoved && !binaries.Removed && !projectDataRemoved && !dataRemoved && !stopped)
+    {
+        Console.WriteLine("Nothing was left to remove: Aiko is not installed here any more.");
+    }
+
+    return 0;
+}
+
+// The registered projects, or none when the daemon has never run here. A missing database is not an error on
+// the way out: it is the second run of an uninstall.
+static async Task<IReadOnlyList<RegisteredProject>> ReadRegisteredProjectsAsync(AikoDataPaths dataPaths)
+{
+    if (!File.Exists(dataPaths.DatabasePath))
+    {
+        return [];
+    }
+
+    var database = new AikoDatabase(dataPaths);
+    await database.InitializeAsync();
+    return await new SqliteProjectCatalog(database).ListAsync(CancellationToken.None);
+}
+
+// The daemon's own data goes only when it is named: `--remove-data`, or a yes at the prompt. `--yes` on its
+// own is consent to the uninstall, not to deleting a machine's history, so it does not count here.
+static bool RemoveData(AikoInstallation installation, string[] args)
+{
+    if (!Directory.Exists(installation.DataDirectory))
+    {
+        Console.WriteLine("No data directory to remove.");
+        return false;
+    }
+
+    var confirmed = HasFlag(args, "--remove-data") ||
+        (!HasFlag(args, "--yes", "-y") &&
+         Confirm(
+             $"Remove {installation.DataDirectory} - database, settings, access token and backups? " +
+             "Projects keep their own .aiko"));
+    if (!confirmed)
+    {
+        Console.WriteLine($"Kept {installation.DataDirectory}. Remove it with `aiko uninstall --remove-data`.");
+        return false;
+    }
+
+    ReportRemoval(installation.RemoveData(), installation.DataDirectory);
+    return true;
+}
+
+// Project data is a separate question with a separate flag. These directories are the users' own work rather
+// than this installation's files, so they are listed before the question is asked.
+static bool RemoveProjectData(
+    AikoInstallation installation,
+    IReadOnlyList<RegisteredProject> projects,
+    string[] args)
+{
+    if (projects.Count == 0)
+    {
+        return false;
+    }
+
+    var roots = projects
+        .Select(project => project.RootPath)
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToArray();
+    Console.WriteLine($"{roots.Length} registered project(s) have their own .aiko directory:");
+    foreach (var root in roots)
+    {
+        Console.WriteLine($"  {AikoProjectPaths.DataRoot(root)}");
+    }
+
+    var confirmed = HasFlag(args, "--remove-project-data") ||
+        (!HasFlag(args, "--yes", "-y") &&
+         Confirm("Remove those .aiko directories? Their cards, memory and artifacts are deleted with them"));
+    if (!confirmed)
+    {
+        Console.WriteLine("Kept every project's .aiko directory.");
+        return false;
+    }
+
+    foreach (var root in roots)
+    {
+        ReportRemoval(installation.RemoveProjectData(root), AikoProjectPaths.DataRoot(root));
+    }
+
+    return true;
+}
+
+// Reports one removal the way an uninstall has to: what went, and what stayed because it is still in use.
+static void ReportRemoval(InstallationRemoval removal, string path)
+{
+    if (removal.Blocked.Count == 0)
+    {
+        Console.WriteLine($"Removed {path}.");
+        return;
+    }
+
+    Console.WriteLine($"Removed {path}, except {removal.Blocked.Count} entry(ies) still in use:");
+    foreach (var blocked in removal.Blocked)
+    {
+        Console.WriteLine($"  {blocked}");
+    }
+}
+
+// Stopping the daemon is a courtesy, not a condition: a second uninstall finds nothing running, and that is
+// the ordinary case rather than a failure. The stop goes through the daemon's own endpoint so it can finish
+// what it is doing, exactly as `aiko serve stop` does.
+static async Task<bool> TryStopDaemonAsync(string? requestedPort)
+{
+    var dataPaths = AikoDataPaths.FromEnvironment();
+    var port = requestedPort;
+    if (string.IsNullOrWhiteSpace(port))
+    {
+        // No saved port means no daemon ever ran here, so there is nothing to stop - and reading the token
+        // would create the data directory this command may be about to remove.
+        port = (await new DaemonEndpointConfiguration(dataPaths).TryReadAsync())?.Port.ToString();
+    }
+
+    if (string.IsNullOrWhiteSpace(port))
+    {
+        return false;
+    }
+
+    var accessToken = Environment.GetEnvironmentVariable("AIKO_TOKEN");
+    if (string.IsNullOrWhiteSpace(accessToken))
+    {
+        accessToken = await new AccessTokenStore(dataPaths).GetOrCreateAsync();
+    }
+
+    using var http = new HttpClient
+    {
+        BaseAddress = new Uri($"http://127.0.0.1:{port}"),
+        Timeout = TimeSpan.FromSeconds(5)
+    };
+    http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+    try
+    {
+        using var response = await http.PostAsync("/api/v1/system/shutdown", content: null);
+        return response.IsSuccessStatusCode;
+    }
+    catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException)
+    {
+        return false;
+    }
 }
 
 static async Task<int> StatusAsync()
