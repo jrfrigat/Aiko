@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>aiko-installer</AssemblyName>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <!-- This executable is what the bootstrap script downloads, so it has to be one file: the runtime and
+         the managed assemblies are bundled, and IncludeNativeLibrariesForSelfExtract bundles SQLite's
+         native library too - without it e_sqlite3.dll is left beside the exe, and a script that downloads
+         aiko-installer.exe on its own would get an exe that cannot open a database.
+         A runtime identifier still comes from the publish command, not from this file, so a local build
+         does not resolve a runtime pack:
+         dotnet publish src/Aiko.Installer -c Release -r win-x64 -p:PublishAot=false -->
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Aiko.Application/Aiko.Application.csproj" />
+    <ProjectReference Include="../Aiko.Infrastructure/Aiko.Infrastructure.csproj" />
+  </ItemGroup>
+  <!-- This executable is what the bootstrap script downloads, so it ships as one self-contained file:
+       `dotnet publish src/Aiko.Installer -c Release -r win-x64 -p:PublishSingleFile=true
+       -p:PublishAot=false`. The flags are given on the command line for the same reason the release gives
+       them to Aiko.Cli: AOT pulls a C++ toolchain into the build, and a runtime identifier in the project
+       would make every local build resolve a runtime pack. Wiring this project into the release is
+       TASK-113; this card only has to make it build and run. -->
+</Project>

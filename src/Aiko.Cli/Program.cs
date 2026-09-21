@@ -1843,14 +1843,9 @@ static void PrintUnknown(IReadOnlyList<string> unknown)
     }
 }
 
-static IAgentAdapter[] CreateAdapters() =>
-[
-    new ClaudeCodeAgentAdapter(),
-    new CodexAgentAdapter(),
-    new CursorAgentAdapter(),
-    new ZCodeAgentAdapter(),
-    new ClineAgentAdapter()
-];
+// The built-in adapters come from the one list Aiko keeps of them (AgentAdapters): this host used to name
+// them itself, and a second copy of five names is a second place for the set to drift.
+static IAgentAdapter[] CreateAdapters() => [.. AgentAdapters.CreateBuiltIn()];
 
 static async Task<int> TokenAsync()
 {

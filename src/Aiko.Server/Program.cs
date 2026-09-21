@@ -88,11 +88,14 @@ builder.Services.AddSingleton<IAikoEventStore, SqliteAikoEventStore>();
 builder.Services.AddSingleton<EventJournalRetention>();
 builder.Services.AddSingleton<IExecutionCoordinator, SqliteExecutionCoordinator>();
 builder.Services.AddSingleton<IActivityReport, SqliteActivityReport>();
-builder.Services.AddSingleton<IAgentAdapter, ClaudeCodeAgentAdapter>();
-builder.Services.AddSingleton<IAgentAdapter, CodexAgentAdapter>();
-builder.Services.AddSingleton<IAgentAdapter, CursorAgentAdapter>();
-builder.Services.AddSingleton<IAgentAdapter, ZCodeAgentAdapter>();
-builder.Services.AddSingleton<IAgentAdapter, ClineAgentAdapter>();
+// Every built-in adapter, taken from the one list Aiko keeps of them: an adapter added there is offered
+// by the daemon, the CLI and the installer at once, instead of landing in one host and missing its
+// neighbour - which is how a screen comes to offer an agent the repair never rewrites.
+foreach (var adapter in AgentAdapters.CreateBuiltIn())
+{
+    builder.Services.AddSingleton(typeof(IAgentAdapter), adapter);
+}
+
 builder.Services.AddSingleton<IUnifiedAgentInstaller, UnifiedAgentInstaller>();
 builder.Services
     .AddMcpServer()
