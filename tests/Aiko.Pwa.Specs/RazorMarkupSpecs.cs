@@ -1,5 +1,8 @@
 using System.Text.RegularExpressions;
+using Aiko.Domain.Cards;
+using Aiko.Domain.Workflow;
 using Aiko.Pwa.Layout;
+using Aiko.Pwa.Services;
 using Flare.Components;
 using Xunit;
 
@@ -907,6 +910,79 @@ public sealed class RazorMarkupSpecs
             "A zero is what an assembly says when it says nothing, and it should read as a dash:" +
             Environment.NewLine + string.Join(Environment.NewLine, offenders));
     }
+
+    [Fact]
+    public void The_card_tile_carries_the_backlog_slice_of_the_cards_it_counts()
+    {
+        var root = FindRepositoryRoot();
+        var view = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "BoardView.razor"));
+
+        // The strip stays the four metrics the design draws: the backlog is a reading of the card count, so
+        // it rides on that tile as a line of its own instead of becoming a fifth number beside it.
+        var tiles = Regex.Match(
+            view,
+            @"private IReadOnlyList<\(string Label, string Value, bool Warn, string\? Slice\)> SummaryTiles(?<body>.*?\n    })",
+            RegexOptions.Singleline);
+        Assert.True(tiles.Success, "SummaryTiles should stay the one place the strip is described.");
+        var body = tiles.Groups["body"].Value;
+        Assert.Equal(4, Regex.Matches(body, @"Loc\.Get\(").Count);
+        Assert.Contains("\"BacklogSlice\"", body, StringComparison.Ordinal);
+
+        // Its number comes from the shared counting rule, over the very set the count beside it counts: a
+        // second definition of "in the backlog" is how two numbers for one thing appear.
+        var slice = Regex.Match(body, @"BoardMetrics\.BacklogCount\((?<cards>[A-Za-z_][A-Za-z0-9_]*)\)");
+        Assert.True(slice.Success, "The slice should come from BoardMetrics.BacklogCount.");
+        Assert.Contains(
+            $"DisplayFormat.Number({slice.Groups["cards"].Value}.Count)",
+            body,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("BacklogStageId", view, StringComparison.Ordinal);
+
+        // ... and it is drawn under the tile, in the strip's own muted mono tone.
+        Assert.Contains("tile.Slice", view, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_backlog_slice_counts_what_the_rail_counts_and_follows_a_filtered_set()
+    {
+        var cards = new[]
+        {
+            CardIn("TASK-1", "Task", WorkflowDefinition.BacklogStageId),
+            CardIn("TASK-2", "Task", "implementation"),
+            CardIn("STORY-1", "Story", WorkflowDefinition.BacklogStageId)
+        };
+
+        // With no type filter the board shows every card, so the slice reports what the rail's backlog tag
+        // reports ...
+        Assert.Equal(2, BoardMetrics.BacklogCount(cards));
+
+        // ... and with a type picked it reports the backlog of the cards the tile above it counts.
+        var tasks = cards
+            .Where(card => StringComparer.OrdinalIgnoreCase.Equals(card.Kind, "Task"))
+            .ToArray();
+        Assert.Equal(1, BoardMetrics.BacklogCount(tasks));
+
+        // Both numbers are the one rule, so the rail's project-wide count is the sum of the slices over any
+        // partition of the cards - which is what keeps two numbers for one thing from drifting apart.
+        Assert.Equal(
+            BoardMetrics.BacklogCount(cards),
+            BoardMetrics.BacklogCount(tasks) +
+            BoardMetrics.BacklogCount(cards.Where(card => !StringComparer.OrdinalIgnoreCase.Equals(card.Kind, "Task"))));
+    }
+
+    /// <summary>A card standing in one stage, for the counts that read cards and nothing else.</summary>
+    private static Card CardIn(string id, string kind, string stageId) => new(
+        new CardReference("p1", id),
+        kind,
+        id,
+        kind.ToLowerInvariant(),
+        stageId,
+        Revision: 1,
+        OwnPriority: 0m,
+        DeclaredScopeFiles: [],
+        ActualChangedFiles: [],
+        Metadata: new Dictionary<string, string>(StringComparer.Ordinal));
 
     /// <summary>
     /// Walks up from this assembly to the solution file, the same way the daemon fixture does.

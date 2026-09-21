@@ -100,6 +100,7 @@
   <data name="InProgress" xml:space="preserve"><value>In progress</value></data>
   <data name="Relations" xml:space="preserve"><value>Relations</value></data>
   <data name="OutOfScope" xml:space="preserve"><value>Out of scope</value></data>
+  <data name="BacklogSlice" xml:space="preserve"><value>in backlog {0}</value></data>
   <data name="Implementation" xml:space="preserve"><value>implementation</value></data>
   <data name="CardsStagesCount" xml:space="preserve"><value>{0} cards - {1} stages</value></data>
   <data name="WorkflowNotFound" xml:space="preserve"><value>No workflow found for {0}.</value></data>

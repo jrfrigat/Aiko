@@ -94,6 +94,19 @@ public static class BoardMetrics
     /// and nobody has taken into work yet.
     /// </summary>
     public static int BacklogCount(ProjectBoardSnapshot? board) =>
-        board?.Cards.Count(card =>
-            StringComparer.Ordinal.Equals(card.StageId, WorkflowDefinition.BacklogStageId)) ?? 0;
+        board is null ? 0 : BacklogCount(board.Cards);
+
+    /// <summary>
+    /// The same count over a chosen set of cards.
+    /// </summary>
+    /// <remarks>
+    /// The board's metric strip counts the backlog of the cards it is showing, so its slice agrees with the
+    /// card count beside it; the rail counts the project. One rule answers both, read through <see
+    /// cref="IsBacklog"/>: a second definition of "in the backlog" is how two numbers for one thing appear.
+    /// </remarks>
+    public static int BacklogCount(IEnumerable<Card> cards) => cards.Count(IsBacklog);
+
+    /// <summary>Whether a card is waiting in the reserved backlog stage of its workflow.</summary>
+    public static bool IsBacklog(Card card) =>
+        StringComparer.Ordinal.Equals(card.StageId, WorkflowDefinition.BacklogStageId);
 }

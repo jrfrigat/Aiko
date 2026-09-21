@@ -51,15 +51,26 @@ else
             </FlareMenu>
         </FlareStack>
 
-        @* The design's metric strip: a mono summary line, not a row of tiles. *@
-        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true" Class="aiko-metrics">
+        @* The design's metric strip: a mono summary line, not a row of tiles. A tile may carry one slice of
+           its own number underneath - the backlog is a reading of the card count, not a metric of its own -
+           which is also why the strip aligns on the top edge: the numbers stay on one line while a slice
+           hangs below its own. *@
+        <FlareStack Row="true" Align="FlareAlignItems.Start" Gap="FlareSpacing.XSmall" Wrap="true" Class="aiko-metrics">
             @foreach (var tile in SummaryTiles)
             {
-                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
-                    <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant">@tile.Label</FlareText>
-                    <FlareText Element="span" Mono="true"
-                               Color="@(tile.Warn ? FlareColor.Error : FlareColor.Tertiary)"
-                               Weight="FontWeight.SemiBold">@tile.Value</FlareText>
+                <FlareStack Gap="FlareSpacing.XXSmall">
+                    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
+                        <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant">@tile.Label</FlareText>
+                        <FlareText Element="span" Mono="true"
+                                   Color="@(tile.Warn ? FlareColor.Error : FlareColor.Tertiary)"
+                                   Weight="FontWeight.SemiBold">@tile.Value</FlareText>
+                    </FlareStack>
+                    @if (tile.Slice is { Length: > 0 } slice)
+                    {
+                        <FlareText Element="span" Mono="true"
+                                   Typo="TypographyScale.LabelSmall"
+                                   Color="FlareColor.OnSurfaceVariant2">@slice</FlareText>
+                    }
                 </FlareStack>
             }
         </FlareStack>
@@ -408,19 +419,25 @@ else
         .Where(card => !IsFiltered || _pickedKinds.Contains(card.Kind))
         .ToArray() ?? [];
 
-    /// <summary>The four board metrics, as the design's mono summary line.</summary>
-    private IReadOnlyList<(string Label, string Value, bool Warn)> SummaryTiles
+    /// <summary>
+    /// The four board metrics, as the design's mono summary line. A tile carries at most one slice of its
+    /// own number: the card count says how many cards the board is showing and how many of those are still
+    /// waiting in the backlog - the same set, read twice.
+    /// </summary>
+    private IReadOnlyList<(string Label, string Value, bool Warn, string? Slice)> SummaryTiles
     {
         get
         {
             var board = State.Board;
             var outOfScope = BoardMetrics.OutOfScopeCount(board);
+            var visible = VisibleCards;
             return
             [
-                (Loc.Get("Cards"), DisplayFormat.Number(VisibleCards.Count), false),
-                (Loc.Get("InProgress"), DisplayFormat.Number(BoardMetrics.InProgressCount(board)), false),
-                (Loc.Get("Relations"), DisplayFormat.Number(board?.Relations.Count ?? 0), false),
-                (Loc.Get("OutOfScope"), DisplayFormat.Number(outOfScope), outOfScope > 0)
+                (Loc.Get("Cards"), DisplayFormat.Number(visible.Count), false,
+                    Loc.Format("BacklogSlice", DisplayFormat.Number(BoardMetrics.BacklogCount(visible)))),
+                (Loc.Get("InProgress"), DisplayFormat.Number(BoardMetrics.InProgressCount(board)), false, null),
+                (Loc.Get("Relations"), DisplayFormat.Number(board?.Relations.Count ?? 0), false, null),
+                (Loc.Get("OutOfScope"), DisplayFormat.Number(outOfScope), outOfScope > 0, null)
             ];
         }
     }
