@@ -31,6 +31,7 @@ var exitCode = command switch
     "reindex" => await ReindexAsync(args),
     "commands" => await CommandsAsync(args),
     "uninstall" => await UninstallAsync(args),
+    "autostart" => Autostart(args),
     "help" or "--help" or "-h" => Help(),
     _ => Unknown(command)
 };
@@ -73,6 +74,7 @@ static int Help()
                                                         install directory from the user PATH and delete the
                                                         published binaries. The data directory and the
                                                         projects' .aiko are kept unless asked for by name
+          autostart enable|disable|status               Start the daemon at sign-in, or stop doing so
           reindex <projectId>                           Rebuild a project's SQLite projections
           commands [--project <id>] [--card <id>] [--state <s>]
                                                         Show the commands a screen placed for an agent;
@@ -762,6 +764,58 @@ static async Task<int> UiAsync()
     return 0;
 }
 
+// `aiko autostart enable|disable|status` - the daemon started at sign-in. The installer offers the choice
+// and `aiko uninstall` takes it back, and both go through this one command: the entry has one writer and one
+// remover, so the file the installer leaves behind cannot be a different file from the one uninstall looks
+// for.
+static int Autostart(string[] args)
+{
+    var installation = new AikoInstallation(AikoDataPaths.FromEnvironment());
+    // A per-user startup folder only exists on Windows, so the entry names the Windows command the installer
+    // publishes; on any other platform IsSupported is false and the path is never used.
+    var autostart = new AikoAutostart(Path.Combine(installation.BinDirectory, "aiko.exe"));
+    var action = args.Length > 1 ? args[1].ToLowerInvariant() : "status";
+
+    if (!autostart.IsSupported)
+    {
+        Console.Error.WriteLine(
+            "This machine has no per-user startup folder, so the daemon cannot be started at sign-in. " +
+            "Start it with `aiko serve --detached` instead.");
+        return 1;
+    }
+
+    switch (action)
+    {
+        case "enable":
+            if (!File.Exists(autostart.ExecutablePath))
+            {
+                // An entry pointing at a missing command starts nothing at every sign-in and says nothing
+                // about why, which is worse than refusing now.
+                Console.Error.WriteLine(
+                    $"The aiko command was not found at {autostart.ExecutablePath}. Run the installer first.");
+                return 1;
+            }
+
+            autostart.Enable();
+            Console.WriteLine($"The daemon will start at sign-in: {autostart.EntryPath}");
+            return 0;
+        case "disable":
+            Console.WriteLine(autostart.Disable()
+                ? $"Removed {autostart.EntryPath}; the daemon no longer starts at sign-in."
+                : "The daemon was not set to start at sign-in; nothing to remove.");
+            return 0;
+        case "status":
+            Console.WriteLine(autostart.IsEnabled
+                ? $"The daemon starts at sign-in: {autostart.EntryPath}"
+                : "The daemon does not start at sign-in.");
+            return 0;
+        default:
+            Console.Error.WriteLine(
+                $"Unknown argument for `aiko autostart`: {action}. Use enable, disable or status.");
+            return 2;
+    }
+}
+
 // `aiko uninstall` takes back what the installer put on the machine. The three things are separate on
 // purpose - the PATH entry, the published binaries, the data - and the data is never removed unless it is
 // asked for by name, because it holds every registered project, the event journal and the access token.
@@ -778,6 +832,14 @@ static async Task<int> UninstallAsync(string[] args)
 
     var stopped = await TryStopDaemonAsync(ReadOption(args, "--port"));
     Console.WriteLine(stopped ? "Stopped the running daemon." : "No daemon was running.");
+
+    // Before the binaries go: an entry that outlives the command it starts would try to launch something
+    // that is no longer there on every sign-in, and say nothing about why.
+    var autostart = new AikoAutostart(Path.Combine(installation.BinDirectory, "aiko.exe"));
+    var autostartRemoved = autostart.Disable();
+    Console.WriteLine(autostartRemoved
+        ? "Removed the start-at-sign-in entry."
+        : "The daemon was not set to start at sign-in.");
 
     var pathRemoved = installation.RemoveFromUserPath();
     Console.WriteLine(pathRemoved
@@ -812,7 +874,7 @@ static async Task<int> UninstallAsync(string[] args)
     var dataRemoved = RemoveData(installation, args);
 
     Console.WriteLine();
-    if (!pathRemoved && !binaries.Removed && !projectDataRemoved && !dataRemoved && !stopped)
+    if (!pathRemoved && !binaries.Removed && !projectDataRemoved && !dataRemoved && !stopped && !autostartRemoved)
     {
         Console.WriteLine("Nothing was left to remove: Aiko is not installed here any more.");
     }

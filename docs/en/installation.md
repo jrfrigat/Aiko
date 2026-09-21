@@ -109,6 +109,19 @@ aiko ui
 The UI needs a daemon, so `aiko ui` starts one in the background first when none is answering: being told to
 start a service and come back is not an answer to "open the board".
 
+The daemon can also start at sign-in, which is a choice the installer offers (`-Autostart`, and the question
+it asks defaults to no). It is a command file in your own Startup folder, so `aiko autostart status` shows
+whether it is set, `aiko autostart enable` and `aiko autostart disable` change it, and deleting the file
+yourself does the same thing as disabling:
+
+```powershell
+aiko autostart enable    # the daemon starts at sign-in
+aiko autostart disable   # and stops doing that
+```
+
+An entry is only written when it is asked for: it points at the installed `aiko` command, and `aiko
+uninstall` removes it together with the rest of the installation.
+
 `aiko status` shows the data directory, database path, port and daemon health; when the daemon is not
 running it also prints how to start one and the tail of the last background log, which is where a daemon that
 stopped says why. It also names any agent it finds on `PATH` without Aiko's global configuration - an agent
@@ -183,10 +196,10 @@ This writes the project-scoped MCP configuration and the `/aiko-*` skills for th
 
 - Update: re-run the installer (release or source) - it replaces the binaries and keeps project data
   and settings. Pin a release with `-Version` when you do not want the newest one.
-- Uninstall: `aiko uninstall`. It stops a running daemon, drops the install directory from the user
-  `PATH` and deletes the published binaries - the running `aiko` is one of them, so it says which files
-  it had to leave and they can be deleted once the command has exited. Running it again reports that
-  there is nothing left to remove.
+- Uninstall: `aiko uninstall`. It stops a running daemon, removes the start-at-sign-in entry if there is
+  one, drops the install directory from the user `PATH` and deletes the published binaries - the running
+  `aiko` is one of them, so it says which files it had to leave and they can be deleted once the command
+  has exited. Running it again reports that there is nothing left to remove.
 - What is kept: the data directory (`%LOCALAPPDATA%\Aiko` - database, settings, access token, backups)
   and every project's `.aiko`. Both are asked about separately, and both default to *kept*:
   `aiko uninstall --remove-data` removes the database and the machine's registration of every project,

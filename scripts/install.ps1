@@ -31,6 +31,13 @@
 .PARAMETER NoAgentSetup
     Do not ask about agent integration. Agents can be connected later with
     "aiko agent install --scope user".
+
+.PARAMETER Autostart
+    Start the daemon at sign-in, without asking. The question the installer would ask defaults to no, so
+    nothing is written to the machine's startup folder unless it is asked for here or answered yes.
+
+.PARAMETER NoAutostart
+    Do not ask about starting the daemon at sign-in. It can be set up later with "aiko autostart enable".
 #>
 # Write-Host is the right call here and not a lapse: this is an interactive installer whose output is
 # meant for the person running it. Write-Output would put those lines on the pipeline, and the
@@ -44,7 +51,9 @@ param(
     [string] $InstallDir = (Join-Path $env:LOCALAPPDATA 'Aiko\bin'),
     [string] $Agents,
     [switch] $NoPathUpdate,
-    [switch] $NoAgentSetup
+    [switch] $NoAgentSetup,
+    [switch] $Autostart,
+    [switch] $NoAutostart
 )
 
 $ErrorActionPreference = 'Stop'
@@ -214,6 +223,30 @@ if (-not $NoPathUpdate) {
         # So the current session can run it without reopening the terminal.
         $env:Path = "$env:Path;$InstallDir"
         Write-Host "    Open a new terminal for PATH to apply everywhere." -ForegroundColor DarkGray
+    }
+}
+
+# Starting the daemon at sign-in is the person's choice: the question defaults to no, and the entry is
+# written only after a yes here or an explicit -Autostart. The CLI writes it, so this installer and
+# `aiko uninstall` agree on one file.
+$startAtSignIn = $Autostart
+if (-not $NoAutostart -and -not $Autostart) {
+    $answer = ''
+    try {
+        $answer = Read-Host 'Start the Aiko daemon at sign-in? [y/N]'
+    }
+    catch {
+        Write-Verbose "No interactive console, skipping autostart. $($_.Exception.Message)"
+    }
+
+    $startAtSignIn = $answer -match '^(y|yes)$'
+}
+
+if ($startAtSignIn) {
+    Write-Step 'Setting the daemon to start at sign-in'
+    & $exe autostart enable
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "    Autostart could not be set up; run 'aiko autostart enable' after fixing it." -ForegroundColor DarkYellow
     }
 }
 

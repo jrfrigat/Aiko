@@ -14,7 +14,11 @@
     Justification = 'Interactive installer: progress belongs on the console, not the pipeline.')]
 [CmdletBinding()]
 param(
-    [switch]$NoAgents
+    [switch]$NoAgents,
+    # Start the daemon at sign-in. Not asked for by default: the installer asks, and the question defaults
+    # to no, because writing something that runs at every logon is the person's decision and not ours.
+    [switch]$Autostart,
+    [switch]$NoAutostart
 )
 
 $ErrorActionPreference = "Stop"
@@ -36,6 +40,29 @@ if ($userPath -notlike "*$bin*") {
 
 if (-not $NoAgents) {
     Write-Host "Tip: connect your agents globally with: aiko agent install --scope user"
+}
+
+# Starting the daemon at sign-in is the person's choice: the question defaults to no, and the entry is
+# written only after a yes here or an explicit -Autostart. The entry itself is written by the CLI, so the
+# installer and `aiko uninstall` agree on one file.
+$startAtSignIn = $Autostart
+if (-not $NoAutostart -and -not $Autostart) {
+    $answer = ""
+    try {
+        $answer = Read-Host "Start the Aiko daemon at sign-in? [y/N]"
+    }
+    catch {
+        Write-Host "No console to ask on; the daemon will not start at sign-in." -ForegroundColor DarkGray
+    }
+
+    $startAtSignIn = $answer -match "^(y|yes)$"
+}
+
+if ($startAtSignIn) {
+    & (Join-Path $bin "aiko.exe") autostart enable
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Autostart could not be set up; run 'aiko autostart enable' after fixing it." -ForegroundColor DarkYellow
+    }
 }
 
 Write-Host ""
