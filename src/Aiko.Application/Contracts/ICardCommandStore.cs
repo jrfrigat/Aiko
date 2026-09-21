@@ -6,7 +6,8 @@ namespace Aiko.Application.Contracts;
 /// What a client asks for when it places a command.
 /// </summary>
 /// <param name="CardId">
-/// Card the command is about, or null for a command about the project - which only the board pass is.
+/// Card the command is about, or null for a command about the project - which the board pass and a release
+/// are.
 /// </param>
 /// <param name="Action">What to do; see <see cref="CardCommands.Validate"/> for what each one requires.</param>
 /// <param name="StageId">Stage to start, for the <c>start</c> action.</param>

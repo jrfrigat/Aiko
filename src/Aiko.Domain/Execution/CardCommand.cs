@@ -13,8 +13,8 @@ namespace Aiko.Domain.Execution;
 /// </remarks>
 /// <param name="Id">Identifier of the command, unique within the project.</param>
 /// <param name="CardId">
-/// Card the command is about, or null for a command about the project as a whole - which only
-/// <see cref="CardCommandAction.RunBoard"/> is. The field is nullable rather than defaulted to some
+/// Card the command is about, or null for a command about the project as a whole - which the board pass and
+/// a release are. The field is nullable rather than defaulted to some
 /// placeholder card, because a command that pretended to be about a card would show up on that card's
 /// screen and nowhere else.
 /// </param>

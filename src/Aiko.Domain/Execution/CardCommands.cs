@@ -62,14 +62,16 @@ public static class CardCommands
         string? executionId,
         string? text)
     {
-        if (action is CardCommandAction.RunBoard)
+        if (action is CardCommandAction.RunBoard or CardCommandAction.Release)
         {
             if (!string.IsNullOrWhiteSpace(cardId) ||
                 !string.IsNullOrWhiteSpace(stageId) ||
                 !string.IsNullOrWhiteSpace(executionId))
             {
                 throw new ArgumentException(
-                    "Working the board is not about one card or one run, so it names neither.",
+                    action is CardCommandAction.RunBoard
+                        ? "Working the board is not about one card or one run, so it names neither."
+                        : "A release is about the whole project, not one card or one run, so it names neither.",
                     nameof(cardId));
             }
 
@@ -127,15 +129,18 @@ public static class CardCommands
         IReadOnlyList<CardCommand> existing)
     {
         ArgumentNullException.ThrowIfNull(existing);
-        if (action is not CardCommandAction.RunBoard)
+        if (action is not (CardCommandAction.RunBoard or CardCommandAction.Release))
         {
             return null;
         }
 
         return existing.FirstOrDefault(command =>
-            command.Action is CardCommandAction.RunBoard && command.IsOpen) is { } open
-            ? $"the board is already being worked: command '{open.Id}' is {open.State}. "
-                + "Let that pass finish, or withdraw it first."
+            command.Action == action && command.IsOpen) is { } open
+            ? action is CardCommandAction.RunBoard
+                ? $"the board is already being worked: command '{open.Id}' is {open.State}. "
+                    + "Let that pass finish, or withdraw it first."
+                : $"a release is already under way: command '{open.Id}' is {open.State}. "
+                    + "Let it finish, or withdraw it first."
             : null;
     }
 

@@ -660,6 +660,7 @@
   <data name="CommandCaptionPause" xml:space="preserve"><value>поставить прогон на паузу</value></data>
   <data name="CommandCaptionResume" xml:space="preserve"><value>продолжить прогон</value></data>
   <data name="CommandCaptionAnswer" xml:space="preserve"><value>ответить на вопрос прогона</value></data>
+<data name="CommandCaptionRelease" xml:space="preserve"><value>провести выпуск</value></data>
   <data name="RunBoard" xml:space="preserve"><value>Выполнить доску</value></data>
   <data name="RunBoardHint" xml:space="preserve"><value>Просит агента довести каждую незаконченную карточку доски — в порядке доски — до конца её конвейера.</value></data>
   <data name="AppearanceNav" xml:space="preserve"><value>Внешний вид</value></data>

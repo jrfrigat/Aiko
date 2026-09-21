@@ -41,5 +41,17 @@ public enum CardCommandAction
     /// stops on the first failure or forbidden action, and a queue of per-card commands would keep going
     /// after that stop - the stop has to be one decision, so the request has to be one record.
     /// </remarks>
-    RunBoard
+    RunBoard,
+
+    /// <summary>
+    /// Conduct a release: the second action that names no card, and the second that maps onto a procedure
+    /// (<c>/aiko-release</c>) rather than a tool.
+    /// </summary>
+    /// <remarks>
+    /// A release is about the project as a whole, not about one of its cards, so it carries no card id - and
+    /// the version the person has in mind travels in the command's text, which the procedure reads before it
+    /// chooses one itself. Like the board pass it is a single record: two releases at once would be two tags
+    /// for one tree.
+    /// </remarks>
+    Release
 }
