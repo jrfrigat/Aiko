@@ -245,7 +245,7 @@ over is therefore the same address the UI links to itself, not a second form of 
 | Record and search memory | `/aiko-memory` | `aiko_store_memory`, `aiko_search_memory` | — (not in the UI yet) |
 | Edit the pipeline | — | — | Workflow page |
 | Read settings | — | `aiko_get_settings` | Settings page |
-| Change settings | — (planned `/aiko-settings`) | — (planned `aiko_update_settings`) | Settings page |
+| Change settings | — (planned `/aiko-settings`) | `aiko_update_settings` | Settings page |
 | Rebuild projections | — | `aiko_reindex` | — (`aiko reindex`) |
 | Diagnose the installation | `/aiko-doctor` | `aiko_doctor` | — (`aiko doctor`) |
 | Repair the installation | `/aiko-repair` | — | — (`aiko repair --fix`) |

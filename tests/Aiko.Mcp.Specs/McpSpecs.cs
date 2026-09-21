@@ -49,6 +49,7 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         "aiko_backup",
         "aiko_token",
         "aiko_get_settings",
+        "aiko_update_settings",
         "aiko_list_commands",
         "aiko_claim_command",
         "aiko_finish_command",
@@ -591,6 +592,72 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
                 Directory.Delete(root, true);
             }
         }
+    }
+
+    [Fact]
+    public async Task Update_settings_tool_writes_the_project_and_never_guesses_the_target()
+    {
+        await using var client = await ConnectAsync();
+
+        // These specs share one project, and maxConcurrentRuns is what the run-slot tests depend on, so the
+        // write is put back at the end rather than left behind for the next test.
+        var arguments = new Dictionary<string, object?>
+        {
+            ["projectId"] = fixture.ProjectId,
+            ["settings"] = "{\"execution\":{\"workspaceMode\":\"Shared\",\"maxConcurrentRuns\":2," +
+                "\"scopeOverlapPolicy\":\"Ask\",\"sharedCheckoutCommitPolicy\":\"Deny\"," +
+                "\"sharedCheckoutPushPolicy\":\"Deny\"}}"
+        };
+
+        try
+        {
+            var written = await client.CallToolAsync(
+                "aiko_update_settings",
+                arguments,
+                cancellationToken: CancellationToken.None);
+            Assert.NotEqual(true, written.IsError);
+
+            // The answer is the effective view rather than an echo of the request: it names the source too.
+            var view = FirstText(written);
+            Assert.Contains("\"maxConcurrentRuns\":2", view, StringComparison.Ordinal);
+            Assert.Contains("\"executionSource\":\"project\"", view, StringComparison.Ordinal);
+
+            // The write reached the document the next read loads, so the Settings screen shows it.
+            var read = await client.CallToolAsync(
+                "aiko_get_settings",
+                new Dictionary<string, object?> { ["projectId"] = fixture.ProjectId },
+                cancellationToken: CancellationToken.None);
+            Assert.Contains("\"maxConcurrentRuns\":2", FirstText(read), StringComparison.Ordinal);
+        }
+        finally
+        {
+            arguments["settings"] = "{\"execution\":{\"workspaceMode\":\"Shared\",\"maxConcurrentRuns\":1," +
+                "\"scopeOverlapPolicy\":\"Ask\",\"sharedCheckoutCommitPolicy\":\"Deny\"," +
+                "\"sharedCheckoutPushPolicy\":\"Deny\"}}";
+            await client.CallToolAsync(
+                "aiko_update_settings",
+                arguments,
+                cancellationToken: CancellationToken.None);
+        }
+
+        // A target has to be named rather than guessed: neither target is refused as loudly as both. A
+        // template never reaches a project that already exists, so there is no safe default to fall back on.
+        var noTarget = await client.CallToolAsync(
+            "aiko_update_settings",
+            new Dictionary<string, object?> { ["settings"] = "{}" },
+            cancellationToken: CancellationToken.None);
+        Assert.Equal(true, noTarget.IsError);
+
+        var bothTargets = await client.CallToolAsync(
+            "aiko_update_settings",
+            new Dictionary<string, object?>
+            {
+                ["projectId"] = fixture.ProjectId,
+                ["templateId"] = "default",
+                ["settings"] = "{}"
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.Equal(true, bothTargets.IsError);
     }
 
     [Fact]

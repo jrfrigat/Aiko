@@ -20,7 +20,8 @@ namespace Aiko.Server.Mcp;
 internal sealed class MaintenanceTools(
     IProjectCatalog catalog,
     IProjectReindexer reindexer,
-    IAppSettingsService settings,
+    IAppSettingsService appSettings,
+    IProjectTemplateStore templates,
     AikoDataPaths dataPaths,
     IWorkshopDiagnostics diagnostics,
     AccessTokenStore tokenStore)
@@ -104,7 +105,78 @@ internal sealed class MaintenanceTools(
         [Optional] string? projectId,
         CancellationToken cancellationToken)
     {
-        var view = await settings.LoadAsync(projectId, cancellationToken);
+        var view = await appSettings.LoadAsync(projectId, cancellationToken);
         return JsonSerializer.Serialize(view, ServerJsonContext.Default.AppSettingsView);
+    }
+
+    [McpServerTool(Name = "aiko_update_settings", Title = "Update Aiko settings")]
+    [Description(
+        "Writes settings. Name exactly one target: `projectId` edits the project's own document - what the " +
+        "project runs with, and what its Settings screen shows; `templateId` edits a settings template - the " +
+        "defaults copied into projects created from it afterwards, which never reaches a project that already " +
+        "took its copy. `settings` is the AppSettings document as JSON; a section it leaves out falls back to " +
+        "the built-in default, and a section it states is written as it stands, so send the fields you mean. " +
+        "A project answers with its effective settings and the source of each value, a template with itself " +
+        "and its new version.")]
+    public async Task<string> UpdateSettingsAsync(
+        [Description("Project whose own settings are written; omit when writing a template.")]
+        [Optional] string? projectId,
+        [Description("Template whose defaults for new projects are written; omit when writing a project.")]
+        [Optional] string? templateId,
+        [Description("The AppSettings document as JSON, for example {\"execution\":{\"maxConcurrentRuns\":2}}.")]
+        string settings,
+        CancellationToken cancellationToken)
+    {
+        var forProject = !string.IsNullOrWhiteSpace(projectId);
+        var forTemplate = !string.IsNullOrWhiteSpace(templateId);
+        if (forProject == forTemplate)
+        {
+            // Neither and both are equally ambiguous, and there is no safe default to pick: a template never
+            // reaches a project that already exists, so guessing here is how a caller edits the wrong thing.
+            throw new ArgumentException(
+                "Name exactly one target: `projectId` for a project's own settings, or `templateId` for the " +
+                "defaults new projects start from.");
+        }
+
+        AppSettings document;
+        try
+        {
+            document = JsonSerializer.Deserialize(settings, ServerJsonContext.Default.AppSettings)
+                ?? throw new ArgumentException("The settings document is empty.");
+        }
+        catch (JsonException exception)
+        {
+            throw new ArgumentException($"The settings document is not valid JSON: {exception.Message}");
+        }
+
+        if (forTemplate)
+        {
+            ProjectTemplate template;
+            try
+            {
+                template = await templates.ReadAsync(templateId!, cancellationToken);
+            }
+            catch (FileNotFoundException)
+            {
+                throw new KeyNotFoundException($"Unknown settings template: {templateId}");
+            }
+
+            // One version for the whole document, exactly as the REST write does it: the settings are part of
+            // the template's content, and a project records which version of it it was created from.
+            await templates.WriteAsync(
+                template with { Settings = document, Version = template.Version + 1 },
+                cancellationToken);
+            return JsonSerializer.Serialize(
+                await templates.ReadAsync(templateId!, cancellationToken),
+                ServerJsonContext.Default.ProjectTemplate);
+        }
+
+        await appSettings.SaveProjectAsync(projectId!, document, cancellationToken);
+
+        // The answer is the effective view rather than the document that was sent: it is the same shape
+        // `aiko_get_settings` returns, so the caller can see the write took and where each value came from.
+        return JsonSerializer.Serialize(
+            await appSettings.LoadAsync(projectId, cancellationToken),
+            ServerJsonContext.Default.AppSettingsView);
     }
 }

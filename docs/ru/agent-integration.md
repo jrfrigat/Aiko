@@ -248,7 +248,7 @@ UI пока нет, таблица говорит это прямо, а не д�
 | Записать и найти память | `/aiko-memory` | `aiko_store_memory`, `aiko_search_memory` | — (в UI пока нет) |
 | Изменить конвейер | — | — | Страница Workflow |
 | Прочитать настройки | — | `aiko_get_settings` | Страница Settings |
-| Изменить настройки | — (планируется `/aiko-settings`) | — (планируется `aiko_update_settings`) | Страница Settings |
+| Изменить настройки | — (планируется `/aiko-settings`) | `aiko_update_settings` | Страница Settings |
 | Перестроить проекции | — | `aiko_reindex` | — (`aiko reindex`) |
 | Диагностика установки | `/aiko-doctor` | `aiko_doctor` | — (`aiko doctor`) |
 | Починка установки | `/aiko-repair` | — | — (`aiko repair --fix`) |
