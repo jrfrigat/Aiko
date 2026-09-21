@@ -259,7 +259,7 @@ over is therefore the same address the UI links to itself, not a second form of 
 | Back up a project | `/aiko-backup` | `aiko_backup` | — |
 | Link a project, say what it is for and where its reference lives | `/aiko-link <slug> <description>` | `aiko_link_project`, `aiko_unlink_project`, `aiko_list_links` | Rail - *Linked projects* |
 | File a card into a linked project | `/aiko-link` for the link, then the project's own contract | `aiko_create_card_in_project` (`userConfirmed` on an *Ask* project) | — (only an agent files the card; it lands on the target project's board) |
-| Decide whether a linked project may be written to | — | — (the `crossProject` section of the sending project's settings) | Project settings - *Cross-project writing* |
+| Decide whether a linked project may be written to | — | — (the `crossProject` section of both projects' settings: the sender's list of targets and the receiver's policy) | Project settings - *Accepting cards from other projects* and *Projects this one may write to* |
 | See where a cross-project card came from | — | — (the card carries its own `origin`) | Card page - *Origin*: the source project, the source card when one was named, the adapter and how long ago |
 | Manage a run - start, pause, resume, hand off, complete, cancel | `/aiko-run`, `/aiko-handoff` | `aiko_start_stage`, `aiko_pause_execution`, `aiko_resume_execution`, `aiko_handoff_execution`, `aiko_complete_stage`, `aiko_report_agent_state` | — (the card page reads the run history; the controls, and the REST lifecycle behind them, are not built) |
 | See every active run of the project | — | — (the board snapshot carries the latest run of each stage) | — (runs are visible inside a card only; no project-wide section) |

@@ -779,6 +779,38 @@ public sealed class RazorMarkupSpecs
         }
     }
 
+    [Fact]
+    public void The_cross_project_settings_state_which_direction_each_one_is()
+    {
+        var root = FindRepositoryRoot();
+        var editor = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "SettingsEditor.razor"));
+
+        // Two settings of opposite direction used to share one heading, and only a hint said which was which - so
+        // a person a *sending* project had refused read the *receiving* project's screen, found it correct, and
+        // looked no further. Each direction now names itself ...
+        Assert.Contains("Loc.Get(\"CrossProjectReceive\")", editor, StringComparison.Ordinal);
+        Assert.Contains("Loc.Get(\"CrossProjectTargets\")", editor, StringComparison.Ordinal);
+
+        // ... the list of projects this one may write to says what an empty list means, which the old block left
+        // to a placeholder to imply ...
+        Assert.Contains("Loc.Get(\"CrossProjectTargetsHint\")", editor, StringComparison.Ordinal);
+
+        // ... and the title that stood over both of them is gone rather than repeated above the pair.
+        Assert.DoesNotContain("Loc.Get(\"CrossProjectPolicy\")", editor, StringComparison.Ordinal);
+
+        foreach (var resource in new[] { "Loc.resx", "Loc.ru.resx" })
+        {
+            var resx = File.ReadAllText(
+                Path.Combine(root, "src", "Aiko.Pwa", "Resources", resource));
+            Assert.Contains("name=\"CrossProjectReceive\"", resx, StringComparison.Ordinal);
+            Assert.Contains("name=\"CrossProjectPolicyHint\"", resx, StringComparison.Ordinal);
+            Assert.Contains("name=\"CrossProjectTargets\"", resx, StringComparison.Ordinal);
+            Assert.Contains("name=\"CrossProjectTargetsHint\"", resx, StringComparison.Ordinal);
+            Assert.DoesNotContain("name=\"CrossProjectPolicy\"", resx, StringComparison.Ordinal);
+        }
+    }
+
     /// <summary>
     /// Walks up from this assembly to the solution file, the same way the daemon fixture does.
     /// </summary>

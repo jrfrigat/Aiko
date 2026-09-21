@@ -531,9 +531,10 @@
   <data name="PushAskHint" xml:space="preserve"><value>Агент спрашивает перед пушем и ждёт вашего ответа</value></data>
   <data name="PushAllowTitle" xml:space="preserve"><value>Пушит агент</value></data>
   <data name="PushAllowHint" xml:space="preserve"><value>Агент может пушить и сообщает, что запушил</value></data>
-  <data name="CrossProjectPolicy" xml:space="preserve"><value>Кросс-проектная запись</value></data>
-  <data name="CrossProjectPolicyHint" xml:space="preserve"><value>Что другой проект может сделать с этим: может ли агент из соседнего проекта создавать здесь карточки и на каких условиях.</value></data>
-  <data name="CrossProjectTargets" xml:space="preserve"><value>Проекты, куда этому можно писать</value></data>
+  <data name="CrossProjectReceive" xml:space="preserve"><value>Принимать карточки от других проектов</value></data>
+  <data name="CrossProjectPolicyHint" xml:space="preserve"><value>Может ли агент из соседнего проекта создавать здесь карточки и на каких условиях.</value></data>
+  <data name="CrossProjectTargets" xml:space="preserve"><value>Куда этому проекту можно писать</value></data>
+  <data name="CrossProjectTargetsHint" xml:space="preserve"><value>Пустой список — можно писать в любой проект. Чтобы ограничить, перечислите id или handle по одному на строку.</value></data>
   <data name="CrossProjectTargetsPlaceholder" xml:space="preserve"><value>По одному id или handle на строку; пусто — можно любой</value></data>
   <data name="CrossDenyTitle" xml:space="preserve"><value>Запрещать</value></data>
   <data name="CrossDenyHint" xml:space="preserve"><value>Снаружи ничего не создаётся: агенту сообщается, что карточку нужно завести вручную</value></data>

@@ -267,10 +267,14 @@
                             }
                         </div>
                     </FlareStack>
+                    @* Two settings of opposite direction used to share one heading, "Cross-project writing", and the
+                       direction of each lived only in a hint - so a person a *sending* project had refused read the
+                       *receiving* project's screen, found it correct, and looked no further. Each direction now names
+                       itself. *@
                     <FlareStack Class="aiko-tile" Gap="FlareSpacing.XSmall">
                         <FlareStack Gap="FlareSpacing.None">
                             <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
-                                @Loc.Get("CrossProjectPolicy")
+                                @Loc.Get("CrossProjectReceive")
                             </FlareText>
                             <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
                                 @Loc.Get("CrossProjectPolicyHint")
@@ -282,6 +286,19 @@
                                 @CrossProjectChoice(option)
                             }
                         </div>
+                    </FlareStack>
+
+                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.XSmall">
+                        <FlareStack Gap="FlareSpacing.None">
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                                @Loc.Get("CrossProjectTargets")
+                            </FlareText>
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                @Loc.Get("CrossProjectTargetsHint")
+                            </FlareText>
+                        </FlareStack>
+                        @* The field's own bar carries the same words as the heading: PromptField has no separate
+                           label slot, and an empty one would leave the textarea with no accessible name. *@
                         <PromptField Title="@Loc.Get("CrossProjectTargets")"
                                      Placeholder="@Loc.Get("CrossProjectTargetsPlaceholder")"
                                      Rows="3"
