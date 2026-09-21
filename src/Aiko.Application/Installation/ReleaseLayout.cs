@@ -12,11 +12,17 @@ namespace Aiko.Application.Installation;
 /// </remarks>
 public static class ReleaseLayout
 {
+    /// <summary>The command a person types, and the entry point whose absence means nothing works.</summary>
+    public const string CliFileName = "aiko.exe";
+
+    /// <summary>The stdio proxy every MCP client is configured to launch.</summary>
+    public const string StdioProxyFileName = "aiko-stdio.exe";
+
     /// <summary>Entries that must exist in an unpacked release, relative to its root.</summary>
     public static IReadOnlyList<string> RequiredEntries { get; } =
     [
-        "aiko.exe",
-        "aiko-stdio.exe",
+        CliFileName,
+        StdioProxyFileName,
         Path.Combine("server", "Aiko.Server.exe"),
         Path.Combine("server", "wwwroot", "index.html"),
         Path.Combine("templates", "default", "template.json")
