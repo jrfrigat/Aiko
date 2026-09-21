@@ -27,7 +27,10 @@ aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<handle>
 
 ## The tool set
 
-- **Project context** - `aiko_get_project_context`, `aiko_open_ui`.
+- **Project context** - `aiko_get_project_context`, `aiko_open_ui`. The context arrives as one content block
+  per section and takes a `section` argument, so a part of it - the rules, the git policy, the links, the
+  scoring tables, the card types - can be read on its own rather than with the whole document; `aiko_list_links`
+  returns the linked projects alone, a few lines that survive an answer the client shortens.
 - **Reading the project's state** - `aiko_list_board`, `aiko_list_work_queue`, `aiko_get_settings`. These are
   how an agent finds out what the project says; opening a file under `.aiko` to learn it is a violation (a
   card whose subject *is* the `.aiko` format is the exception, and says so).
@@ -85,10 +88,14 @@ and offers the blocking card; it does not work around it. A blocker stops blocki
 stage of its own pipeline - the last stage is read from the workflow, so a type whose end is not called `done`
 works too - and the relation is removed when the order no longer holds.
 
-A project can be **linked** to other projects, each with a sentence saying what that project is for. The
-registry lives in `.aiko/links.json`, `aiko_get_project_context` lists it under *Linked projects* for the agent
-working here, and the project's *Linked projects* screen - the rail item beside *Project settings* - edits it.
-Work that belongs to a linked project is filed there
+A project can be **linked** to other projects, and a link is a record rather than a bare id: what that project
+is for, where its reference lives - a path or an address to its documentation, API index or entry point - when
+work belongs there, and when it does not. The registry lives in `.aiko/links.json`; `aiko_list_links` returns it
+on its own and `aiko_get_project_context` lists it under *Linked projects* for the agent working here, and the
+project's *Linked projects* screen - the rail item beside *Project settings* - edits all four texts. Only the
+first is required, so a link written before the others existed carries its sentence alone, and the entry an
+agent reads is what tells it where a neighbour's documentation lives instead of leaving it to infer one from a
+package this project happens to have installed. Work that belongs to a linked project is filed there
 with `aiko_create_card_in_project`, passing `originProjectId` and `originCardId` so the receiving card records
 where it came from - read that project's context first, because its card types, its stages and its rules are
 its own. `aiko_link_project` and `aiko_unlink_project` (/aiko-link) write and remove a link; a project nobody
@@ -250,7 +257,7 @@ over is therefore the same address the UI links to itself, not a second form of 
 | Diagnose the installation | `/aiko-doctor` | `aiko_doctor` | — (`aiko doctor`) |
 | Repair the installation | `/aiko-repair` | — | — (`aiko repair --fix`) |
 | Back up a project | `/aiko-backup` | `aiko_backup` | — |
-| Link a project and say what it is for | `/aiko-link <slug> <description>` | `aiko_link_project`, `aiko_unlink_project` | Rail - *Linked projects* |
+| Link a project, say what it is for and where its reference lives | `/aiko-link <slug> <description>` | `aiko_link_project`, `aiko_unlink_project`, `aiko_list_links` | Rail - *Linked projects* |
 | File a card into a linked project | `/aiko-link` for the link, then the project's own contract | `aiko_create_card_in_project` (`userConfirmed` on an *Ask* project) | — (only an agent files the card; it lands on the target project's board) |
 | Decide whether a linked project may be written to | — | — (the `crossProject` section of the sending project's settings) | Project settings - *Cross-project writing* |
 | See where a cross-project card came from | — | — (the card carries its own `origin`) | Card page - *Origin*: the source project, the source card when one was named, the adapter and how long ago |

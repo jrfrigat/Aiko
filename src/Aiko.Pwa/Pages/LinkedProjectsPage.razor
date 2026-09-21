@@ -50,12 +50,36 @@
                                            Placeholder="@Loc.Get("LinkedProjectsDescriptionPlaceholder")"
                                            Value="@_editingDescription"
                                            ValueChanged="value => _editingDescription = value" />
+                                <AikoField Label="@Loc.Get("LinkedProjectsReference")"
+                                           Rows="2"
+                                           Placeholder="@Loc.Get("LinkedProjectsReferencePlaceholder")"
+                                           Value="@_editingReference"
+                                           ValueChanged="value => _editingReference = value" />
+                                <AikoField Label="@Loc.Get("LinkedProjectsWhenToUse")"
+                                           Rows="2"
+                                           Placeholder="@Loc.Get("LinkedProjectsWhenToUsePlaceholder")"
+                                           Value="@_editingWhenToUse"
+                                           ValueChanged="value => _editingWhenToUse = value" />
+                                <AikoField Label="@Loc.Get("LinkedProjectsWhenNotToUse")"
+                                           Rows="2"
+                                           Placeholder="@Loc.Get("LinkedProjectsWhenNotToUsePlaceholder")"
+                                           Value="@_editingWhenNotToUse"
+                                           ValueChanged="value => _editingWhenNotToUse = value" />
                             }
                             else
                             {
                                 <FlareText Element="span" Typo="TypographyScale.BodySmall">
                                     @item.Description
                                 </FlareText>
+                                @* Only what the entry carries: a link written before these existed shows its
+                                   description alone, which is exactly how it read before. *@
+                                @foreach (var note in Notes(item))
+                                {
+                                    var line = note;
+                                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                        @line
+                                    </FlareText>
+                                }
                             }
                         </FlareStack>
                         <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
@@ -64,7 +88,7 @@
                                 <FlareButton Variant="ButtonVariant.Tonal"
                                              Size="ButtonSize.Sm"
                                              Disabled="@string.IsNullOrWhiteSpace(_editingDescription)"
-                                             OnClick="() => SaveDescriptionAsync(item)">
+                                             OnClick="() => SaveLinkAsync(item)">
                                     <ChildContent>@Loc.Get("LinkedProjectsSave")</ChildContent>
                                 </FlareButton>
                                 <FlareButton Variant="ButtonVariant.Text"
@@ -107,6 +131,21 @@
                        Placeholder="@Loc.Get("LinkedProjectsDescriptionPlaceholder")"
                        Value="@_linkDescription"
                        ValueChanged="value => _linkDescription = value" />
+            <AikoField Label="@Loc.Get("LinkedProjectsReference")"
+                       Rows="2"
+                       Placeholder="@Loc.Get("LinkedProjectsReferencePlaceholder")"
+                       Value="@_linkReference"
+                       ValueChanged="value => _linkReference = value" />
+            <AikoField Label="@Loc.Get("LinkedProjectsWhenToUse")"
+                       Rows="2"
+                       Placeholder="@Loc.Get("LinkedProjectsWhenToUsePlaceholder")"
+                       Value="@_linkWhenToUse"
+                       ValueChanged="value => _linkWhenToUse = value" />
+            <AikoField Label="@Loc.Get("LinkedProjectsWhenNotToUse")"
+                       Rows="2"
+                       Placeholder="@Loc.Get("LinkedProjectsWhenNotToUsePlaceholder")"
+                       Value="@_linkWhenNotToUse"
+                       ValueChanged="value => _linkWhenNotToUse = value" />
             <FlareStack Row="true" Justify="FlareJustifyContent.End">
                 <FlareButton Variant="ButtonVariant.Filled"
                              Size="ButtonSize.Sm"
@@ -131,11 +170,29 @@
     /// <summary>What the person said the chosen project is for, before it is stored.</summary>
     private string? _linkDescription;
 
+    /// <summary>Where the chosen project's reference lives, before it is stored.</summary>
+    private string? _linkReference;
+
+    /// <summary>When work belongs to the chosen project, before it is stored.</summary>
+    private string? _linkWhenToUse;
+
+    /// <summary>When it belongs here instead, before it is stored.</summary>
+    private string? _linkWhenNotToUse;
+
     /// <summary>The handle of the link being corrected, or null when no row is open for editing.</summary>
     private string? _editing;
 
     /// <summary>The description the open row holds, before it is saved.</summary>
     private string? _editingDescription;
+
+    /// <summary>The reference the open row holds, before it is saved.</summary>
+    private string? _editingReference;
+
+    /// <summary>The "work goes there when" the open row holds, before it is saved.</summary>
+    private string? _editingWhenToUse;
+
+    /// <summary>The "it does not go there when" the open row holds, before it is saved.</summary>
+    private string? _editingWhenNotToUse;
 
     private string? _message;
     private bool _error;
@@ -187,10 +244,18 @@
             return;
         }
 
-        if (await WriteAsync(_linkTarget, _linkDescription))
+        if (await WriteAsync(
+                _linkTarget,
+                _linkDescription,
+                _linkReference,
+                _linkWhenToUse,
+                _linkWhenNotToUse))
         {
             _linkTarget = null;
             _linkDescription = null;
+            _linkReference = null;
+            _linkWhenToUse = null;
+            _linkWhenNotToUse = null;
         }
     }
 
@@ -199,32 +264,49 @@
         _message = null;
         _editing = link.Handle;
         _editingDescription = link.Description;
+        _editingReference = link.Reference;
+        _editingWhenToUse = link.WhenToUse;
+        _editingWhenNotToUse = link.WhenNotToUse;
     }
 
     private void CancelEdit()
     {
         _editing = null;
         _editingDescription = null;
+        _editingReference = null;
+        _editingWhenToUse = null;
+        _editingWhenNotToUse = null;
     }
 
-    private async Task SaveDescriptionAsync(ProjectLink link)
+    private async Task SaveLinkAsync(ProjectLink link)
     {
         if (string.IsNullOrWhiteSpace(_editingDescription))
         {
             return;
         }
 
-        if (await WriteAsync(link.Handle, _editingDescription))
+        if (await WriteAsync(
+                link.Handle,
+                _editingDescription,
+                _editingReference,
+                _editingWhenToUse,
+                _editingWhenNotToUse))
         {
             CancelEdit();
         }
     }
 
     /// <summary>
-    /// Writes one link and reads the registry back. Adding a link and correcting its description are the same
-    /// PUT: the file holds one entry per project, so writing it again replaces the sentence it carried.
+    /// Writes one link and reads the registry back. Adding a link and correcting it are the same PUT: the file
+    /// holds one entry per project, so writing it again replaces the entry it carried - a text left empty in the
+    /// form is a text the person cleared.
     /// </summary>
-    private async Task<bool> WriteAsync(string target, string description)
+    private async Task<bool> WriteAsync(
+        string target,
+        string description,
+        string? reference,
+        string? whenToUse,
+        string? whenNotToUse)
     {
         _message = null;
         _error = false;
@@ -232,7 +314,7 @@
         {
             using var response = await Http.PutAsJsonAsync(
                 $"api/v1/projects/{Uri.EscapeDataString(ProjectId)}/links/{Uri.EscapeDataString(target)}",
-                new LinkProjectRequest(description),
+                new LinkProjectRequest(description, reference, whenToUse, whenNotToUse),
                 PwaJson.Options);
             response.EnsureSuccessStatusCode();
             await LoadLinksAsync();
@@ -242,6 +324,31 @@
         {
             Show(exception.Message, error: true);
             return false;
+        }
+    }
+
+    /// <summary>
+    /// The optional texts a link carries, each with its label, in the order the context prints them.
+    /// </summary>
+    /// <remarks>
+    /// A link that carries none - one written before these existed - shows nothing beyond its description,
+    /// which is how every link used to read. The label is the same key the form uses, so a person reading a row
+    /// and a person editing it read the same words.
+    /// </remarks>
+    private static IReadOnlyList<string> Notes(ProjectLink link)
+    {
+        var notes = new List<string>(3);
+        Add(notes, "LinkedProjectsReference", link.Reference);
+        Add(notes, "LinkedProjectsWhenToUse", link.WhenToUse);
+        Add(notes, "LinkedProjectsWhenNotToUse", link.WhenNotToUse);
+        return notes;
+
+        static void Add(List<string> target, string key, string? value)
+        {
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                target.Add($"{Loc.Get(key)}: {value}");
+            }
         }
     }
 

@@ -620,13 +620,26 @@ public class InfrastructureSpecs
             // Standing alone is the normal state: no file, nothing to read.
             Assert.Empty(await links.ListAsync(context.Project.Id, CancellationToken.None));
 
-            // A link carries the neighbour's immutable id, the handle it is addressed by, and the sentence that
-            // says what it is for - the sentence an agent reads before routing work there.
+            // A link carries the neighbour's immutable id, the handle it is addressed by, and the words that say
+            // what it is for, where its reference lives and when work belongs there - the entry an agent reads
+            // before routing a piece of work to the neighbour, or before reaching for something it owns.
             const string why = "the desktop client - UI work is filed here";
-            var saved = await links.SaveAsync(context.Project.Id, neighbour.Handle, why, CancellationToken.None);
+            const string reference = @"C:\work\neighbour\docs\api\README.md";
+            var saved = await links.SaveAsync(
+                context.Project.Id,
+                neighbour.Handle,
+                new ProjectLinkText(
+                    why,
+                    reference,
+                    "when the screens change",
+                    "when the daemon does"),
+                CancellationToken.None);
             Assert.Equal(neighbour.Id, saved.ProjectId);
             Assert.Equal(neighbour.Handle, saved.Handle);
             Assert.Equal(why, saved.Description);
+            Assert.Equal(reference, saved.Reference);
+            Assert.Equal("when the screens change", saved.WhenToUse);
+            Assert.Equal("when the daemon does", saved.WhenNotToUse);
 
             // The registry is a file of the project, and its revision moves on every write.
             var linkPath = Path.Combine(context.StitchRoot, "links.json");
@@ -635,27 +648,100 @@ public class InfrastructureSpecs
             Assert.Equal(1, first.RootElement.GetProperty("revision").GetInt64());
             var stored = Assert.Single(await links.ListAsync(context.Project.Id, CancellationToken.None));
             Assert.Equal(why, stored.Description);
+            Assert.Equal(reference, stored.Reference);
+
+            // The three texts after the description are optional, and blank means the same as absent: "nobody
+            // said" has one representation, so an entry cannot print differently for the same missing answer.
+            await links.SaveAsync(
+                context.Project.Id,
+                neighbour.Handle,
+                new ProjectLinkText(why, "   ", null, string.Empty),
+                CancellationToken.None);
+            var cleaned = Assert.Single(await links.ListAsync(context.Project.Id, CancellationToken.None));
+            Assert.Null(cleaned.Reference);
+            Assert.Null(cleaned.WhenToUse);
+            Assert.Null(cleaned.WhenNotToUse);
 
             // Linking the same project again replaces what the link says instead of filing a second one: a
-            // registry with two rows about one neighbour is a registry nobody trusts.
-            await links.SaveAsync(context.Project.Id, neighbour.Id, "still the desktop client", CancellationToken.None);
-            Assert.Equal(
-                "still the desktop client",
-                Assert.Single(await links.ListAsync(context.Project.Id, CancellationToken.None)).Description);
+            // registry with two rows about one neighbour is a registry nobody trusts. A text the second write
+            // leaves out is cleared, because a field nobody sent back is a field the person emptied.
+            await links.SaveAsync(
+                context.Project.Id,
+                neighbour.Id,
+                new ProjectLinkText("still the desktop client", reference),
+                CancellationToken.None);
+            var replaced = Assert.Single(await links.ListAsync(context.Project.Id, CancellationToken.None));
+            Assert.Equal("still the desktop client", replaced.Description);
+            Assert.Equal(reference, replaced.Reference);
+            Assert.Null(replaced.WhenToUse);
             using var second = JsonDocument.Parse(await File.ReadAllTextAsync(linkPath));
-            Assert.Equal(2, second.RootElement.GetProperty("revision").GetInt64());
+            Assert.Equal(3, second.RootElement.GetProperty("revision").GetInt64());
 
             // A project nobody registered cannot be linked - the registry is what makes a link meaningful - and
             // neither can the project itself.
             await Assert.ThrowsAsync<KeyNotFoundException>(async () =>
-                await links.SaveAsync(context.Project.Id, "not-a-project", "anything", CancellationToken.None));
+                await links.SaveAsync(
+                    context.Project.Id,
+                    "not-a-project",
+                    new ProjectLinkText("anything"),
+                    CancellationToken.None));
             await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-                await links.SaveAsync(context.Project.Id, context.Project.Id, "anything", CancellationToken.None));
+                await links.SaveAsync(
+                    context.Project.Id,
+                    context.Project.Id,
+                    new ProjectLinkText("anything"),
+                    CancellationToken.None));
 
             // Removing takes the link out by either name, and removing it twice is not an error.
             await links.RemoveAsync(context.Project.Id, neighbour.Handle, CancellationToken.None);
             Assert.Empty(await links.ListAsync(context.Project.Id, CancellationToken.None));
             await links.RemoveAsync(context.Project.Id, neighbour.Id, CancellationToken.None);
+        });
+    }
+
+    [Fact]
+    public async Task A_link_written_before_the_reference_texts_existed_is_read_as_it_is()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            var neighbourRoot = Path.GetFullPath(Path.Combine(context.ProjectRoot, "..", "neighbour"));
+            Directory.CreateDirectory(neighbourRoot);
+            var neighbour = await context.Initializer.InitializeAsync(
+                new InitializeProjectRequest(
+                    neighbourRoot,
+                    "Neighbour",
+                    ProjectGitPolicy.LocalOnly,
+                    Slug: "neighbour"),
+                CancellationToken.None);
+            var links = new FileProjectLinkStore(context.Catalog);
+
+            // The registry as an earlier Aiko wrote it: one description and nothing else. It has to be read as
+            // it stands rather than migrated - a registry this build cannot open is a project whose neighbours
+            // disappear, and the optional texts are optional precisely so that cannot happen.
+            var document = $$"""
+                {
+                  "schemaVersion": 1,
+                  "revision": 1,
+                  "links": [
+                    {
+                      "projectId": "{{neighbour.Id}}",
+                      "handle": "{{neighbour.Handle}}",
+                      "description": "the desktop client - UI work is filed here",
+                      "createdAt": "2026-01-01T00:00:00+00:00"
+                    }
+                  ]
+                }
+                """;
+            await File.WriteAllTextAsync(
+                Path.Combine(context.StitchRoot, "links.json"),
+                document);
+
+            var link = Assert.Single(await links.ListAsync(context.Project.Id, CancellationToken.None));
+            Assert.Equal(neighbour.Id, link.ProjectId);
+            Assert.Equal("the desktop client - UI work is filed here", link.Description);
+            Assert.Null(link.Reference);
+            Assert.Null(link.WhenToUse);
+            Assert.Null(link.WhenNotToUse);
         });
     }
 
@@ -752,6 +838,12 @@ public class InfrastructureSpecs
             // An order is still only a request. The incident this line closes was an agent that read "fix X" as
             // "run X" and did the work before the user had asked for it.
             Assert.Contains("An order is still a request", contract, StringComparison.Ordinal);
+            // The links are read with the tool that exists - the contract used to send an agent to
+            // aiko_get_project_context for them, and the entry that says where a neighbour's reference lives is
+            // what an agent needs before it reaches for something that neighbour owns.
+            Assert.Contains("aiko_list_links", contract, StringComparison.Ordinal);
+            Assert.Contains("read the reference its entry names", contract, StringComparison.Ordinal);
+            Assert.DoesNotContain("lists them with what each one is for", contract, StringComparison.Ordinal);
 
             var run = await File.ReadAllTextAsync(
                 Path.Combine(context.Project.RootPath, ".cline", "skills", "aiko-run", "SKILL.md"));

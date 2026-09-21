@@ -1,5 +1,8 @@
 using System.ComponentModel;
 using System.Text;
+using System.Text.Json;
+using Aiko.Server.Contracts;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Aiko.Application.Contracts;
 using Aiko.Domain.Execution;
@@ -27,8 +30,16 @@ internal sealed class ProjectContextTools(
         Title = "Get Aiko project context")]
     [Description(
         "Call this first. Returns the current project, every card type it defines with the stages of its "
-        + "pipeline, how its cards are scored and sized, and durable-memory guidance.")]
-    public async Task<string> GetProjectContextAsync(CancellationToken cancellationToken)
+        + "pipeline, the projects it is linked to with where each neighbour's reference lives, how its cards "
+        + "are scored and sized, and durable-memory guidance. The answer arrives as one content block per "
+        + "section, so a client that drops a long answer in the middle still shows the rest; pass section to "
+        + "read one of them on its own.")]
+    public async Task<CallToolResult> GetProjectContextAsync(
+        [Description(
+            "Optional section to return on its own: rules, git, links, scoring, types or initialization. "
+            + "Omit it for the whole document.")]
+        string? section = null,
+        CancellationToken cancellationToken = default)
     {
         var project = await GetProjectAsync(cancellationToken);
         var priority = await settings.GetEffectivePriorityAsync(project.Id, cancellationToken);
@@ -44,7 +55,27 @@ internal sealed class ProjectContextTools(
         // and the link registry exists precisely so that does not happen.
         var linked = await links.ListAsync(project.Id, cancellationToken);
 
-        return $"""
+        // One block per section, in the order the document reads: a client that truncates a long answer drops
+        // its middle, and the middle is where the links live. The section list is the answer; the words of the
+        // first one are written below it.
+        return RenderSections(
+            [
+                (RulesSection, DescribeRules(project)),
+                (GitSection, DescribeGit(
+                    gitPolicy,
+                    execution.SharedCheckoutCommitPolicy,
+                    execution.SharedCheckoutPushPolicy)),
+                (LinksSection, DescribeLinkedProjects(linked)),
+                (ScoringSection, DescribeScoring(priority)),
+                (TypesSection, DescribeCardTypes(workflows)),
+                (InitializationSection, initialization)
+            ],
+            section);
+
+        // The document's own head: what this project is, and the working contract that holds whatever else an
+        // agent has read. It takes the resolved project rather than reading it again, so the header cannot
+        // disagree with the sections beside it.
+        static string DescribeRules(RegisteredProject project) => $"""
             # Aiko project context
 
             Project: {project.Name}
@@ -84,27 +115,133 @@ internal sealed class ProjectContextTools(
             and report actualChangedFiles when completing work.
             Use aiko_store_memory for durable decisions, conventions and lessons.
 
+            Before you reach for something a linked project owns - a library, a component, a pattern - read the
+            reference its link names (aiko_list_links) and search this project's memory first: the reference is
+            recorded there precisely so that an agent does not have to guess where the neighbour's documentation
+            lives, and a package installed here is not the same thing as its reference.
+
             The state of the project is read and written through these tools - the board and the work queue
             with aiko_list_board and aiko_list_work_queue, the cards with aiko_list_cards and aiko_get_card,
             what sits beside a card with aiko_get_card_artifact and aiko_save_card_artifact, the settings with
-            aiko_get_settings, the links with aiko_list_cards, the discussion with aiko_list_comments, the
+            aiko_get_settings, the links with aiko_list_links, the discussion with aiko_list_comments, the
             queue of requests with aiko_list_commands, the memory with aiko_search_memory. Do not open a file
             under .aiko to find out what the project says: the tools exist so that what you act on is what the
             daemon knows, and so that a document you edit is the document a person sees. A card whose subject
             is the .aiko format itself is the exception - there the file is the work, and the card says so.
 
-            {DescribeGit(gitPolicy, execution.SharedCheckoutCommitPolicy, execution.SharedCheckoutPushPolicy)}
-
-            {DescribeLinkedProjects(linked)}
-
-            ## How this project scores and sizes a card
-
-            {DescribePriority(priority)}
-
-            {DescribeCardTypes(workflows)}
-            {initialization}
             """;
     }
+
+    /// <summary>The section id of the document's head and working contract.</summary>
+    private const string RulesSection = "rules";
+
+    /// <summary>The section id of the git and commit policies.</summary>
+    private const string GitSection = "git";
+
+    /// <summary>The section id of the projects this one hands work to.</summary>
+    private const string LinksSection = "links";
+
+    /// <summary>The section id of the scoring criteria and the size grid.</summary>
+    private const string ScoringSection = "scoring";
+
+    /// <summary>The section id of the card types this project defines.</summary>
+    private const string TypesSection = "types";
+
+    /// <summary>The section id of the instruction this project's template asked for.</summary>
+    private const string InitializationSection = "initialization";
+
+    /// <summary>The value that asks for the whole document, which is also what an absent section means.</summary>
+    private const string WholeDocument = "all";
+
+    /// <summary>The sections the context tool answers to, in the order the document reads them.</summary>
+    private static readonly string[] SectionIds =
+    [
+        RulesSection,
+        GitSection,
+        LinksSection,
+        ScoringSection,
+        TypesSection,
+        InitializationSection
+    ];
+
+    [McpServerTool(Name = "aiko_list_links", Title = "List linked Aiko projects")]
+    [Description(
+        "Lists the projects this one is linked to, with what each is for, where its reference lives and when "
+        + "work belongs there. Read this rather than the whole project context when the neighbours are what you "
+        + "need: it is a few lines, so no part of it is lost to a truncated answer, and it can be read again at "
+        + "any point of a run.")]
+    public async Task<string> ListLinksAsync(CancellationToken cancellationToken)
+    {
+        var project = await GetProjectAsync(cancellationToken);
+        var linked = await links.ListAsync(project.Id, cancellationToken);
+        return JsonSerializer.Serialize(linked, ServerJsonContext.Default.IReadOnlyListProjectLink);
+    }
+
+    /// <summary>
+    /// The context tool's answer: one block per section, or the one section the caller named.
+    /// </summary>
+    /// <remarks>
+    /// A block per section rather than one long text, because a client that truncates a long answer drops its
+    /// middle - and the middle is where the links live, the one part an agent cannot work without. A section
+    /// named by the caller is answered even when it is empty: asking a question deserves the answer "none".
+    /// Left out of the whole document instead, an empty section stays silent, which is what standing alone
+    /// looks like on every project that has no links.
+    /// </remarks>
+    /// <param name="sections">The sections in the order the document reads.</param>
+    /// <param name="section">The section asked for, or null for the whole document.</param>
+    private static CallToolResult RenderSections(
+        IReadOnlyList<(string Id, string Text)> sections,
+        string? section)
+    {
+        if (string.IsNullOrWhiteSpace(section) ||
+            StringComparer.OrdinalIgnoreCase.Equals(section.Trim(), WholeDocument))
+        {
+            return Blocks(sections
+                .Select(item => item.Text)
+                .Where(text => !string.IsNullOrWhiteSpace(text))
+                .ToArray());
+        }
+
+        var id = section.Trim().ToLowerInvariant();
+        var chosen = sections
+            .Where(item => StringComparer.Ordinal.Equals(item.Id, id))
+            .ToArray();
+        if (chosen.Length == 0)
+        {
+            return Error(
+                $"Unknown section \"{section.Trim()}\". The sections are {string.Join(", ", SectionIds)}; "
+                + $"\"{WholeDocument}\" or no section at all returns the whole document.");
+        }
+
+        return Blocks(
+        [
+            string.IsNullOrWhiteSpace(chosen[0].Text) ? EmptySection(chosen[0].Id) : chosen[0].Text
+        ]);
+    }
+
+    /// <summary>
+    /// The words for a section that has nothing to say, when the caller asked for it by name: "none" is an
+    /// answer to a question, and a silent result would read as a failure.
+    /// </summary>
+    private static string EmptySection(string sectionId) => sectionId switch
+    {
+        LinksSection =>
+            "No linked projects: this project hands work to nobody. A neighbour is linked with aiko_link_project.",
+        InitializationSection =>
+            "No initialization instruction: the template this project was created from asks for nothing.",
+        _ => "Nothing to report in this section."
+    };
+
+    /// <summary>One result carrying the blocks, in order.</summary>
+    private static CallToolResult Blocks(IReadOnlyList<string> blocks) =>
+        new() { Content = [.. blocks.Select(text => new TextContentBlock { Text = text })] };
+
+    /// <summary>
+    /// A result the caller is meant to read and retry from: an error of the tool rather than a protocol
+    /// failure, so the message can say which sections exist.
+    /// </summary>
+    private static CallToolResult Error(string message) =>
+        new() { IsError = true, Content = [new TextContentBlock { Text = message }] };
 
     /// <summary>
     /// The project's own copy of what its template asked for before work starts, or an empty string.
@@ -208,6 +345,12 @@ internal sealed class ProjectContextTools(
     /// <remarks>
     /// A project with no links contributes nothing rather than an empty section: standing alone is the normal
     /// state, and a heading that says "none" on every project would be read once and skipped forever after.
+    /// Asked for by name, the section answers instead - see <see cref="EmptySection"/>.
+    /// <para>
+    /// Each optional text of a link is printed only when that link carries it, so an entry written before they
+    /// existed reads exactly as it did. The reading instruction above the list is the point of the block: an
+    /// agent holding a path but no instruction goes on guessing where the neighbour's reference lives.
+    /// </para>
     /// </remarks>
     /// <param name="links">The project's linked projects.</param>
     private static string DescribeLinkedProjects(IReadOnlyList<ProjectLink> links)
@@ -227,13 +370,42 @@ internal sealed class ProjectContextTools(
             + "description beside each link in front of you: it says when the neighbour is the right place for a "
             + "piece of work and when it is not.");
         builder.AppendLine();
+        builder.AppendLine(
+            "Before you reach for something a neighbour owns - a library, a component, a pattern - read the "
+            + "reference its entry names rather than inferring it from the packages this project installed, and "
+            + "search this project's memory first. aiko_list_links brings these entries back on their own, so "
+            + "none of this has to be remembered from the whole document.");
+        builder.AppendLine();
         foreach (var link in links.OrderBy(item => item.Handle, StringComparer.Ordinal))
         {
             builder.Append("- ").Append(link.Handle).Append(" - ").Append(link.Description).AppendLine();
+            AppendIfPresent(builder, "Reference", link.Reference);
+            AppendIfPresent(builder, "Work goes there when", link.WhenToUse);
+            AppendIfPresent(builder, "It does not go there when", link.WhenNotToUse);
         }
 
         return builder.ToString().TrimEnd();
     }
+
+    /// <summary>
+    /// One optional text of a link as its own line under the entry, or nothing at all when the link does not
+    /// carry it: a label with an empty value would read as a field somebody forgot to fill in.
+    /// </summary>
+    private static void AppendIfPresent(StringBuilder builder, string label, string? value)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            builder.Append("  ").Append(label).Append(": ").Append(value).AppendLine();
+        }
+    }
+
+    /// <summary>
+    /// The scoring and sizing tables under their heading: the block that reads the number a card's criteria
+    /// and size step produce.
+    /// </summary>
+    private static string DescribeScoring(PrioritySettings priority) =>
+        $"## How this project scores and sizes a card{Environment.NewLine}{Environment.NewLine}"
+        + DescribePriority(priority);
 
     /// <summary>
     /// How this project's repository treats Aiko's own data and commits, as an agent can act on it.

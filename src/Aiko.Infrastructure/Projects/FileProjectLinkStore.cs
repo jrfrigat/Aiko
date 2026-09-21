@@ -33,11 +33,12 @@ public sealed class FileProjectLinkStore(IProjectCatalog projects) : IProjectLin
     public async ValueTask<ProjectLink> SaveAsync(
         string projectId,
         string targetProjectId,
-        string description,
+        ProjectLinkText text,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(text);
         ArgumentException.ThrowIfNullOrWhiteSpace(targetProjectId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(description);
+        ArgumentException.ThrowIfNullOrWhiteSpace(text.Description);
 
         var project = await FindProjectAsync(projectId, cancellationToken);
         var target = await FindProjectAsync(targetProjectId, cancellationToken);
@@ -46,7 +47,14 @@ public sealed class FileProjectLinkStore(IProjectCatalog projects) : IProjectLin
             throw new InvalidOperationException("A project cannot be linked to itself.");
         }
 
-        var link = new ProjectLink(target.Id, target.Handle, description.Trim(), DateTimeOffset.UtcNow);
+        var link = new ProjectLink(
+            target.Id,
+            target.Handle,
+            text.Description.Trim(),
+            DateTimeOffset.UtcNow,
+            Normalize(text.Reference),
+            Normalize(text.WhenToUse),
+            Normalize(text.WhenNotToUse));
         using (await locks.LockAsync(project.Id, cancellationToken))
         {
             var document = await ReadDocumentAsync(project.RootPath, cancellationToken);
@@ -96,6 +104,13 @@ public sealed class FileProjectLinkStore(IProjectCatalog projects) : IProjectLin
         CancellationToken cancellationToken) =>
         await projects.FindAsync(projectId, cancellationToken)
         ?? throw new KeyNotFoundException($"Unknown Aiko project: {projectId}");
+
+    /// <summary>
+    /// One of a link's optional texts, trimmed, with blank turned into null: "nobody said" then has a single
+    /// representation, because an empty string and an absent field would print differently and read alike.
+    /// </summary>
+    private static string? Normalize(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private static async ValueTask<ProjectLinkDocument> ReadDocumentAsync(
         string projectRoot,

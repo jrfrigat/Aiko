@@ -19,14 +19,19 @@ public interface IProjectLinkStore
     /// Adds or replaces the link to one project. The target is resolved through the registry of projects, so a
     /// project nobody has registered cannot be linked, and linking a project to itself is refused.
     /// </summary>
+    /// <remarks>
+    /// The write replaces the neighbour's entry whole, exactly as the one description used to be replaced: a
+    /// second write that leaves the optional texts out clears them, because a field nobody sent back is a field
+    /// the person emptied. Blank and absent are the same thing on the way in.
+    /// </remarks>
     /// <param name="projectId">Project whose registry is written.</param>
     /// <param name="targetProjectId">Id or handle of the project to link.</param>
-    /// <param name="description">What that project is for, in the words of whoever linked it.</param>
+    /// <param name="text">What that project is for, where its reference lives and when work belongs there.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     ValueTask<ProjectLink> SaveAsync(
         string projectId,
         string targetProjectId,
-        string description,
+        ProjectLinkText text,
         CancellationToken cancellationToken);
 
     /// <summary>

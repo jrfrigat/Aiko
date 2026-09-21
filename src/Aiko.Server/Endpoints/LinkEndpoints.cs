@@ -40,7 +40,11 @@ internal static class LinkEndpoints
                     var link = await links.SaveAsync(
                         projectId,
                         targetProjectId,
-                        request.Description,
+                        new ProjectLinkText(
+                            request.Description,
+                            request.Reference,
+                            request.WhenToUse,
+                            request.WhenNotToUse),
                         cancellationToken);
                     return Results.Ok(link);
                 }

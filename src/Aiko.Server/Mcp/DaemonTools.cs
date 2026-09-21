@@ -39,8 +39,11 @@ internal sealed class DaemonTools(
     [Description(
         "Links a project to another one and records what the linked project is for. That description is what an "
         + "agent reads when it decides whether a piece of work belongs to the neighbour, so it is required and "
-        + "written in the words of whoever links. Both projects are addressed by id or by the readable handle; "
-        + "linking a project to itself is refused, and so is linking a project nobody has registered.")]
+        + "written in the words of whoever links. Write down where the neighbour's reference lives and when work "
+        + "does and does not belong there as well: a path an agent does not have sends it looking somewhere "
+        + "else, and prose it has to interpret is prose it will interpret differently. Both projects are "
+        + "addressed by id or by the readable handle; linking a project to itself is refused, and so is linking "
+        + "a project nobody has registered.")]
     public async Task<string> LinkProjectAsync(
         [Description("Project whose registry is written, by id or by its readable handle.")]
         string projectId,
@@ -48,9 +51,21 @@ internal sealed class DaemonTools(
         string targetProjectId,
         [Description("What the linked project is for, in the words of whoever links it.")]
         string description,
-        CancellationToken cancellationToken)
+        [Description(
+            "Where that project's reference lives - a path or an address to its documentation, API index or "
+            + "entry point. Optional.")]
+        string? reference = null,
+        [Description("When a piece of work belongs to that project. Optional.")]
+        string? whenToUse = null,
+        [Description("When it belongs to this project instead. Optional.")]
+        string? whenNotToUse = null,
+        CancellationToken cancellationToken = default)
     {
-        var link = await links.SaveAsync(projectId, targetProjectId, description, cancellationToken);
+        var link = await links.SaveAsync(
+            projectId,
+            targetProjectId,
+            new ProjectLinkText(description, reference, whenToUse, whenNotToUse),
+            cancellationToken);
         return JsonSerializer.Serialize(link, ServerJsonContext.Default.ProjectLink);
     }
 

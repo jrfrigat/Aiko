@@ -384,9 +384,12 @@ how long ago. The target project configures nothing here - it is told, not asked
 Which project that is comes from the **linked projects** registry, edited on the project's *Linked projects*
 screen - the rail item beside *Project settings*: pick one of the projects registered with this installation,
 write what it is for ("the
-desktop client - UI work is filed here") and link it. The registry is `.aiko/links.json`, the same sentence is
-shown to an agent in `aiko_get_project_context`, and removing a link only stops future routing - the cards
-already filed in the other project stay where they are.
+desktop client - UI work is filed here") and, when you can, where its reference lives and when work does and does
+not belong there. Those last three are optional and they are the useful half: an agent holding a path to a
+neighbour's documentation reads it, while an agent holding only a sentence goes looking in the packages this
+project happens to have installed. The registry is `.aiko/links.json`; `aiko_list_links` returns it on its own
+and the same entry is shown to an agent in `aiko_get_project_context`, and removing a link only stops future
+routing - the cards already filed in the other project stay where they are.
 
 Whether the hand-over is allowed at all is the **sending** project's decision, under *Cross-project writing*
 on its settings page:

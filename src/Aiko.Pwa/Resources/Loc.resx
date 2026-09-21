@@ -550,6 +550,12 @@
   <data name="LinkedProjectsPickNone" xml:space="preserve"><value>Choose a project</value></data>
   <data name="LinkedProjectsDescription" xml:space="preserve"><value>What it is for</value></data>
   <data name="LinkedProjectsDescriptionPlaceholder" xml:space="preserve"><value>For example: the desktop client - file UI work here</value></data>
+  <data name="LinkedProjectsReference" xml:space="preserve"><value>Where its reference lives</value></data>
+  <data name="LinkedProjectsReferencePlaceholder" xml:space="preserve"><value>A path or an address to its documentation, API index or entry point; may be left empty</value></data>
+  <data name="LinkedProjectsWhenToUse" xml:space="preserve"><value>Work goes there when</value></data>
+  <data name="LinkedProjectsWhenToUsePlaceholder" xml:space="preserve"><value>When a piece of work belongs to that project; may be left empty</value></data>
+  <data name="LinkedProjectsWhenNotToUse" xml:space="preserve"><value>It does not go there when</value></data>
+  <data name="LinkedProjectsWhenNotToUsePlaceholder" xml:space="preserve"><value>When it belongs here instead; may be left empty</value></data>
   <data name="LinkedProjectsAdd" xml:space="preserve"><value>Link project</value></data>
   <data name="LinkedProjectsRemove" xml:space="preserve"><value>Remove link</value></data>
   <data name="LinkedProjectsNav" xml:space="preserve"><value>Linked projects</value></data>

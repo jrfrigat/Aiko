@@ -556,6 +556,7 @@ loopback HTTP(S) project endpoint. Системный HTTP proxy и redirect д�
 Начальный стабильный набор tools:
 
 - `aiko_get_project_context`;
+- `aiko_list_links`;
 - `aiko_list_cards`;
 - `aiko_get_card`;
 - `aiko_create_card`;

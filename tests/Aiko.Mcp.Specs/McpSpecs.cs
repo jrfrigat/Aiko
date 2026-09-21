@@ -42,6 +42,7 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         "aiko_open_ui",
         "aiko_init_project",
         "aiko_list_projects",
+        "aiko_list_links",
         "aiko_list_templates",
         "aiko_create_card_in_project",
         "aiko_doctor",
@@ -75,6 +76,18 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
             .OfType<TextContentBlock>()
             .Select(block => block.Text)
             .FirstOrDefault();
+
+    /// <summary>
+    /// Every text block of a result, joined. The context tool answers one block per section, so a check about
+    /// the document as a whole has to read all of them: asking for the first would only ever see the rules, and
+    /// that is exactly the section the middle of a truncated answer cannot lose.
+    /// </summary>
+    private static string FullText(CallToolResult result) =>
+        string.Join(
+            "\n\n",
+            result.Content
+                .OfType<TextContentBlock>()
+                .Select(block => block.Text ?? string.Empty));
 
     /// <summary>
     /// Registers a throwaway project and returns its id and root. The id comes from the tool's own answer,
@@ -157,7 +170,7 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         var context = await client.CallToolAsync(
             "aiko_get_project_context",
             cancellationToken: CancellationToken.None);
-        var text = FirstText(context);
+        var text = FullText(context);
         Assert.False(string.IsNullOrWhiteSpace(text));
         Assert.Contains("Aiko project context", text, StringComparison.Ordinal);
         // The card types come from the project's own workflows: an agent that does not learn them here
@@ -209,7 +222,7 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
             var context = await client.CallToolAsync(
                 "aiko_get_project_context",
                 cancellationToken: CancellationToken.None);
-            var text = FirstText(context);
+            var text = FullText(context);
             Assert.Contains("## Project initialization instruction", text, StringComparison.Ordinal);
             Assert.Contains("Create src/, tests/ and docs/", text, StringComparison.Ordinal);
 
@@ -219,7 +232,7 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
                 cancellationToken: CancellationToken.None);
             Assert.DoesNotContain(
                 "## Project initialization instruction",
-                FirstText(after),
+                FullText(after),
                 StringComparison.Ordinal);
         }
         finally
@@ -263,7 +276,7 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         var context = await client.CallToolAsync(
             "aiko_get_project_context",
             cancellationToken: CancellationToken.None);
-        var text = FirstText(context);
+        var text = FullText(context);
         Assert.Contains("### Bug (workflowId: bug)", text, StringComparison.Ordinal);
         Assert.Contains("Something that does not work.", text, StringComparison.Ordinal);
     }
@@ -382,7 +395,7 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         var context = await client.CallToolAsync(
             "aiko_get_project_context",
             cancellationToken: CancellationToken.None);
-        var text = FirstText(context);
+        var text = FullText(context);
         Assert.False(string.IsNullOrWhiteSpace(text));
 
         // The card asked for a requirement rather than advice, so the contract itself has to say it - and to
@@ -932,7 +945,7 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         var stdioContext = await stdioClient.CallToolAsync(
             "aiko_get_project_context",
             cancellationToken: CancellationToken.None);
-        var stdioText = FirstText(stdioContext);
+        var stdioText = FullText(stdioContext);
         Assert.False(string.IsNullOrWhiteSpace(stdioText));
         Assert.Contains("Aiko project context", stdioText, StringComparison.Ordinal);
     }
@@ -1253,10 +1266,54 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         var neighbourHandle = neighbourJson.RootElement.GetProperty("handle").GetString();
         var neighbourId = neighbourJson.RootElement.GetProperty("id").GetString();
 
-        // The link is a sentence about the neighbour, not a bare id: that sentence is what a later agent reads
-        // before it decides that a piece of work belongs there.
+        // The link carries what an agent needs before it routes work to the neighbour, or before it reaches for
+        // something that neighbour owns: what it is for, where its reference lives and when work goes there.
         const string why = "the desktop client - UI work is filed here";
+        const string reference = @"C:\work\neighbour\docs\api\README.md";
         var linked = await client.CallToolAsync(
+            "aiko_link_project",
+            new Dictionary<string, object?>
+            {
+                ["projectId"] = fixture.ProjectId,
+                ["targetProjectId"] = neighbourHandle,
+                ["description"] = why,
+                ["reference"] = reference,
+                ["whenToUse"] = "when a screen changes",
+                ["whenNotToUse"] = "when the daemon does"
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.NotEqual(true, linked.IsError);
+        using var linkedJson = JsonDocument.Parse(FirstText(linked) ?? "{}");
+        Assert.Equal(neighbourId, linkedJson.RootElement.GetProperty("projectId").GetString());
+        Assert.Equal(reference, linkedJson.RootElement.GetProperty("reference").GetString());
+
+        // The links have a tool of their own: a few lines an agent can read at any point of a run, which the
+        // whole project context cannot be once its answer has been truncated.
+        var listed = await client.CallToolAsync("aiko_list_links", cancellationToken: CancellationToken.None);
+        Assert.NotEqual(true, listed.IsError);
+        using var listedJson = JsonDocument.Parse(FirstText(listed) ?? "[]");
+        var entry = Assert.Single(listedJson.RootElement.EnumerateArray());
+        Assert.Equal(neighbourId, entry.GetProperty("projectId").GetString());
+        Assert.Equal(why, entry.GetProperty("description").GetString());
+        Assert.Equal(reference, entry.GetProperty("reference").GetString());
+        Assert.Equal("when a screen changes", entry.GetProperty("whenToUse").GetString());
+
+        // An agent working in this project sees the neighbour, what it is for and where its reference lives,
+        // without asking - and the instruction to read that reference before reaching for what it owns.
+        var context = await client.CallToolAsync("aiko_get_project_context", cancellationToken: CancellationToken.None);
+        var contextText = FullText(context);
+        Assert.Contains("## Linked projects", contextText, StringComparison.Ordinal);
+        Assert.Contains(neighbourHandle!, contextText, StringComparison.Ordinal);
+        Assert.Contains(why, contextText, StringComparison.Ordinal);
+        Assert.Contains("aiko_create_card_in_project", contextText, StringComparison.Ordinal);
+        Assert.Contains(reference, contextText, StringComparison.Ordinal);
+        Assert.Contains("Reference:", contextText, StringComparison.Ordinal);
+        Assert.Contains("Work goes there when: when a screen changes", contextText, StringComparison.Ordinal);
+        Assert.Contains("It does not go there when: when the daemon does", contextText, StringComparison.Ordinal);
+
+        // A text the entry does not carry is not printed at all: a label with nothing after it would read as a
+        // field somebody left blank, and an entry written before these texts existed carries its sentence alone.
+        var relinked = await client.CallToolAsync(
             "aiko_link_project",
             new Dictionary<string, object?>
             {
@@ -1265,17 +1322,12 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
                 ["description"] = why
             },
             cancellationToken: CancellationToken.None);
-        Assert.NotEqual(true, linked.IsError);
-        using var linkedJson = JsonDocument.Parse(FirstText(linked) ?? "{}");
-        Assert.Equal(neighbourId, linkedJson.RootElement.GetProperty("projectId").GetString());
-
-        // An agent working in this project sees the neighbour and what it is for without asking.
-        var context = await client.CallToolAsync("aiko_get_project_context", cancellationToken: CancellationToken.None);
-        var contextText = FirstText(context) ?? string.Empty;
-        Assert.Contains("## Linked projects", contextText, StringComparison.Ordinal);
-        Assert.Contains(neighbourHandle!, contextText, StringComparison.Ordinal);
-        Assert.Contains(why, contextText, StringComparison.Ordinal);
-        Assert.Contains("aiko_create_card_in_project", contextText, StringComparison.Ordinal);
+        Assert.NotEqual(true, relinked.IsError);
+        var bare = await client.CallToolAsync("aiko_get_project_context", cancellationToken: CancellationToken.None);
+        var bareText = FullText(bare);
+        Assert.Contains(why, bareText, StringComparison.Ordinal);
+        Assert.DoesNotContain("Work goes there when:", bareText, StringComparison.Ordinal);
+        Assert.DoesNotContain("Reference:", bareText, StringComparison.Ordinal);
 
         // A project nobody registered cannot be linked, and neither can the project itself.
         var unknown = await client.CallToolAsync(
@@ -1311,6 +1363,97 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         Assert.NotEqual(true, unlinked.IsError);
         using var remaining = JsonDocument.Parse(FirstText(unlinked) ?? "[]");
         Assert.Equal(0, remaining.RootElement.GetArrayLength());
+    }
+
+    [Fact]
+    public async Task The_context_answers_one_block_per_section_and_a_section_can_be_asked_for()
+    {
+        await using var client = await ConnectAsync();
+
+        // One block per section: a client that truncates a long answer drops its middle, and the middle is where
+        // the links and the scoring tables live - the parts a reader has to see.
+        var whole = await client.CallToolAsync(
+            "aiko_get_project_context",
+            cancellationToken: CancellationToken.None);
+        Assert.NotEqual(true, whole.IsError);
+        var blocks = whole.Content
+            .OfType<TextContentBlock>()
+            .Select(block => block.Text ?? string.Empty)
+            .ToArray();
+        Assert.True(blocks.Length > 1, "The context should arrive as one block per section.");
+        Assert.All(blocks, block => Assert.False(string.IsNullOrWhiteSpace(block)));
+        Assert.Contains(blocks, block => block.Contains("Aiko project context", StringComparison.Ordinal));
+        Assert.Contains(blocks, block => block.Contains("## Git and commits", StringComparison.Ordinal));
+        Assert.Contains(
+            blocks,
+            block => block.Contains("## How this project scores and sizes a card", StringComparison.Ordinal));
+        Assert.Contains(blocks, block => block.Contains("## Card types of this project", StringComparison.Ordinal));
+        Assert.DoesNotContain("## Git and commits", blocks[0], StringComparison.Ordinal);
+
+        // A section asked for by name comes back on its own and nothing else, so a part of the answer that was
+        // lost can be read again without the whole document.
+        var rules = await client.CallToolAsync(
+            "aiko_get_project_context",
+            new Dictionary<string, object?> { ["section"] = "rules" },
+            cancellationToken: CancellationToken.None);
+        Assert.NotEqual(true, rules.IsError);
+        var rulesText = Assert.Single(rules.Content.OfType<TextContentBlock>()).Text ?? string.Empty;
+        Assert.Contains("Aiko project context", rulesText, StringComparison.Ordinal);
+        Assert.DoesNotContain("## Card types of this project", rulesText, StringComparison.Ordinal);
+
+        // "all" is the whole document, which is also what saying nothing means.
+        var all = await client.CallToolAsync(
+            "aiko_get_project_context",
+            new Dictionary<string, object?> { ["section"] = "all" },
+            cancellationToken: CancellationToken.None);
+        Assert.Equal(blocks.Length, all.Content.OfType<TextContentBlock>().Count());
+
+        // A section nobody defined is an answer the agent can act on: it names the ones that exist.
+        var unknown = await client.CallToolAsync(
+            "aiko_get_project_context",
+            new Dictionary<string, object?> { ["section"] = "nonsense" },
+            cancellationToken: CancellationToken.None);
+        Assert.True(unknown.IsError);
+        var message = FirstText(unknown) ?? string.Empty;
+        Assert.Contains("nonsense", message, StringComparison.Ordinal);
+        foreach (var id in new[] { "rules", "git", "links", "scoring", "types", "initialization" })
+        {
+            Assert.Contains(id, message, StringComparison.Ordinal);
+        }
+
+        // The links section answers even when the project hands work to nobody: a question deserves the answer
+        // "none", while the whole document leaves an empty section out entirely.
+        var links = await client.CallToolAsync(
+            "aiko_get_project_context",
+            new Dictionary<string, object?> { ["section"] = "links" },
+            cancellationToken: CancellationToken.None);
+        Assert.NotEqual(true, links.IsError);
+        var linksText = Assert.Single(links.Content.OfType<TextContentBlock>()).Text ?? string.Empty;
+        Assert.True(
+            linksText.Contains("## Linked projects", StringComparison.Ordinal) ||
+            linksText.Contains("No linked projects", StringComparison.Ordinal),
+            "The links section should either list the neighbours or say that there are none.");
+    }
+
+    [Fact]
+    public async Task The_rules_name_the_links_tool_and_send_the_agent_to_the_reference_it_records()
+    {
+        await using var client = await ConnectAsync();
+        var context = await client.CallToolAsync(
+            "aiko_get_project_context",
+            cancellationToken: CancellationToken.None);
+
+        var text = FullText(context);
+
+        // The links are read with the tool that exists. The sentence named aiko_list_cards - a tool for reading
+        // cards - so an agent that followed it looked at the wrong thing and found no neighbours at all.
+        Assert.Contains("the links with aiko_list_links", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("links with aiko_list_cards", text, StringComparison.Ordinal);
+
+        // And the contract carries the instruction the links block exists for: the reference a neighbour's entry
+        // names is read where it is, not inferred from a package this project happens to have installed.
+        Assert.Contains("reference its link names (aiko_list_links)", text, StringComparison.Ordinal);
+        Assert.Contains("search this project's memory first", text, StringComparison.Ordinal);
     }
 
     /// <summary>Starts a stage and returns the tool result, so a refusal can be read as an answer.</summary>

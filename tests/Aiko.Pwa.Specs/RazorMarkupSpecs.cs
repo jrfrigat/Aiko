@@ -404,9 +404,24 @@ public sealed class RazorMarkupSpecs
         // ... and correcting a description, which is the half the settings panel never had: a row opens for
         // editing, saves with its own button and can be abandoned.
         Assert.Contains("BeginEdit(item)", page, StringComparison.Ordinal);
-        Assert.Contains("SaveDescriptionAsync(item)", page, StringComparison.Ordinal);
+        Assert.Contains("SaveLinkAsync(item)", page, StringComparison.Ordinal);
         Assert.Contains("CancelEdit", page, StringComparison.Ordinal);
         Assert.Contains("Loc.Get(\"LinkedProjectsEdit\")", page, StringComparison.Ordinal);
+
+        // A link is more than its sentence: where the neighbour's reference lives, and when work does and does
+        // not belong there, are edited on the same screen - in the form that adds a link and in the row that
+        // corrects one - because a reference an agent cannot read is a reference nobody wrote down.
+        Assert.Contains("LinkedProjectsReference", page, StringComparison.Ordinal);
+        Assert.Contains("LinkedProjectsWhenToUse", page, StringComparison.Ordinal);
+        Assert.Contains("LinkedProjectsWhenNotToUse", page, StringComparison.Ordinal);
+        Assert.Contains("Value=\"@_linkReference\"", page, StringComparison.Ordinal);
+        Assert.Contains("Value=\"@_editingReference\"", page, StringComparison.Ordinal);
+        Assert.Contains("new LinkProjectRequest(description, reference, whenToUse, whenNotToUse)", page, StringComparison.Ordinal);
+
+        // A row shows only what the entry carries, so a link written before these texts existed reads exactly
+        // as it did - its description and nothing else.
+        Assert.Contains("private static IReadOnlyList<string> Notes(ProjectLink link)", page, StringComparison.Ordinal);
+        Assert.Contains("if (!string.IsNullOrWhiteSpace(value))", page, StringComparison.Ordinal);
 
         // The project is excluded by either of its names, because the route carries the handle while the
         // registry stores the id: matching only one of them would offer the project itself for linking.
@@ -428,7 +443,13 @@ public sealed class RazorMarkupSpecs
             "LinkedProjectsOpen",
             "LinkedProjectsEdit",
             "LinkedProjectsSave",
-            "LinkedProjectsCancel"
+            "LinkedProjectsCancel",
+            "LinkedProjectsReference",
+            "LinkedProjectsReferencePlaceholder",
+            "LinkedProjectsWhenToUse",
+            "LinkedProjectsWhenToUsePlaceholder",
+            "LinkedProjectsWhenNotToUse",
+            "LinkedProjectsWhenNotToUsePlaceholder"
         ];
         foreach (var resource in new[] { "Loc.resx", "Loc.ru.resx" })
         {

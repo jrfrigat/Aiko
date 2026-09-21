@@ -549,6 +549,12 @@
   <data name="LinkedProjectsPickNone" xml:space="preserve"><value>Выберите проект</value></data>
   <data name="LinkedProjectsDescription" xml:space="preserve"><value>Чем он занят</value></data>
   <data name="LinkedProjectsDescriptionPlaceholder" xml:space="preserve"><value>Например: десктопный клиент - работа по UI пишется туда</value></data>
+  <data name="LinkedProjectsReference" xml:space="preserve"><value>Где лежит справочник</value></data>
+  <data name="LinkedProjectsReferencePlaceholder" xml:space="preserve"><value>Путь или адрес к документации, справочнику API или точке входа; можно оставить пустым</value></data>
+  <data name="LinkedProjectsWhenToUse" xml:space="preserve"><value>Работа идёт туда, когда</value></data>
+  <data name="LinkedProjectsWhenToUsePlaceholder" xml:space="preserve"><value>Когда работа принадлежит тому проекту; можно оставить пустым</value></data>
+  <data name="LinkedProjectsWhenNotToUse" xml:space="preserve"><value>Не идёт туда, когда</value></data>
+  <data name="LinkedProjectsWhenNotToUsePlaceholder" xml:space="preserve"><value>Когда она принадлежит этому проекту; можно оставить пустым</value></data>
   <data name="LinkedProjectsAdd" xml:space="preserve"><value>Связать проект</value></data>
   <data name="LinkedProjectsRemove" xml:space="preserve"><value>Убрать связь</value></data>
   <data name="LinkedProjectsNav" xml:space="preserve"><value>Связанные проекты</value></data>

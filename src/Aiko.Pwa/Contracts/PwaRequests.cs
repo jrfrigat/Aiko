@@ -97,7 +97,14 @@ internal sealed record UpdateCardRequest(
 /// What the linked project is for, in the words of whoever links it - the sentence an agent reads before it
 /// decides that a piece of work belongs to the neighbour.
 /// </param>
-internal sealed record LinkProjectRequest(string Description);
+/// <param name="Reference">Where that project's reference lives, or null: a path or an address.</param>
+/// <param name="WhenToUse">When work belongs to that project, or null.</param>
+/// <param name="WhenNotToUse">When it belongs here instead, or null.</param>
+internal sealed record LinkProjectRequest(
+    string Description,
+    string? Reference = null,
+    string? WhenToUse = null,
+    string? WhenNotToUse = null);
 
 /// <summary>
 /// Writes a card artifact. A null version creates or overwrites without a conflict check.
