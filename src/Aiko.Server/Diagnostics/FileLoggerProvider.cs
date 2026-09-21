@@ -1,3 +1,4 @@
+using Aiko.Infrastructure.Logging;
 using Microsoft.Extensions.Logging;
 
 namespace Aiko.Server.Diagnostics;
@@ -17,12 +18,17 @@ namespace Aiko.Server.Diagnostics;
 /// loses nothing that was already logged, because nothing was buffered.
 /// </para>
 /// </remarks>
-internal sealed class FileLoggerProvider(string path) : ILoggerProvider
+internal sealed class FileLoggerProvider : ILoggerProvider
 {
-    /// <summary>Size at which the file is rotated to <c>.1</c>, so a long-running daemon cannot fill a disk.</summary>
-    private const long MaxBytes = 8L * 1024 * 1024;
+    private readonly LogFileRotation _rotation;
 
-    private readonly object _sync = new();
+    /// <summary>
+    /// Creates the provider for one log file.
+    /// </summary>
+    /// <param name="path">File the daemon's lines are appended to.</param>
+    /// <param name="retention">How large the file may grow and how many rotated files are kept.</param>
+    public FileLoggerProvider(string path, LogRetentionSettings retention) =>
+        _rotation = new LogFileRotation(path, retention);
 
     /// <inheritdoc />
     public ILogger CreateLogger(string categoryName) => new FileLogger(this, categoryName);
@@ -32,34 +38,8 @@ internal sealed class FileLoggerProvider(string path) : ILoggerProvider
     {
     }
 
-    /// <summary>Appends one line, rotating the file first when it has grown past its cap.</summary>
-    private void Write(string line)
-    {
-        lock (_sync)
-        {
-            try
-            {
-                var directory = Path.GetDirectoryName(path);
-                if (!string.IsNullOrEmpty(directory))
-                {
-                    Directory.CreateDirectory(directory);
-                }
-
-                var file = new FileInfo(path);
-                if (file.Exists && file.Length > MaxBytes)
-                {
-                    File.Move(path, $"{path}.1", overwrite: true);
-                }
-
-                File.AppendAllText(path, line + Environment.NewLine);
-            }
-            catch (Exception)
-            {
-                // A log that cannot be written must not take the daemon down with it: losing the record of
-                // what happened is bad, and losing the process because of it is worse.
-            }
-        }
-    }
+    /// <summary>Appends one line, rotating first when the file has grown past its cap.</summary>
+    private void Write(string line) => _rotation.Append(line);
 
     /// <summary>One category's logger, in the shape the console logger prints: time, level, category, text.</summary>
     private sealed class FileLogger(FileLoggerProvider provider, string category) : ILogger

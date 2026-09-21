@@ -70,6 +70,12 @@ whatever ends that terminal - a closed window, a Ctrl+C pressed to copy text - e
 with `aiko serve -d`, it gets its own console and a log file (`daemon.log` next to the database, or the path
 in `AIKO_LOG_FILE`) and outlives the shell.
 
+The log does not grow without limit and does not shrink without saying so: past `maxFileBytes` it is rotated
+to `daemon.log.1`, and `maxFiles` bounds how many files are kept - the file replacing a dropped one names it.
+The event journal obeys `journalMaxAgeDays` the same way: rows past that age are removed once per daemon
+start, leaving a `journal-trimmed` marker that states what went. All three bounds are the installation's own
+settings in `settings.json` beside the database, and one left out falls back to the shipped value.
+
 ## 401 Unauthorized
 
 The daemon requires the access token (or the pairing session cookie) for `/api/v1/*` and `/mcp/*`.

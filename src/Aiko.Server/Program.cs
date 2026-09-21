@@ -10,6 +10,7 @@ using Aiko.Infrastructure.Discussion;
 using Aiko.Infrastructure.Execution;
 using Aiko.Infrastructure.Events;
 using Aiko.Infrastructure.Git;
+using Aiko.Infrastructure.Logging;
 using Aiko.Infrastructure.Memory;
 using Aiko.Infrastructure.Projects;
 using Aiko.Infrastructure.Relations;
@@ -36,7 +37,17 @@ builder.WebHost.UseStaticWebAssets();
 // "Application is shutting down", which is the difference between being asked to stop and being killed.
 if (Environment.GetEnvironmentVariable("AIKO_LOG_FILE") is { Length: > 0 } logFilePath)
 {
-    builder.Logging.AddProvider(new FileLoggerProvider(logFilePath));
+    // The bounds are the installation's own, and they are read here because the logger is built before the
+    // service container exists. A log that rotated at a size nobody chose would be a setting in name only.
+    // Read synchronously on purpose: it is one small file, and it happens before anything is serving.
+    var daemonSettings = new DaemonEndpointConfiguration(AikoDataPaths.FromEnvironment())
+        .TryReadAsync()
+        .AsTask()
+        .GetAwaiter()
+        .GetResult();
+    builder.Logging.AddProvider(new FileLoggerProvider(
+        logFilePath,
+        daemonSettings?.EffectiveLogs ?? LogRetentionSettings.Default));
 }
 
 builder.Services.ConfigureHttpJsonOptions(options =>
@@ -74,6 +85,7 @@ builder.Services.AddSingleton<IAppSettingsService, AppSettingsService>();
 builder.Services.AddSingleton<AikoEventBroadcaster>();
 builder.Services.AddSingleton<IAikoEventPublisher, SqliteAikoEventPublisher>();
 builder.Services.AddSingleton<IAikoEventStore, SqliteAikoEventStore>();
+builder.Services.AddSingleton<EventJournalRetention>();
 builder.Services.AddSingleton<IExecutionCoordinator, SqliteExecutionCoordinator>();
 builder.Services.AddSingleton<IActivityReport, SqliteActivityReport>();
 builder.Services.AddSingleton<IAgentAdapter, ClaudeCodeAgentAdapter>();
@@ -120,6 +132,24 @@ builder.Services
 var app = builder.Build();
 
 await app.Services.GetRequiredService<AikoDatabase>().InitializeAsync();
+// The event journal is trimmed once per daemon start: the daemon is its only writer, so startup is the one
+// moment nothing else is appending to it. What went is written back into the journal as a marker, so a
+// replay that finds a gap can point at the reason.
+var retention = (await app.Services
+        .GetRequiredService<DaemonEndpointConfiguration>()
+        .TryReadAsync(CancellationToken.None))
+    ?.EffectiveLogs ?? LogRetentionSettings.Default;
+var journalTrim = await app.Services
+    .GetRequiredService<EventJournalRetention>()
+    .TrimAsync(retention, CancellationToken.None);
+if (journalTrim.Trimmed)
+{
+    app.Logger.LogInformation(
+        "Trimmed {Removed} event journal rows of {Projects} project(s) older than {Cutoff:u}.",
+        journalTrim.Removed,
+        journalTrim.Projects,
+        journalTrim.CutoffUtc);
+}
 // Projects created before slugs existed get their readable handle here, so their URLs become readable
 // without anyone re-registering them. A handle already stated in the project's manifest wins, so this is
 // idempotent and `aiko repair --fix` performs the same step.

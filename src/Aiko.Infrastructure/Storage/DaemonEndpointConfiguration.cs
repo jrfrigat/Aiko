@@ -51,7 +51,7 @@ public sealed class DaemonEndpointConfiguration(AikoDataPaths paths)
         ValidatePort(port);
         EnsureAvailable(port, persisted: false);
         var settings = new DaemonEndpointSettings(port);
-        await WriteAtomicallyAsync(settings, cancellationToken);
+        await SaveAsync(settings, cancellationToken);
         return settings;
     }
 
@@ -60,6 +60,24 @@ public sealed class DaemonEndpointConfiguration(AikoDataPaths paths)
     /// </summary>
     public ValueTask<DaemonEndpointSettings?> TryReadAsync(CancellationToken cancellationToken = default) =>
         ReadAsync(cancellationToken);
+
+    /// <summary>
+    /// Records the daemon's own settings atomically.
+    /// </summary>
+    /// <remarks>
+    /// Exposed because the file holds more than the port: the bounds on the daemon's log and journal are the
+    /// installation's own settings, and a bound nothing can write is a setting in name only.
+    /// </remarks>
+    /// <param name="settings">Settings to persist as they stand.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    public async ValueTask SaveAsync(
+        DaemonEndpointSettings settings,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        settings.EffectiveLogs.Validate();
+        await WriteAtomicallyAsync(settings, cancellationToken);
+    }
 
     private async ValueTask<DaemonEndpointSettings?> ReadAsync(
         CancellationToken cancellationToken)
