@@ -39,6 +39,12 @@ public static class AikoEventTypes
     public const string CommandsUpdated = "commands.updated";
 
     /// <summary>
+    /// The project's release history changed: a release was recorded. The payload is the
+    /// <see cref="ReleaseRecord"/> JSON.
+    /// </summary>
+    public const string ReleasesUpdated = "releases.updated";
+
+    /// <summary>
     /// A card was created in this project on behalf of another one. The payload names the created card and the
     /// target project; the target's own journal carries the matching <see cref="CardUpdated"/>.
     /// </summary>
