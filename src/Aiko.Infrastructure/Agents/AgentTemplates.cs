@@ -602,9 +602,9 @@ internal static class AgentTemplates
         current project (/aiko-init), list projects (/aiko-list-projects), check the daemon
         (/aiko-status), diagnose it (/aiko-doctor), repair what the diagnosis found (/aiko-repair),
         manage the agents' integrations (/aiko-agents), read and change settings (/aiko-settings),
-        show the access token (/aiko-token), back a project up (/aiko-backup), read the log tail
-        (/aiko-logs) and open the UI (/aiko-ui). After /aiko-init, restart this agent so the
-        project-scoped MCP configuration and skills are loaded.
+        show the access token (/aiko-token), conduct a release (/aiko-release), back a project up
+        (/aiko-backup), read the log tail (/aiko-logs) and open the UI (/aiko-ui). After
+        /aiko-init, restart this agent so the project-scoped MCP configuration and skills are loaded.
 
         If the Aiko tools are missing, check that AIKO_TOKEN is set to the value of `aiko token show` - a
         client that cannot store an authorization header reads the credential from that variable - and
@@ -753,6 +753,52 @@ internal static class AgentTemplates
         authenticates REST and MCP clients; a browser is paired once with `aiko ui` instead, so it is
         never needed in a URL. Treat it as a secret for this machine: do not paste it into issues,
         prompts or commits.
+        """;
+
+    /// <summary>
+    /// Global slash command that conducts a release step by step.
+    /// </summary>
+    /// <remarks>
+    /// The procedure is prose because that is what an agent follows, and the boundary between the two of
+    /// them is the whole point of it: the steps that make a version public - pushing the tag and installing
+    /// it - are commands the person runs, not something a skill does on the quiet. The project denies a push,
+    /// and a release is one of the few operations an agent cannot take back.
+    /// </remarks>
+    public const string GlobalRelease =
+        """
+        Conduct a release of Aiko. Work through the steps in order, and at every step say plainly which part
+        you do and which part the person does: a release is not something an agent finishes alone.
+
+        1. The right tree first, then a green one. This command is installed for the whole machine, so
+           before anything else make sure the folder is Aiko's own checkout - `aiko project find` in it
+           names this project, and the working tree is the one the tag will be made in. A release
+           conducted from another folder tags the wrong repository, and that is not something to find out
+           afterwards. Then run `dotnet build Aiko.slnx -c Release` and `dotnet test Aiko.slnx` - a warning
+           is an error in this project, and the release is built from what is on the remote. While anything
+           is red, say so and stop; a release is not how one finds out.
+        2. Choose the tag, and give the reason in one sentence. The version comes from the tag (`v0.1.2`), so
+           choosing a version is choosing a tag: a fix is a patch, a new capability is a minor, and a major
+           is the person's call rather than yours.
+        3. Hand over the tag commands. Do not run them:
+               git tag v0.1.2
+               git push origin v0.1.2
+           Aiko does not push - the project denies it - and the tag is the release.
+        4. Wait for `.github/workflows/release.yml` to finish. It creates the GitHub release as a draft and
+           publishes it only once the archive is attached, so "the release exists" means it is no longer a
+           draft.
+        5. Hand over the install commands, and do not run them either: it is the person's machine, and
+           installing replaces the daemon that is running. Stop it first, so the copy being replaced is not
+           in use:
+               aiko serve stop
+               irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1 | iex
+           Name which installer you mean: the released one for a published release - adding `-Version v0.1.2`
+           in the scriptblock form its own help documents, when the release has to be named rather than taken
+           as the latest - or `.\install.ps1` from a checkout, for a version that is not published yet.
+        6. Start the daemon again and reconnect the agents: `aiko agent install --project <id>` for the
+           project and `aiko agent install --scope user` for the machine, then tell the person to restart
+           their agent. A new daemon with an old agent contract is the failure this step prevents.
+        7. Close with one sentence: what was released, what was installed and what is left. A release that
+           ends without it leaves the next person to guess.
         """;
 
     /// <summary>

@@ -207,7 +207,7 @@ command the way the card page places a command for a card, and any agent that ru
 Global skills/commands (installed with `aiko agent install --scope user`):
 
 `/aiko-init [templateId]`, `/aiko-list-projects`, `/aiko-status`, `/aiko-doctor`, `/aiko-repair`, `/aiko-agents`,
-`/aiko-settings`, `/aiko-token`, `/aiko-backup`, `/aiko-logs`, `/aiko-ui`.
+`/aiko-settings`, `/aiko-token`, `/aiko-release`, `/aiko-backup`, `/aiko-logs`, `/aiko-ui`.
 
 User scope is the machine-wide connection: it is what the dashboard's *Agents* card reports as
 **connected**, and its Connect / Disconnect buttons write and remove exactly these files. The
@@ -267,6 +267,7 @@ over is therefore the same address the UI links to itself, not a second form of 
 | Move a card with explicit stage actions (next, return, cancel) | — | `aiko_move_card` | — (drag only; the explicit actions are not built) |
 | Ask an agent to do something from the board | `/aiko-commands` | `aiko_list_commands`, `aiko_claim_command`, `aiko_finish_command` | Card page - *Command for an agent*: place one, and see whether it is waiting or taken |
 | Work every unfinished card of the board | `/aiko-run-all` | `aiko_list_board`, then the run tools per card | Board - *Work the board*: places the request and shows what became of it |
+| Conduct a release of a version | `/aiko-release` | — (the procedure walks terminal commands: the tag, the workflow and the installer stay outside Aiko) | — (the release screen is not built) |
 | Show the access token | `/aiko-token` | `aiko_token` | — (`aiko token show`) |
 | Manage agent integrations | `/aiko-agents` | — (`aiko agent list` / `install` / `uninstall`) | Dashboard - the *Agents* card: detection and Connect / Disconnect |
 

@@ -44,6 +44,35 @@ public sealed class AgentGlobalCommandSpecs
         }
     }
 
+    [Fact]
+    public async Task The_release_command_reaches_every_channel_that_carries_the_other_global_commands()
+    {
+        // The command channel is only two adapters wide, so a command that landed there alone would be
+        // invisible to the rest: Codex, Cline and Cursor read the list out of the shared skill.
+        var claudeCode = await GlobalCommandsAsync(new ClaudeCodeAgentAdapter());
+        Assert.Contains("aiko-release", claudeCode);
+        Assert.Contains("/aiko-release", AgentTemplates.GlobalSkill, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_release_procedure_carries_the_steps_and_the_boundary_between_the_agent_and_the_person()
+    {
+        var body = AgentTemplates.GlobalRelease;
+
+        // The steps, each named by the artifact it acts on rather than by a copy of that artifact's
+        // contents - which is what keeps the procedure from going stale behind the workflow it describes.
+        Assert.Contains("aiko project find", body, StringComparison.Ordinal);
+        Assert.Contains("dotnet build Aiko.slnx -c Release", body, StringComparison.Ordinal);
+        Assert.Contains("git push origin v0.1.2", body, StringComparison.Ordinal);
+        Assert.Contains(".github/workflows/release.yml", body, StringComparison.Ordinal);
+
+        // The boundary is the point of the procedure, not a footnote to it: the tag and the install belong to
+        // the person, and the body says so where it hands each of them over.
+        Assert.Contains("Do not run them", body, StringComparison.Ordinal);
+        Assert.Contains("aiko serve stop", body, StringComparison.Ordinal);
+        Assert.Contains("aiko agent install --scope user", body, StringComparison.Ordinal);
+    }
+
     private static async Task<string[]> GlobalCommandsAsync(IAgentAdapter adapter)
     {
         var plan = await adapter.PlanUserInstallAsync(CancellationToken.None);
