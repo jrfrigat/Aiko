@@ -194,4 +194,13 @@ jobs:
             *"aiko-"*"-win-x64.zip"*) ;;
             *) echo "::error::the release is missing aiko-*-win-x64.zip; leaving it as a draft" && exit 1 ;;
           esac
-          gh release edit "$TAG" -R "$REPO" --draft=false --latest
+          # A tag that carries a pre-release part - `v0.1.2-pre`, or `-rc.1` - names a release that is not
+          # the current one. GitHub does not infer that from the tag name, and scripts/install.ps1 resolves
+          # "latest release", so a preliminary release left as the latest one would be installed by everyone:
+          # it is published as a pre-release and taken off the latest pointer. `--latest=false` is stated
+          # rather than omitted, because a re-run of this job may find the release already marked latest.
+          case "$TAG" in
+            *-*) flags=(--draft=false --prerelease --latest=false) ;;
+            *)   flags=(--draft=false --latest) ;;
+          esac
+          gh release edit "$TAG" -R "$REPO" "${flags[@]}"
