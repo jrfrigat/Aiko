@@ -15,13 +15,23 @@ This guide covers installing and running Aiko on Windows.
 
 ## Install
 
-One line in PowerShell:
+Two ways in, and both run the same installer: the launcher exe, or the script piped into PowerShell.
+
+Download [`aiko-installer.exe`](https://github.com/jrfrigat/Aiko/releases/latest/download/aiko-installer.exe)
+from the newest release and run it:
+
+```powershell
+.\aiko-installer.exe
+```
+
+Or, if you would rather read what runs before it runs, fetch the script and pipe it into PowerShell:
 
 ```powershell
 irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1 | iex
 ```
 
-The installer:
+The exe carries that same script inside it, so the two paths cannot drift apart; the only difference is
+who starts it. The installer:
 
 1. resolves the newest GitHub release (or the tag you pass),
 2. downloads `aiko-<version>-win-x64.zip` from it,
@@ -53,12 +63,27 @@ the hood). Press Enter to skip; nothing is written into an agent that you did no
 | `-NoAgentSetup` | Never ask about agents (same as `aiko agent install --scope user` later). |
 | `-NoPathUpdate` | Leave the user `PATH` untouched. |
 
-Options need the scriptblock form, because `irm ... | iex` cannot take parameters:
+The exe takes the options directly:
+
+```powershell
+.\aiko-installer.exe -Version v0.1.0 -InstallDir D:\Tools\Aiko
+```
+
+Through the script they need the scriptblock form, because `irm ... | iex` cannot take parameters:
 
 ```powershell
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1))) `
     -Version v0.1.0 -InstallDir D:\Tools\Aiko
 ```
+
+### Install from the ZIP
+
+When neither the exe nor the script can run on the machine - a PowerShell locked down by group policy,
+or a security product that quarantines an unsigned download - unpack the release yourself: download
+`aiko-<version>-win-x64.zip` from the newest release, expand it into `%LOCALAPPDATA%\Aiko\bin`, and add
+that directory to the user `PATH`. That is everything the installer does with the archive itself; its
+questions about autostart and agents can be answered later with `aiko autostart enable` and
+`aiko agent install --scope user`.
 
 ### Install from a source checkout
 

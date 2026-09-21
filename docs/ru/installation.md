@@ -15,13 +15,24 @@ Aiko - локальный оркестратор ИИ-разработки: од
 
 ## Установка
 
-Одна строка в PowerShell:
+Два пути, и оба запускают один и тот же установщик: exe-обёртка или скрипт, отданный в PowerShell.
+
+Скачайте
+[`aiko-installer.exe`](https://github.com/jrfrigat/Aiko/releases/latest/download/aiko-installer.exe)
+из свежего релиза и запустите:
+
+```powershell
+.\aiko-installer.exe
+```
+
+Или, если хочется прочитать то, что выполнится, — получите скрипт и отдайте его PowerShell:
 
 ```powershell
 irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1 | iex
 ```
 
-Установщик:
+exe несёт внутри себя тот же скрипт, поэтому пути не могут разойтись; разница только в том, кто его
+запускает. Установщик:
 
 1. находит свежий релиз на GitHub (или указанный вами тег),
 2. скачивает из него `aiko-<версия>-win-x64.zip`,
@@ -53,12 +64,27 @@ irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1 | i
 | `-NoAgentSetup` | Не спрашивать про агентов (то же самое позже: `aiko agent install --scope user`). |
 | `-NoPathUpdate` | Не менять пользовательский `PATH`. |
 
-Параметры требуют формы со scriptblock, потому что `irm ... | iex` их не принимает:
+exe принимает параметры напрямую:
+
+```powershell
+.\aiko-installer.exe -Version v0.1.0 -InstallDir D:\Tools\Aiko
+```
+
+Скрипту они нужны в форме со scriptblock, потому что `irm ... | iex` их не принимает:
 
 ```powershell
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1))) `
     -Version v0.1.0 -InstallDir D:\Tools\Aiko
 ```
+
+### Установка из ZIP
+
+Когда ни exe, ни скрипт на машине выполнить нельзя - PowerShell, закрытый групповой политикой, или
+защитное ПО, держащее в карантине неподписанную загрузку, - распакуйте релиз сами: скачайте
+`aiko-<версия>-win-x64.zip` из свежего релиза, разверните его в `%LOCALAPPDATA%\Aiko\bin` и добавьте
+этот каталог в пользовательский `PATH`. Это всё, что установщик делает с самим архивом; его вопросы
+про автозапуск и агентов можно решить позже командами `aiko autostart enable` и
+`aiko agent install --scope user`.
 
 ### Установка из исходников
 

@@ -79,11 +79,16 @@ rate limit) hands off to another agent without losing history.
 Windows 10/11, x64. The release is self-contained, so neither the .NET SDK nor the .NET runtime is
 required:
 
+Download [`aiko-installer.exe`](https://github.com/jrfrigat/Aiko/releases/latest/download/aiko-installer.exe)
+and run it, or run the installer script directly:
+
 ```powershell
+.\aiko-installer.exe
 irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1 | iex
 ```
 
-The installer downloads the newest [`aiko-<version>-win-x64.zip`](https://github.com/jrfrigat/Aiko/releases/latest),
+The exe carries that script inside it, so both run the same installer. It downloads the newest
+[`aiko-<version>-win-x64.zip`](https://github.com/jrfrigat/Aiko/releases/latest),
 unpacks it into `%LOCALAPPDATA%\Aiko\bin` (CLI `aiko`, stdio proxy `aiko-stdio`, the daemon in
 `server\`) and adds that directory to the user `PATH`. Nothing is installed machine-wide and no
 administrator rights are needed.
@@ -100,9 +105,12 @@ aiko ui        # pair the browser with the daemon and open the board (starts one
 aiko doctor    # check the installation; `aiko repair --fix` applies the fixes it names
 ```
 
-Pin a specific release or choose another directory by fetching the script into a scriptblock first:
+Pin a specific release or choose another directory by passing the options - to the exe directly, or to the
+script through a scriptblock (because `irm ... | iex` cannot take parameters):
 
 ```powershell
+.\aiko-installer.exe -Version v0.3.1 -InstallDir D:\Tools\Aiko
+
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1))) `
     -Version v0.3.1 -InstallDir D:\Tools\Aiko
 ```

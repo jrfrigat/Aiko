@@ -98,6 +98,12 @@ jobs:
           dotnet publish src/Aiko.Server @common -o publish/stage/server
           if ($LASTEXITCODE -ne 0) { throw 'Publishing Aiko.Server failed.' }
 
+          # The installer launcher, published on its own line rather than into the staged payload: it is a
+          # release asset beside the ZIP, not something inside it. Its asset name carries no version, so
+          # releases/latest/download/aiko-installer.exe is a link that keeps working.
+          dotnet publish scripts/AikoInstaller @common -p:PublishSingleFile=true -o publish/installer
+          if ($LASTEXITCODE -ne 0) { throw 'Publishing AikoInstaller failed.' }
+
           # The packaged archive carries the base project template in the same shape the daemon writes it
           # into its data directory, so the installer can seed an installation from the release itself.
           New-Item -ItemType Directory -Path publish/stage/templates -Force | Out-Null
@@ -113,7 +119,8 @@ jobs:
             'publish/stage/aiko-stdio.exe',
             'publish/stage/server/Aiko.Server.exe',
             'publish/stage/server/wwwroot/index.html',
-            'publish/stage/templates/default/template.json'
+            'publish/stage/templates/default/template.json',
+            'publish/installer/aiko-installer.exe'
           )
           foreach ($path in $required) {
             if (-not (Test-Path $path)) { throw "The staged release is missing $path." }
@@ -151,10 +158,11 @@ jobs:
           TAG: ${{ steps.version.outputs.tag }}
           REPO: ${{ github.repository }}
           ARCHIVE: ${{ steps.package.outputs.archive }}
+          INSTALLER: publish/installer/aiko-installer.exe
         run: |
           if gh release view "$TAG" -R "$REPO" >/dev/null 2>&1; then
-            echo "Release $TAG already exists (re-run) — refreshing its asset."
-            gh release upload "$TAG" "$ARCHIVE" -R "$REPO" --clobber
+            echo "Release $TAG already exists (re-run) — refreshing its assets."
+            gh release upload "$TAG" "$ARCHIVE" "$INSTALLER" -R "$REPO" --clobber
             exit 0
           fi
 
@@ -164,11 +172,12 @@ jobs:
             gh api --method POST "repos/$REPO/git/refs" -f "ref=refs/tags/$TAG" -f "sha=$GITHUB_SHA"
           fi
 
-          gh release create "$TAG" "$ARCHIVE" -R "$REPO" \
+          gh release create "$TAG" "$ARCHIVE" "$INSTALLER" -R "$REPO" \
             --title "Aiko $TAG" --generate-notes --draft
 
-  # The release becomes visible only once the archive is on it, so `scripts/install.ps1` never runs
-  # against a release that has nothing to download.
+  # The release becomes visible only once both assets are on it: the archive `scripts/install.ps1`
+  # downloads, and the launcher exe, which is a documented install path of its own. A release missing
+  # either one would leave the documentation describing something that is not there.
   finalize:
     name: Publish the release
     needs: publish
@@ -193,5 +202,9 @@ jobs:
           case "$assets" in
             *"aiko-"*"-win-x64.zip"*) ;;
             *) echo "::error::the release is missing aiko-*-win-x64.zip; leaving it as a draft" && exit 1 ;;
+          esac
+          case "$assets" in
+            *"aiko-installer.exe"*) ;;
+            *) echo "::error::the release is missing aiko-installer.exe; leaving it as a draft" && exit 1 ;;
           esac
           gh release edit "$TAG" -R "$REPO" --draft=false --latest
