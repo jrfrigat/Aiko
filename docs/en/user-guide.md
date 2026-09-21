@@ -203,6 +203,23 @@ template cannot reach a project that already exists. Writing goes through the ru
 reprojects the board afterwards and refuses a pipeline that would leave a card in a stage it removed;
 `workflow get` reads the project's own file and needs no daemon.
 
+## Backups
+
+`aiko backup` writes the same archive the `aiko_backup` tool writes: a zip of the project's `.aiko`
+contents, by default under the data directory's `backups` folder with the project id and a timestamp in the
+name. It reads the archive back and reports how many entries and bytes it holds, so "done" is something you
+can see rather than something you are told.
+
+`aiko restore` puts an archive back over the project. It overwrites files with the same names, so it asks
+first (pass `--yes` in a script, where there is nobody to ask), and it rebuilds the board's projections
+afterwards, because the restored files and the board are two different things until it does. An archive
+holding an entry that would be written outside the project is refused before anything is unpacked.
+
+```powershell
+aiko backup --project aiko
+aiko restore --archive "$env:LOCALAPPDATA\Aiko\backups\aiko-20260921T090000.zip" --project aiko
+```
+
 ## Workflow sets
 
 A project is created from a **template**, and the template decides what it starts with: the stages of each

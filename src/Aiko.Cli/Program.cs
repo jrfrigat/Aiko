@@ -37,6 +37,8 @@ var exitCode = command switch
     "autostart" => Autostart(args),
     "settings" => await SettingsAsync(args),
     "workflow" => await WorkflowAsync(args),
+    "backup" => await BackupAsync(args),
+    "restore" => await RestoreAsync(args),
     "help" or "--help" or "-h" => Help(),
     _ => Unknown(command)
 };
@@ -88,6 +90,12 @@ static int Help()
                                                         Read the project's pipelines, or write one back.
                                                         Writing goes through the daemon, which refuses to
                                                         strand a card in a stage it removed
+          backup --project <id> [--output <path>]       Archive the project's .aiko, in the format
+                                                        `aiko_backup` writes
+          restore --archive <path> --project <id> [--yes]
+                                                        Put an archive back over the project. Restoring
+                                                        overwrites files, so it asks first, and reprojects
+                                                        the board afterwards
           reindex <projectId>                           Rebuild a project's SQLite projections
           commands [--project <id>] [--card <id>] [--state <s>]
                                                         Show the commands a screen placed for an agent;
@@ -1280,6 +1288,107 @@ static async Task<string?> ReadDocumentAsync(string[] args)
 
     Console.Error.WriteLine("Pass the document with --json \"<document>\" or --file <path>.");
     return null;
+}
+
+// `aiko backup` writes the archive `aiko_backup` has always written - a zip of the project's .aiko contents
+// - and then says what the archive holds, because "done" is a claim and the entry count is its evidence.
+static async Task<int> BackupAsync(string[] args)
+{
+    var projectId = ReadOption(args, "--project");
+    if (string.IsNullOrWhiteSpace(projectId))
+    {
+        Console.Error.WriteLine("Pass the project: --project <id>.");
+        return 2;
+    }
+
+    var dataPaths = AikoDataPaths.FromEnvironment();
+    var database = new AikoDatabase(dataPaths);
+    await database.InitializeAsync();
+    var project = await new SqliteProjectCatalog(database).FindAsync(projectId, CancellationToken.None);
+    if (project is null)
+    {
+        Console.Error.WriteLine($"No registered project with id {projectId}. `aiko doctor` lists them.");
+        return 1;
+    }
+
+    var source = AikoProjectPaths.DataRoot(project.RootPath);
+    // Beside the database and named the way `aiko_backup` names it, unless the caller says otherwise.
+    var target = ReadOption(args, "--output") ?? Path.Combine(
+        Path.GetDirectoryName(dataPaths.DatabasePath)!,
+        "backups",
+        $"{project.Id}-{DateTime.UtcNow:yyyyMMddHHmmss}.zip");
+
+    try
+    {
+        var summary = await ProjectArchive.CreateAsync(source, target, CancellationToken.None);
+        Console.WriteLine(
+            $"Archived {project.Id} to {summary.Path}: {summary.Entries} entries, {summary.Bytes} bytes.");
+        return 0;
+    }
+    catch (DirectoryNotFoundException exception)
+    {
+        Console.Error.WriteLine(exception.Message);
+        return 1;
+    }
+}
+
+// `aiko restore` takes an archive back over a project. It overwrites files, so it asks first - and it
+// reprojects afterwards, because the restored files and the board have just parted ways.
+static async Task<int> RestoreAsync(string[] args)
+{
+    var archivePath = ReadOption(args, "--archive");
+    var projectId = ReadOption(args, "--project");
+    if (string.IsNullOrWhiteSpace(archivePath) || string.IsNullOrWhiteSpace(projectId))
+    {
+        Console.Error.WriteLine("Pass the archive and the project: --archive <path> --project <id>.");
+        return 2;
+    }
+
+    if (!File.Exists(archivePath))
+    {
+        Console.Error.WriteLine($"No such archive: {archivePath}");
+        return 1;
+    }
+
+    var dataPaths = AikoDataPaths.FromEnvironment();
+    var database = new AikoDatabase(dataPaths);
+    await database.InitializeAsync();
+    var catalog = new SqliteProjectCatalog(database);
+    var project = await catalog.FindAsync(projectId, CancellationToken.None);
+    if (project is null)
+    {
+        Console.Error.WriteLine($"No registered project with id {projectId}. `aiko doctor` lists them.");
+        return 1;
+    }
+
+    var target = AikoProjectPaths.DataRoot(project.RootPath);
+    if (!HasFlag(args, "--yes", "-y") &&
+        !Confirm($"Restore {archivePath} over {target}? Files with the same names are overwritten"))
+    {
+        Console.Error.WriteLine("Cancelled. Nothing changed.");
+        return 1;
+    }
+
+    try
+    {
+        var written = await ProjectArchive.ExtractAsync(archivePath, target, CancellationToken.None);
+        Console.WriteLine($"Restored {written} file(s) into {target}.");
+    }
+    catch (InvalidDataException exception)
+    {
+        // The archive would have written outside the project; nothing was unpacked.
+        Console.Error.WriteLine(exception.Message);
+        return 1;
+    }
+
+    // Until this runs the board would keep showing what was there before the restore: the files it reads
+    // and the projections it draws are two different things.
+    var reindexed = await new ProjectReindexer(catalog, database)
+        .ReindexAsync(projectId, CancellationToken.None);
+    Console.WriteLine(
+        $"Reindexed {projectId}: {reindexed.Cards} cards, {reindexed.Relations} relations, " +
+        $"{reindexed.MemoryDocuments} memory documents.");
+    return 0;
 }
 
 static async Task<int> StatusAsync()
