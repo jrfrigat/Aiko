@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Aiko.Application.Contracts;
 using Aiko.Domain.Workflow;
 
 namespace Aiko.Cli;
@@ -14,6 +15,8 @@ namespace Aiko.Cli;
 [JsonSerializable(typeof(WorkflowDefinition))]
 [JsonSerializable(typeof(StageDefinition))]
 [JsonSerializable(typeof(WorkflowUpdate))]
+[JsonSerializable(typeof(AikoEvent))]
+[JsonSerializable(typeof(IReadOnlyList<AikoEvent>))]
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     UseStringEnumConverter = true,

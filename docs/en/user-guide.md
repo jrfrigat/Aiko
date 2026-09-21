@@ -220,6 +220,24 @@ aiko backup --project aiko
 aiko restore --archive "$env:LOCALAPPDATA\Aiko\backups\aiko-20260921T090000.zip" --project aiko
 ```
 
+## Logs
+
+`aiko logs` prints the tail of the daemon's own log - what it said on its way out, which is what "it stopped by
+itself" is answered with - and `--project <id>` adds the tail of that project's event journal: what happened to
+its cards and its stage runs.
+
+```powershell
+aiko logs                             # the daemon's log, last 50 lines
+aiko logs --lines 200                 # more of it
+aiko logs --project aiko              # and that project's journal
+aiko logs --project aiko --after 2700 # from a known event onwards
+```
+
+The daemon log needs no daemon to read: it is a file, written when the daemon runs in the background. The
+journal is read from the running daemon, and it is read oldest-first, so the command walks forward and keeps
+the last entries; if the journal is longer than the walk covers, it says so and points at `--after`. An empty
+journal, or a daemon that has never run in the background, is reported in words rather than as silence.
+
 ## Workflow sets
 
 A project is created from a **template**, and the template decides what it starts with: the stages of each

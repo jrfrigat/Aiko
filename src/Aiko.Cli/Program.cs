@@ -39,6 +39,7 @@ var exitCode = command switch
     "workflow" => await WorkflowAsync(args),
     "backup" => await BackupAsync(args),
     "restore" => await RestoreAsync(args),
+    "logs" => await LogsAsync(args),
     "help" or "--help" or "-h" => Help(),
     _ => Unknown(command)
 };
@@ -96,6 +97,9 @@ static int Help()
                                                         Put an archive back over the project. Restoring
                                                         overwrites files, so it asks first, and reprojects
                                                         the board afterwards
+          logs [--lines <n>] [--project <id>] [--after <id>] [--port <p>]
+                                                        The tail of the daemon's log, and with --project the
+                                                        tail of that project's event journal
           reindex <projectId>                           Rebuild a project's SQLite projections
           commands [--project <id>] [--card <id>] [--state <s>]
                                                         Show the commands a screen placed for an agent;
@@ -1389,6 +1393,185 @@ static async Task<int> RestoreAsync(string[] args)
         $"Reindexed {projectId}: {reindexed.Cards} cards, {reindexed.Relations} relations, " +
         $"{reindexed.MemoryDocuments} memory documents.");
     return 0;
+}
+
+// `aiko logs` - the tail of the daemon's own log, and with a project, the tail of its event journal. Both
+// are read-only views of what is already stored: the file for the daemon, the daemon's own history endpoint
+// for the journal, so the CLI never reaches into the database itself.
+static async Task<int> LogsAsync(string[] args)
+{
+    var lines = ReadOption(args, "--lines") is { Length: > 0 } requested &&
+                int.TryParse(requested, out var parsed) &&
+                parsed > 0
+        ? parsed
+        : 50;
+
+    var logPath = ResolveLogPath();
+    Console.WriteLine($"Daemon log ({logPath}):");
+    if (File.Exists(logPath))
+    {
+        foreach (var line in ReadTail(logPath, lines))
+        {
+            Console.WriteLine($"  {line}");
+        }
+    }
+    else
+    {
+        // Two empty cases, and both are said rather than left to silence: this one is a daemon that has never
+        // run in the background, the one below is a project that has never recorded anything.
+        Console.WriteLine(
+            "  no log file yet: it is written when the daemon runs in the background, `aiko serve -d`.");
+    }
+
+    var projectId = ReadOption(args, "--project");
+    if (string.IsNullOrWhiteSpace(projectId))
+    {
+        Console.WriteLine();
+        Console.WriteLine("Pass --project <id> to read that project's execution journal.");
+        return 0;
+    }
+
+    Console.WriteLine();
+    Console.WriteLine($"Execution journal of {projectId}, last {lines}:");
+    return await ReadJournalAsync(projectId, lines, ReadOption(args, "--after"), ReadOption(args, "--port"));
+}
+
+// The last lines of a file, without holding the whole log in memory: a daemon log is written to run for weeks.
+static IReadOnlyList<string> ReadTail(string path, int lines)
+{
+    var tail = new Queue<string>(lines);
+    foreach (var line in File.ReadLines(path))
+    {
+        if (tail.Count == lines)
+        {
+            tail.Dequeue();
+        }
+
+        tail.Enqueue(line);
+    }
+
+    return tail.ToArray();
+}
+
+// The journal is read ascending, so the last entries are found by walking forward and keeping the tail. The
+// walk is bounded, and it says so when the bound is reached rather than quietly showing a window that is not
+// the last one.
+static async Task<int> ReadJournalAsync(string projectId, int lines, string? after, string? port)
+{
+    const int Page = 500;
+    const int MaxPages = 20;
+
+    var cursor = long.TryParse(after, out var parsedAfter) ? parsedAfter : 0;
+    var tail = new Queue<AikoEvent>(lines);
+    var truncated = false;
+
+    using var http = await CreateDaemonClientAsync(port);
+    if (http is null)
+    {
+        return 1;
+    }
+
+    for (var page = 0; page < MaxPages; page++)
+    {
+        var body = await GetAsync(
+            http,
+            $"api/v1/projects/{projectId}/events/history?after={cursor}&limit={Page}");
+        if (body is null)
+        {
+            return 1;
+        }
+
+        IReadOnlyList<AikoEvent>? events;
+        try
+        {
+            events = JsonSerializer.Deserialize(body, CliJsonContext.Default.IReadOnlyListAikoEvent);
+        }
+        catch (JsonException exception)
+        {
+            Console.Error.WriteLine($"The daemon's answer is not a journal page: {exception.Message}");
+            return 1;
+        }
+
+        if (events is null || events.Count == 0)
+        {
+            break;
+        }
+
+        foreach (var @event in events)
+        {
+            if (tail.Count == lines)
+            {
+                tail.Dequeue();
+            }
+
+            tail.Enqueue(@event);
+        }
+
+        cursor = events[^1].Id;
+        if (events.Count < Page)
+        {
+            // A short page is the end of the journal, which is the ordinary way this loop finishes.
+            break;
+        }
+
+        truncated = page == MaxPages - 1;
+    }
+
+    if (tail.Count == 0)
+    {
+        Console.WriteLine("  the project has no journal entries yet.");
+        return 0;
+    }
+
+    foreach (var @event in tail)
+    {
+        Console.WriteLine(
+            $"  [{@event.Id}] {@event.OccurredAtUtc.ToLocalTime():yyyy-MM-dd HH:mm:ss} " +
+            $"{@event.Type} {OneLine(@event.PayloadJson)}");
+    }
+
+    if (truncated)
+    {
+        Console.WriteLine(
+            $"  (the walk stopped after {MaxPages * Page} events; pass --after <id> to start further on)");
+    }
+
+    return 0;
+}
+
+// One event on one line. The payload is a JSON document of its own, and its line breaks would turn a journal
+// tail into a screenful per entry - read as a log, not as a dump.
+static string OneLine(string payload, int maxLength = 200)
+{
+    var collapsed = string.Join(' ', payload.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+    return collapsed.Length <= maxLength ? collapsed : $"{collapsed[..maxLength]}…";
+}
+
+// A read from the daemon, answered in its own words - the same shape SendAsync gives a write.
+static async Task<string?> GetAsync(HttpClient http, string path)
+{
+    try
+    {
+        using var response = await http.GetAsync(path);
+        var body = await response.Content.ReadAsStringAsync();
+        if (!response.IsSuccessStatusCode)
+        {
+            Console.Error.WriteLine($"The daemon answered {(int)response.StatusCode}: {body}");
+            return null;
+        }
+
+        return body;
+    }
+    catch (HttpRequestException)
+    {
+        Console.Error.WriteLine($"No daemon is answering on {http.BaseAddress}. Start one with `aiko serve -d`.");
+        return null;
+    }
+    catch (TaskCanceledException)
+    {
+        Console.Error.WriteLine($"The daemon on {http.BaseAddress} did not answer in time.");
+        return null;
+    }
 }
 
 static async Task<int> StatusAsync()
