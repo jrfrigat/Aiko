@@ -62,6 +62,8 @@ the hood). Press Enter to skip; nothing is written into an agent that you did no
 | `-Agents <ids>` | Connect these agents globally without asking, for example `claude-code,codex`. |
 | `-NoAgentSetup` | Never ask about agents (same as `aiko agent install --scope user` later). |
 | `-NoPathUpdate` | Leave the user `PATH` untouched. |
+| `-Autostart` | Start the daemon at sign-in without asking; the question the installer would ask defaults to no. |
+| `-NoAutostart` | Never ask about starting at sign-in (set it up later with `aiko autostart enable`). |
 
 The exe takes the options directly:
 
