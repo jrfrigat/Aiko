@@ -1,4 +1,6 @@
 using System.Text.RegularExpressions;
+using Aiko.Pwa.Layout;
+using Flare.Components;
 using Xunit;
 
 namespace Aiko.Pwa.Specs;
@@ -822,6 +824,88 @@ public sealed class RazorMarkupSpecs
         Assert.DoesNotContain("Что другой проект может сделать с этим", russian, StringComparison.Ordinal);
         Assert.Contains("working here", english, StringComparison.Ordinal);
         Assert.Contains("работающий здесь", russian, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_rail_names_the_library_with_a_link_to_its_repository_and_the_version_the_client_loaded()
+    {
+        var root = FindRepositoryRoot();
+        var layout = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Layout", "MainLayout.razor"));
+
+        // The name opens the library's repository: a plain anchor in a new tab. FlareNavLink is the app's
+        // own route control - it marks the active route, and an address outside the app has none to mark.
+        var link = Regex.Match(
+            layout,
+            @"<a(?<attributes>[^>]*)>(?<content>.*?)</a>",
+            RegexOptions.Singleline);
+        Assert.True(link.Success, "The library's name should be drawn as an anchor.");
+        Assert.Contains("Flare.Blazor", link.Groups["content"].Value, StringComparison.Ordinal);
+        Assert.Contains("target=\"_blank\"", link.Groups["attributes"].Value, StringComparison.Ordinal);
+        Assert.Contains("rel=\"noreferrer\"", link.Groups["attributes"].Value, StringComparison.Ordinal);
+
+        // The address is the one the READMEs name, reached through a constant rather than typed out twice:
+        // a dependency's address is a fact about the dependency, not interface text a translator rewrites.
+        var href = Regex.Match(
+            link.Groups["attributes"].Value,
+            @"href=""@(?<name>[A-Za-z_][A-Za-z0-9_]*)""");
+        Assert.True(href.Success, "The link's address should come from a constant.");
+        var declared = Regex.Match(
+            layout,
+            @"private const string " + href.Groups["name"].Value + @" = ""(?<url>https?://[^""]+)"";");
+        Assert.True(declared.Success, "The address should stay a declared constant.");
+        foreach (var readme in new[] { "README.md", "README.ru.md" })
+        {
+            var documented = Regex.Match(
+                File.ReadAllText(Path.Combine(root, readme)),
+                @"\[Flare\.Blazor\]\((?<url>[^)]+)\)");
+            Assert.True(documented.Success, $"{readme} should name the library's repository.");
+            Assert.Equal(declared.Groups["url"].Value, documented.Groups["url"].Value);
+        }
+
+        // The version comes from the package's informational version, and the caption is what the rail
+        // prints. The assembly identity is where it used to be read - the Flare packages carry 0.0.0.0
+        // there, which is how "v0.0.0" reached the screen.
+        Assert.DoesNotContain("GetName().Version", layout, StringComparison.Ordinal);
+        Assert.Contains("AssemblyInformationalVersionAttribute", layout, StringComparison.Ordinal);
+        Assert.Contains("@FlareVersionCaption", layout, StringComparison.Ordinal);
+
+        // And the caption follows the package Aiko.Pwa.csproj actually references, so a number written
+        // into the code (or into this test) cannot outlive the package it describes.
+        var package = Regex.Match(
+            File.ReadAllText(Path.Combine(root, "src", "Aiko.Pwa", "Aiko.Pwa.csproj")),
+            @"<PackageReference[^>]*Include=""Flare\.Blazor""[^>]*>");
+        Assert.True(package.Success, "Aiko.Pwa.csproj should reference the Flare.Blazor package.");
+        var referenced = Regex.Match(package.Value, @"Version=""(?<version>[^""]+)""");
+        Assert.True(referenced.Success, "The Flare.Blazor reference should state the version it pins.");
+        Assert.Equal("v" + referenced.Groups["version"].Value, MainLayout.FlareVersionCaption);
+        Assert.Equal(referenced.Groups["version"].Value, MainLayout.VersionOf(typeof(FlareText).Assembly));
+
+        // A version of nothing but zeros counts as unstated, so the caption's old text is gone from the
+        // client for good rather than merely overwritten in the one place that printed it.
+        var offenders = new List<string>();
+        foreach (var extension in new[] { "*.cs", "*.razor" })
+        {
+            foreach (var file in Directory.EnumerateFiles(
+                         Path.Combine(root, "src", "Aiko.Pwa"), extension, SearchOption.AllDirectories))
+            {
+                if (file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal) ||
+                    file.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                if (File.ReadAllText(file).Contains("v0.0.0", StringComparison.Ordinal))
+                {
+                    offenders.Add(file);
+                }
+            }
+        }
+
+        Assert.True(
+            offenders.Count == 0,
+            "A zero is what an assembly says when it says nothing, and it should read as a dash:" +
+            Environment.NewLine + string.Join(Environment.NewLine, offenders));
     }
 
     /// <summary>

@@ -1,3 +1,4 @@
+@using System.Reflection
 @inherits LayoutComponentBase
 @implements IAsyncDisposable
 @inject WorkspaceState State
@@ -310,8 +311,14 @@
                     </FlareStack>
                     <span class="aiko-rail__divider"></span>
                     <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XXSmall">
-                        <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant2">Flare.Blazor</FlareText>
-                        <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant2">@($"v{FlareVersion}")</FlareText>
+                        @* The library's name opens the repository it comes from: a plain external anchor, because
+                           FlareNavLink marks an active route and there is no route outside the app to mark. The
+                           address is a fact about the dependency rather than interface text, so it lives in one
+                           constant and never in the resources a translator edits. *@
+                        <a class="aiko-link" href="@FlareRepositoryUrl" target="_blank" rel="noreferrer">
+                            <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant2">Flare.Blazor</FlareText>
+                        </a>
+                        <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant2">@FlareVersionCaption</FlareText>
                     </FlareStack>
                 </FlareStack>
             </FooterContent>
@@ -352,6 +359,13 @@
 
     /// <summary>Where the product lives. One constant, so the bar and a future About screen agree.</summary>
     private const string GitHubUrl = "https://github.com/jrfrigat/Aiko";
+
+    /// <summary>
+    /// Where the component library lives: the same address <c>README.md</c> and <c>README.ru.md</c> give
+    /// for Flare.Blazor. A dependency's address is a fact about the dependency, so it is a constant rather
+    /// than a resource a translator edits.
+    /// </summary>
+    private const string FlareRepositoryUrl = "https://github.com/jrfrigat/Flare";
 
     /// <summary>
     /// GitHub's mark (24x24 path data) for the repository button, taken from the Flare gallery's app bar.
@@ -426,10 +440,46 @@
         ? $"{milliseconds}ms"
         : "—";
 
-    /// <summary>The component library's version, read from the assembly the cockpit loaded.</summary>
-    private static string FlareVersion => typeof(FlareText).Assembly.GetName().Version is { } version
-        ? $"{version.Major}.{version.Minor}.{version.Build}"
+    /// <summary>
+    /// The component library's version as the rail prints it ("v0.38.0"), or an em dash when the assembly
+    /// states no version at all.
+    /// </summary>
+    /// <remarks>
+    /// The version comes from the informational version, which is where NuGet writes the package's own
+    /// version - not from the assembly identity, where the Flare packages carry zeros on purpose: reading
+    /// that is what put a bare zero version in the rail. Nothing is written down here, so updating the
+    /// package moves the caption with it.
+    ///
+    /// Internal rather than private so the spec can hold the caption against the package version the
+    /// project actually references, instead of against a number typed into the test.
+    /// </remarks>
+    internal static string FlareVersionCaption => VersionOf(typeof(FlareText).Assembly) is { } version
+        ? $"v{version}"
         : "—";
+
+    /// <summary>The version an assembly announces, or null when it states none.</summary>
+    /// <remarks>
+    /// The SDK appends the source revision to the informational version ("0.38.0+abc1234"); that suffix is
+    /// build metadata rather than a version a person reads, and the daemon drops it from its own version
+    /// the same way. A version of nothing but zeros and dots counts as unstated: a zero is what an assembly
+    /// says when it says nothing, and it must never be dressed up as a release.
+    /// </remarks>
+    internal static string? VersionOf(Assembly assembly) =>
+        Readable(assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion)
+        ?? Readable(assembly.GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version);
+
+    /// <summary>The version text without its build-metadata suffix, or null when it states nothing.</summary>
+    private static string? Readable(string? version)
+    {
+        if (string.IsNullOrWhiteSpace(version))
+        {
+            return null;
+        }
+
+        var plus = version.IndexOf('+', StringComparison.Ordinal);
+        var text = (plus > 0 ? version[..plus] : version).Trim();
+        return text.Length == 0 || text.All(character => character is '0' or '.') ? null : text;
+    }
 
     /// <summary>
     /// The rail's orchestration load: the share of cards an agent is working right now. A real
