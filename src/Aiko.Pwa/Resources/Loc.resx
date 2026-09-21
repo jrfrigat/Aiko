@@ -532,8 +532,8 @@
   <data name="PushAskHint" xml:space="preserve"><value>The agent asks before pushing and waits for your answer</value></data>
   <data name="PushAllowTitle" xml:space="preserve"><value>The agent pushes</value></data>
   <data name="PushAllowHint" xml:space="preserve"><value>The agent may push and reports what it pushed</value></data>
-  <data name="CrossProjectReceive" xml:space="preserve"><value>Accepting cards from other projects</value></data>
-  <data name="CrossProjectPolicyHint" xml:space="preserve"><value>Whether an agent working next door can create cards here, and under what terms.</value></data>
+  <data name="CrossProjectWrite" xml:space="preserve"><value>Writing to other projects</value></data>
+  <data name="CrossProjectPolicyHint" xml:space="preserve"><value>Whether an agent working here may create cards in a neighbouring project, and under what terms.</value></data>
   <data name="CrossProjectTargets" xml:space="preserve"><value>Projects this one may write to</value></data>
   <data name="CrossProjectTargetsHint" xml:space="preserve"><value>An empty list allows writing to any project. To narrow it, list ids or handles, one per line.</value></data>
   <data name="CrossProjectTargetsPlaceholder" xml:space="preserve"><value>One project id or handle per line; empty allows any</value></data>

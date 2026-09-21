@@ -789,7 +789,7 @@ public sealed class RazorMarkupSpecs
         // Two settings of opposite direction used to share one heading, and only a hint said which was which - so
         // a person a *sending* project had refused read the *receiving* project's screen, found it correct, and
         // looked no further. Each direction now names itself ...
-        Assert.Contains("Loc.Get(\"CrossProjectReceive\")", editor, StringComparison.Ordinal);
+        Assert.Contains("Loc.Get(\"CrossProjectWrite\")", editor, StringComparison.Ordinal);
         Assert.Contains("Loc.Get(\"CrossProjectTargets\")", editor, StringComparison.Ordinal);
 
         // ... the list of projects this one may write to says what an empty list means, which the old block left
@@ -803,12 +803,25 @@ public sealed class RazorMarkupSpecs
         {
             var resx = File.ReadAllText(
                 Path.Combine(root, "src", "Aiko.Pwa", "Resources", resource));
-            Assert.Contains("name=\"CrossProjectReceive\"", resx, StringComparison.Ordinal);
+            Assert.Contains("name=\"CrossProjectWrite\"", resx, StringComparison.Ordinal);
             Assert.Contains("name=\"CrossProjectPolicyHint\"", resx, StringComparison.Ordinal);
             Assert.Contains("name=\"CrossProjectTargets\"", resx, StringComparison.Ordinal);
             Assert.Contains("name=\"CrossProjectTargetsHint\"", resx, StringComparison.Ordinal);
             Assert.DoesNotContain("name=\"CrossProjectPolicy\"", resx, StringComparison.Ordinal);
         }
+
+        // The hint that said the opposite is gone from both languages. It claimed the setting stated what another
+        // project may do *here*, while the daemon reads this project's own policy when it writes elsewhere and
+        // never consults the receiving project's settings - which is how a person refused by a neighbour's list
+        // ended up reading this screen and finding it correct.
+        var english = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Resources", "Loc.resx"));
+        var russian = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Resources", "Loc.ru.resx"));
+        Assert.DoesNotContain("may do to this one", english, StringComparison.Ordinal);
+        Assert.DoesNotContain("Что другой проект может сделать с этим", russian, StringComparison.Ordinal);
+        Assert.Contains("working here", english, StringComparison.Ordinal);
+        Assert.Contains("работающий здесь", russian, StringComparison.Ordinal);
     }
 
     /// <summary>

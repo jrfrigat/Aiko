@@ -267,14 +267,15 @@
                             }
                         </div>
                     </FlareStack>
-                    @* Two settings of opposite direction used to share one heading, "Cross-project writing", and the
-                       direction of each lived only in a hint - so a person a *sending* project had refused read the
-                       *receiving* project's screen, found it correct, and looked no further. Each direction now names
-                       itself. *@
+                    @* Both settings are this project's own side of the hand-over: the policy decides whether an
+                       agent working here may create cards elsewhere at all, and the list narrows where. The old
+                       block said the opposite - "what another project may do to this one" - so a person a
+                       neighbour's list had refused read this screen, found it correct, and looked no further: the
+                       daemon never consults the receiving project's settings. *@
                     <FlareStack Class="aiko-tile" Gap="FlareSpacing.XSmall">
                         <FlareStack Gap="FlareSpacing.None">
                             <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
-                                @Loc.Get("CrossProjectReceive")
+                                @Loc.Get("CrossProjectWrite")
                             </FlareText>
                             <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
                                 @Loc.Get("CrossProjectPolicyHint")
