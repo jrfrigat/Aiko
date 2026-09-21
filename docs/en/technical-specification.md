@@ -152,13 +152,13 @@ By default the installer adds `/.aiko/` to `.gitignore`. The user can choose ano
   workflows/
     story.json               # a workflow definition: one .json file per type
     task.json
-    stories/<STORY-ID>/      # the cards of that type: one directory per card
+    Stories/<STORY-ID>/      # the cards of that type: one directory per card
       card.json
       request.md
       analysis.md
       implementation.md
       handoffs/
-    tasks/<TASK-ID>/
+    Tasks/<TASK-ID>/
       card.json
       request.md
       analysis.md
@@ -181,14 +181,17 @@ By default the installer adds `/.aiko/` to `.gitignore`. The user can choose ano
 
 The presence of a specific Markdown file is defined by stage requirements, not by a fixed set: `aiko init`
 creates `workflows/`, `projections/`, `memory/` and `runtime/`. A card lives in the collection of its type,
-`workflows/<collection>/<cardId>/` - `workflows/tasks/TASK-1/` - and that directory appears with the first
-card of the type, while `handoffs/` appears with the first hand-off of a stage to another agent. What tells
-the two kinds of entry under `workflows/` apart is their shape rather than a list of names: a `.json` **file**
-is a workflow definition, a **directory** is the collection of that type's cards. A project may therefore
-name a type anything at all, including after a service directory. Cards of a project made before they were
-filed this way are moved under `workflows/` when the daemon starts, or by `aiko repair --fix`; until then
-they are read where they are. `commands.json` appears with the first command a screen places for an agent
-(see 12.2).
+`workflows/<collection>/<cardId>/` - `workflows/Tasks/TASK-1/` - and that directory appears with the first
+card of the type, while `handoffs/` appears with the first hand-off of a stage to another agent. The
+collection is named after the workflow that defines the type - the workflow's own name in the project
+settings, so the type `task` is filed under `Tasks` - and the name is made fit to be a directory. A project
+created before this rule keeps the name it was given, the plural of the type id (`tasks`), and both names
+are read, so nothing has to be migrated. What tells the two kinds of entry under `workflows/` apart is their
+shape rather than a list of names: a `.json` **file** is a workflow definition, a **directory** is the
+collection of that type's cards. A project may therefore name a type anything at all, including after a
+service directory. Cards of a project made before they were filed this way are moved under `workflows/` when
+the daemon starts, or by `aiko repair --fix`; until then they are read where they are. `commands.json`
+appears with the first command a screen places for an agent (see 12.2).
 
 ### 7.3 Global SQLite
 
