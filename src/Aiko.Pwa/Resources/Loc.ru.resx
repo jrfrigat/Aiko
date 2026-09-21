@@ -191,9 +191,10 @@
   <data name="InspectorAriaLabel" xml:space="preserve"><value>Инспектор Aiko</value></data>
   <data name="StoriesNav" xml:space="preserve"><value>Истории</value></data>
   <data name="TasksNav" xml:space="preserve"><value>Задачи</value></data>
-  <data name="CombinedNav" xml:space="preserve"><value>Общая</value></data>
   <data name="BoardTypesFilter" xml:space="preserve"><value>Типы карточек</value></data>
-  <data name="BoardTypesPicked" xml:space="preserve"><value>Типов: {0}</value></data>
+  <data name="BoardWaitingFilter" xml:space="preserve"><value>Фильтр по ожиданию ответа</value></data>
+  <data name="BoardWaitingFilterAll" xml:space="preserve"><value>Все</value></data>
+  <data name="BoardWaitingFilterWaiting" xml:space="preserve"><value>Ожидание ответа</value></data>
   <data name="StoryFlow" xml:space="preserve"><value>Поток историй</value></data>
   <data name="TaskFlow" xml:space="preserve"><value>Поток задач</value></data>
   <data name="WorkflowTitleRequired" xml:space="preserve"><value>Введите название workflow.</value></data>

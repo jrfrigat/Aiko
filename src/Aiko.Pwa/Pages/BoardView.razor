@@ -14,41 +14,41 @@
 else
 {
     <FlareStack Gap="FlareSpacing.Medium">
-        @* Which card types the board draws. It is a filter rather than a route, so a person can show two
-           types at once and the address stays the board's own; "Combined" is the absence of a filter.
-           FlareMenu with a toggle in its Activator slot is the idiom for a button that opens a menu:
-           Flare has no FlareMenuButton yet (menu-button.md in the Flare issues), and its absence is also
-           why the menu's ARIA sits on the activator wrapper rather than on the button itself. *@
-        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
-            <FlareMenu AriaLabel="@Loc.Get("BoardTypesFilter")" Anchor="MenuAnchor.BottomLeft">
-                <Activator>
-                    <FlareToggleButton Variant="ButtonVariant.Tonal"
-                                       Size="ButtonSize.Sm"
-                                       Toggled="@IsFiltered"
-                                       ToggledChanged="OnFilterToggledAsync"
-                                       AriaLabel="@Loc.Get("BoardTypesFilter")">
-                        <OffIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.Tune" /></OffIcon>
-                        <ChildContent>@FilterCaption</ChildContent>
+        @* The board's two filters, as groups of toggle buttons rather than a menu with a caption: every type
+           is one press away, and the answer filter sits beside them. Pressing nothing in the type group shows
+           every type - the absence of a filter is the board's own combined view - while the answer group
+           always has one of its two options on. FlareButtonGroup takes no AriaLabel of its own, so each
+           group's accessible name rides on the group's element. *@
+        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small" Wrap="true">
+            <FlareButtonGroup Size="ButtonSize.Sm"
+                              Variant="ButtonVariant.Tonal"
+                              Collapsible="true"
+                              AdditionalAttributes="@TypeFilterAttributes">
+                @foreach (var workflow in TypeChoices)
+                {
+                    var option = workflow;
+                    <FlareToggleButton Toggled="@IsPicked(option)"
+                                       ToggledChanged="@(toggled => SetKindAsync(option, toggled))"
+                                       AriaLabel="@option.Title">
+                        <ChildContent>@option.Title</ChildContent>
                     </FlareToggleButton>
-                </Activator>
-                <ChildContent>
-                    @* "Combined" is not a type but the absence of a filter: every type is on. *@
-                    <FlareMenuItem AutoClose="false"
-                                   Icon="@(IsFiltered ? null : (FlareIcon)MaterialDesign3Icons.Regular.Check)"
-                                   OnClick="ClearKindsAsync">
-                        @Loc.Get("CombinedNav")
-                    </FlareMenuItem>
-                    @foreach (var workflow in TypeChoices)
-                    {
-                        var option = workflow;
-                        <FlareMenuItem AutoClose="false"
-                                       Icon="@(IsPicked(option) ? (FlareIcon)MaterialDesign3Icons.Regular.Check : null)"
-                                       OnClick="() => ToggleKindAsync(option)">
-                            @option.Title
-                        </FlareMenuItem>
-                    }
-                </ChildContent>
-            </FlareMenu>
+                }
+            </FlareButtonGroup>
+            <FlareButtonGroup Connected="true"
+                              Size="ButtonSize.Sm"
+                              Variant="ButtonVariant.Tonal"
+                              AdditionalAttributes="@WaitingFilterAttributes">
+                <FlareToggleButton Toggled="@(!WaitingOnly)"
+                                   ToggledChanged="@(_ => SelectWaitingAsync(waitingOnly: false))"
+                                   AriaLabel="@Loc.Get("BoardWaitingFilterAll")">
+                    <ChildContent>@Loc.Get("BoardWaitingFilterAll")</ChildContent>
+                </FlareToggleButton>
+                <FlareToggleButton Toggled="@WaitingOnly"
+                                   ToggledChanged="@(_ => SelectWaitingAsync(waitingOnly: true))"
+                                   AriaLabel="@Loc.Get("BoardWaitingFilterWaiting")">
+                    <ChildContent>@Loc.Get("BoardWaitingFilterWaiting")</ChildContent>
+                </FlareToggleButton>
+            </FlareButtonGroup>
         </FlareStack>
 
         @* The design's metric strip: a mono summary line, not a row of tiles. A tile may carry one slice of
@@ -164,6 +164,7 @@ else
             <BoardSection Title="@current.Title"
                           Kind="@current.CardType"
                           Board="board"
+                          VisibleCardIds="@VisibleCardIds"
                           SizeGrid="@(State.SettingsView?.EffectivePriority.Grid ?? [])"
                           OnCardMoved="move => MoveCardAsync(current.CardType, move)" />
         }
@@ -256,53 +257,67 @@ else
     [Parameter, EditorRequired] public string ProjectId { get; set; } = string.Empty;
 
     /// <summary>
-    /// The card types the board is filtered to. Empty means no filter at all - every type is drawn, which
-    /// is what the menu's "Combined" entry restores.
+    /// The card types the board is filtered to. Empty means no filter at all - every type is drawn, which is
+    /// what pressing nothing in the group says.
     /// </summary>
     private readonly HashSet<string> _pickedKinds = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Whether the board shows only the cards that wait for an answer from the person.</summary>
+    private bool WaitingOnly { get; set; }
+
+    /// <summary>
+    /// The cards the answer filter leaves: the ones whose latest run waits for a user and whose feed's last
+    /// word is an agent's. Rebuilt from the runs and feeds the board reads, never guessed.
+    /// </summary>
+    private HashSet<string> _waitingCards = new(StringComparer.Ordinal);
 
     /// <summary>Whether the board is showing a subset of the project's card types.</summary>
     private bool IsFiltered => _pickedKinds.Count > 0;
 
     /// <summary>
     /// The card types the board may show, from the project's own workflows: a type is a workflow, so a
-    /// type the user adds appears in the menu without the board knowing its name.
+    /// type the user adds gets its own button without the board knowing its name.
     /// </summary>
     private IReadOnlyList<WorkflowDefinition> TypeChoices =>
         State.Board?.Workflows.OrderBy(workflow => workflow.Title, StringComparer.Ordinal).ToArray() ?? [];
 
     private bool IsPicked(WorkflowDefinition type) => _pickedKinds.Contains(type.CardType);
 
-    /// <summary>What the control says the board is showing: a type's name, or how many are on.</summary>
-    private string FilterCaption => _pickedKinds.Count switch
+    /// <summary>
+    /// Sets one type's place in the filter from what the button reports rather than flipping it: the button
+    /// says whether it is on, so a click arriving twice cannot leave the two out of step.
+    /// </summary>
+    private Task SetKindAsync(WorkflowDefinition type, bool picked)
     {
-        0 => Loc.Get("CombinedNav"),
-        1 => TypeChoices.FirstOrDefault(IsPicked)?.Title ?? Loc.Get("CombinedNav"),
-        var count => Loc.Format("BoardTypesPicked", count)
-    };
-
-    private Task ToggleKindAsync(WorkflowDefinition type)
-    {
-        if (!_pickedKinds.Remove(type.CardType))
+        if (picked)
         {
             _pickedKinds.Add(type.CardType);
+        }
+        else
+        {
+            _pickedKinds.Remove(type.CardType);
         }
 
         return Task.CompletedTask;
     }
 
-    private Task ClearKindsAsync()
+    /// <summary>
+    /// The answer filter's choice. The group is a pair of options, so the pressed one decides: a press cannot
+    /// turn the pair off, which is what keeps the board from having a third, unnamed state.
+    /// </summary>
+    private Task SelectWaitingAsync(bool waitingOnly)
     {
-        _pickedKinds.Clear();
+        WaitingOnly = waitingOnly;
         return Task.CompletedTask;
     }
 
-    /// <summary>
-    /// Bound so the toggle is what Flare calls "controlled": its pressed state reports whether a filter is
-    /// on, and it follows the picked types rather than the click. The click itself is what opens the menu,
-    /// so there is nothing to do here - the state comes back through the menu's items.
-    /// </summary>
-    private Task OnFilterToggledAsync(bool toggled) => Task.CompletedTask;
+    /// <summary>The type group's accessible name, on the group's own element: Flare takes no AriaLabel here.</summary>
+    private IReadOnlyDictionary<string, object> TypeFilterAttributes =>
+        new Dictionary<string, object>(StringComparer.Ordinal) { ["aria-label"] = Loc.Get("BoardTypesFilter") };
+
+    /// <summary>The answer group's accessible name.</summary>
+    private IReadOnlyDictionary<string, object> WaitingFilterAttributes =>
+        new Dictionary<string, object>(StringComparer.Ordinal) { ["aria-label"] = Loc.Get("BoardWaitingFilter") };
 
     /// <summary>The route opens the project; the board itself has no other state of its own.</summary>
     protected override async Task OnParametersSetAsync()
@@ -340,6 +355,7 @@ else
         {
             _activeRuns = [];
             _activeRunsSignature = string.Empty;
+            _waitingCards = [];
             return;
         }
 
@@ -348,34 +364,74 @@ else
             .OrderBy(run => run.CardId, StringComparer.Ordinal)
             .ToArray();
         var signature = string.Join('|', active.Select(run => $"{run.CardId}:{run.StageId}:{run.State}"));
-        if (string.Equals(signature, _activeRunsSignature, StringComparison.Ordinal))
+        if (!string.Equals(signature, _activeRunsSignature, StringComparison.Ordinal))
         {
-            return;
-        }
-
-        // The signature is remembered before the reads: a refresh arriving while the panel is loading must not
-        // start a second round of the same requests.
-        _activeRunsSignature = signature;
-        var rows = new List<ActiveRun>();
-        foreach (var run in active)
-        {
-            var execution = await FindExecutionAsync(run.CardId, run.StageId);
-            if (execution is null)
+            // The signature is remembered before the reads: a refresh arriving while the panel is loading must
+            // not start a second round of the same requests.
+            _activeRunsSignature = signature;
+            var rows = new List<ActiveRun>();
+            foreach (var run in active)
             {
-                continue;
+                var execution = await FindExecutionAsync(run.CardId, run.StageId);
+                if (execution is null)
+                {
+                    continue;
+                }
+
+                rows.Add(new ActiveRun(
+                    run.CardId,
+                    board.Cards.FirstOrDefault(card =>
+                        StringComparer.Ordinal.Equals(card.Reference.CardId, run.CardId))?.Title ?? run.CardId,
+                    run.StageId,
+                    execution.State.ToString(),
+                    execution.Attempts.LastOrDefault()?.AgentAdapterId ?? Loc.Get("ActiveRunsNoAgent"),
+                    execution.UpdatedAt));
             }
 
-            rows.Add(new ActiveRun(
-                run.CardId,
-                board.Cards.FirstOrDefault(card =>
-                    StringComparer.Ordinal.Equals(card.Reference.CardId, run.CardId))?.Title ?? run.CardId,
-                run.StageId,
-                execution.State.ToString(),
-                execution.Attempts.LastOrDefault()?.AgentAdapterId ?? Loc.Get("ActiveRunsNoAgent"),
-                execution.UpdatedAt));
+            _activeRuns = rows;
         }
 
-        _activeRuns = rows;
+        // The answer filter is read on every pass rather than only when the runs changed: its other half is
+        // the feed, whose last word can change without any run changing.
+        await RefreshWaitingCardsAsync();
+    }
+
+    /// <summary>
+    /// Rebuilds the set the answer filter shows: the cards whose latest run waits for a user and whose feed's
+    /// last word is an agent's.
+    /// </summary>
+    /// <remarks>
+    /// Only those cards' feeds are read, so the cost follows the number of cards waiting for a person rather
+    /// than the size of the board. A card whose notes cannot be read is left out of the selection instead of
+    /// breaking the screen.
+    /// </remarks>
+    private async Task RefreshWaitingCardsAsync()
+    {
+        var waiting = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var run in _activeRuns.Where(run => BoardWaiting.IsWaitingForUser(run.State)))
+        {
+            if (BoardWaiting.AwaitsAnswer(run.State, await LoadDiscussionAsync(run.CardId)))
+            {
+                waiting.Add(run.CardId);
+            }
+        }
+
+        _waitingCards = waiting;
+    }
+
+    /// <summary>One card's feed, or null when it cannot be read.</summary>
+    private async Task<IReadOnlyList<CardComment>?> LoadDiscussionAsync(string cardId)
+    {
+        try
+        {
+            return await Http.GetFromJsonAsync<IReadOnlyList<CardComment>>(
+                $"api/v1/projects/{Uri.EscapeDataString(ProjectId)}/cards/{Uri.EscapeDataString(cardId)}/discussion",
+                PwaJson.Options);
+        }
+        catch (Exception)
+        {
+            return null;
+        }
     }
 
     /// <summary>
@@ -415,9 +471,23 @@ else
         .Where(type => !IsFiltered || IsPicked(type))
         .ToArray();
 
+    /// <summary>
+    /// The cards the board is showing: the types the filter picked, and - when the answer filter is on - only
+    /// those that wait for the person.
+    /// </summary>
     private IReadOnlyList<Card> VisibleCards => State.Board?.Cards
-        .Where(card => !IsFiltered || _pickedKinds.Contains(card.Kind))
+        .Where(card => (!IsFiltered || _pickedKinds.Contains(card.Kind)) &&
+                       (!WaitingOnly || _waitingCards.Contains(card.Reference.CardId)))
         .ToArray() ?? [];
+
+    /// <summary>
+    /// The cards the sections may draw, or null when nothing is filtered: a section reads the board itself, so
+    /// it has to be told which of its cards the board is showing.
+    /// </summary>
+    private IReadOnlySet<string>? VisibleCardIds =>
+        IsFiltered || WaitingOnly
+            ? VisibleCards.Select(card => card.Reference.CardId).ToHashSet(StringComparer.Ordinal)
+            : null;
 
     /// <summary>
     /// The four board metrics, as the design's mono summary line. A tile carries at most one slice of its

@@ -83,9 +83,10 @@
   <data name="InspectorAriaLabel" xml:space="preserve"><value>Aiko inspector</value></data>
   <data name="StoriesNav" xml:space="preserve"><value>Stories</value></data>
   <data name="TasksNav" xml:space="preserve"><value>Tasks</value></data>
-  <data name="CombinedNav" xml:space="preserve"><value>Combined</value></data>
   <data name="BoardTypesFilter" xml:space="preserve"><value>Card types</value></data>
-  <data name="BoardTypesPicked" xml:space="preserve"><value>{0} types</value></data>
+  <data name="BoardWaitingFilter" xml:space="preserve"><value>Answer filter</value></data>
+  <data name="BoardWaitingFilterAll" xml:space="preserve"><value>All</value></data>
+  <data name="BoardWaitingFilterWaiting" xml:space="preserve"><value>Waiting for an answer</value></data>
   <data name="StoryFlow" xml:space="preserve"><value>Story flow</value></data>
   <data name="GitPolicyTrackKnowledge" xml:space="preserve"><value>track-project-knowledge</value></data>
   <data name="GitPolicyCustom" xml:space="preserve"><value>custom</value></data>

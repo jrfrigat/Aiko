@@ -141,6 +141,15 @@
     [Parameter, EditorRequired] public ProjectBoardSnapshot Board { get; set; } = null!;
 
     /// <summary>
+    /// The cards the board's filters left for this section, or null when nothing is filtered.
+    /// </summary>
+    /// <remarks>
+    /// The section reads the board's cards itself, so the board has to hand over the set it is showing: without
+    /// it, a filter that hides cards from the counters would still draw their columns.
+    /// </remarks>
+    [Parameter] public IReadOnlySet<string>? VisibleCardIds { get; set; }
+
+    /// <summary>
     /// The project's size grid, so a card's size badge can carry the tone of the step it names.
     /// </summary>
     /// <remarks>
@@ -184,6 +193,7 @@
         _stages = _workflow?.Stages.OrderBy(stage => stage.Order).ToArray() ?? [];
         _cards = Board.Cards
             .Where(card => StringComparer.OrdinalIgnoreCase.Equals(card.Kind, Kind))
+            .Where(card => VisibleCardIds is null || VisibleCardIds.Contains(card.Reference.CardId))
             // Ranked by the priority the formula computes, not by the manual field: with criteria configured
             // the score is the weighted criterion values times the size coefficient, and the manual value is
             // only what a project without criteria ranks by. The projector falls back that way itself, so the

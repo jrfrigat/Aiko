@@ -984,6 +984,56 @@ public sealed class RazorMarkupSpecs
         ActualChangedFiles: [],
         Metadata: new Dictionary<string, string>(StringComparer.Ordinal));
 
+    [Fact]
+    public void The_board_filters_types_by_a_group_of_switches_and_asks_about_the_answer_beside_them()
+    {
+        var root = FindRepositoryRoot();
+        var view = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "BoardView.razor"));
+
+        // The types are a group of switches, one per type: the menu with its caption is gone rather than left
+        // behind the group, and a press reports the state instead of flipping it.
+        Assert.DoesNotContain("FlareMenu", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("FilterCaption", view, StringComparison.Ordinal);
+        Assert.Contains("<FlareButtonGroup Size=\"ButtonSize.Sm\"", view, StringComparison.Ordinal);
+        Assert.Contains("<FlareToggleButton Toggled=\"@IsPicked(option)\"", view, StringComparison.Ordinal);
+        Assert.Contains("ToggledChanged=\"@(toggled => SetKindAsync(option, toggled))\"", view, StringComparison.Ordinal);
+
+        // The answer filter is the second group and it stands after the type group.
+        var types = view.IndexOf("AdditionalAttributes=\"@TypeFilterAttributes\"", StringComparison.Ordinal);
+        var waiting = view.IndexOf("AdditionalAttributes=\"@WaitingFilterAttributes\"", StringComparison.Ordinal);
+        Assert.True(types > 0, "The type filter should be a group with its own accessible name.");
+        Assert.True(waiting > types, "The answer filter should stand after the type filter.");
+        Assert.Contains("<FlareButtonGroup Connected=\"true\"", view, StringComparison.Ordinal);
+
+        // A section reads the board's cards itself, so the board hands over the set it is showing - or a filter
+        // would hide cards from the counters and still draw their columns.
+        Assert.Contains("VisibleCardIds=\"@VisibleCardIds\"", view, StringComparison.Ordinal);
+        Assert.Contains(
+            "!WaitingOnly || _waitingCards.Contains(card.Reference.CardId)",
+            view,
+            StringComparison.Ordinal);
+        var section = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "BoardSection.razor"));
+        Assert.Contains(
+            "public IReadOnlySet<string>? VisibleCardIds { get; set; }",
+            section,
+            StringComparison.Ordinal);
+        Assert.Contains("VisibleCardIds.Contains(card.Reference.CardId)", section, StringComparison.Ordinal);
+
+        // Both dictionaries carry the new keys and no longer carry the ones the menu used.
+        foreach (var resource in new[] { "Loc.resx", "Loc.ru.resx" })
+        {
+            var resx = File.ReadAllText(
+                Path.Combine(root, "src", "Aiko.Pwa", "Resources", resource));
+            Assert.Contains("name=\"BoardWaitingFilterAll\"", resx, StringComparison.Ordinal);
+            Assert.Contains("name=\"BoardWaitingFilterWaiting\"", resx, StringComparison.Ordinal);
+            Assert.Contains("name=\"BoardWaitingFilter\"", resx, StringComparison.Ordinal);
+            Assert.DoesNotContain("name=\"CombinedNav\"", resx, StringComparison.Ordinal);
+            Assert.DoesNotContain("name=\"BoardTypesPicked\"", resx, StringComparison.Ordinal);
+        }
+    }
+
     /// <summary>
     /// Walks up from this assembly to the solution file, the same way the daemon fixture does.
     /// </summary>
