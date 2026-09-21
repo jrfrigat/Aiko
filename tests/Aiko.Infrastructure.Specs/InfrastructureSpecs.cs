@@ -2716,6 +2716,33 @@ public class InfrastructureSpecs
     }
 
 
+    // The global skill is the only place an adapter without per-command files learns which /aiko-* commands
+    // exist, so its text has to name them. Read from the file that is written rather than from the template:
+    // the template is internal to the infrastructure assembly, and this is what the agent will actually read.
+    [Fact]
+    public async Task The_written_global_skill_names_the_log_command()
+    {
+        var home = Path.Combine(Path.GetTempPath(), "Aiko.Specs", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(home);
+        var originalHome = Environment.GetEnvironmentVariable("AIKO_USER_HOME");
+        try
+        {
+            Environment.SetEnvironmentVariable("AIKO_USER_HOME", home);
+
+            var applied = await new ZCodeAgentAdapter().ApplyUserInstallAsync(CancellationToken.None);
+            Assert.True(applied.Succeeded);
+
+            var skill = Path.Combine(home, ".zcode", "skills", "aiko", "SKILL.md");
+            Assert.True(File.Exists(skill));
+            Assert.Contains("aiko-logs", await File.ReadAllTextAsync(skill), StringComparison.Ordinal);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("AIKO_USER_HOME", originalHome);
+            Directory.Delete(home, true);
+        }
+    }
+
     [Fact]
     public async Task Cline_configuration_uses_its_own_paths_and_the_streamable_http_transport()
     {

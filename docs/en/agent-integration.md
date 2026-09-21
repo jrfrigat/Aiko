@@ -200,7 +200,7 @@ command the way the card page places a command for a card, and any agent that ru
 Global skills/commands (installed with `aiko agent install --scope user`):
 
 `/aiko-init [templateId]`, `/aiko-list-projects`, `/aiko-status`, `/aiko-doctor`, `/aiko-repair`, `/aiko-agents`,
-`/aiko-settings`, `/aiko-token`, `/aiko-backup`, `/aiko-ui`.
+`/aiko-settings`, `/aiko-token`, `/aiko-backup`, `/aiko-logs`, `/aiko-ui`.
 
 User scope is the machine-wide connection: it is what the dashboard's *Agents* card reports as
 **connected**, and its Connect / Disconnect buttons write and remove exactly these files. The

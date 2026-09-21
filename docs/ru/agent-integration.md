@@ -182,7 +182,7 @@ workflow проекта: они перезаписываются при созд
 Глобальные скиллы/команды (устанавливаются `aiko agent install --scope user`):
 
 `/aiko-init [templateId]`, `/aiko-list-projects`, `/aiko-status`, `/aiko-doctor`, `/aiko-repair`, `/aiko-agents`,
-`/aiko-settings`, `/aiko-token`, `/aiko-backup`, `/aiko-ui`.
+`/aiko-settings`, `/aiko-token`, `/aiko-backup`, `/aiko-logs`, `/aiko-ui`.
 
 Глобальный scope — это подключение на уровне машины: именно его карточка *Agents* на дашборде показывает
 как **подключён**, а кнопки «Подключить» / «Отключить» записывают и удаляют ровно эти файлы. MCP-запись

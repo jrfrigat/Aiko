@@ -229,6 +229,7 @@ themselves are commands:
 | `/aiko-settings` | Read and change settings - a project's own, or a template's defaults for new projects |
 | `/aiko-token` | Show the local access token |
 | `/aiko-backup` | Back up a project's `.aiko` tree |
+| `/aiko-logs` | Tail of the daemon log, and a project's event journal with `--project <id>` |
 | `/aiko-ui` | Open the UI |
 
 [Agent Integration](docs/en/agent-integration.md) has the full skill → MCP tool → UI table, including

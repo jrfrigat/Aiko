@@ -597,9 +597,9 @@ internal static class AgentTemplates
         current project (/aiko-init), list projects (/aiko-list-projects), check the daemon
         (/aiko-status), diagnose it (/aiko-doctor), repair what the diagnosis found (/aiko-repair),
         manage the agents' integrations (/aiko-agents), read and change settings (/aiko-settings),
-        show the access token (/aiko-token), back a project up (/aiko-backup) and open the UI
-        (/aiko-ui). After /aiko-init, restart this agent so the project-scoped MCP configuration and
-        skills are loaded.
+        show the access token (/aiko-token), back a project up (/aiko-backup), read the log tail
+        (/aiko-logs) and open the UI (/aiko-ui). After /aiko-init, restart this agent so the
+        project-scoped MCP configuration and skills are loaded.
         """;
 
     /// <summary>
@@ -754,6 +754,23 @@ internal static class AgentTemplates
         Back up a project's `.aiko` tree with the aiko_backup MCP tool and the project id; it writes a
         timestamped zip under the Aiko data directory and returns the path. Restoring is a deliberate,
         manual step: unpack the archive yourself. Aiko never overwrites or deletes project files.
+        """;
+
+    /// <summary>
+    /// Global slash command that shows the tail of the daemon log, and of a project's event journal.
+    /// </summary>
+    /// <remarks>
+    /// The daemon log is the only place that says why a daemon stopped by itself, and the journal is the
+    /// only place that says what happened to a project's cards and stage runs. Both were reachable only by
+    /// knowing the command, so the skill names it and the flags.
+    /// </remarks>
+    public const string GlobalLogs =
+        """
+        Show what the Aiko installation and a project have been doing. Run `aiko logs` in the terminal for
+        the tail of the daemon's own log - what it said on its way out, which is how "it stopped by itself"
+        is answered - with `--lines <n>` for more of it. Add `--project <id>` for the tail of that project's
+        event journal: what happened to its cards and its stage runs. An empty log says so rather than
+        failing, and the log is bounded, so it also says what it dropped.
         """;
 
     /// <summary>
