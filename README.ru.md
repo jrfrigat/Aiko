@@ -78,17 +78,11 @@ Aiko не заменяет агентов. Он связывает их: кар�
 Windows 10/11, x64. Релиз самодостаточен (self-contained), поэтому ни .NET SDK, ни .NET runtime
 не требуются:
 
-Скачайте
-[`aiko-installer.exe`](https://github.com/jrfrigat/Aiko/releases/latest/download/aiko-installer.exe) и
-запустите, либо запустите скрипт установщика напрямую:
-
 ```powershell
-.\aiko-installer.exe
 irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1 | iex
 ```
 
-exe несёт этот скрипт внутри себя, поэтому оба пути запускают один и тот же установщик. Он скачивает
-свежий [`aiko-<версия>-win-x64.zip`](https://github.com/jrfrigat/Aiko/releases/latest),
+Установщик скачивает свежий [`aiko-<версия>-win-x64.zip`](https://github.com/jrfrigat/Aiko/releases/latest),
 распаковывает его в `%LOCALAPPDATA%\Aiko\bin` (CLI `aiko`, stdio-прокси `aiko-stdio`, демон в
 `server\`) и добавляет каталог в пользовательский `PATH`. Ничего не ставится на всю машину,
 права администратора не нужны.
@@ -105,8 +99,8 @@ aiko ui        # сопрячь браузер с демоном и открыт
 aiko doctor    # проверить установку; `aiko repair --fix` применяет найденные исправления
 ```
 
-Чтобы зафиксировать конкретный релиз или выбрать другой каталог, передайте параметры - напрямую exe или
-скрипту через scriptblock (потому что `irm ... | iex` их не принимает):
+Чтобы зафиксировать конкретный релиз или выбрать другой каталог, сначала получите скрипт в
+scriptblock:
 
 ```powershell
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1))) `

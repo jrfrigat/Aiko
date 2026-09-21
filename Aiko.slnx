@@ -7,9 +7,6 @@
   <Project Path="src/Aiko.Theme.StitchFlow/Aiko.Theme.StitchFlow.csproj" />
   <Project Path="src/Aiko.StdioProxy/Aiko.StdioProxy.csproj" />
   <Project Path="src/Aiko.Cli/Aiko.Cli.csproj" />
-  <!-- Not part of the product: the installer launcher. It is in the solution so that `dotnet build` and
-       CI compile it on every push, instead of only the release job finding out at tag time. -->
-  <Project Path="scripts/AikoInstaller/AikoInstaller.csproj" />
   <Project Path="tests/Aiko.Domain.Specs/Aiko.Domain.Specs.csproj" />
   <Project Path="tests/Aiko.Infrastructure.Specs/Aiko.Infrastructure.Specs.csproj" />
   <Project Path="tests/Aiko.Mcp.Specs/Aiko.Mcp.Specs.csproj" />

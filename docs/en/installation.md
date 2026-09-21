@@ -15,23 +15,13 @@ This guide covers installing and running Aiko on Windows.
 
 ## Install
 
-Two ways in, and both run the same installer: the launcher exe, or the script piped into PowerShell.
-
-Download [`aiko-installer.exe`](https://github.com/jrfrigat/Aiko/releases/latest/download/aiko-installer.exe)
-from the newest release and run it:
-
-```powershell
-.\aiko-installer.exe
-```
-
-Or, if you would rather read what runs before it runs, fetch the script and pipe it into PowerShell:
+One line in PowerShell:
 
 ```powershell
 irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1 | iex
 ```
 
-The exe carries that same script inside it, so the two paths cannot drift apart; the only difference is
-who starts it. The installer:
+The installer:
 
 1. resolves the newest GitHub release (or the tag you pass),
 2. downloads `aiko-<version>-win-x64.zip` from it,
@@ -65,13 +55,7 @@ the hood). Press Enter to skip; nothing is written into an agent that you did no
 | `-Autostart` | Start the daemon at sign-in without asking; the question the installer would ask defaults to no. |
 | `-NoAutostart` | Never ask about starting at sign-in (set it up later with `aiko autostart enable`). |
 
-The exe takes the options directly:
-
-```powershell
-.\aiko-installer.exe -Version v0.1.0 -InstallDir D:\Tools\Aiko
-```
-
-Through the script they need the scriptblock form, because `irm ... | iex` cannot take parameters:
+Options need the scriptblock form, because `irm ... | iex` cannot take parameters:
 
 ```powershell
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1))) `
@@ -80,8 +64,8 @@ Through the script they need the scriptblock form, because `irm ... | iex` canno
 
 ### Install from the ZIP
 
-When neither the exe nor the script can run on the machine - a PowerShell locked down by group policy,
-or a security product that quarantines an unsigned download - unpack the release yourself: download
+When the script cannot run on the machine - a PowerShell locked down by group policy, or a security
+product that blocks the download - unpack the release yourself: download
 `aiko-<version>-win-x64.zip` from the newest release, expand it into `%LOCALAPPDATA%\Aiko\bin`, and add
 that directory to the user `PATH`. That is everything the installer does with the archive itself; its
 questions about autostart and agents can be answered later with `aiko autostart enable` and
