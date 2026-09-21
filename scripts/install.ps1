@@ -25,11 +25,11 @@
     Skip adding the install directory to the user PATH.
 
 .PARAMETER Agents
-    Connect these agents globally, for example "claude-code,codex". Defaults to asking
-    interactively; combine with -NoAgentSetup to skip the question entirely.
+    Connect these agents globally, for example "claude-code,codex", instead of the ones found on
+    this machine. Combine with -NoAgentSetup to connect nobody.
 
 .PARAMETER NoAgentSetup
-    Do not ask about agent integration. Agents can be connected later with
+    Do not connect the agents found on this machine. Agents can be connected later with
     "aiko agent install --scope user".
 
 .PARAMETER Autostart
@@ -62,37 +62,7 @@ Set-StrictMode -Version Latest
 $repo = 'jrfrigat/Aiko'
 $command = 'aiko'
 
-# Agent identifiers accepted by "aiko agent install --scope user".
-$agentChoices = [ordered]@{
-    '1' = 'claude-code'
-    '2' = 'codex'
-    '3' = 'cursor'
-    '4' = 'zcode'
-    '5' = 'cline'
-}
-
 function Write-Step([string] $message) { Write-Host "==> $message" -ForegroundColor Cyan }
-
-function ConvertTo-AgentList([string] $answer) {
-    # Accepts "1,3", "all", explicit identifiers or any mix of them.
-    $selected = [System.Collections.Generic.List[string]]::new()
-    foreach ($token in ($answer -split '[,;\s]+' | Where-Object { $_ })) {
-        if ($token -eq 'all') {
-            foreach ($id in $agentChoices.Values) {
-                if (-not $selected.Contains($id)) { $selected.Add($id) }
-            }
-            continue
-        }
-
-        $id = if ($agentChoices.Contains($token)) { $agentChoices[$token] } else { $token }
-        if ($id -notin $agentChoices.Values) {
-            throw "Unknown agent '$token'. Known agents: $($agentChoices.Values -join ', ')."
-        }
-        if (-not $selected.Contains($id)) { $selected.Add($id) }
-    }
-
-    return ($selected -join ',')
-}
 
 function Get-LatestReleaseTag([string] $repository) {
     # The unauthenticated GitHub API is limited to 60 requests per public IP. That limit is often
@@ -250,31 +220,20 @@ if ($startAtSignIn) {
     }
 }
 
-$agentList = $Agents
-if (-not $NoAgentSetup -and -not $agentList) {
-    Write-Host ""
-    Write-Host "Connect Aiko to your agents?" -ForegroundColor Cyan
-    Write-Host "It writes the global MCP entry, the /aiko-* skills and the shared memory into each"
-    Write-Host "agent's own configuration; nothing else is touched."
-    Write-Host "  [1] Claude Code   [2] Codex   [3] Cursor   [4] ZCode   [5] Cline"
-    Write-Host "  1,3 = several agents, all = every agent above, Enter = skip" -ForegroundColor DarkGray
-    $answer = ''
-    try {
-        $answer = Read-Host 'Agents to connect (for example 1,3)'
-    }
-    catch {
-        Write-Verbose "No interactive console, skipping agent setup. $($_.Exception.Message)"
-    }
-
-    if ($answer) {
-        $agentList = ConvertTo-AgentList $answer
-    }
-}
-
+# There is no agent menu: "aiko agent install --scope user" already knows which agents are on this machine,
+# and a list of five here was a second place holding the same knowledge - one that had to be kept in step with
+# the adapters by hand. -Agents names them explicitly; -NoAgentSetup leaves them alone.
 $agentsConnected = $false
-if (-not $NoAgentSetup -and $agentList) {
-    Write-Step "Configuring agents: $agentList"
-    & $exe agent install --scope user --agent $agentList
+if (-not $NoAgentSetup) {
+    if ($Agents) {
+        Write-Step "Connecting the agents you named: $Agents"
+        & $exe agent install --scope user --agent $Agents
+    }
+    else {
+        Write-Step 'Connecting the agents found on this machine'
+        & $exe agent install --scope user
+    }
+
     $agentsConnected = $LASTEXITCODE -eq 0
     if (-not $agentsConnected) {
         Write-Host "    Agent setup reported a problem; re-run 'aiko agent install --scope user' after fixing it." -ForegroundColor DarkYellow

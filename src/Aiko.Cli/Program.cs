@@ -1720,12 +1720,23 @@ static async Task<int> AgentListAsync()
 
 static async Task<int> AgentInstallAsync(string[] args, bool uninstall)
 {
-    var selected = ParseSelected(args);
     var scope = ReadOption(args, "--scope");
 
     if (string.Equals(scope, "user", StringComparison.OrdinalIgnoreCase))
     {
-        foreach (var adapter in CreateAdapters().Where(a => selected.Contains(a.Id)))
+        // Without --agent the choice is what is really installed on this machine. The fixed list this branch
+        // used to fall back on writes a global configuration into an agent that is not here, and on a machine
+        // where none of the five is installed it wrote every one of them.
+        var adapters = CreateAdapters();
+        var targets = await AgentSelection.ResolveAsync(adapters, ReadOption(args, "--agent"), CancellationToken.None);
+        if (targets.Count == 0)
+        {
+            Console.WriteLine(
+                $"No agent installation was found on PATH, so there is nothing to {(uninstall ? "disconnect" : "connect")}. " +
+                "Name one with --agent <ids> to act on it anyway.");
+        }
+
+        foreach (var adapter in adapters.Where(adapter => targets.Contains(adapter.Id)))
         {
             var result = uninstall
                 ? await adapter.UninstallUserAsync(CancellationToken.None)
@@ -1746,6 +1757,10 @@ static async Task<int> AgentInstallAsync(string[] args, bool uninstall)
         Console.Error.WriteLine($"Usage: aiko agent {(uninstall ? "uninstall" : "install")} --project <id> [--agent <ids>] [--scope user]");
         return 2;
     }
+
+    // The project branch keeps the fixed fallback TASK-103 deliberately left alone: only the user scope asks
+    // what is installed. `--agent <ids>` is honoured here exactly as it always was.
+    var selected = ParseSelected(args);
 
     var dataPaths = AikoDataPaths.FromEnvironment();
     var database = new AikoDatabase(dataPaths);
@@ -1811,11 +1826,13 @@ static async Task<int> AgentInstallAsync(string[] args, bool uninstall)
     return 0;
 }
 
+// The fixed list the project branch still falls back on. The user branch does not use it: without --agent it
+// asks which agents are installed (AgentSelection.ResolveAsync). The parsing of the option itself is shared,
+// so there is one place that knows `--agent` is a comma-separated list.
 static string[] ParseSelected(string[] args)
 {
-    var selected = (ReadOption(args, "--agent") ?? string.Empty)
-        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-    return selected.Length == 0 ? ["claude-code", "codex", "cursor", "zcode", "cline"] : selected;
+    var selected = AgentSelection.Parse(ReadOption(args, "--agent"));
+    return selected.Count == 0 ? ["claude-code", "codex", "cursor", "zcode", "cline"] : [.. selected];
 }
 
 static void PrintUnknown(IReadOnlyList<string> unknown)

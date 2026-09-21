@@ -88,9 +88,9 @@ unpacks it into `%LOCALAPPDATA%\Aiko\bin` (CLI `aiko`, stdio proxy `aiko-stdio`,
 `server\`) and adds that directory to the user `PATH`. Nothing is installed machine-wide and no
 administrator rights are needed.
 
-At the end it asks which agents to connect (Claude Code, Codex, Cursor, ZCode, Cline) and writes their
-global MCP entry, `/aiko-*` skills and shared memory; answering with Enter skips the question. Answer
-it non-interactively with `-Agents claude-code,codex`, or skip it with `-NoAgentSetup`.
+At the end it connects the agents it finds on this machine (`aiko agent install --scope user`): the
+global MCP entry, `/aiko-*` skills and shared memory go into those and nobody else. Name them instead
+with `-Agents claude-code,codex`, or skip the step with `-NoAgentSetup`.
 
 ```powershell
 aiko serve     # start the daemon in this terminal (loopback only; prefers port 24560)

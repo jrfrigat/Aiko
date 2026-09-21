@@ -39,9 +39,10 @@ The installed layout:
 %LOCALAPPDATA%\Aiko\bin\server\Aiko.Server.exe   daemon, with the PWA in server\wwwroot
 ```
 
-When the install finishes, the installer asks which agents to connect and then writes the global MCP
-entry, the `/aiko-*` skills and the shared memory into them (`aiko agent install --scope user` under
-the hood). Press Enter to skip; nothing is written into an agent that you did not name.
+When the install finishes, the installer runs `aiko agent install --scope user`, which writes the global
+MCP entry, the `/aiko-*` skills and the shared memory into the agents it finds on this machine. There is
+no list to pick from: the command asks each adapter what it has detected. `-Agents claude-code,codex`
+names them instead, and `-NoAgentSetup` connects nobody.
 
 ### Installer options
 
@@ -49,8 +50,8 @@ the hood). Press Enter to skip; nothing is written into an agent that you did no
 | :-- | :-- |
 | `-Version <tag>` | Install a specific release, for example `v0.1.0`. Defaults to the latest release. |
 | `-InstallDir <path>` | Unpack somewhere else. Defaults to `%LOCALAPPDATA%\Aiko\bin`. |
-| `-Agents <ids>` | Connect these agents globally without asking, for example `claude-code,codex`. |
-| `-NoAgentSetup` | Never ask about agents (same as `aiko agent install --scope user` later). |
+| `-Agents <ids>` | Connect these agents globally instead of the ones found on this machine, for example `claude-code,codex`. |
+| `-NoAgentSetup` | Do not connect agents (run `aiko agent install --scope user` later). |
 | `-NoPathUpdate` | Leave the user `PATH` untouched. |
 | `-Autostart` | Start the daemon at sign-in without asking; the question the installer would ask defaults to no. |
 | `-NoAutostart` | Never ask about starting at sign-in (set it up later with `aiko autostart enable`). |
@@ -67,8 +68,8 @@ Options need the scriptblock form, because `irm ... | iex` cannot take parameter
 When the script cannot run on the machine - a PowerShell locked down by group policy, or a security
 product that blocks the download - unpack the release yourself: download
 `aiko-<version>-win-x64.zip` from the newest release, expand it into `%LOCALAPPDATA%\Aiko\bin`, and add
-that directory to the user `PATH`. That is everything the installer does with the archive itself; its
-questions about autostart and agents can be answered later with `aiko autostart enable` and
+that directory to the user `PATH`. That is everything the installer does with the archive itself; the
+autostart step and the agent connection can be done later with `aiko autostart enable` and
 `aiko agent install --scope user`.
 
 ### Install from a source checkout
@@ -85,6 +86,9 @@ Install the global agent skills (optional but recommended) so `/aiko-init` works
 ```powershell
 aiko agent install --scope user
 ```
+
+Without `--agent` this connects the agents found on this machine: a fixed list would write a global
+configuration into an agent that is not installed. `aiko agent list` prints what was detected.
 
 ## Run
 
@@ -200,8 +204,9 @@ when that is what you want.
 aiko agent install --project <projectId>
 ```
 
-This writes the project-scoped MCP configuration and the `/aiko-*` skills for the detected agents.
-`aiko agent list` shows which agents were found. Restart the agent so it loads the new MCP server.
+This writes the project-scoped MCP configuration and the `/aiko-*` skills for the agents it is told to
+connect: `--agent <ids>` names them, and without it every adapter Aiko ships is used. `aiko agent list`
+shows which agents were found on this machine. Restart the agent so it loads the new MCP server.
 
 ## Update and uninstall
 

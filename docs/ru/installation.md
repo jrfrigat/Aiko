@@ -39,9 +39,10 @@ irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1 | i
 %LOCALAPPDATA%\Aiko\bin\server\Aiko.Server.exe   демон, PWA в server\wwwroot
 ```
 
-В конце установщик спрашивает, с какими агентами работать, и записывает им глобальную MCP-запись,
-скиллы `/aiko-*` и общую память (по сути `aiko agent install --scope user`). Enter - пропустить;
-в агентов, которых вы не назвали, ничего не пишется.
+В конце установщик запускает `aiko agent install --scope user`, и она записывает глобальную MCP-запись,
+скиллы `/aiko-*` и общую память тем агентам, которые найдены на этой машине. Списка для выбора больше
+нет: команда сама спрашивает каждый адаптер, что он обнаружил. `-Agents claude-code,codex` называет
+агентов вместо этого, `-NoAgentSetup` не подключает никого.
 
 ### Параметры установщика
 
@@ -49,8 +50,8 @@ irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1 | i
 | :-- | :-- |
 | `-Version <tag>` | Установить конкретный релиз, например `v0.1.0`. По умолчанию - последний релиз. |
 | `-InstallDir <path>` | Распаковать в другой каталог. По умолчанию `%LOCALAPPDATA%\Aiko\bin`. |
-| `-Agents <ids>` | Подключить агентов без диалога, например `claude-code,codex`. |
-| `-NoAgentSetup` | Не спрашивать про агентов (то же самое позже: `aiko agent install --scope user`). |
+| `-Agents <ids>` | Подключить этих агентов вместо найденных на машине, например `claude-code,codex`. |
+| `-NoAgentSetup` | Не подключать агентов (позже: `aiko agent install --scope user`). |
 | `-NoPathUpdate` | Не менять пользовательский `PATH`. |
 | `-Autostart` | Настроить запуск демона при входе без вопроса; без этого ключа или ответа «да» запись не делается. |
 | `-NoAutostart` | Не спрашивать про запуск при входе (позже - `aiko autostart enable`). |
@@ -67,8 +68,8 @@ irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1 | i
 Когда скрипт на машине выполнить нельзя - PowerShell, закрытый групповой политикой, или защитное ПО,
 блокирующее загрузку, - распакуйте релиз сами: скачайте
 `aiko-<версия>-win-x64.zip` из свежего релиза, разверните его в `%LOCALAPPDATA%\Aiko\bin` и добавьте
-этот каталог в пользовательский `PATH`. Это всё, что установщик делает с самим архивом; его вопросы
-про автозапуск и агентов можно решить позже командами `aiko autostart enable` и
+этот каталог в пользовательский `PATH`. Это всё, что установщик делает с самим архивом; автозапуск и
+подключение агентов можно сделать позже командами `aiko autostart enable` и
 `aiko agent install --scope user`.
 
 ### Установка из исходников
@@ -86,6 +87,9 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```powershell
 aiko agent install --scope user
 ```
+
+Без `--agent` команда подключает найденных на машине агентов: жёсткий список записал бы глобальную
+конфигурацию агенту, которого нет. Что найдено, показывает `aiko agent list`.
 
 ## Запуск
 
@@ -200,9 +204,10 @@ aiko project remove <projectId> --yes
 aiko agent install --project <projectId>
 ```
 
-Записывает project-scoped MCP-конфигурацию и скиллы `/aiko-*` для найденных агентов.
-`aiko agent list` показывает, какие агенты найдены. Перезапустите агента, чтобы он загрузил
-новый MCP-сервер.
+Записывает project-scoped MCP-конфигурацию и скиллы `/aiko-*` тем агентам, которых ей назвали:
+`--agent <ids>` перечисляет их, а без него берутся все адаптеры, которые поставляет Aiko.
+`aiko agent list` показывает, какие агенты найдены на этой машине. Перезапустите агента, чтобы он
+загрузил новый MCP-сервер.
 
 ## Обновление и удаление
 

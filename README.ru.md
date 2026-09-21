@@ -87,9 +87,9 @@ irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1 | i
 `server\`) и добавляет каталог в пользовательский `PATH`. Ничего не ставится на всю машину,
 права администратора не нужны.
 
-В конце он спрашивает, с какими агентами работать (Claude Code, Codex, Cursor, ZCode, Cline), и записывает
-им глобальные MCP-запись, скиллы `/aiko-*` и общую память; Enter - пропустить вопрос. Ответить без
-диалога: `-Agents claude-code,codex`, пропустить: `-NoAgentSetup`.
+В конце он подключает найденных на машине агентов (`aiko agent install --scope user`): глобальная
+MCP-запись, скиллы `/aiko-*` и общая память пишутся им и больше никому. Назвать агентов вместо этого:
+`-Agents claude-code,codex`, пропустить шаг: `-NoAgentSetup`.
 
 ```powershell
 aiko serve     # запустить демон в этом терминале (только loopback; предпочитает порт 24560)
