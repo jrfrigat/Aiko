@@ -1,4 +1,5 @@
 using Aiko.Application.Agents;
+using Aiko.Application.Contracts;
 using Aiko.Infrastructure.Agents;
 using Xunit;
 
@@ -55,22 +56,38 @@ public sealed class AgentGlobalCommandSpecs
     }
 
     [Fact]
-    public void The_release_procedure_carries_the_steps_and_the_boundary_between_the_agent_and_the_person()
+    public void The_release_procedure_takes_its_order_from_the_projects_scheme_and_names_the_boundary()
     {
         var body = AgentTemplates.GlobalRelease;
 
-        // The steps, each named by the artifact it acts on rather than by a copy of that artifact's
-        // contents - which is what keeps the procedure from going stale behind the workflow it describes.
+        // The order of a release is the project's own, and the procedure points at it instead of carrying a
+        // copy of it: two descriptions of one order are two descriptions that drift apart.
+        Assert.Contains("aiko_get_project_context", body, StringComparison.Ordinal);
+        Assert.Contains("section `release`", body, StringComparison.Ordinal);
+        Assert.Contains("aiko_list_releases", body, StringComparison.Ordinal);
+        Assert.Contains("aiko_record_release", body, StringComparison.Ordinal);
+        // Which tree the tag is made in stays the procedure's own business: no scheme can check that.
         Assert.Contains("aiko project find", body, StringComparison.Ordinal);
-        Assert.Contains("dotnet build Aiko.slnx -c Release", body, StringComparison.Ordinal);
-        Assert.Contains("git push origin v0.1.2", body, StringComparison.Ordinal);
-        Assert.Contains(".github/workflows/release.yml", body, StringComparison.Ordinal);
 
-        // The boundary is the point of the procedure, not a footnote to it: the tag and the install belong to
-        // the person, and the body says so where it hands each of them over.
-        Assert.Contains("Do not run them", body, StringComparison.Ordinal);
-        Assert.Contains("aiko serve stop", body, StringComparison.Ordinal);
+        // The boundary is the point of the procedure, not a footnote to it, and it is said in words - silence
+        // about the push reads as permission.
+        Assert.Contains("Aiko does not push the tag", body, StringComparison.Ordinal);
+        Assert.Contains("Aiko installs nothing on your machine", body, StringComparison.Ordinal);
         Assert.Contains("aiko agent install --scope user", body, StringComparison.Ordinal);
+
+        // And none of a scheme's own steps is repeated here. The check reads the schemes Aiko ships rather than
+        // a phrase copied into this spec, and the first step of each stands for its text.
+        foreach (var scheme in ReleaseSchemes.BuiltIn)
+        {
+            var firstStep = scheme.Body
+                .Split('\n')
+                .First(line => line.TrimStart().StartsWith("1.", StringComparison.Ordinal))
+                .Trim();
+            Assert.DoesNotContain(firstStep, body, StringComparison.Ordinal);
+        }
+
+        // Nor the version shape: choosing a version is a step of the scheme, not of the procedure.
+        Assert.DoesNotContain("v<major>.<minor>.<patch>", body, StringComparison.Ordinal);
     }
 
     private static async Task<string[]> GlobalCommandsAsync(IAgentAdapter adapter)
