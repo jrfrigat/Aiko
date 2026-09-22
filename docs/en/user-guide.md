@@ -27,6 +27,16 @@ card between columns to move it to another stage: a card is
 picked up by its handle icon, while a plain click opens the card's page. The move is saved with optimistic
 concurrency; if the card changed elsewhere, the UI asks you to reload.
 
+### The archive
+
+The board is work; the **archive** is what the work left behind, and the view group in the toolbar switches
+between them. A finished card can be put away from its own page - the button beside its runs, offered once the
+card has reached the end of its pipeline - and from then on it is out of the columns and out of every count,
+while its page, feed, runs, artifacts, scores and relations stay exactly as they were. The archive view lists
+what is in there with each card's type, the stage it was put away in and when, and returns one to the board with
+a single button. Putting a card away never deletes anything, and the card list an agent reads leaves the archive
+out as well - unless the agent asks for it with `includeArchived`.
+
 ## The backlog
 
 The **backlog** is not a column: it is every card that has not been taken into work yet, gathered from the

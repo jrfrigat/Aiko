@@ -376,6 +376,20 @@ a failure or a rate limit, a forbidden policy or a missing required artifact. Th
 endpoint is deliberately not held to the rule: the board is how a person corrects their own board, and
 `aiko doctor` reports the cards that were pushed past an unfinished stage.
 
+A card can also leave the board without leaving the project. Being in the archive is a **mark in the card's own
+metadata** - `Card.Metadata["archivedAt"]`, read back through `Card.ArchivedAt`, with `Card.IsArchived` asking
+whether the key is there rather than whether its text can be read - and not a stage and not a folder: the files,
+the feed, the runs, the artifacts and the relations stay exactly where they were, which is what makes the archive
+reversible. `CardCompletion.IsFinished` states the one condition - the card sits in the last stage of its own
+workflow and that stage's latest run is `Completed` - and the work queue and the archive gate both read it, so
+"finished" has one definition rather than two. `CardArchiving.Refuse` gates putting a card away (already there,
+an open run, not finished) and `CardArchiving.RefuseWork` refuses starting a stage on, or moving, a card that is
+in the archive. The board snapshot carries the archive beside its cards (`ArchivedCards`, null from an older
+daemon reading as an empty archive), the work queue and both metric groupings leave archivable cards out, and
+`aiko_list_cards` leaves them out unless `includeArchived` is true. Nothing is hidden from a reader, though:
+`aiko_get_card`, `aiko_get_card_artifact` and `aiko_list_comments` answer for a card in the archive exactly as
+they always did.
+
 `aiko_complete_stage` requires the card to carry an estimate made during that run: the moment of the last
 criterion write (`Card.Metadata["estimatedAt"]`) must be at or after `StageExecution.CreatedAt`, or the call is
 refused with the tool and the readiness criterion to use. A project that defines no criteria has nothing to
@@ -494,6 +508,13 @@ the person as the command's `failed` message.
 | MCP | `aiko_list_releases` (the history - the previous release is what tells the agent which cards have shipped since) and `aiko_record_release(version, schemeId, cards, notes)` (the one writer of the document) |
 | UI | Release screen - the history, newest first, with each release marked ordinary or preliminary by its tag's suffix; a page per release at `/p/{handle}/release/{version}`, listing the tasks that went into it; a task's card says which release it went into, and says nothing when no release named it |
 | Event | `releases.updated`, published when a release is recorded |
+
+| Surface | Path |
+| :-- | :-- |
+| REST | `PUT .../cards/{cardId}/archive` with `{ archived, expectedRevision }` - one route for both directions, held to the same revision check as the stage route |
+| MCP | `aiko_archive_card(cardId, expectedRevision)` and `aiko_restore_card(cardId, expectedRevision)`; `aiko_list_cards` takes `includeArchived`; `aiko_start_stage` and both move routes refuse a card that is in the archive |
+| UI | Board - the view group's *Archive*: the cards that were put away, each with its type, the stage it came from and the moment, and a button that returns one; a card's own panel offers putting it away (only once it is finished) or bringing it back |
+| Storage | the mark in `metadata.archivedAt` of `card.json`. No projection change: the two metric queries skip archivable cards with `json_extract`, and `ICardStore.ListAsync` keeps returning every card, because the id generator and the doctor must still see what is archived |
 
 ## 13. Concurrency and workspaces
 
