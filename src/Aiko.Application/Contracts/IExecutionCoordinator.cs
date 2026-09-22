@@ -65,8 +65,9 @@ public interface IExecutionCoordinator
         CancellationToken cancellationToken);
 
     /// <summary>
-    /// Requests a declared-scope expansion: moves the execution
-    /// to the waiting-for-user state.
+    /// Requests a declared-scope expansion: what happens next is the project's own
+    /// <c>scopeExpansionPolicy</c> - the run waits for the user, the files join the card's declared scope and
+    /// the run keeps going, or the request is refused.
     /// </summary>
     ValueTask<StageExecution> RequestScopeExpansionAsync(
         string executionId,

@@ -12,7 +12,7 @@ public sealed record ExecutionSettings
     /// and deny commits into the shared checkout.
     /// </summary>
     public static ExecutionSettings SafeDefault { get; } =
-        new(WorkspaceMode.Shared, 1, ActionPolicy.Ask, ActionPolicy.Deny, ActionPolicy.Deny);
+        new(WorkspaceMode.Shared, 1, ActionPolicy.Ask, ActionPolicy.Deny, ActionPolicy.Deny, ActionPolicy.Ask);
 
     /// <summary>
     /// Creates settings; <paramref name="maxConcurrentRuns"/> must be at least one.
@@ -25,12 +25,18 @@ public sealed record ExecutionSettings
     /// Whether the shared checkout may be pushed from. Optional on purpose: settings documents written before it
     /// existed carry no such field, and a missing value has to read as the safe one rather than failing.
     /// </param>
+    /// <param name="scopeExpansionPolicy">
+    /// What to do when an agent needs a file outside the card's declared scope. Optional on purpose, like the
+    /// push policy above: a document written before it exists reads as <see cref="ActionPolicy.Ask"/> - the
+    /// behaviour Aiko had when asking was the only thing it could do - rather than as permission.
+    /// </param>
     public ExecutionSettings(
         WorkspaceMode workspaceMode,
         int maxConcurrentRuns,
         ActionPolicy scopeOverlapPolicy,
         ActionPolicy sharedCheckoutCommitPolicy,
-        ActionPolicy sharedCheckoutPushPolicy = ActionPolicy.Deny)
+        ActionPolicy sharedCheckoutPushPolicy = ActionPolicy.Deny,
+        ActionPolicy scopeExpansionPolicy = ActionPolicy.Ask)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(maxConcurrentRuns, 1);
         WorkspaceMode = workspaceMode;
@@ -38,6 +44,7 @@ public sealed record ExecutionSettings
         ScopeOverlapPolicy = scopeOverlapPolicy;
         SharedCheckoutCommitPolicy = sharedCheckoutCommitPolicy;
         SharedCheckoutPushPolicy = sharedCheckoutPushPolicy;
+        ScopeExpansionPolicy = scopeExpansionPolicy;
     }
 
     /// <summary>
@@ -70,4 +77,16 @@ public sealed record ExecutionSettings
     /// enforcement arrives with the push action itself.
     /// </remarks>
     public ActionPolicy SharedCheckoutPushPolicy { get; }
+
+    /// <summary>
+    /// Policy for widening a card's declared scope while a stage runs.
+    /// </summary>
+    /// <remarks>
+    /// Unlike the push policy above, this one is enforced rather than merely stated: the coordinator reads it
+    /// when an agent asks for a file outside the declared scope. <see cref="ActionPolicy.Ask"/> moves the run
+    /// to the waiting-for-user state (what Aiko did before the policy existed), <see cref="ActionPolicy.Allow"/>
+    /// adds the files to the card's declared scope and lets the run keep going, and <see cref="ActionPolicy.Deny"/>
+    /// refuses the request outright without touching anything.
+    /// </remarks>
+    public ActionPolicy ScopeExpansionPolicy { get; }
 }

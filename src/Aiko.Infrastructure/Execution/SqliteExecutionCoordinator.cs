@@ -400,16 +400,66 @@ public sealed class SqliteExecutionCoordinator(
 
         return MutateAsync(
             executionId,
-            execution =>
+            async execution =>
             {
                 EnsureNotTerminal(execution);
+                var effectiveSettings = settings is null
+                    ? ExecutionSettings.SafeDefault
+                    : await settings.GetEffectiveExecutionAsync(execution.Card.ProjectId, cancellationToken);
+                var policy = effectiveSettings.ScopeExpansionPolicy;
                 var now = DateTimeOffset.UtcNow;
+
+                if (policy == ActionPolicy.Deny)
+                {
+                    // Nothing is written and the run is left exactly as it was: the agent has to stop, and the
+                    // refusal is what it reads as the answer.
+                    throw new InvalidOperationException(
+                        "This project's scopeExpansionPolicy is Deny, so a card cannot be widened beyond its " +
+                        "declared scope. Stop and tell the user which files are needed: "
+                        + string.Join(", ", requestedScopeFiles));
+                }
+
+                if (policy == ActionPolicy.Allow)
+                {
+                    // Granted on the spot: the files join the card's declared scope and the run keeps going -
+                    // it is deliberately not moved to WaitingForUser, because nobody is going to answer. What
+                    // was granted stays on the run as well, or "allowed" would look like "nothing happened".
+                    var card = await cards.FindAsync(execution.Card, cancellationToken)
+                        ?? throw new KeyNotFoundException(
+                            $"Unknown card: {execution.Card.ProjectId}/{execution.Card.CardId}");
+                    var declared = Distinct(card.DeclaredScopeFiles.Concat(requestedScopeFiles));
+                    await cards.SaveAsync(
+                        card with
+                        {
+                            Revision = card.Revision + 1,
+                            DeclaredScopeFiles = declared
+                        },
+                        card.Revision,
+                        cancellationToken);
+                    return execution with
+                    {
+                        // The run's own snapshot follows the grant, and it is the run's list that is added to
+                        // rather than the card's: a card can be edited while a run is in flight, so taking its
+                        // list would let a run's allowance shrink and turn files it had already changed into
+                        // violations. A grant only ever adds. Without this the run kept its start-time snapshot
+                        // and reported the very file the policy had just granted as out-of-scope (TASK-142).
+                        DeclaredScopeFiles = Distinct(
+                            execution.DeclaredScopeFiles.Concat(requestedScopeFiles)),
+                        ProgressSummary =
+                            $"Scope expanded because scopeExpansionPolicy is Allow; the card now declares "
+                            + $"{string.Join(", ", declared)}. Reason: {reason}",
+                        RequestedScopeFiles = Distinct(
+                            execution.RequestedScopeFiles.Concat(requestedScopeFiles)),
+                        UpdatedAt = now
+                    };
+                }
+
                 var attempts = UpdateCurrentAttempt(
                     execution.Attempts,
                     AgentAttemptState.WaitingForUser,
                     reason,
                     null);
-                return ValueTask.FromResult(execution with
+                return execution with
                 {
                     Attempts = attempts,
                     State = StageExecutionState.WaitingForUser,
@@ -417,7 +467,7 @@ public sealed class SqliteExecutionCoordinator(
                     RequestedScopeFiles = Distinct(
                         execution.RequestedScopeFiles.Concat(requestedScopeFiles)),
                     UpdatedAt = now
-                });
+                };
             },
             cancellationToken);
     }

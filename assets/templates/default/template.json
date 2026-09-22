@@ -10,7 +10,8 @@
       "maxConcurrentRuns": 1,
       "scopeOverlapPolicy": "Ask",
       "sharedCheckoutCommitPolicy": "Deny",
-      "sharedCheckoutPushPolicy": "Deny"
+      "sharedCheckoutPushPolicy": "Deny",
+      "scopeExpansionPolicy": "Ask"
     },
     "priority": {
       "weights": {
