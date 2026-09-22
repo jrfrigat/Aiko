@@ -433,25 +433,30 @@ command, and a board pass that named a card, a stage or an execution is refused 
 field quietly ignored.
 
 The sixth is `Release`, the second action that names no card: it asks an agent to conduct a release of the
-project, and the `/aiko-release` procedure is what carries it out. The version the person has in mind
-travels in `text`, which the procedure reads before choosing one itself - an empty text is a valid request,
-because choosing and explaining the choice is part of the procedure. Like the board pass it is one record
-rather than one per stage, and a second open `Release` is refused: two releases at once would be two tags
-for one tree. What the screen offers beside it is read from `GET /api/v1/projects/{projectId}/release` -
-the daemon's own version, the last release found through the repository's `releases/latest` redirect, and
-the commit the project's tree is on.
+project, and the `/aiko-release` procedure is what carries it out. The command's `text` names the release
+policy - the id of the scheme the release follows - which the procedure reads to know which order to work
+by; naming none is a valid request whose procedure lists the schemes it found and asks. A command a person
+typed as `/aiko-release git-release` and one the release screen placed carry the same id in the same field,
+so the procedure reads one input either way. Like the board pass it is one record rather than one per stage,
+and a second open `Release` is refused: two releases at once would be two tags for one tree. The screen
+itself shows the project's release history and places the command through a dialog that names the policy and
+the agent; the probe route `GET /api/v1/projects/{projectId}/release` - the daemon's own version, the last
+release found through the repository's `releases/latest` redirect, and the commit the project's tree is on -
+still exists, but the screen no longer reads it.
 
 The release itself is project data in three places, and each answers a different question:
 
 - **How a release is conducted** is a *release scheme*: a named instruction to an agent, with a description
-  and a body - the order of steps. Schemes live in the `release` section of the project's settings, and that
-  section resolves the way every other one does: the project's own choice wins, the template's is what a new
-  project starts from, and the shipped default answers for a project that states nothing. Two schemes ship
-  with Aiko: `git-release`, an ordinary release whose tag carries the version and which becomes the latest
-  one, and `git-pre-release`, the same order with a tag carrying `-pre` that does not become the latest one.
-  `SafeDefault` carries both, so they are there in every project, including the ones created before schemes
-  existed. The `/aiko-release` procedure names no order of its own: it reads the scheme the project follows
-  and works its steps.
+  and a body - the order of steps. Schemes live in the `release` section of the project's settings, and a
+  project **holds** them rather than choosing one: which of them a release follows is named where that
+  release is asked for, so nothing resolves to a single "scheme in force". The section still has levels - the
+  project's own list wins over the template's, and the shipped one answers for a project that states
+  nothing - and both shipped schemes travel with the project context, whole, so a procedure can read the one
+  a request names. Two schemes ship with Aiko: `git-release`, an ordinary release whose tag carries the
+  version and which becomes the latest one, and `git-pre-release`, the same order with a tag carrying `-pre`
+  that does not become the latest one. `SafeDefault` carries both, so they are there in every project,
+  including the ones created before schemes existed. The `/aiko-release` procedure names no order of its own:
+  it reads the scheme the request names out of that list, works its steps, and asks when nothing is named.
 - **What was released** is a record: `.aiko/releases.json`, a document of the project rather than a
   projection of the database, holding the version tag, the scheme the release followed, when it was
   recorded, a note, and the cards that went into it - newest first. The card list is *explicit*: a card is in
@@ -506,13 +511,22 @@ Safe MVP defaults:
   "maxConcurrentRuns": 1,
   "scopeOverlapPolicy": "ask",
   "sharedCheckoutCommitPolicy": "deny",
-  "sharedCheckoutPushPolicy": "deny"
+  "sharedCheckoutPushPolicy": "deny",
+  "scopeExpansionPolicy": "ask"
 }
 ```
 
 The push policy is stated for the agent rather than enforced: Aiko has no push of its own (`IGitClient` reads
 status, log and diff), so no execution waits on it. The field is optional on read, so a settings document
 written before it existed still loads and answers `deny`.
+
+The scope-widening policy, unlike the push one, is enforced. It also answers a different question from the
+overlap policy above: overlap is about two runs declaring the same files, while this one is about a single
+card needing a file outside its own declared scope. `ask` (the default, and what Aiko did while asking was its
+only answer) pauses the run for the user, `allow` adds the requested files to the card's declared scope and
+lets the run keep going without stopping, and `deny` refuses the request without touching the run or the
+card. It is optional on read for the same reason as the push policy: a document written before it existed
+answers `ask`.
 
 The user can enable parallel shared mode. The UI keeps warning that the working tree and the Git
 index are shared, changes may conflict, mix into a commit and be misattributed.

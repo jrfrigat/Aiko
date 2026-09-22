@@ -149,9 +149,9 @@ Project settings screen has no "reset to app defaults" to offer. What it offers 
 workflow** - point the project at another workflow set - and **Create template** - capture the project as a
 set other projects can start from.
 
-Currently configured: execution (workspace mode, max concurrent runs, scope-overlap and commit policies),
-and the priority model - blending weights, the criteria with their ranges and agent instructions, and the
-size grid.
+Currently configured: execution (workspace mode, max concurrent runs, and the policies for scope overlap,
+scope widening, commits and pushes), and the priority model - blending weights, the criteria with their
+ranges and agent instructions, and the size grid.
 
 There is a third level that is not configuration at all: **Appearance** (`/appearance`, in the rail's
 overview group) holds how the interface looks and reads for the person in front of it: the language, the
