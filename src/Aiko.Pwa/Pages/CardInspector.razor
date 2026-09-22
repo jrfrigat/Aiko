@@ -495,6 +495,37 @@
                                             ? $"{steering.StageId} · {steering.State}"
                                             : Loc.Get("NoExecutions"))
                                     </FlareText>
+                                    @* Putting the card away is neither a stage nor a run: it is a property of the
+                                       card, so it stands on its own row rather than among the buttons that steer a
+                                       run. The offer follows the rule the daemon enforces - the card reaches the
+                                       end of its own pipeline first - so the button is never drawn where it would
+                                       be refused, and where it is not offered the row says why. *@
+                                    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
+                                        @if (Card.IsArchived)
+                                        {
+                                            <FlareButton Variant="ButtonVariant.Tonal"
+                                                         Disabled="@_acting"
+                                                         Title="@Loc.Get("RestoreCardHint")"
+                                                         OnClick="RestoreCardAsync">
+                                                <ChildContent>@Loc.Get("RestoreCard")</ChildContent>
+                                            </FlareButton>
+                                        }
+                                        else if (IsFinished)
+                                        {
+                                            <FlareButton Variant="ButtonVariant.Outlined"
+                                                         Disabled="@_acting"
+                                                         Title="@Loc.Get("ArchiveCardHint")"
+                                                         OnClick="ArchiveCardAsync">
+                                                <ChildContent>@Loc.Get("ArchiveCard")</ChildContent>
+                                            </FlareButton>
+                                        }
+                                        else
+                                        {
+                                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                                @Loc.Get("ArchiveNotFinished")
+                                            </FlareText>
+                                        }
+                                    </FlareStack>
                                     @if (Agents.Count > 0)
                                     {
                                         <AikoSelectField Label="@Loc.Get("EstimateAgent")"
@@ -2099,6 +2130,69 @@
         ActOnExecutionAsync(
             $"api/v1/projects/{Uri.EscapeDataString(Card.Reference.ProjectId)}/cards/{Uri.EscapeDataString(Card.Reference.CardId)}/executions",
             new StartStageRequest(Card.StageId, _stageAgent ?? string.Empty));
+
+    private Task ArchiveCardAsync() => SetArchivedAsync(archived: true);
+
+    private Task RestoreCardAsync() => SetArchivedAsync(archived: false);
+
+    /// <summary>
+    /// Writes the archive mark and tells the page the card changed. The revision travels because the card may
+    /// have been changed elsewhere while this panel was open: the answer to that is a refusal this panel shows,
+    /// not a write that quietly overwrites somebody else's edit.
+    /// </summary>
+    private async Task SetArchivedAsync(bool archived)
+    {
+        if (_acting)
+        {
+            return;
+        }
+
+        _acting = true;
+        _executionMessage = null;
+        try
+        {
+            using var response = await Http.PutAsJsonAsync(
+                $"api/v1/projects/{Uri.EscapeDataString(Card.Reference.ProjectId)}/cards/{Uri.EscapeDataString(Card.Reference.CardId)}/archive",
+                new ArchiveCardRequest(archived, Card.Revision),
+                PwaJson.Options);
+            response.EnsureSuccessStatusCode();
+        }
+        catch (Exception exception)
+        {
+            _executionMessage = Loc.Format("ArchiveFailed", Card.Reference.CardId, FailureText.Describe(exception));
+            _executionError = true;
+            return;
+        }
+        finally
+        {
+            _acting = false;
+        }
+
+        // The board is the snapshot the card page is drawn from, so it is read again before the page is told:
+        // the card then comes back in the list it now belongs to, rather than in the one it just left.
+        await State.LoadBoardAsync();
+        await OnSaved.InvokeAsync();
+    }
+
+    /// <summary>
+    /// Whether the card has reached the end of its own pipeline - the one condition the archive accepts, asked
+    /// of the domain rather than restated here. A copy of the condition is exactly how a button ends up offering
+    /// an action the daemon refuses; the run state comes from the board snapshot, which carries the latest run
+    /// of every (card, stage) pair.
+    /// </summary>
+    private bool IsFinished
+    {
+        get
+        {
+            var workflow = (State.Board?.Workflows ?? [])
+                .FirstOrDefault(candidate => StringComparer.Ordinal.Equals(candidate.Id, Card.WorkflowId));
+            var stageRun = (State.Board?.StageRuns ?? [])
+                .FirstOrDefault(candidate =>
+                    StringComparer.Ordinal.Equals(candidate.CardId, Card.Reference.CardId) &&
+                    StringComparer.Ordinal.Equals(candidate.StageId, Card.StageId));
+            return CardCompletion.IsFinished(workflow, Card.StageId, stageRun?.StateValue);
+        }
+    }
 
     private Task PauseRunAsync() => RunActionAsync(
         "pause",

@@ -347,6 +347,47 @@ public sealed class RazorMarkupSpecs
     }
 
     [Fact]
+    public void The_settings_screen_offers_the_scope_expansion_policy()
+    {
+        var root = FindRepositoryRoot();
+        var page = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "SettingsEditor.razor"));
+
+        // The three answers the other action policies offer, on a policy of their own, and the screen reaches
+        // the same policy the daemon enforces rather than keeping a second copy of it.
+        Assert.Contains("ScopeExpansionOptions", page, StringComparison.Ordinal);
+        Assert.Contains(
+            "Choice(\"scope-expansion\", option, _scopeExpansionPolicy",
+            page,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "_scopeExpansionPolicy = execution.ScopeExpansionPolicy;",
+            page,
+            StringComparison.Ordinal);
+
+        // Both languages carry the captions, or the screen would read as English on a Russian page.
+        foreach (var resource in new[] { "Loc.resx", "Loc.ru.resx" })
+        {
+            var resx = File.ReadAllText(
+                Path.Combine(root, "src", "Aiko.Pwa", "Resources", resource));
+            foreach (var key in new[]
+                     {
+                         "ScopeExpansionPolicy",
+                         "ScopeExpansionPolicyHint",
+                         "ScopeExpansionDenyTitle",
+                         "ScopeExpansionDenyHint",
+                         "ScopeExpansionAskTitle",
+                         "ScopeExpansionAskHint",
+                         "ScopeExpansionAllowTitle",
+                         "ScopeExpansionAllowHint"
+                     })
+            {
+                Assert.Contains($"name=\"{key}\"", resx, StringComparison.Ordinal);
+            }
+        }
+    }
+
+    [Fact]
     public void The_daemon_screen_surfaces_the_drift_the_doctor_finds_and_not_a_second_check()
     {
         var root = FindRepositoryRoot();
@@ -969,6 +1010,64 @@ public sealed class RazorMarkupSpecs
             BoardMetrics.BacklogCount(cards),
             BoardMetrics.BacklogCount(tasks) +
             BoardMetrics.BacklogCount(cards.Where(card => !StringComparer.OrdinalIgnoreCase.Equals(card.Kind, "Task"))));
+    }
+
+    [Fact]
+    public void The_board_carries_the_archive_beside_the_work_and_can_bring_a_card_back()
+    {
+        var root = FindRepositoryRoot();
+        var view = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "BoardView.razor"));
+
+        // The view is a third group of switches, and it stands after the two that describe work.
+        var types = view.IndexOf("AdditionalAttributes=\"@TypeFilterAttributes\"", StringComparison.Ordinal);
+        var waiting = view.IndexOf("AdditionalAttributes=\"@WaitingFilterAttributes\"", StringComparison.Ordinal);
+        var mode = view.IndexOf("AdditionalAttributes=\"@ModeFilterAttributes\"", StringComparison.Ordinal);
+        Assert.True(types > 0 && waiting > types, "Types, then the answer filter.");
+        Assert.True(mode > waiting, "The view group stands last: types, answer, view.");
+
+        // Switching to the archive steps aside everything that counts work, answer filter included ...
+        Assert.Contains("@if (!ArchiveOnly)", view, StringComparison.Ordinal);
+        Assert.Contains("private bool ArchiveOnly { get; set; }", view, StringComparison.Ordinal);
+        Assert.Contains("private Task SelectArchiveAsync(bool archiveOnly)", view, StringComparison.Ordinal);
+        Assert.Contains("WaitingOnly = false;", view, StringComparison.Ordinal);
+
+        // ... and the archive is drawn from the snapshot's own second collection, narrowed by the type filter
+        // rather than asked for again.
+        Assert.Contains("@if (ArchiveOnly)", view, StringComparison.Ordinal);
+        Assert.Contains("State.Board?.ArchivedCards ?? []", view, StringComparison.Ordinal);
+        Assert.Contains("_pickedKinds.Contains(card.Kind)", view, StringComparison.Ordinal);
+        Assert.Contains("RestoreCardAsync(row)", view, StringComparison.Ordinal);
+
+        // The card's own action asks the domain whether the card is finished instead of restating the rule, and
+        // says why when it is not offered: a button drawn where the daemon would refuse is the one failure this
+        // screen must not have.
+        var inspector = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "CardInspector.razor"));
+        Assert.Contains(
+            "CardCompletion.IsFinished(workflow, Card.StageId, stageRun?.StateValue)",
+            inspector,
+            StringComparison.Ordinal);
+        Assert.Contains("@if (Card.IsArchived)", inspector, StringComparison.Ordinal);
+        Assert.Contains("Loc.Get(\"ArchiveNotFinished\")", inspector, StringComparison.Ordinal);
+        Assert.Contains("new ArchiveCardRequest(archived, Card.Revision)", inspector, StringComparison.Ordinal);
+
+        // Every key the two screens ask for exists in both dictionaries - the localization contract, checked
+        // here as well because a key added to one file alone is invisible until a person reads the screen.
+        foreach (var resource in new[] { "Loc.resx", "Loc.ru.resx" })
+        {
+            var resx = File.ReadAllText(
+                Path.Combine(root, "src", "Aiko.Pwa", "Resources", resource));
+            foreach (var key in new[]
+                     {
+                         "BoardModeFilter", "BoardModeBoard", "BoardModeArchive", "ArchiveTitle", "ArchiveHint",
+                         "ArchiveEmpty", "ArchiveRestore", "ArchiveWhen", "ArchiveWhenUnknown", "ArchiveFailed",
+                         "ArchiveCard", "ArchiveCardHint", "RestoreCard", "RestoreCardHint", "ArchiveNotFinished"
+                     })
+            {
+                Assert.Contains($"name=\"{key}\"", resx, StringComparison.Ordinal);
+            }
+        }
     }
 
     /// <summary>A card standing in one stage, for the counts that read cards and nothing else.</summary>

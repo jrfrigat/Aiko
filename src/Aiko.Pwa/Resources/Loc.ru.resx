@@ -533,6 +533,14 @@
   <data name="PushAskHint" xml:space="preserve"><value>Агент спрашивает перед пушем и ждёт вашего ответа</value></data>
   <data name="PushAllowTitle" xml:space="preserve"><value>Пушит агент</value></data>
   <data name="PushAllowHint" xml:space="preserve"><value>Агент может пушить и сообщает, что запушил</value></data>
+  <data name="ScopeExpansionPolicy" xml:space="preserve"><value>Расширение объёма карточки</value></data>
+  <data name="ScopeExpansionPolicyHint" xml:space="preserve"><value>Что произойдёт, если агенту понадобится файл вне объявленного объёма карточки. Это не тот же вопрос, что у политики пересечения выше: та — про два запуска с одинаковыми файлами</value></data>
+  <data name="ScopeExpansionDenyTitle" xml:space="preserve"><value>Отказать</value></data>
+  <data name="ScopeExpansionDenyHint" xml:space="preserve"><value>Запрос отклоняется и ничего не пишется: агент останавливается и говорит, какие файлы ему нужны</value></data>
+  <data name="ScopeExpansionAskTitle" xml:space="preserve"><value>Спросить</value></data>
+  <data name="ScopeExpansionAskHint" xml:space="preserve"><value>Запуск ждёт, пока человек ответит на запрос</value></data>
+  <data name="ScopeExpansionAllowTitle" xml:space="preserve"><value>Разрешить</value></data>
+  <data name="ScopeExpansionAllowHint" xml:space="preserve"><value>Файлы дописываются в объём карточки, и запуск продолжается, не останавливаясь</value></data>
   <data name="CrossProjectWrite" xml:space="preserve"><value>Писать в другие проекты</value></data>
   <data name="CrossProjectPolicyHint" xml:space="preserve"><value>Может ли агент, работающий здесь, заводить карточки в соседнем проекте и на каких условиях.</value></data>
   <data name="CrossProjectTargets" xml:space="preserve"><value>Куда этому проекту можно писать</value></data>
@@ -676,43 +684,40 @@
   <data name="AppearanceModeDark" xml:space="preserve"><value>Тёмная</value></data>
   <data name="AppearancePalette" xml:space="preserve"><value>Палитра</value></data>
   <data name="AppearancePaletteHint" xml:space="preserve"><value>Целая цветовая схема одной темы. Выбор применяется сразу и хранится в этом браузере.</value></data>
-  <data name="ReleaseNav" xml:space="preserve"><value>Выпуск</value></data>
-  <data name="ReleaseTitle" xml:space="preserve"><value>Выпуск</value></data>
-  <data name="ReleaseTag" xml:space="preserve"><value>выпуск</value></data>
-  <data name="ReleaseHint" xml:space="preserve"><value>Что уже вышло, что будет следующим и откуда выпуск запускают. Aiko не запускает агента и ничего не пишет в репозиторий: экран показывает то, что знает демон, и кладёт просьбу в очередь.</value></data>
-  <data name="ReleaseFactsTitle" xml:space="preserve"><value>Сведения о выпуске</value></data>
-  <data name="ReleaseFactsHint" xml:space="preserve"><value>Из репозитория проекта, его дерева и работающего демона.</value></data>
+  <data name="ReleaseNav" xml:space="preserve"><value>Релиз</value></data>
+  <data name="ReleaseTitle" xml:space="preserve"><value>Релиз</value></data>
+  <data name="ReleaseTag" xml:space="preserve"><value>релиз</value></data>
+  <data name="ReleaseHint" xml:space="preserve"><value>Что уже вышло и откуда релиз заказывают. Aiko не запускает агента и ничего не пишет в репозиторий: экран кладёт просьбу в очередь, а релиз проводит агент, который её возьмёт, — по политике, названной в просьбе.</value></data>
   <data name="ReleaseRefresh" xml:space="preserve"><value>Прочитать снова</value></data>
-  <data name="ReleaseDaemonVersion" xml:space="preserve"><value>Версия демона</value></data>
-  <data name="ReleaseBundleVersion" xml:space="preserve"><value>Версия клиентского бандла</value></data>
-  <data name="ReleaseLatest" xml:space="preserve"><value>Последний выпуск</value></data>
-  <data name="ReleaseTreeState" xml:space="preserve"><value>Состояние дерева</value></data>
-  <data name="ReleaseUnknown" xml:space="preserve"><value>неизвестно</value></data>
-  <data name="ReleaseCommandTitle" xml:space="preserve"><value>Провести выпуск</value></data>
-  <data name="ReleaseCommandHint" xml:space="preserve"><value>Aiko не запускает агентов. Это кладёт команду в очередь, и агент, который её возьмёт, проводит выпуск процедурой /aiko-release.</value></data>
-  <data name="ReleaseCommandButton" xml:space="preserve"><value>Положить команду в очередь</value></data>
-  <data name="ReleaseVersionLabel" xml:space="preserve"><value>Версия</value></data>
-  <data name="ReleaseVersionHint" xml:space="preserve"><value>Оставьте пустым — процедура выберет версию и объяснит выбор.</value></data>
-  <data name="ReleaseVersionPlaceholder" xml:space="preserve"><value>v0.4.0</value></data>
   <data name="ReleaseCommandWaiting" xml:space="preserve"><value>Команда {0} ждёт агента.</value></data>
-  <data name="ReleaseNoOpenCommand" xml:space="preserve"><value>Ни один выпуск не ждёт.</value></data>
-  <data name="ReleaseOrderTitle" xml:space="preserve"><value>Порядок — для человека</value></data>
-  <data name="ReleaseOrderHint" xml:space="preserve"><value>Если агент не подключён, эти шаги выполняете вы. Ничего из этого не делается открытием страницы, и Aiko ничего не устанавливает на вашу машину.</value></data>
-  <data name="ReleaseOrderStep1" xml:space="preserve"><value>Убедиться, что дерево зелёное в Debug и в Release.</value></data>
-  <data name="ReleaseOrderStep2" xml:space="preserve"><value>Выбрать версию по тому, что изменилось: новая возможность — минор, исправление — патч, — и поставить тег.</value></data>
-  <data name="ReleaseOrderStep3" xml:space="preserve"><value>Дождаться, пока workflow выпуска по этому тегу соберёт архив.</value></data>
-  <data name="ReleaseOrderStep4" xml:space="preserve"><value>Подключить агентов заново: «aiko agent install --project ваш-проект».</value></data>
-  <data name="ReleaseSettingsLink" xml:space="preserve"><value>Как проводится релиз</value></data>
-  <data name="ReleaseFactsFailed" xml:space="preserve"><value>Не удалось прочитать сведения о выпуске: {0}</value></data>
+  <data name="ReleaseCreateButton" xml:space="preserve"><value>Создать релиз</value></data>
+  <data name="ReleaseCreateTitle" xml:space="preserve"><value>Новый релиз</value></data>
+  <data name="ReleaseCreateHint" xml:space="preserve"><value>Aiko не запускает агентов, не пушит тег и ничего не устанавливает: это кладёт команду в очередь, и агент, который её возьмёт, проведёт релиз по выбранной вами политике.</value></data>
+  <data name="ReleasePolicyLabel" xml:space="preserve"><value>Политика релиза</value></data>
+  <data name="ReleasePolicyHint" xml:space="preserve"><value>По какому порядку идёт релиз — одна из схем, которые держит проект.</value></data>
+  <data name="ReleaseAgentLabel" xml:space="preserve"><value>Агент</value></data>
+  <data name="ReleaseAgentAny" xml:space="preserve"><value>Любой агент</value></data>
+  <data name="ReleaseAgentHint" xml:space="preserve"><value>Кто проводит. Если не выбирать, просьбу возьмёт тот агент, который придёт следующим.</value></data>
+  <data name="ReleaseCreateConfirm" xml:space="preserve"><value>Положить просьбу в очередь</value></data>
+  <data name="ReleaseCreated" xml:space="preserve"><value>Команда {0} в очереди.</value></data>
+  <data name="ReleaseLoadFailed" xml:space="preserve"><value>Не удалось прочитать экран релиза: {0}</value></data>
   <data name="ReleaseProcedureTitle" xml:space="preserve"><value>Как проводится релиз</value></data>
   <data name="ReleaseProcedureHint" xml:space="preserve"><value>Порядок выпуска — чтобы его не приходилось собирать из файлов workflow.</value></data>
   <data name="ReleaseProcedureOrder" xml:space="preserve"><value>Поставить тег, дождаться, пока workflow выпуска соберёт архив, установить его и подключить агентов заново.</value></data>
   <data name="ReleaseProcedureTouches" xml:space="preserve"><value>Установка пишет в %LOCALAPPDATA%\Aiko\bin и добавляет этот каталог в пользовательский PATH.</value></data>
   <data name="ReleaseProcedureKeeps" xml:space="preserve"><value>Проект не затрагивается: .aiko, aiko.db и токен доступа остаются на месте.</value></data>
   <data name="ReleaseProcedureOpen" xml:space="preserve"><value>Открыть экран выпуска</value></data>
-  <data name="ReleaseScheme" xml:space="preserve"><value>Схема выпуска</value></data>
-  <data name="ReleaseSchemeHint" xml:space="preserve"><value>Как проводится выпуск этого проекта. Решает выбор самого проекта; шаблонный — то, с чего начинается новый проект.</value></data>
-  <data name="ReleaseSchemeFellBack" xml:space="preserve"><value>Схемы «{0}» нет, поэтому выпуск идёт по обычной.</value></data>
+  <data name="ReleaseSchemes" xml:space="preserve"><value>Схемы релиза</value></data>
+  <data name="ReleaseSchemesHint" xml:space="preserve"><value>Порядки, по которым может идти релиз этого проекта. Какой именно — выбирается при создании релиза.</value></data>
+  <data name="ReleaseSchemesShipped" xml:space="preserve"><value>Этот уровень своих схем не завёл, поэтому релиз идёт по схемам Aiko:</value></data>
+  <data name="ReleaseSchemeShipped" xml:space="preserve"><value>Схема Aiko</value></data>
+  <data name="ReleaseSchemeId" xml:space="preserve"><value>Идентификатор</value></data>
+  <data name="ReleaseSchemeIdHelper" xml:space="preserve"><value>Что называет релиз, чтобы идти по этой схеме, например git-release</value></data>
+  <data name="ReleaseSchemeName" xml:space="preserve"><value>Название</value></data>
+  <data name="ReleaseSchemeDescription" xml:space="preserve"><value>Для чего она</value></data>
+  <data name="ReleaseSchemeBody" xml:space="preserve"><value>Как проводится релиз</value></data>
+  <data name="ReleaseSchemeBodyPlaceholder" xml:space="preserve"><value>1. Убедиться, что дерево зелёное: сборка без предупреждений и все наборы тестов проходят.</value></data>
+  <data name="ReleaseSchemeBodyHint" xml:space="preserve"><value>Шаги, по которым идёт агент. Этот текст читает агент, поэтому он написан по-английски.</value></data>
   <data name="ReleaseHistoryTitle" xml:space="preserve"><value>История выпусков</value></data>
   <data name="ReleaseHistoryHint" xml:space="preserve"><value>Что проект выпустил, новые первыми, со схемой, по которой прошёл каждый выпуск.</value></data>
   <data name="ReleaseHistoryEmpty" xml:space="preserve"><value>Пока ничего не записано. Выпуск записывает агент, когда тот опубликован.</value></data>
@@ -731,4 +736,19 @@
   <data name="ReleaseCardTag" xml:space="preserve"><value>в выпуске</value></data>
   <data name="ReleaseCardLine" xml:space="preserve"><value>ушла в выпуск {0}</value></data>
 
+  <data name="BoardModeFilter" xml:space="preserve"><value>Вид</value></data>
+  <data name="BoardModeBoard" xml:space="preserve"><value>Доска</value></data>
+  <data name="BoardModeArchive" xml:space="preserve"><value>Архив</value></data>
+  <data name="ArchiveTitle" xml:space="preserve"><value>Архив</value></data>
+  <data name="ArchiveHint" xml:space="preserve"><value>Завершённые карточки, убранные с доски. Ничего не удалено: сама карточка, её лента, прогоны, артефакты и связи на месте.</value></data>
+  <data name="ArchiveEmpty" xml:space="preserve"><value>В архиве пока ничего нет.</value></data>
+  <data name="ArchiveRestore" xml:space="preserve"><value>Вернуть на доску</value></data>
+  <data name="ArchiveWhen" xml:space="preserve"><value>убрана {0}</value></data>
+  <data name="ArchiveWhenUnknown" xml:space="preserve"><value>убрана, момент неизвестен</value></data>
+  <data name="ArchiveFailed" xml:space="preserve"><value>Карточку {0} не удалось вернуть на доску: {1}</value></data>
+  <data name="ArchiveCard" xml:space="preserve"><value>Убрать в архив</value></data>
+  <data name="ArchiveCardHint" xml:space="preserve"><value>Убрать завершённую карточку в архив: она уходит с доски, и ничего в ней не удаляется.</value></data>
+  <data name="RestoreCard" xml:space="preserve"><value>Вернуть на доску</value></data>
+  <data name="RestoreCardHint" xml:space="preserve"><value>Вернуть карточку из архива на ту стадию, с которой её убрали.</value></data>
+  <data name="ArchiveNotFinished" xml:space="preserve"><value>Убрать в архив можно только карточку, дошедшую до конца своего конвейера; в этой ещё осталась работа.</value></data>
 </root>

@@ -60,6 +60,7 @@ namespace Aiko.Pwa.Services;
 [JsonSerializable(typeof(ImportTemplateRequest))]
 [JsonSerializable(typeof(ApplyTemplateRequest))]
 [JsonSerializable(typeof(MoveCardRequest))]
+[JsonSerializable(typeof(ArchiveCardRequest))]
 [JsonSerializable(typeof(UpdateCardRequest))]
 [JsonSerializable(typeof(UpdateArtifactRequest))]
 [JsonSerializable(typeof(UpdateWorkflowRequest))]

@@ -534,6 +534,14 @@
   <data name="PushAskHint" xml:space="preserve"><value>The agent asks before pushing and waits for your answer</value></data>
   <data name="PushAllowTitle" xml:space="preserve"><value>The agent pushes</value></data>
   <data name="PushAllowHint" xml:space="preserve"><value>The agent may push and reports what it pushed</value></data>
+  <data name="ScopeExpansionPolicy" xml:space="preserve"><value>Widening a card's scope</value></data>
+  <data name="ScopeExpansionPolicyHint" xml:space="preserve"><value>What happens when an agent needs a file outside the card's declared scope. Not the same question as the overlap policy above: that one is about two runs declaring the same files</value></data>
+  <data name="ScopeExpansionDenyTitle" xml:space="preserve"><value>Refuse</value></data>
+  <data name="ScopeExpansionDenyHint" xml:space="preserve"><value>The request fails and nothing is written: the agent stops and says which files it needs</value></data>
+  <data name="ScopeExpansionAskTitle" xml:space="preserve"><value>Ask</value></data>
+  <data name="ScopeExpansionAskHint" xml:space="preserve"><value>The run waits until the user answers the request</value></data>
+  <data name="ScopeExpansionAllowTitle" xml:space="preserve"><value>Allow</value></data>
+  <data name="ScopeExpansionAllowHint" xml:space="preserve"><value>The files join the card's declared scope and the run continues without stopping</value></data>
   <data name="CrossProjectWrite" xml:space="preserve"><value>Writing to other projects</value></data>
   <data name="CrossProjectPolicyHint" xml:space="preserve"><value>Whether an agent working here may create cards in a neighbouring project, and under what terms.</value></data>
   <data name="CrossProjectTargets" xml:space="preserve"><value>Projects this one may write to</value></data>
@@ -679,40 +687,37 @@
   <data name="ReleaseNav" xml:space="preserve"><value>Release</value></data>
   <data name="ReleaseTitle" xml:space="preserve"><value>Release</value></data>
   <data name="ReleaseTag" xml:space="preserve"><value>release</value></data>
-  <data name="ReleaseHint" xml:space="preserve"><value>What is out, what would be next, and where a release is asked for. Aiko runs no agent and writes nothing to the repository: this screen shows what the daemon knows and puts the request in the queue.</value></data>
-  <data name="ReleaseFactsTitle" xml:space="preserve"><value>Release facts</value></data>
-  <data name="ReleaseFactsHint" xml:space="preserve"><value>From the project's repository, its own tree, and the daemon that is running.</value></data>
+  <data name="ReleaseHint" xml:space="preserve"><value>What is out, and where a release is asked for. Aiko runs no agent and writes nothing to the repository: this screen puts a request in the queue, and the agent that takes it releases by the policy the request names.</value></data>
   <data name="ReleaseRefresh" xml:space="preserve"><value>Read again</value></data>
-  <data name="ReleaseDaemonVersion" xml:space="preserve"><value>Daemon version</value></data>
-  <data name="ReleaseBundleVersion" xml:space="preserve"><value>Client bundle version</value></data>
-  <data name="ReleaseLatest" xml:space="preserve"><value>Last release</value></data>
-  <data name="ReleaseTreeState" xml:space="preserve"><value>Tree state</value></data>
-  <data name="ReleaseUnknown" xml:space="preserve"><value>unknown</value></data>
-  <data name="ReleaseCommandTitle" xml:space="preserve"><value>Conduct a release</value></data>
-  <data name="ReleaseCommandHint" xml:space="preserve"><value>Aiko does not run agents. This puts a command in the queue, and an agent that takes it conducts the release by the /aiko-release procedure.</value></data>
-  <data name="ReleaseCommandButton" xml:space="preserve"><value>Put the command in the queue</value></data>
-  <data name="ReleaseVersionLabel" xml:space="preserve"><value>Version</value></data>
-  <data name="ReleaseVersionHint" xml:space="preserve"><value>Leave it empty and the procedure chooses the version and explains the choice.</value></data>
-  <data name="ReleaseVersionPlaceholder" xml:space="preserve"><value>v0.4.0</value></data>
   <data name="ReleaseCommandWaiting" xml:space="preserve"><value>Command {0} is waiting for an agent.</value></data>
-  <data name="ReleaseNoOpenCommand" xml:space="preserve"><value>No release is waiting.</value></data>
-  <data name="ReleaseOrderTitle" xml:space="preserve"><value>The order, for a person</value></data>
-  <data name="ReleaseOrderHint" xml:space="preserve"><value>With no agent connected, these are the steps you run yourself. Nothing here is done by opening this page, and Aiko installs nothing on your machine.</value></data>
-  <data name="ReleaseOrderStep1" xml:space="preserve"><value>Make sure the tree is green in Debug and in Release.</value></data>
-  <data name="ReleaseOrderStep2" xml:space="preserve"><value>Choose the version from what changed - a new capability is a minor, a fix is a patch - and write the tag.</value></data>
-  <data name="ReleaseOrderStep3" xml:space="preserve"><value>Wait for the release workflow on that tag to build the archive.</value></data>
-  <data name="ReleaseOrderStep4" xml:space="preserve"><value>Connect the agents again with 'aiko agent install --project your-project'.</value></data>
-  <data name="ReleaseSettingsLink" xml:space="preserve"><value>How a release is conducted</value></data>
-  <data name="ReleaseFactsFailed" xml:space="preserve"><value>The release facts could not be read: {0}</value></data>
+  <data name="ReleaseCreateButton" xml:space="preserve"><value>Create a release</value></data>
+  <data name="ReleaseCreateTitle" xml:space="preserve"><value>New release</value></data>
+  <data name="ReleaseCreateHint" xml:space="preserve"><value>Aiko does not run agents, does not push the tag and installs nothing: this puts a command in the queue, and the agent that takes it conducts the release by the policy you pick.</value></data>
+  <data name="ReleasePolicyLabel" xml:space="preserve"><value>Release policy</value></data>
+  <data name="ReleasePolicyHint" xml:space="preserve"><value>Which order the release follows - one of the schemes this project holds.</value></data>
+  <data name="ReleaseAgentLabel" xml:space="preserve"><value>Agent</value></data>
+  <data name="ReleaseAgentAny" xml:space="preserve"><value>Any agent</value></data>
+  <data name="ReleaseAgentHint" xml:space="preserve"><value>Who conducts it. Left open, whichever agent comes next takes the request.</value></data>
+  <data name="ReleaseCreateConfirm" xml:space="preserve"><value>Put the request in the queue</value></data>
+  <data name="ReleaseCreated" xml:space="preserve"><value>Command {0} is in the queue.</value></data>
+  <data name="ReleaseLoadFailed" xml:space="preserve"><value>The release screen could not be read: {0}</value></data>
   <data name="ReleaseProcedureTitle" xml:space="preserve"><value>How a release is conducted</value></data>
   <data name="ReleaseProcedureHint" xml:space="preserve"><value>The order a release follows, so nobody has to reconstruct it from the workflow files.</value></data>
   <data name="ReleaseProcedureOrder" xml:space="preserve"><value>Write the tag, wait for the release workflow to build the archive, install it, and connect the agents again.</value></data>
   <data name="ReleaseProcedureTouches" xml:space="preserve"><value>Installing writes to %LOCALAPPDATA%\Aiko\bin and adds that directory to your user PATH.</value></data>
   <data name="ReleaseProcedureKeeps" xml:space="preserve"><value>Your project is not touched: .aiko, aiko.db and the access token stay where they are.</value></data>
   <data name="ReleaseProcedureOpen" xml:space="preserve"><value>Open the release screen</value></data>
-  <data name="ReleaseScheme" xml:space="preserve"><value>Release scheme</value></data>
-  <data name="ReleaseSchemeHint" xml:space="preserve"><value>How a release of this project is conducted. A project's own choice decides; the template's is what a new project starts from.</value></data>
-  <data name="ReleaseSchemeFellBack" xml:space="preserve"><value>Scheme '{0}' is not available, so releases follow the ordinary one.</value></data>
+  <data name="ReleaseSchemes" xml:space="preserve"><value>Release schemes</value></data>
+  <data name="ReleaseSchemesHint" xml:space="preserve"><value>The orders a release of this project can follow. Which one is used is chosen when the release is created.</value></data>
+  <data name="ReleaseSchemesShipped" xml:space="preserve"><value>This level states no schemes of its own, so releases follow the ones Aiko ships:</value></data>
+  <data name="ReleaseSchemeShipped" xml:space="preserve"><value>Aiko</value></data>
+  <data name="ReleaseSchemeId" xml:space="preserve"><value>Identifier</value></data>
+  <data name="ReleaseSchemeIdHelper" xml:space="preserve"><value>What a release names to follow this scheme, for example git-release</value></data>
+  <data name="ReleaseSchemeName" xml:space="preserve"><value>Name</value></data>
+  <data name="ReleaseSchemeDescription" xml:space="preserve"><value>What it is for</value></data>
+  <data name="ReleaseSchemeBody" xml:space="preserve"><value>How a release is conducted</value></data>
+  <data name="ReleaseSchemeBodyPlaceholder" xml:space="preserve"><value>1. Make sure the tree is green: the build with no warnings and every test suite passing.</value></data>
+  <data name="ReleaseSchemeBodyHint" xml:space="preserve"><value>The steps an agent follows. This text is read by an agent, so it is written in English.</value></data>
   <data name="ReleaseHistoryTitle" xml:space="preserve"><value>Release history</value></data>
   <data name="ReleaseHistoryHint" xml:space="preserve"><value>What this project released, newest first, with the scheme each release followed.</value></data>
   <data name="ReleaseHistoryEmpty" xml:space="preserve"><value>Nothing is recorded yet. A release is recorded by an agent once it is published.</value></data>
@@ -731,4 +736,19 @@
   <data name="ReleaseCardTag" xml:space="preserve"><value>released</value></data>
   <data name="ReleaseCardLine" xml:space="preserve"><value>went into release {0}</value></data>
 
+  <data name="BoardModeFilter" xml:space="preserve"><value>View</value></data>
+  <data name="BoardModeBoard" xml:space="preserve"><value>Board</value></data>
+  <data name="BoardModeArchive" xml:space="preserve"><value>Archive</value></data>
+  <data name="ArchiveTitle" xml:space="preserve"><value>Archive</value></data>
+  <data name="ArchiveHint" xml:space="preserve"><value>Finished cards that were put away. Nothing is deleted: the card itself, its feed, its runs, its artifacts and its relations are all still there.</value></data>
+  <data name="ArchiveEmpty" xml:space="preserve"><value>Nothing is in the archive yet.</value></data>
+  <data name="ArchiveRestore" xml:space="preserve"><value>Return to the board</value></data>
+  <data name="ArchiveWhen" xml:space="preserve"><value>put away {0}</value></data>
+  <data name="ArchiveWhenUnknown" xml:space="preserve"><value>put away, moment unknown</value></data>
+  <data name="ArchiveFailed" xml:space="preserve"><value>Card {0} could not be returned to the board: {1}</value></data>
+  <data name="ArchiveCard" xml:space="preserve"><value>Put away</value></data>
+  <data name="ArchiveCardHint" xml:space="preserve"><value>Put this finished card into the archive: it leaves the board, and nothing about it is deleted.</value></data>
+  <data name="RestoreCard" xml:space="preserve"><value>Return to the board</value></data>
+  <data name="RestoreCardHint" xml:space="preserve"><value>Bring this card back from the archive to the stage it was put away in.</value></data>
+  <data name="ArchiveNotFinished" xml:space="preserve"><value>Only a card that reached the end of its pipeline can be put away; this one has work left in it.</value></data>
 </root>

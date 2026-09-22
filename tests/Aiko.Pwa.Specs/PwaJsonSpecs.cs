@@ -43,6 +43,7 @@ public sealed class PwaJsonSpecs
             typeof(EstimateCardRequest),
             typeof(RenameWorkflowRequest),
             typeof(MoveCardRequest),
+            typeof(ArchiveCardRequest),
             typeof(UpdateCardRequest),
             typeof(UpdateArtifactRequest),
             typeof(UpdateWorkflowRequest),

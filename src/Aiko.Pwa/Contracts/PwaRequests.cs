@@ -61,6 +61,17 @@ internal sealed record MoveCardRequest(
     long ExpectedRevision);
 
 /// <summary>
+/// Puts a card into the archive or brings it back to the board.
+/// </summary>
+/// <remarks>
+/// One request for both directions because they are one action on one field, exactly as the daemon serves
+/// them: the flag says which way and the revision says which card the caller was looking at.
+/// </remarks>
+/// <param name="Archived">True to put the card away, false to bring it back.</param>
+/// <param name="ExpectedRevision">Revision the caller read the card at.</param>
+internal sealed record ArchiveCardRequest(bool Archived, long ExpectedRevision);
+
+/// <summary>
 /// Updates the editable fields of a card.
 /// </summary>
 /// <param name="Title">New title.</param>

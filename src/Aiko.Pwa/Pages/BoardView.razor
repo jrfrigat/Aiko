@@ -34,22 +34,50 @@ else
                     </FlareToggleButton>
                 }
             </FlareButtonGroup>
+            @* The view the board is in: the work, or the history beside it. The answer filter belongs to the
+               work and steps aside in the archive, while the type filter stays - it asks about a card's type,
+               which the archive has as much as the board does. *@
+            @if (!ArchiveOnly)
+            {
+                <FlareButtonGroup Connected="true"
+                                  Size="ButtonSize.Sm"
+                                  Variant="ButtonVariant.Tonal"
+                                  AdditionalAttributes="@WaitingFilterAttributes">
+                    <FlareToggleButton Toggled="@(!WaitingOnly)"
+                                       ToggledChanged="@(_ => SelectWaitingAsync(waitingOnly: false))"
+                                       AriaLabel="@Loc.Get("BoardWaitingFilterAll")">
+                        <ChildContent>@Loc.Get("BoardWaitingFilterAll")</ChildContent>
+                    </FlareToggleButton>
+                    <FlareToggleButton Toggled="@WaitingOnly"
+                                       ToggledChanged="@(_ => SelectWaitingAsync(waitingOnly: true))"
+                                       AriaLabel="@Loc.Get("BoardWaitingFilterWaiting")">
+                        <ChildContent>@Loc.Get("BoardWaitingFilterWaiting")</ChildContent>
+                    </FlareToggleButton>
+                </FlareButtonGroup>
+            }
             <FlareButtonGroup Connected="true"
                               Size="ButtonSize.Sm"
                               Variant="ButtonVariant.Tonal"
-                              AdditionalAttributes="@WaitingFilterAttributes">
-                <FlareToggleButton Toggled="@(!WaitingOnly)"
-                                   ToggledChanged="@(_ => SelectWaitingAsync(waitingOnly: false))"
-                                   AriaLabel="@Loc.Get("BoardWaitingFilterAll")">
-                    <ChildContent>@Loc.Get("BoardWaitingFilterAll")</ChildContent>
+                              AdditionalAttributes="@ModeFilterAttributes">
+                <FlareToggleButton Toggled="@(!ArchiveOnly)"
+                                   ToggledChanged="@(_ => SelectArchiveAsync(archiveOnly: false))"
+                                   AriaLabel="@Loc.Get("BoardModeBoard")">
+                    <ChildContent>@Loc.Get("BoardModeBoard")</ChildContent>
                 </FlareToggleButton>
-                <FlareToggleButton Toggled="@WaitingOnly"
-                                   ToggledChanged="@(_ => SelectWaitingAsync(waitingOnly: true))"
-                                   AriaLabel="@Loc.Get("BoardWaitingFilterWaiting")">
-                    <ChildContent>@Loc.Get("BoardWaitingFilterWaiting")</ChildContent>
+                <FlareToggleButton Toggled="@ArchiveOnly"
+                                   ToggledChanged="@(_ => SelectArchiveAsync(archiveOnly: true))"
+                                   AriaLabel="@Loc.Get("BoardModeArchive")">
+                    <ChildContent>@Loc.Get("BoardModeArchive")</ChildContent>
                 </FlareToggleButton>
             </FlareButtonGroup>
         </FlareStack>
+
+        @* Everything below this line describes the work: the numbers, the request to run the board, the runs in
+           flight and the columns themselves. None of it belongs to the archive, so the whole block steps aside
+           when the archive is what is being looked at - a counter of work above a list of finished cards would
+           be a number nobody asked about. *@
+        @if (!ArchiveOnly)
+        {
 
         @* The design's metric strip: a mono summary line, not a row of tiles. A tile may carry one slice of
            its own number underneath - the backlog is a reading of the card count, not a metric of its own -
@@ -150,10 +178,9 @@ else
 
         <FlareDivider />
 
-        @{
-            var rendered = false;
-        }
-        @foreach (var section in Sections)
+        // Inside the view block above these are statements, not Razor transitions.
+        var rendered = false;
+        foreach (var section in Sections)
         {
             var current = section;
             if (rendered)
@@ -167,6 +194,59 @@ else
                           VisibleCardIds="@VisibleCardIds"
                           SizeGrid="@(State.SettingsView?.EffectivePriority.Grid ?? [])"
                           OnCardMoved="move => MoveCardAsync(current.CardType, move)" />
+        }
+
+        }
+
+        @* The archive: what the board no longer counts, drawn so a person can see what is in it and take a card
+           back. The list is the snapshot's own second collection, so nothing is asked for twice, and the type
+           filter above narrows it exactly as it narrows the columns. *@
+        @if (ArchiveOnly)
+        {
+            <FlarePaper Class="aiko-tile">
+                <FlareStack Gap="FlareSpacing.XSmall">
+                    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                        <FlareText Element="span" Typo="TypographyScale.TitleSmall">@Loc.Get("ArchiveTitle")</FlareText>
+                        <span class="aiko-tag aiko-tag--pill">@ArchivedCards.Count</span>
+                    </FlareStack>
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                        @Loc.Get("ArchiveHint")
+                    </FlareText>
+                    @if (ArchivedCards.Count == 0)
+                    {
+                        <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant2">
+                            @Loc.Get("ArchiveEmpty")
+                        </FlareText>
+                    }
+                    else
+                    {
+                        @foreach (var archived in ArchivedCards)
+                        {
+                            var row = archived;
+                            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small" Wrap="true">
+                                <FlareNavLink Href="@ProjectRoutes.Card(ProjectId, row.Reference.CardId)">
+                                    <ChildContent>
+                                        <FlareText Element="span" Mono="true" Color="FlareColor.Secondary" Weight="FontWeight.SemiBold">
+                                            @row.Reference.CardId
+                                        </FlareText>
+                                    </ChildContent>
+                                </FlareNavLink>
+                                <span class="aiko-tag aiko-tag--quiet">@row.Kind</span>
+                                <FlareText Element="span" Typo="TypographyScale.BodyMedium">@row.Title</FlareText>
+                                <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant2">
+                                    @ArchiveMeta(row)
+                                </FlareText>
+                                <FlareButton Variant="ButtonVariant.Text"
+                                             Size="ButtonSize.Sm"
+                                             Disabled="@_restoring"
+                                             OnClick="() => RestoreCardAsync(row)">
+                                    <ChildContent>@Loc.Get("ArchiveRestore")</ChildContent>
+                                </FlareButton>
+                            </FlareStack>
+                        }
+                    }
+                </FlareStack>
+            </FlarePaper>
         }
     </FlareStack>
 }
@@ -318,6 +398,101 @@ else
     /// <summary>The answer group's accessible name.</summary>
     private IReadOnlyDictionary<string, object> WaitingFilterAttributes =>
         new Dictionary<string, object>(StringComparer.Ordinal) { ["aria-label"] = Loc.Get("BoardWaitingFilter") };
+
+    /// <summary>The mode group's accessible name.</summary>
+    private IReadOnlyDictionary<string, object> ModeFilterAttributes =>
+        new Dictionary<string, object>(StringComparer.Ordinal) { ["aria-label"] = Loc.Get("BoardModeFilter") };
+
+    /// <summary>Whether the board is showing the archive instead of the work.</summary>
+    private bool ArchiveOnly { get; set; }
+
+    /// <summary>Whether a card is being brought back, so the button that asked cannot be pressed twice.</summary>
+    private bool _restoring;
+
+    /// <summary>
+    /// The view's choice. Switching to the archive drops the answer filter, which is a fact about work: a card
+    /// in the archive is finished, so it is waiting for nobody.
+    /// </summary>
+    private Task SelectArchiveAsync(bool archiveOnly)
+    {
+        ArchiveOnly = archiveOnly;
+        if (archiveOnly)
+        {
+            WaitingOnly = false;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// The archive as the board shows it: the snapshot's own second collection, narrowed by the type filter when
+    /// one is on, so the two views answer the same question about types. A snapshot that says nothing about the
+    /// archive - an older daemon - reads as an empty one.
+    /// </summary>
+    private IReadOnlyList<Card> ArchivedCards =>
+        (State.Board?.ArchivedCards ?? [])
+        .Where(card => !IsFiltered || _pickedKinds.Contains(card.Kind))
+        .OrderBy(card => card.Reference.CardId, StringComparer.Ordinal)
+        .ToArray();
+
+    /// <summary>
+    /// What the archive row says about where the card came from: the stage it was put away in, by its own
+    /// workflow's name for it, and when that was.
+    /// </summary>
+    private string ArchiveMeta(Card card) =>
+        $"{StageTitle(card)} · {Loc.Format("ArchiveWhen", ArchivedAtText(card))}";
+
+    /// <summary>A stage's own title, or its id when the project no longer has that workflow or stage.</summary>
+    private string StageTitle(Card card)
+    {
+        var workflow = (State.Board?.Workflows ?? [])
+            .FirstOrDefault(candidate => StringComparer.Ordinal.Equals(candidate.Id, card.WorkflowId));
+        return workflow?.Stages
+            .FirstOrDefault(stage => StringComparer.Ordinal.Equals(stage.Id, card.StageId))
+            ?.Title ?? card.StageId;
+    }
+
+    /// <summary>
+    /// When the card was put away. An unreadable mark still means the card is in the archive, so the row says
+    /// that rather than leaving an empty place where a moment should be.
+    /// </summary>
+    private string ArchivedAtText(Card card) =>
+        card.ArchivedAt is { } at
+            ? at.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+            : Loc.Get("ArchiveWhenUnknown");
+
+    /// <summary>
+    /// Brings a card back from the archive: one request, with the revision the snapshot carries, and then the
+    /// board is read again. A failure is reported the way a failed move is, and the board is reloaded either
+    /// way, so the screen never claims something the daemon refused.
+    /// </summary>
+    private async Task RestoreCardAsync(Card card)
+    {
+        if (State.Board is not { } board || _restoring)
+        {
+            return;
+        }
+
+        _restoring = true;
+        try
+        {
+            using var response = await Http.PutAsJsonAsync(
+                $"api/v1/projects/{Uri.EscapeDataString(board.Project.Id)}/cards/{Uri.EscapeDataString(card.Reference.CardId)}/archive",
+                new ArchiveCardRequest(Archived: false, card.Revision),
+                PwaJson.Options);
+            response.EnsureSuccessStatusCode();
+        }
+        catch (Exception exception)
+        {
+            await State.ReportErrorAsync(
+                Loc.Format("ArchiveFailed", card.Reference.CardId, FailureText.Describe(exception)));
+        }
+        finally
+        {
+            _restoring = false;
+            await State.LoadBoardAsync();
+        }
+    }
 
     /// <summary>The route opens the project; the board itself has no other state of its own.</summary>
     protected override async Task OnParametersSetAsync()

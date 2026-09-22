@@ -339,12 +339,23 @@
     private IReadOnlyList<string> RelatedTags(Card card)
     {
         var id = card.Reference.CardId;
+
+        // Only a card the snapshot carries gets a tag. A relation of an archived card still points at a card
+        // somebody can open - that is what "nothing is lost" means - while a tag pointing at a card the board
+        // does not carry would be a link to a screen with nothing to say. Both lists are the snapshot's, so the
+        // set is the same one the sections and the archive are drawn from.
+        var known = Board.Cards
+            .Select(candidate => candidate.Reference.CardId)
+            .Concat((Board.ArchivedCards ?? []).Select(candidate => candidate.Reference.CardId))
+            .ToHashSet(StringComparer.Ordinal);
+
         return Board.Relations
             .Where(relation => StringComparer.Ordinal.Equals(relation.Source.CardId, id) ||
                                StringComparer.Ordinal.Equals(relation.Target.CardId, id))
             .Select(relation => StringComparer.Ordinal.Equals(relation.Source.CardId, id)
                 ? relation.Target.CardId
                 : relation.Source.CardId)
+            .Where(related => known.Contains(related))
             .Distinct(StringComparer.Ordinal)
             .Take(3)
             .ToArray();
