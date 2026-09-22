@@ -441,6 +441,29 @@ for one tree. What the screen offers beside it is read from `GET /api/v1/project
 the daemon's own version, the last release found through the repository's `releases/latest` redirect, and
 the commit the project's tree is on.
 
+The release itself is project data in three places, and each answers a different question:
+
+- **How a release is conducted** is a *release scheme*: a named instruction to an agent, with a description
+  and a body - the order of steps. Schemes live in the `release` section of the project's settings, and that
+  section resolves the way every other one does: the project's own choice wins, the template's is what a new
+  project starts from, and the shipped default answers for a project that states nothing. Two schemes ship
+  with Aiko: `git-release`, an ordinary release whose tag carries the version and which becomes the latest
+  one, and `git-pre-release`, the same order with a tag carrying `-pre` that does not become the latest one.
+  `SafeDefault` carries both, so they are there in every project, including the ones created before schemes
+  existed. The `/aiko-release` procedure names no order of its own: it reads the scheme the project follows
+  and works its steps.
+- **What was released** is a record: `.aiko/releases.json`, a document of the project rather than a
+  projection of the database, holding the version tag, the scheme the release followed, when it was
+  recorded, a note, and the cards that went into it - newest first. The card list is *explicit*: a card is in
+  a release because it was named when the release was recorded, not because of the state it happened to be
+  in that day. A card that enters a release by date starts lying at the first move, and "which release did
+  this task go into" stops having one answer. One version keeps one record: recording it twice is refused
+  rather than overwritten, and a record nobody can read is refused rather than read as an empty history.
+- **How the tag is read** is the workflow's business. GitHub does not infer "preliminary" from a tag's name,
+  so `release.yml` recognises the `-pre` suffix itself and publishes such a release as a preliminary one that
+  never becomes the latest - without that, a preliminary release would take the place of the ordinary one for
+  everybody who installs without naming a version.
+
 States: `Queued → Taken → Completed | Failed`, and `Queued → Cancelled`. Every transition is checked in
 one place, under a per-project lock, which is what keeps two agents from carrying out one command twice;
 a command placed for a named agent is left for that agent. Only a command nobody has taken can be
@@ -459,6 +482,13 @@ the person as the command's `failed` message.
 | Agent procedure | `aiko-commands` - reads the queue, takes one command, carries it out, closes it; `aiko-run-all` - works the board, which is what a `RunBoard` command asks for |
 | UI | Card page - *Command for an agent*: place one, and read what became of it - waiting, taken, or the outcome the agent reported. Board - *Work the board*: places a `RunBoard` command and shows what became of it. Release screen - *Release*: the version of the daemon that is running, the last release and the state of the tree, and a button that places a `Release` command; project settings - *How a release is conducted*: the order in words, and what installing the archive touches and what it leaves alone |
 | Event | `commands.updated`, published on every change |
+
+| Surface | Path |
+| :-- | :-- |
+| REST | `GET .../releases` (the history, newest first, each line with its card count), `GET .../releases/{version}` (one record with its cards), `GET .../cards/{cardId}/release` (the release that named the card, or 404) |
+| MCP | `aiko_list_releases` (the history - the previous release is what tells the agent which cards have shipped since) and `aiko_record_release(version, schemeId, cards, notes)` (the one writer of the document) |
+| UI | Release screen - the history, newest first, with each release marked ordinary or preliminary by its tag's suffix; a page per release at `/p/{handle}/release/{version}`, listing the tasks that went into it; a task's card says which release it went into, and says nothing when no release named it |
+| Event | `releases.updated`, published when a release is recorded |
 
 ## 13. Concurrency and workspaces
 
