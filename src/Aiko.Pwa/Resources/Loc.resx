@@ -713,5 +713,22 @@
   <data name="ReleaseScheme" xml:space="preserve"><value>Release scheme</value></data>
   <data name="ReleaseSchemeHint" xml:space="preserve"><value>How a release of this project is conducted. A project's own choice decides; the template's is what a new project starts from.</value></data>
   <data name="ReleaseSchemeFellBack" xml:space="preserve"><value>Scheme '{0}' is not available, so releases follow the ordinary one.</value></data>
+  <data name="ReleaseHistoryTitle" xml:space="preserve"><value>Release history</value></data>
+  <data name="ReleaseHistoryHint" xml:space="preserve"><value>What this project released, newest first, with the scheme each release followed.</value></data>
+  <data name="ReleaseHistoryEmpty" xml:space="preserve"><value>Nothing is recorded yet. A release is recorded by an agent once it is published.</value></data>
+  <data name="ReleaseHistoryCards" xml:space="preserve"><value>cards: {0}</value></data>
+  <data name="ReleaseKindPreliminary" xml:space="preserve"><value>preliminary</value></data>
+  <data name="ReleaseKindOrdinary" xml:space="preserve"><value>ordinary</value></data>
+  <data name="ReleaseRecordTag" xml:space="preserve"><value>release record</value></data>
+  <data name="ReleaseRecordHint" xml:space="preserve"><value>What went into this release: the tasks named when it was recorded, the scheme it followed, and the day it was written down.</value></data>
+  <data name="ReleaseRecordBack" xml:space="preserve"><value>Back to the release screen</value></data>
+  <data name="ReleaseRecordScheme" xml:space="preserve"><value>Scheme</value></data>
+  <data name="ReleaseRecordDate" xml:space="preserve"><value>Recorded</value></data>
+  <data name="ReleaseRecordTasks" xml:space="preserve"><value>Tasks</value></data>
+  <data name="ReleaseRecordEmpty" xml:space="preserve"><value>Nothing went into this release: the record names no task, which is what a release of uncarded fixes looks like.</value></data>
+  <data name="ReleaseRecordMissing" xml:space="preserve"><value>not read</value></data>
+  <data name="ReleaseRecordFailed" xml:space="preserve"><value>The release record could not be read: {0}</value></data>
+  <data name="ReleaseCardTag" xml:space="preserve"><value>released</value></data>
+  <data name="ReleaseCardLine" xml:space="preserve"><value>went into release {0}</value></data>
 
 </root>

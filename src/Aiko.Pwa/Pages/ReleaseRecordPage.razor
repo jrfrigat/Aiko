@@ -1,0 +1,143 @@
+@page "/p/{Handle}/release/{Version}"
+@using Aiko.Application.Contracts
+@using Aiko.Pwa.Contracts
+@using Aiko.Pwa.Services
+@inject HttpClient Http
+
+@* One release: the tasks that went into it, the scheme it followed and when it was recorded. The record is
+   the project's own document, so this page shows what was written down rather than what a probe guesses now -
+   and a record with an empty list says honestly that nothing went into that release. *@
+<PageTitle>@($"{Version} · {Loc.Get("ReleaseTitle")}")</PageTitle>
+
+<FlareStack Gap="FlareSpacing.Medium">
+    <FlareStack Gap="FlareSpacing.XXSmall">
+        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
+            <span class="aiko-tag aiko-tag--accent">@Loc.Get("ReleaseRecordTag")</span>
+            <span class="aiko-tag @(IsPreliminary ? "aiko-tag--accent" : "aiko-tag--quiet")">
+                @Loc.Get(IsPreliminary ? "ReleaseKindPreliminary" : "ReleaseKindOrdinary")
+            </span>
+        </FlareStack>
+        <FlareText Element="h1" Typo="TypographyScale.HeadlineMedium">@Version</FlareText>
+        <FlareText Element="p" Typo="TypographyScale.BodyMedium" Color="FlareColor.OnSurfaceVariant">
+            @Loc.Get("ReleaseRecordHint")
+        </FlareText>
+    </FlareStack>
+
+    <FlareNavLink Href="@ProjectRoutes.Release(Handle)">
+        <ChildContent>@Loc.Get("ReleaseRecordBack")</ChildContent>
+    </FlareNavLink>
+
+    <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
+        <FlareStack Gap="FlareSpacing.Medium">
+            <div class="aiko-tiles">
+                <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                        @Loc.Get("ReleaseRecordScheme")
+                    </FlareText>
+                    <span class="aiko-value">@(_record?.SchemeId ?? Loc.Get("ReleaseRecordMissing"))</span>
+                </FlareStack>
+                <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                        @Loc.Get("ReleaseRecordDate")
+                    </FlareText>
+                    <span class="aiko-value">@RecordedAt</span>
+                </FlareStack>
+                <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                        @Loc.Get("ReleaseRecordTasks")
+                    </FlareText>
+                    <span class="aiko-value">@(_record?.Cards.Count ?? 0)</span>
+                </FlareStack>
+            </div>
+
+            @if (_record?.Notes is { Length: > 0 } notes)
+            {
+                <FlareAlert Variant="AlertVariant.Outlined">@notes</FlareAlert>
+            }
+
+            @if (_record is { Cards.Count: > 0 })
+            {
+                @* Every card is a link: the question this page answers is "what went into this release", and the
+                   next question is always "what was that task". *@
+                <FlareStack Gap="FlareSpacing.XSmall">
+                    @foreach (var cardId in _record.Cards)
+                    {
+                        var card = cardId;
+                        <FlareNavLink Href="@ProjectRoutes.Card(Handle, card)">
+                            <ChildContent>@card</ChildContent>
+                        </FlareNavLink>
+                    }
+                </FlareStack>
+            }
+            else if (_record is not null)
+            {
+                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                    @Loc.Get("ReleaseRecordEmpty")
+                </FlareText>
+            }
+
+            @if (_message is { Length: > 0 } message)
+            {
+                <FlareAlert Severity="AlertSeverity.Error" Variant="AlertVariant.Outlined">@message</FlareAlert>
+            }
+        </FlareStack>
+    </FlarePaper>
+
+    <FlareButton Variant="ButtonVariant.Tonal" Size="ButtonSize.Sm" Loading="@_loading" OnClick="ReloadAsync">
+        <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.Refresh" /></LeadingIcon>
+        <ChildContent>@Loc.Get("ReleaseRefresh")</ChildContent>
+    </FlareButton>
+</FlareStack>
+
+@code {
+    /// <summary>The project's readable handle, taken from the route.</summary>
+    [Parameter] public string Handle { get; set; } = string.Empty;
+
+    /// <summary>The version the address named, taken from the route.</summary>
+    [Parameter] public string Version { get; set; } = string.Empty;
+
+    private ReleaseView? _record;
+    private string? _message;
+    private bool _loading;
+
+    /// <summary>
+    /// Whether this release is a preliminary one, read from the tag's own suffix - the same fact the workflow
+    /// reads before deciding that a release does not become the latest one.
+    /// </summary>
+    private bool IsPreliminary => Version.EndsWith(ReleaseSchemes.PreReleaseSuffix, StringComparison.Ordinal);
+
+    private string RecordedAt => _record is { } record
+        ? record.ReleasedAt.ToLocalTime().ToString("d")
+        : Loc.Get("ReleaseRecordMissing");
+
+    protected override async Task OnParametersSetAsync() => await ReloadAsync();
+
+    /// <summary>
+    /// Reads the record this address names. A version nobody recorded is a 404, which is worth saying plainly:
+    /// the link named a release that is not there.
+    /// </summary>
+    private async Task ReloadAsync()
+    {
+        _loading = true;
+        _message = null;
+        try
+        {
+            _record = await Http.GetFromJsonAsync<ReleaseView>(
+                $"api/v1/projects/{Uri.EscapeDataString(Handle)}/releases/{Uri.EscapeDataString(Version)}",
+                PwaJson.Options);
+            if (_record is null)
+            {
+                _message = Loc.Format("ReleaseRecordFailed", Version);
+            }
+        }
+        catch (Exception exception)
+        {
+            _record = null;
+            _message = Loc.Format("ReleaseRecordFailed", FailureText.Describe(exception));
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

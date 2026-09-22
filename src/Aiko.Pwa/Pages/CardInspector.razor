@@ -911,6 +911,19 @@
                     </FlareStack>
                 </div>
 
+                @* Which release this card went into, when one named it. A card no release named gets no line at
+                   all: the answer is an absence, and an empty line would read as a value that went missing
+                   rather than as "not in any release". *@
+                @if (_release is { } release)
+                {
+                    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
+                        <span class="aiko-tag aiko-tag--accent">@Loc.Get("ReleaseCardTag")</span>
+                        <FlareNavLink Href="@ProjectRoutes.ReleaseRecord(Board.Project.Handle, release.Version)">
+                            <ChildContent>@Loc.Format("ReleaseCardLine", release.Version)</ChildContent>
+                        </FlareNavLink>
+                    </FlareStack>
+                }
+
                 @* The size step the agent assigns from the project's grid, and what it does to the score. *@
                 <AikoSelectField Label="@Loc.Get("SizeIdLabel")"
                                  Value="@_size"
@@ -1248,6 +1261,7 @@
     private int _textTab;
     private IReadOnlyList<StageExecution> _executions = [];
     private IReadOnlyList<CardArtifactSummary> _artifacts = [];
+    private ReleaseView? _release;
     private GitCardDiff? _diff;
     private bool _loadingDiff;
 
@@ -1864,6 +1878,7 @@
             }
 
             await LoadDiscussionAsync();
+            await LoadReleaseAsync();
         }
         catch (Exception exception)
         {
@@ -1873,6 +1888,34 @@
         finally
         {
             _loadingExecutions = false;
+        }
+    }
+
+    /// <summary>
+    /// Reads the release that named this card, or nothing at all.
+    /// </summary>
+    /// <remarks>
+    /// The route answers 404 when no release named the card, and that is an answer rather than a failure: the
+    /// page draws no line instead of an empty one. A read that fails for another reason leaves the line out
+    /// too - the line is an addition to the card, and claiming "not in a release" is something this read
+    /// cannot support. The cost is named: on a broken daemon the card looks like one that went into no
+    /// release, which is why the line says nothing about failures rather than inventing a verdict.
+    /// </remarks>
+    private async Task LoadReleaseAsync()
+    {
+        _release = null;
+        try
+        {
+            var response = await Http.GetAsync(
+                $"api/v1/projects/{Uri.EscapeDataString(Card.Reference.ProjectId)}/cards/{Uri.EscapeDataString(Card.Reference.CardId)}/release");
+            if (response.IsSuccessStatusCode)
+            {
+                _release = await response.Content.ReadFromJsonAsync<ReleaseView>(PwaJson.Options);
+            }
+        }
+        catch (Exception)
+        {
+            _release = null;
         }
     }
 

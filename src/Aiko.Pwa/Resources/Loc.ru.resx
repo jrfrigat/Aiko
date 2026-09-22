@@ -713,5 +713,22 @@
   <data name="ReleaseScheme" xml:space="preserve"><value>Схема выпуска</value></data>
   <data name="ReleaseSchemeHint" xml:space="preserve"><value>Как проводится выпуск этого проекта. Решает выбор самого проекта; шаблонный — то, с чего начинается новый проект.</value></data>
   <data name="ReleaseSchemeFellBack" xml:space="preserve"><value>Схемы «{0}» нет, поэтому выпуск идёт по обычной.</value></data>
+  <data name="ReleaseHistoryTitle" xml:space="preserve"><value>История выпусков</value></data>
+  <data name="ReleaseHistoryHint" xml:space="preserve"><value>Что проект выпустил, новые первыми, со схемой, по которой прошёл каждый выпуск.</value></data>
+  <data name="ReleaseHistoryEmpty" xml:space="preserve"><value>Пока ничего не записано. Выпуск записывает агент, когда тот опубликован.</value></data>
+  <data name="ReleaseHistoryCards" xml:space="preserve"><value>задач: {0}</value></data>
+  <data name="ReleaseKindPreliminary" xml:space="preserve"><value>предварительный</value></data>
+  <data name="ReleaseKindOrdinary" xml:space="preserve"><value>обычный</value></data>
+  <data name="ReleaseRecordTag" xml:space="preserve"><value>запись выпуска</value></data>
+  <data name="ReleaseRecordHint" xml:space="preserve"><value>Что вошло в этот выпуск: задачи, названные при записи, схема, по которой он проводился, и день, когда он был записан.</value></data>
+  <data name="ReleaseRecordBack" xml:space="preserve"><value>Назад к экрану выпуска</value></data>
+  <data name="ReleaseRecordScheme" xml:space="preserve"><value>Схема</value></data>
+  <data name="ReleaseRecordDate" xml:space="preserve"><value>Записан</value></data>
+  <data name="ReleaseRecordTasks" xml:space="preserve"><value>Задачи</value></data>
+  <data name="ReleaseRecordEmpty" xml:space="preserve"><value>В этот выпуск ничего не вошло: запись не называет ни одной задачи — так выглядит выпуск одних исправлений, не заведённых карточками.</value></data>
+  <data name="ReleaseRecordMissing" xml:space="preserve"><value>не прочитано</value></data>
+  <data name="ReleaseRecordFailed" xml:space="preserve"><value>Запись выпуска не удалось прочитать: {0}</value></data>
+  <data name="ReleaseCardTag" xml:space="preserve"><value>в выпуске</value></data>
+  <data name="ReleaseCardLine" xml:space="preserve"><value>ушла в выпуск {0}</value></data>
 
 </root>

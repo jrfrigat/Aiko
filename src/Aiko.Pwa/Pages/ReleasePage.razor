@@ -1,6 +1,7 @@
 @page "/p/{Handle}/release"
 @using Aiko.Application.Contracts
 @using Aiko.Domain.Execution
+@using Aiko.Pwa.Contracts
 @using Aiko.Pwa.Services
 @implements IDisposable
 @inject HttpClient Http
@@ -139,6 +140,58 @@
         </FlareStack>
     </FlarePaper>
 
+    @* The history is the project's own record rather than a probe of the repository: what was released, newest
+       first. A release is marked ordinary or preliminary by its tag's suffix - the same fact release.yml reads
+       to decide whether the release becomes the latest one. *@
+    <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
+        <FlareStack Gap="FlareSpacing.Medium">
+            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
+                <span class="aiko-panel__icon aiko-panel__icon--secondary">
+                    <FlareIconView Value="@MaterialDesign3Icons.Regular.ListAlt" />
+                </span>
+                <FlareStack Gap="FlareSpacing.None">
+                    <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("ReleaseHistoryTitle")</FlareText>
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                        @Loc.Get("ReleaseHistoryHint")
+                    </FlareText>
+                </FlareStack>
+            </FlareStack>
+
+            @if (_history.Count > 0)
+            {
+                <FlareStack Gap="FlareSpacing.XSmall">
+                    @foreach (var record in _history)
+                    {
+                        var entry = record;
+                        <FlareNavLink Href="@ProjectRoutes.ReleaseRecord(Handle, entry.Version)">
+                            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
+                                <span class="aiko-value">@entry.Version</span>
+                                <span class="aiko-tag @(IsPreliminary(entry.Version) ? "aiko-tag--accent" : "aiko-tag--quiet")">
+                                    @Loc.Get(IsPreliminary(entry.Version) ? "ReleaseKindPreliminary" : "ReleaseKindOrdinary")
+                                </span>
+                                <span class="aiko-tag aiko-tag--quiet">@entry.SchemeId</span>
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                    @Loc.Format("ReleaseHistoryCards", entry.Cards)
+                                </FlareText>
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                    @entry.ReleasedAt.ToLocalTime().ToString("d")
+                                </FlareText>
+                            </FlareStack>
+                        </FlareNavLink>
+                    }
+                </FlareStack>
+            }
+            else
+            {
+                @* An empty history is a fact about the project, not a missing answer: it says nothing has been
+                   recorded yet, which is what a project that has not released looks like. *@
+                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                    @Loc.Get("ReleaseHistoryEmpty")
+                </FlareText>
+            }
+        </FlareStack>
+    </FlarePaper>
+
     <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
         <FlareStack Gap="FlareSpacing.Medium">
             <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
@@ -174,6 +227,7 @@
     [Parameter] public string Handle { get; set; } = string.Empty;
 
     private ReleaseInfo? _facts;
+    private IReadOnlyList<ReleaseHistoryItem> _history = [];
     private string? _version;
     private string? _message;
     private bool _hasError;
@@ -215,6 +269,14 @@
     private string? TreeStateReason =>
         _facts?.Head is { Known: false, Failure: { Length: > 0 } failure } ? failure : null;
 
+    /// <summary>
+    /// Whether a tag names a preliminary release. The suffix comes from the scheme it is declared in rather
+    /// than being typed here, because three places read the same fact: the scheme's body, the workflow that
+    /// decides whether a release becomes the latest one, and this screen.
+    /// </summary>
+    private static bool IsPreliminary(string version) =>
+        version.EndsWith(ReleaseSchemes.PreReleaseSuffix, StringComparison.Ordinal);
+
     /// <summary>Where the order a release follows is written down, so nobody has to go looking for it.</summary>
     private string SettingsHref => ProjectRoutes.Section(Handle, "settings");
 
@@ -239,6 +301,11 @@
             _facts = await Http.GetFromJsonAsync<ReleaseInfo>(
                 $"api/v1/projects/{Uri.EscapeDataString(Handle)}/release",
                 PwaJson.Options);
+            // The history is the project's own record rather than a probe, and it is read together with the
+            // facts: whoever presses "read again" wants the screen fresh, not half of it.
+            _history = await Http.GetFromJsonAsync<IReadOnlyList<ReleaseHistoryItem>>(
+                $"api/v1/projects/{Uri.EscapeDataString(Handle)}/releases",
+                PwaJson.Options) ?? [];
         }
         catch (Exception exception)
         {

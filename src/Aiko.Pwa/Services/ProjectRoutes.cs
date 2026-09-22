@@ -35,6 +35,13 @@ internal static class ProjectRoutes
     /// </summary>
     public static string Release(string projectHandle) => Section(projectHandle, "release");
 
+    /// <summary>
+    /// One release of the project: the tasks that went into it, at an address a person can open in a new tab
+    /// or hand to somebody else.
+    /// </summary>
+    public static string ReleaseRecord(string projectHandle, string version) =>
+        $"{Release(projectHandle)}/{Escape(version)}";
+
     /// <summary>One card of the project.</summary>
     public static string Card(string projectHandle, string cardId) =>
         $"{Overview(projectHandle)}/cards/{Escape(cardId)}";
