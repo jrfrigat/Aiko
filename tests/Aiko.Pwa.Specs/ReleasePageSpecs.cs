@@ -26,8 +26,9 @@ public sealed class ReleasePageSpecs
         var page = Read("src", "Aiko.Pwa", "Pages", "ReleasePage.razor");
 
         Assert.Contains("@page \"/p/{Handle}/release\"", page, StringComparison.Ordinal);
-        // The facts come from the route TASK-127 added, addressed by the handle the page was opened with.
-        Assert.Contains("api/v1/projects/{Uri.EscapeDataString(Handle)}/release", page, StringComparison.Ordinal);
+        // What the screen reads is addressed by the handle it was opened with: the project's releases, and the
+        // settings document that holds the schemes a release can follow.
+        Assert.Contains("api/v1/projects/{Uri.EscapeDataString(Handle)}/releases", page, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -49,49 +50,41 @@ public sealed class ReleasePageSpecs
     }
 
     [Fact]
-    public void A_missing_fact_is_drawn_as_unknown_and_never_as_an_empty_place()
+    public void The_facts_the_screen_used_to_probe_are_gone()
     {
         var page = Read("src", "Aiko.Pwa", "Pages", "ReleasePage.razor");
 
-        // Both versions, the last release and the tree state fall back to the same word ...
-        Assert.Equal(4, Regex.Matches(page, @"Loc\.Get\(""ReleaseUnknown""\)").Count);
-
-        // ... and each fact the daemon could not read carries its reason, so "unknown" and "broken" do not
-        // look alike on the screen.
-        Assert.Contains("LatestReleaseReason", page, StringComparison.Ordinal);
-        Assert.Contains("TreeStateReason", page, StringComparison.Ordinal);
-        Assert.Contains(
-            "_facts?.Latest is { Known: false, Failure: { Length: > 0 } failure }",
-            page,
-            StringComparison.Ordinal);
-        Assert.Contains(
-            "_facts?.Head is { Known: false, Failure: { Length: > 0 } failure }",
-            page,
-            StringComparison.Ordinal);
+        // The block is gone rather than hidden: the screen no longer reads the daemon's probe of the
+        // repository, and nothing of it is left to draw. A tile that said "unknown" with nothing behind it
+        // would be worse than the tile it replaced.
+        Assert.DoesNotContain("ReleaseInfo", page, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReleaseFactsTitle", page, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReleaseUnknown", page, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReleaseOrderTitle", page, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void The_screen_reads_both_versions_from_the_daemon_it_is_talking_to()
+    public void The_screen_offers_the_policy_and_the_agent_and_places_one_command()
     {
         var page = Read("src", "Aiko.Pwa", "Pages", "ReleasePage.razor");
 
-        Assert.Contains("State.System?.Version", page, StringComparison.Ordinal);
-        Assert.Contains("State.System?.AssetsVersion", page, StringComparison.Ordinal);
-    }
+        // Creating a release is one dialog: which policy it follows, and which agent conducts it. The schemes
+        // are the project's own - read from the settings document rather than invented by the screen - and the
+        // agents are the ones the cockpit already knows about.
+        Assert.Contains("FlareDialog", page, StringComparison.Ordinal);
+        Assert.Contains("api/v1/projects/{Uri.EscapeDataString(Handle)}/settings", page, StringComparison.Ordinal);
+        Assert.Contains("ReleasePolicyLabel", page, StringComparison.Ordinal);
+        Assert.Contains("foreach (var agent in State.Agents)", page, StringComparison.Ordinal);
 
-    [Fact]
-    public void Asking_for_a_release_puts_a_command_in_the_queue_and_shows_that_it_waits()
-    {
-        var page = Read("src", "Aiko.Pwa", "Pages", "ReleasePage.razor");
-
-        // The command is the one the queue already carries, and it names no card: a release is the project's.
+        // And it is one command: the policy rides in the text, the agent in the field the queue already has
+        // for it, and a release that names no agent is one any agent may take.
         Assert.Contains("CardCommandAction.Release", page, StringComparison.Ordinal);
-        Assert.Contains("new PlaceCommandRequest(", page, StringComparison.Ordinal);
         Assert.Contains("CardId: null,", page, StringComparison.Ordinal);
-
-        // The version the person typed rides in the text; an empty field leaves the choice to the procedure,
-        // which is what the command's own documentation says Text is for.
-        Assert.Contains("Text: string.IsNullOrWhiteSpace(_version)", page, StringComparison.Ordinal);
+        Assert.Contains("Text: _policyId", page, StringComparison.Ordinal);
+        Assert.Contains(
+            "AgentAdapterId: string.IsNullOrWhiteSpace(_agentId) ? null : _agentId",
+            page,
+            StringComparison.Ordinal);
 
         // Waiting is read from the queue rather than remembered by the page.
         Assert.Contains("State.Commands.FirstOrDefault(command =>", page, StringComparison.Ordinal);
@@ -101,20 +94,18 @@ public sealed class ReleasePageSpecs
     [Fact]
     public void The_screen_denies_the_push_and_the_installation_in_words()
     {
-        // Aiko runs no agent and installs nothing. The screen says both, where a person reads before pressing
-        // the button and before following the steps.
-        Assert.Contains("does not run agents", Neutral("ReleaseCommandHint"), StringComparison.Ordinal);
+        // Aiko runs no agent, pushes no tag and installs nothing. The denial lives in the dialog, where a
+        // person reads before confirming: a screen that dropped those words would promise work nobody does.
+        var hint = Neutral("ReleaseCreateHint");
+        Assert.Contains("does not run agents", hint, StringComparison.Ordinal);
+        Assert.Contains("does not push the tag", hint, StringComparison.Ordinal);
+        Assert.Contains("installs nothing", hint, StringComparison.Ordinal);
 
-        var orderHint = Neutral("ReleaseOrderHint");
-        Assert.Contains("you run yourself", orderHint, StringComparison.Ordinal);
-        Assert.Contains("installs nothing", orderHint, StringComparison.Ordinal);
-
-        // The button names what it does - it queues a request - rather than what would follow from it.
-        Assert.Contains("queue", Neutral("ReleaseCommandButton"), StringComparison.Ordinal);
-
-        // And the page still points at the order the whole procedure follows, so nobody goes looking.
+        // The button names what it opens, and the confirmation names what it places - a request in the queue,
+        // not a release.
+        Assert.Contains("queue", Neutral("ReleaseCreateConfirm"), StringComparison.Ordinal);
         Assert.Contains(
-            "Loc.Get(\"ReleaseSettingsLink\")",
+            "Loc.Get(\"ReleaseCreateButton\")",
             Read("src", "Aiko.Pwa", "Pages", "ReleasePage.razor"),
             StringComparison.Ordinal);
     }

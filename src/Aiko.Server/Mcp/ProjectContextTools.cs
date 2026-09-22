@@ -534,24 +534,28 @@ internal sealed class ProjectContextTools(
     }
 
     /// <summary>
-    /// The scheme this project's releases follow, with its steps: the instruction an agent needs before it
-    /// conducts a release.
+    /// The schemes this project's releases follow: the instruction an agent needs before it conducts one.
     /// </summary>
     /// <remarks>
-    /// The body is printed whole rather than pointed at, and that is the point of the section: the scheme is
+    /// Every scheme is printed whole rather than pointed at, and that is the point of the section: a scheme is
     /// what the project decided a release looks like, so an agent that reads it works by the project's order
-    /// instead of by one it remembers from elsewhere. Only the scheme in force is printed - a list of the ones
-    /// that were not chosen would be a second answer to the same question.
+    /// instead of by one it remembers from elsewhere. All of them travel rather than a single scheme "in
+    /// force", because which one a release follows is named where that release is asked for - the parameter of
+    /// <c>/aiko-release</c>, or the text of the command a release dialog placed. A section carrying only a
+    /// chosen scheme could not answer a request that named another one.
     /// </remarks>
     /// <param name="release">The effective release section of the project.</param>
     private static string DescribeRelease(ReleaseSettings release)
     {
-        var scheme = release.ResolveScheme();
         var builder = new StringBuilder();
-        builder.AppendLine("## The release scheme this project follows");
+        builder.AppendLine("## The release schemes of this project");
         builder.AppendLine();
-        builder.Append("- Scheme: ").Append(scheme.Name).Append(" (").Append(scheme.Id).Append(')').AppendLine();
-        builder.Append("- What it is for: ").AppendLine(scheme.Description);
+        builder.AppendLine(
+            "A release of this project follows one of the schemes below, and which one is named where the "
+            + "release is asked for: `/aiko-release <scheme-id>`, or the text of the command that placed it. "
+            + "Read the scheme it names and work by its steps rather than from memory; when nothing is named, "
+            + "name these schemes and ask which one to follow.");
+        builder.AppendLine();
         if (release.IsConfigured)
         {
             builder.Append("- Releases are published in: ").AppendLine(release.Slug);
@@ -562,20 +566,16 @@ internal sealed class ProjectContextTools(
                 "- No GitHub repository is configured, so Aiko cannot probe what is published.");
         }
 
-        if (release.SchemeFellBack)
+        foreach (var scheme in release.EffectiveSchemes)
         {
             builder.AppendLine();
-            builder.AppendLine(
-                string.IsNullOrWhiteSpace(release.Scheme)
-                    ? "The project chooses no scheme, so the ordinary one is followed."
-                    : $"The project names '{release.Scheme}', which is not one it offers, so '{scheme.Id}' is "
-                      + "followed instead.");
+            builder.Append("### ").Append(scheme.Name).Append(" (").Append(scheme.Id).Append(')').AppendLine();
+            builder.AppendLine();
+            builder.Append("- What it is for: ").AppendLine(scheme.Description);
+            builder.AppendLine();
+            builder.AppendLine(scheme.Body);
         }
 
-        builder.AppendLine();
-        builder.AppendLine("The steps are the project's own; work by them rather than from memory:");
-        builder.AppendLine();
-        builder.AppendLine(scheme.Body);
         builder.AppendLine();
         builder.AppendLine(
             "The history of what this project released is read with aiko_list_releases, and a conducted "

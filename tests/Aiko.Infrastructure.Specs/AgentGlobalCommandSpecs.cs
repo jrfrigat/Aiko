@@ -90,6 +90,30 @@ public sealed class AgentGlobalCommandSpecs
         Assert.DoesNotContain("v<major>.<minor>.<patch>", body, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void The_release_procedure_takes_the_policy_as_a_parameter()
+    {
+        var body = AgentTemplates.GlobalRelease;
+
+        // The command names the policy the release follows, and the same id arrives when the release screen
+        // placed the request - it travels in the command's text - so one input serves both a person typing the
+        // command and a dialog queueing it.
+        Assert.Contains("/aiko-release <scheme-id>", body, StringComparison.Ordinal);
+        Assert.Contains("/aiko-release git-release", body, StringComparison.Ordinal);
+        Assert.Contains("travels in the text of the command", body, StringComparison.Ordinal);
+
+        // Naming nothing is a question rather than a default, and an id that matches no scheme is a question
+        // too: the procedure never chooses an order for the person.
+        Assert.Contains("do not pick the first", body, StringComparison.Ordinal);
+        Assert.Contains("ask which one to follow", body, StringComparison.Ordinal);
+        Assert.Contains("is a question too", body, StringComparison.Ordinal);
+        Assert.Contains("not a licence to choose for the person", body, StringComparison.Ordinal);
+
+        // The record says which order the release took, so the id the procedure followed is the one it records.
+        Assert.Contains("with the id", body, StringComparison.Ordinal);
+        Assert.Contains("so the record says which order this release took", body, StringComparison.Ordinal);
+    }
+
     private static async Task<string[]> GlobalCommandsAsync(IAgentAdapter adapter)
     {
         var plan = await adapter.PlanUserInstallAsync(CancellationToken.None);

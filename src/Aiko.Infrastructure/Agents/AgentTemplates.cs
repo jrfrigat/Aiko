@@ -771,14 +771,21 @@ internal static class AgentTemplates
         recalling it, and say at every step which part you do and which part the person does: a release is not
         something an agent finishes alone.
 
-        1. Read the project's release scheme. Call `aiko_get_project_context` and read the section `release`: it
-           carries the scheme this project follows, what it is for and its steps, whole. Those steps are the
-           order of this release, whichever scheme it is - the ordinary one and the preliminary one differ in
-           their tag and in whether the release becomes the latest one, and the scheme says so itself. Do not
-           put a remembered order in their place: a project that changed its scheme changed this. Before you
-           start, make sure the folder is the project's own checkout - `aiko project find` in it names this
-           project - because a release conducted from another folder tags the wrong repository, and that is not
-           something to find out afterwards.
+        The command takes the release policy: `/aiko-release <scheme-id>`, for example `/aiko-release git-release`.
+        That id names the scheme this release follows. The same id arrives when the request was placed from the
+        cockpit's release screen, where it travels in the text of the command - so a request read out of the
+        queue is read exactly like one typed here, and neither is a reason to fall back on a remembered order.
+
+        1. Read the project's release schemes. Call `aiko_get_project_context` and read the section `release`: it
+           carries every scheme this project can follow, whole - name, id, what it is for, and its steps. Take
+           the one the command names. When nothing is named, do not guess and do not pick the first: name the
+           schemes with their ids and ask which one to follow. An id matching none of them is a question too,
+           not a licence to choose for the person. Those steps are the order of this release, whichever scheme
+           it is - the ordinary one and the preliminary one differ in their tag and in whether the release
+           becomes the latest one, and the scheme says so itself. Do not put a remembered order in their place: a
+           project that changed its schemes changed this. Before you start, make sure the folder is the
+           project's own checkout - `aiko project find` in it names this project - because a release conducted
+           from another folder tags the wrong repository, and that is not something to find out afterwards.
         2. Read the release history with `aiko_list_releases`. The most recent record is what this release is
            measured against, and it is where the list in step 3 comes from.
         3. Work the scheme's steps in order, naming at each one which part you do and which part the person
@@ -787,11 +794,12 @@ internal static class AgentTemplates
            is running, so ask the person to stop it first, hand over the installer for the release being
            published, and let them reconnect their agents afterwards (`aiko agent install --project <id>` for
            this project and `aiko agent install --scope user` for the machine).
-        4. Record the release once it is published: `aiko_record_release(version, schemeId, cards)`. Offer the
-           list of cards first - everything that reached the end of its pipeline since the record you read in
-           step 2 - and let the person see it before it is written. An empty list is a legitimate record, a
-           release of fixes nobody carded, but say so rather than letting it pass: the list is what answers
-           "which tasks went into this version" afterwards.
+        4. Record the release once it is published: `aiko_record_release(version, schemeId, cards)`, with the id
+           of the scheme you followed, so the record says which order this release took. Offer the list of cards
+           first - everything that reached the end of its pipeline since the record you read in step 2 - and let
+           the person see it before it is written. An empty list is a legitimate record, a release of fixes
+           nobody carded, but say so rather than letting it pass: the list is what answers "which tasks went
+           into this version" afterwards.
         5. Close with one sentence: what was released, what was installed and what is left. A release that ends
            without it leaves the next person to guess.
         """;

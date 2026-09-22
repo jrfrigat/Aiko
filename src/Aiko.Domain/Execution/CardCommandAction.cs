@@ -49,9 +49,11 @@ public enum CardCommandAction
     /// </summary>
     /// <remarks>
     /// A release is about the project as a whole, not about one of its cards, so it carries no card id - and
-    /// the version the person has in mind travels in the command's text, which the procedure reads before it
-    /// chooses one itself. Like the board pass it is a single record: two releases at once would be two tags
-    /// for one tree.
+    /// the command's text names the policy: the id of the scheme this release follows, which the procedure
+    /// reads to know which order to work by. A command a person typed as <c>/aiko-release git-release</c> and
+    /// one the release screen placed carry the same id in the same field, so the procedure reads one input
+    /// either way. Like the board pass it is a single record: two releases at once would be two tags for one
+    /// tree.
     /// </remarks>
     Release
 }

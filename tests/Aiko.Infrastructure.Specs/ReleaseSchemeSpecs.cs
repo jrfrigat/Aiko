@@ -4,14 +4,14 @@ using Xunit;
 namespace Aiko.Infrastructure.Specs;
 
 /// <summary>
-/// The release schemes a project chooses from: the two Aiko ships, and what happens when a project's choice
-/// names nothing.
+/// The release schemes a project holds: the two Aiko ships, and the ones a project writes for itself.
 /// </summary>
 /// <remarks>
-/// The acceptance puts two things together - "the schemes ship with the installation" and "a scheme can be
-/// chosen for the project and for the template" - and those are one mechanism: a project that states no
-/// release section follows the safe default, which carries both schemes. These specs hold that, and hold the
-/// refusal to answer a bad choice with nothing.
+/// The acceptance puts two things together - "the schemes ship with the installation" and "a project keeps its
+/// own, and is not limited to one" - and those are one mechanism: a level that states no release section
+/// carries both shipped schemes, and one that writes its own carries those instead. Which scheme a release
+/// follows is named where the release is asked for, so nothing here chooses one; these specs hold that, and
+/// hold that an empty list is silence rather than an empty catalogue.
 /// </remarks>
 public sealed class ReleaseSchemeSpecs
 {
@@ -57,71 +57,56 @@ public sealed class ReleaseSchemeSpecs
     }
 
     [Fact]
-    public void A_project_that_states_nothing_gets_both_schemes_and_the_ordinary_one()
+    public void A_level_that_states_nothing_holds_both_shipped_schemes()
     {
         var settings = ReleaseSettings.SafeDefault;
 
-        Assert.Equal(2, settings.AvailableSchemes.Count);
-        Assert.Equal(ReleaseSchemes.GitReleaseId, settings.ResolveScheme().Id);
+        Assert.Equal(2, settings.EffectiveSchemes.Count);
+        Assert.Equal(ReleaseSchemes.GitReleaseId, settings.EffectiveSchemes[0].Id);
+        Assert.Equal(ReleaseSchemes.GitPreReleaseId, settings.EffectiveSchemes[1].Id);
 
         // Silence is a working configuration, not a fallback the screen has to apologize for.
-        Assert.False(settings.SchemeFellBack);
+        Assert.False(settings.IsConfigured);
     }
 
     [Fact]
-    public void The_project_s_own_choice_wins()
+    public void A_project_holds_as_many_schemes_of_its_own_as_it_needs()
     {
-        var settings = ReleaseSettings.SafeDefault with { Scheme = ReleaseSchemes.GitPreReleaseId };
+        // The point of a list rather than a choice: a project writes the orders it releases by, and no one of
+        // them is "in force" - the release itself names the scheme it follows.
+        var own = new[]
+        {
+            new ReleaseScheme("team-release", "Team release", "Our own order.", "1. Ask the release owner."),
+            new ReleaseScheme("hotfix", "Hotfix", "A fix out of band.", "1. Tag the fix and publish it."),
+        };
+        var settings = new ReleaseSettings(Schemes: own);
 
-        Assert.Equal(ReleaseSchemes.GitPreReleaseId, settings.ResolveScheme().Id);
-        Assert.False(settings.SchemeFellBack);
-    }
-
-    [Fact]
-    public void A_choice_that_names_nothing_resolves_rather_than_throwing()
-    {
-        // A scheme removed from the list leaves a settings file that still names it. The answer is the
-        // ordinary release plus the fact that the choice was not honoured - never an exception and never a
-        // null a screen would draw as an empty place.
-        var settings = ReleaseSettings.SafeDefault with { Scheme = "a-scheme-that-is-gone" };
-
-        Assert.Equal(ReleaseSchemes.GitReleaseId, settings.ResolveScheme().Id);
-        Assert.True(settings.SchemeFellBack);
-    }
-
-    [Fact]
-    public void A_section_that_states_a_repository_but_no_scheme_follows_the_ordinary_one()
-    {
-        // This is what a settings file written before schemes existed looks like: owner and repository, no
-        // choice. It resolves, and the screen is told the choice is not its own.
-        var settings = new ReleaseSettings("jrfrigat", "Aiko");
-
-        Assert.Equal(2, settings.AvailableSchemes.Count);
-        Assert.Equal(ReleaseSchemes.GitReleaseId, settings.ResolveScheme().Id);
-        Assert.True(settings.SchemeFellBack);
-    }
-
-    [Fact]
-    public void A_project_may_state_its_own_schemes_and_one_of_them_wins()
-    {
-        // The point of the list being a list: a project defines a scheme of its own and follows it.
-        var own = new ReleaseScheme("team-release", "Team release", "Our own order.", "1. Ask the release owner.");
-        var settings = new ReleaseSettings(Scheme: "team-release", Schemes: [own]);
-
-        Assert.Single(settings.AvailableSchemes);
-        Assert.Equal("team-release", settings.ResolveScheme().Id);
-        Assert.Equal("Our own order.", settings.ResolveScheme().Description);
-        Assert.False(settings.SchemeFellBack);
+        Assert.Equal(2, settings.EffectiveSchemes.Count);
+        Assert.Equal("team-release", settings.EffectiveSchemes[0].Id);
+        Assert.Equal("Our own order.", settings.EffectiveSchemes[0].Description);
+        Assert.Equal("hotfix", settings.EffectiveSchemes[1].Id);
     }
 
     [Fact]
     public void An_empty_list_is_silence_and_not_an_empty_catalogue()
     {
-        // "Schemes: []" says nothing rather than offering nothing: a project whose list is empty still has
-        // the two Aiko ships, because an empty list of steps is not a configuration anyone can release with.
-        var settings = new ReleaseSettings(Scheme: ReleaseSchemes.GitPreReleaseId, Schemes: []);
+        // "Schemes: []" says nothing rather than offering nothing: a level whose list is empty still has the
+        // two Aiko ships, because an empty list of steps is not a configuration anyone can release with.
+        var settings = new ReleaseSettings(Schemes: []);
 
-        Assert.Equal(2, settings.AvailableSchemes.Count);
-        Assert.Equal(ReleaseSchemes.GitPreReleaseId, settings.ResolveScheme().Id);
+        Assert.Equal(2, settings.EffectiveSchemes.Count);
+        Assert.Equal(ReleaseSchemes.GitReleaseId, settings.EffectiveSchemes[0].Id);
+    }
+
+    [Fact]
+    public void A_section_written_before_schemes_existed_still_releases()
+    {
+        // This is what a file written before any of this looks like: owner and repository, no list. It still
+        // resolves to a catalogue a release can be conducted by.
+        var settings = new ReleaseSettings("jrfrigat", "Aiko");
+
+        Assert.Equal(2, settings.EffectiveSchemes.Count);
+        Assert.True(settings.IsConfigured);
+        Assert.Equal("jrfrigat/Aiko", settings.Slug);
     }
 }

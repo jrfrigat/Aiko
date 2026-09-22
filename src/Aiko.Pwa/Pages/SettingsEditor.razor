@@ -234,6 +234,26 @@
                         </div>
                     </FlareStack>
 
+                    @* The two scope policies answer different questions and are easy to confuse, so the hints say
+                       which is which: the one above is about two runs declaring overlapping files, this one is
+                       about a single card needing a file outside its own declared scope. *@
+                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.XSmall">
+                        <FlareStack Gap="FlareSpacing.None">
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                                @Loc.Get("ScopeExpansionPolicy")
+                            </FlareText>
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                @Loc.Get("ScopeExpansionPolicyHint")
+                            </FlareText>
+                        </FlareStack>
+                        <div class="aiko-choices">
+                            @foreach (var option in ScopeExpansionOptions)
+                            {
+                                @Choice("scope-expansion", option, _scopeExpansionPolicy, policy => _scopeExpansionPolicy = policy)
+                            }
+                        </div>
+                    </FlareStack>
+
                     <FlareStack Class="aiko-tile" Gap="FlareSpacing.XSmall">
                         <FlareStack Gap="FlareSpacing.None">
                             <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
@@ -308,37 +328,88 @@
                                      ValueChanged="value => _crossProjectTargets = value" />
                     </FlareStack>
 
-                    @* How this project's releases are conducted. One choice for the project, and the same
-                       control on the template's screen decides what a new project starts from - which is what
-                       "the project's own choice wins" means here: the template's answer reaches a project as
-                       the copy it took at init, and from then on the project's own file decides. *@
+                    @* The schemes this level holds for conducting a release. It is a list rather than a choice:
+                       which one a release follows is named when that release is created, so a project keeps as
+                       many orders as it has kinds of release - and the same container on the template's screen
+                       decides what a new project starts from. A level that states none still has both schemes
+                       Aiko ships; they are drawn here without being copied into the file, because a copy would
+                       stop a later improvement to a shipped scheme from reaching the project. *@
                     <FlareStack Class="aiko-tile" Gap="FlareSpacing.XSmall">
-                        <FlareStack Gap="FlareSpacing.None">
-                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
-                                @Loc.Get("ReleaseScheme")
-                            </FlareText>
-                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                                @Loc.Get("ReleaseSchemeHint")
-                            </FlareText>
+                        <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small" Wrap="true">
+                            <FlareStack Gap="FlareSpacing.None">
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                                    @Loc.Get("ReleaseSchemes")
+                                </FlareText>
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                    @Loc.Get("ReleaseSchemesHint")
+                                </FlareText>
+                            </FlareStack>
+                            <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm" OnClick="AddScheme">
+                                <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.Add" /></LeadingIcon>
+                                <ChildContent>@Loc.Get("AddScheme")</ChildContent>
+                            </FlareButton>
                         </FlareStack>
-                        @* Said only when it is true: a choice naming a scheme that is no longer there is
-                           followed by the ordinary one, and a person who made that choice should be told
-                           rather than left to notice the list disagreeing with itself. *@
-                        @if (_releaseSchemeFellBack)
+                        @if (_schemes.Count == 0)
                         {
+                            @* Nothing stated by this level, so what a release can follow is the schemes Aiko
+                               ships. They are shown - a person has to see what is available before deciding to
+                               write an order of their own - and they are not editable, because they are not
+                               this level's data. *@
                             <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                                @Loc.Format("ReleaseSchemeFellBack", _releaseScheme ?? string.Empty)
+                                @Loc.Get("ReleaseSchemesShipped")
                             </FlareText>
-                        }
-                        <AikoSelectField Label="@Loc.Get("ReleaseScheme")"
-                                         Value="@_releaseScheme"
-                                         ValueChanged="value => _releaseScheme = value">
-                            @foreach (var scheme in _releaseSchemes)
+                            @foreach (var shipped in ReleaseSchemes.BuiltIn)
                             {
-                                var option = scheme;
-                                <option value="@option.Id">@option.Name</option>
+                                var shippedScheme = shipped;
+                                <FlareStack Gap="FlareSpacing.XXSmall">
+                                    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
+                                        <span class="aiko-tag aiko-tag--quiet">@shippedScheme.Id</span>
+                                        <FlareText Element="span" Typo="TypographyScale.BodySmall">@shippedScheme.Name</FlareText>
+                                        <span class="aiko-tag aiko-tag--accent">@Loc.Get("ReleaseSchemeShipped")</span>
+                                    </FlareStack>
+                                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                        @shippedScheme.Description
+                                    </FlareText>
+                                </FlareStack>
                             }
-                        </AikoSelectField>
+                        }
+                        else
+                        {
+                            @foreach (var scheme in _schemes)
+                            {
+                                var draft = scheme;
+                                <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                                    <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XSmall">
+                                        <span class="aiko-tag aiko-tag--quiet">@draft.Id</span>
+                                        <FlareIconButton Variant="ButtonVariant.Text"
+                                                         Icon="@MaterialDesign3Icons.Regular.Delete"
+                                                         AriaLabel="@Loc.Get("Remove")"
+                                                         OnClick="() => _schemes.Remove(draft)" />
+                                    </FlareStack>
+                                    <AikoField Label="@Loc.Get("ReleaseSchemeId")"
+                                               Hint="@Loc.Get("ReleaseSchemeIdHelper")"
+                                               Value="@draft.Id"
+                                               ValueChanged="value => draft.Id = value" />
+                                    <AikoField Label="@Loc.Get("ReleaseSchemeName")"
+                                               Value="@draft.Name"
+                                               ValueChanged="value => draft.Name = value" />
+                                    <AikoField Label="@Loc.Get("ReleaseSchemeDescription")"
+                                               Value="@draft.Description"
+                                               ValueChanged="value => draft.Description = value" />
+                                    @* The body is the order the agent reads, so it is a text area rather than a
+                                       line: a release order does not fit on one. *@
+                                    <PromptField Title="@Loc.Get("ReleaseSchemeBody")"
+                                                 Placeholder="@Loc.Get("ReleaseSchemeBodyPlaceholder")"
+                                                 Rows="6"
+                                                 ShowMetrics="false"
+                                                 Value="@draft.Body"
+                                                 ValueChanged="value => draft.Body = value" />
+                                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                        @Loc.Get("ReleaseSchemeBodyHint")
+                                    </FlareText>
+                                </FlareStack>
+                            }
+                        }
                     </FlareStack>
                 </FlareStack>
             </FlarePaper>
@@ -744,6 +815,13 @@
         new(nameof(ActionPolicy.Allow), "ScopeFreeTitle", "ScopeFreeHint"),
     ];
 
+    private static readonly PolicyOption[] ScopeExpansionOptions =
+    [
+        new(nameof(ActionPolicy.Deny), "ScopeExpansionDenyTitle", "ScopeExpansionDenyHint"),
+        new(nameof(ActionPolicy.Ask), "ScopeExpansionAskTitle", "ScopeExpansionAskHint"),
+        new(nameof(ActionPolicy.Allow), "ScopeExpansionAllowTitle", "ScopeExpansionAllowHint"),
+    ];
+
     private static readonly PolicyOption[] CommitOptions =
     [
         new(nameof(ActionPolicy.Deny), "CommitDenyTitle", "CommitDenyHint"),
@@ -822,13 +900,12 @@
     private WorkspaceMode _workspaceMode = WorkspaceMode.Shared;
     private int _maxRuns = 1;
     private ActionPolicy _scopePolicy = ActionPolicy.Ask;
+    private ActionPolicy _scopeExpansionPolicy = ActionPolicy.Ask;
     private ActionPolicy _commitPolicy = ActionPolicy.Deny;
     private ActionPolicy _pushPolicy = ActionPolicy.Deny;
     private CrossProjectWritePolicy _crossProjectPolicy = CrossProjectWritePolicy.Deny;
     private string? _crossProjectTargets;
-    private IReadOnlyList<ReleaseScheme> _releaseSchemes = ReleaseSchemes.BuiltIn;
-    private string? _releaseScheme;
-    private bool _releaseSchemeFellBack;
+    private List<SchemeDraft> _schemes = [];
     private List<CriterionDraft> _criteria = [];
     private List<SizeDraft> _sizes = [];
     private SizeDraft? _selectedSize;
@@ -918,6 +995,7 @@
         _workspaceMode = execution.WorkspaceMode;
         _maxRuns = execution.MaxConcurrentRuns;
         _scopePolicy = execution.ScopeOverlapPolicy;
+        _scopeExpansionPolicy = execution.ScopeExpansionPolicy;
         _commitPolicy = execution.SharedCheckoutCommitPolicy;
         _pushPolicy = execution.SharedCheckoutPushPolicy;
 
@@ -925,13 +1003,10 @@
         _crossProjectPolicy = crossProject.WritePolicy;
         _crossProjectTargets = string.Join(Environment.NewLine, crossProject.Targets);
 
-        // The schemes this level can choose from, and the one in force. Seeded with the resolved scheme
-        // rather than the stated one, so the list shows what a release would actually follow; the notice
-        // above it says when those two differ.
-        var release = own?.Release ?? ReleaseSettings.SafeDefault;
-        _releaseSchemes = release.AvailableSchemes;
-        _releaseScheme = release.ResolveScheme().Id;
-        _releaseSchemeFellBack = release.SchemeFellBack;
+        // The schemes this level states, and only those. The ones Aiko ships are drawn beside the empty list
+        // instead of being copied into it, so a project that never wrote an order of its own keeps following
+        // the shipped ones - including an improvement to them that arrives later.
+        _schemes = (own?.Release?.Schemes ?? []).Select(SchemeDraft.From).ToList();
 
         var priority = own?.Priority ?? view.EffectivePriority;
         _ownWeight = (double)priority.Weights.TaskWeight;
@@ -945,6 +1020,22 @@
     private void OnOwnWeightChanged(double value) => _ownWeight = value;
 
     private void OnParentWeightChanged(double value) => _parentWeight = value;
+
+    /// <summary>
+    /// Adds a scheme of this level's own. Its order starts empty and is the person's to write: Aiko can put a
+    /// name in the field, and cannot invent a release procedure for this repository.
+    /// </summary>
+    private void AddScheme()
+    {
+        var id = "scheme";
+        var suffix = _schemes.Count + 1;
+        while (_schemes.Any(item => StringComparer.Ordinal.Equals(item.Id, id)))
+        {
+            id = $"scheme-{suffix++}";
+        }
+
+        _schemes.Add(new SchemeDraft { Id = id });
+    }
 
     private void AddCriterion() =>
         _criteria.Add(new CriterionDraft { Id = NewCriterionId(_criteria) });
@@ -1061,7 +1152,8 @@
         _hasError = false;
         try
         {
-            var execution = new ExecutionSettings(_workspaceMode, _maxRuns, _scopePolicy, _commitPolicy, _pushPolicy);
+            var execution = new ExecutionSettings(
+                _workspaceMode, _maxRuns, _scopePolicy, _commitPolicy, _pushPolicy, _scopeExpansionPolicy);
             var crossProject = new CrossProjectSettings(_crossProjectPolicy, ParseLines(_crossProjectTargets));
             var priority = new PrioritySettings(
                 new PriorityWeights(OwnWeight, ParentWeight),
@@ -1085,11 +1177,10 @@
 
             using var response = await Http.PutAsJsonAsync(
                 SettingsUrl,
-                // The release section keeps what this form does not edit - the repository, and the schemes
-                // when the project states its own - and takes the scheme the person chose. A section that
-                // states no schemes keeps them unstated, so a project follows the ones Aiko ships rather
-                // than materialising copies of them into its file, where a later improvement would not
-                // reach it.
+                // The release section keeps what this form does not edit - the repository - and takes the
+                // schemes the person wrote. A level whose list is empty keeps them unstated, so it follows the
+                // ones Aiko ships rather than materialising copies of them into its file, where a later
+                // improvement would not reach it.
                 new AppSettings(
                     AppSettings.CurrentSchemaVersion,
                     execution,
@@ -1098,8 +1189,9 @@
                     new ReleaseSettings(
                         Owner: _view?.Snapshot?.Release?.Owner,
                         Repository: _view?.Snapshot?.Release?.Repository,
-                        Scheme: _releaseScheme,
-                        Schemes: _view?.Snapshot?.Release?.Schemes)),
+                        Schemes: _schemes.Count == 0
+                            ? null
+                            : _schemes.Select(draft => draft.ToScheme()).ToArray())),
                 PwaJson.Options);
             if (!response.IsSuccessStatusCode)
             {
@@ -1449,5 +1541,36 @@
             Description = size.Description,
             Coefficient = size.Coefficient,
         };
+    }
+
+    /// <summary>
+    /// A release scheme as the form holds it, before it becomes a <see cref="ReleaseScheme"/>. The body is the
+    /// order an agent follows, which is what makes a scheme a scheme rather than a label.
+    /// </summary>
+    private sealed class SchemeDraft
+    {
+        public string? Id { get; set; }
+        public string? Name { get; set; }
+        public string? Description { get; set; }
+        public string? Body { get; set; }
+
+        public static SchemeDraft From(ReleaseScheme scheme) => new()
+        {
+            Id = scheme.Id,
+            Name = scheme.Name,
+            Description = scheme.Description,
+            Body = scheme.Body,
+        };
+
+        /// <summary>
+        /// The scheme as it is stored. A field the person left empty becomes an empty string rather than a
+        /// null the contract would have to defend against; the identifier is what a release names, so it is
+        /// trimmed here rather than at every call site.
+        /// </summary>
+        public ReleaseScheme ToScheme() => new(
+            (Id ?? string.Empty).Trim(),
+            (Name ?? string.Empty).Trim(),
+            Description ?? string.Empty,
+            Body ?? string.Empty);
     }
 }

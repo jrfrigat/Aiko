@@ -13,7 +13,7 @@ namespace Aiko.Application.Contracts;
 /// they are not localized: a scheme the owner writes is shown as it was written.
 /// </para>
 /// </remarks>
-/// <param name="Id">Stable identifier, also the value a project's settings name in <see cref="ReleaseSettings.Scheme"/>.</param>
+/// <param name="Id">Stable identifier, also the value a release names to say which scheme it follows.</param>
 /// <param name="Name">Display name.</param>
 /// <param name="Description">What this scheme is for, shown where a scheme is chosen.</param>
 /// <param name="Body">The steps, as the agent reads them.</param>
