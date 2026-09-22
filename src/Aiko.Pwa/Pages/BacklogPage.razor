@@ -64,14 +64,21 @@ else
                                                 Gap="FlareSpacing.XSmall"
                                                 Wrap="true">
                                         <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
-                                            <span class="aiko-tag aiko-tag--quiet">@item.Reference.CardId</span>
+                                            @* The number is what opens the card, and it opens it as a real link - the middle button
+                                               and Ctrl+click then work the way they do everywhere else - through the same
+                                               address the Open button navigates by. The tag keeps the design's quiet chip
+                                               look, and only the hover says it is clickable. *@
+                                            <FlareNavLink Href="@CardHref(board.Project.Handle, item.Reference.CardId)"
+                                                          Class="aiko-tag aiko-tag--quiet aiko-tag--link">
+                                                <ChildContent>@item.Reference.CardId</ChildContent>
+                                            </FlareNavLink>
                                             <FlareText Element="span" Typo="TypographyScale.BodyMedium">@item.Title</FlareText>
                                             <span class="aiko-tag" title="@Loc.Get("Priority")">★ @item.OwnPriority.ToString("0.##", CultureInfo.InvariantCulture)</span>
                                         </FlareStack>
                                         <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
                                             <FlareButton Variant="ButtonVariant.Text"
                                                          Size="ButtonSize.Sm"
-                                                         OnClick="() => OpenCard(item.Reference.CardId)">
+                                                         OnClick="() => OpenCard(board.Project.Handle, item.Reference.CardId)">
                                                 <ChildContent>@Loc.Get("Open")</ChildContent>
                                             </FlareButton>
                                             @if (group.NextStageId is { Length: > 0 } nextStageId)
@@ -145,8 +152,17 @@ else
 
     protected override async Task OnParametersSetAsync() => await State.EnsureProjectAsync(ProjectId);
 
-    private void OpenCard(string cardId) =>
-        Navigation.NavigateTo(ProjectRoutes.Card(ProjectId, cardId));
+    /// <summary>
+    /// The address a card of the backlog opens at: its own page, addressed by the project's readable handle
+    /// the way every other page builds one. The route parameter can still arrive as the immutable id, and a
+    /// link that carried it would name the project by a GUID.
+    /// </summary>
+    private static string CardHref(string projectHandle, string cardId) =>
+        ProjectRoutes.Card(projectHandle, cardId);
+
+    /// <summary>A card is its own page too, so a card can be linked, reloaded and shared.</summary>
+    private void OpenCard(string projectHandle, string cardId) =>
+        Navigation.NavigateTo(CardHref(projectHandle, cardId));
 
     /// <summary>
     /// Moves one card out of the backlog and into the next stage of its workflow - the one action this page

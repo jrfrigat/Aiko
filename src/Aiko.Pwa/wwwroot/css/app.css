@@ -132,6 +132,18 @@ html.flare-mode-dark .splash-mark i {
     color: var(--flare-color-on-surface-variant);
 }
 
+/* A tag that is also a link - the backlog's card number. It keeps the design's chip look, and the
+   underline is left for the hover: the number reads as a tag until the pointer says there is an
+   address under it. */
+.aiko-tag--link {
+    text-decoration: none;
+}
+
+.aiko-tag--link:hover,
+.aiko-tag--link:focus-visible {
+    text-decoration: underline;
+}
+
 /* A live tag: the accent that marks a running stream, with the pulsing dot beside it. */
 .aiko-tag--live {
     background: color-mix(in srgb, var(--flare-color-tertiary) 20%, transparent);
