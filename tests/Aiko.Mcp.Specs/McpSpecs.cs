@@ -6,6 +6,8 @@ using System.Net.Http.Json;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
 using Xunit;
@@ -475,6 +477,333 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         Assert.False(created.IsError == true, FirstText(created));
         using var document = JsonDocument.Parse(FirstText(created)!);
         return document.RootElement.GetProperty("reference").GetProperty("cardId").GetString()!;
+    }
+
+    [Fact]
+    public async Task A_card_put_away_is_off_the_board_and_out_of_the_queue()
+    {
+        await using var client = await ConnectAsync();
+        var kept = await CreateCardAsync(client, "task", "A card the board still counts", 6);
+        var putAway = await CreateCardAsync(client, "task", "A card that was put away", 5);
+
+        // Put away the way the archive action will write it - the mark in the card's own file - because until
+        // that action exists over MCP there is no other way to produce an archived card. What is written here
+        // is exactly what the action writes, so the reading is tested rather than a stand-in for it.
+        await PutAwayOnDiskAsync(fixture, putAway);
+        var reindexed = await client.CallToolAsync(
+            "aiko_reindex",
+            new Dictionary<string, object?> { ["projectId"] = fixture.ProjectId },
+            cancellationToken: CancellationToken.None);
+        Assert.False(reindexed.IsError == true, FirstText(reindexed));
+
+        // The board carries the archive beside its cards, not among them: a column, a counter and a priority
+        // must not see a card that was put away.
+        var board = await client.CallToolAsync("aiko_list_board", cancellationToken: CancellationToken.None);
+        Assert.False(board.IsError == true, FirstText(board));
+        var boardDocument = JsonDocument.Parse(FirstText(board)!);
+        var cards = boardDocument.RootElement.GetProperty("cards").EnumerateArray()
+            .Select(card => card.GetProperty("reference").GetProperty("cardId").GetString())
+            .ToArray();
+        Assert.Contains(kept, cards);
+        Assert.DoesNotContain(putAway, cards);
+        var archived = boardDocument.RootElement.GetProperty("archivedCards").EnumerateArray()
+            .Select(card => card.GetProperty("reference").GetProperty("cardId").GetString())
+            .ToArray();
+        Assert.Contains(putAway, archived);
+        Assert.DoesNotContain(kept, archived);
+
+        // The queue is work: a card in the archive is not offered, not even to say that it is finished.
+        var queue = await client.CallToolAsync(
+            "aiko_list_work_queue",
+            new Dictionary<string, object?> { ["includeFinished"] = true },
+            cancellationToken: CancellationToken.None);
+        Assert.False(queue.IsError == true, FirstText(queue));
+        var entries = JsonDocument.Parse(FirstText(queue)!).RootElement.EnumerateArray()
+            .Select(entry => entry.GetProperty("cardId").GetString())
+            .ToArray();
+        Assert.Contains(kept, entries);
+        Assert.DoesNotContain(putAway, entries);
+
+        // An agent's card list shows the board by default and the archive on request, so the two of them
+        // never disagree about what is being worked on.
+        var listed = await client.CallToolAsync("aiko_list_cards", cancellationToken: CancellationToken.None);
+        Assert.False(listed.IsError == true, FirstText(listed));
+        var listedIds = JsonDocument.Parse(FirstText(listed)!).RootElement.EnumerateArray()
+            .Select(card => card.GetProperty("reference").GetProperty("cardId").GetString())
+            .ToArray();
+        Assert.Contains(kept, listedIds);
+        Assert.DoesNotContain(putAway, listedIds);
+
+        var withArchive = await client.CallToolAsync(
+            "aiko_list_cards",
+            new Dictionary<string, object?> { ["includeArchived"] = true },
+            cancellationToken: CancellationToken.None);
+        Assert.False(withArchive.IsError == true, FirstText(withArchive));
+        Assert.Contains(
+            putAway,
+            JsonDocument.Parse(FirstText(withArchive)!).RootElement.EnumerateArray()
+                .Select(card => card.GetProperty("reference").GetProperty("cardId").GetString()));
+
+        // The card itself is not gone: reading it by id still answers with the whole document.
+        var read = await client.CallToolAsync(
+            "aiko_get_card",
+            new Dictionary<string, object?> { ["cardId"] = putAway },
+            cancellationToken: CancellationToken.None);
+        Assert.False(read.IsError == true, FirstText(read));
+        Assert.Contains(putAway, FirstText(read), StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Writes the archive mark into a card's own file and leaves the projection to be rebuilt by the caller.
+    /// </summary>
+    private static async Task PutAwayOnDiskAsync(AikoServerFixture fixture, string cardId)
+    {
+        var workflows = Path.Combine(fixture.ProjectRoot, ".aiko", "workflows");
+        var file = Directory
+            .GetFiles(workflows, "card.json", SearchOption.AllDirectories)
+            .Single(path => path.Contains(
+                $"{Path.DirectorySeparatorChar}{cardId}{Path.DirectorySeparatorChar}",
+                StringComparison.Ordinal));
+        var node = JsonNode.Parse(await File.ReadAllTextAsync(file))
+            ?? throw new InvalidOperationException($"Card '{cardId}' has an unreadable document.");
+        var metadata = node["metadata"]?.AsObject()
+            ?? throw new InvalidOperationException($"Card '{cardId}' has no metadata.");
+        metadata[ArchivedAtMetadataKey] = DateTimeOffset.UnixEpoch.ToString("O", CultureInfo.InvariantCulture);
+        await File.WriteAllTextAsync(file, node.ToJsonString());
+    }
+
+    /// <summary>
+    /// The metadata key the archive mark is written under.
+    /// </summary>
+    /// <remarks>
+    /// Spelled out rather than taken from the domain: this suite speaks to a running daemon over HTTP, exactly
+    /// as a client would, so what it writes has to be the wire name and not a reference the compiled client
+    /// happens to share.
+    /// </remarks>
+    private const string ArchivedAtMetadataKey = "archivedAt";
+
+    [Fact]
+    public async Task A_finished_card_is_put_away_and_brought_back_over_mcp()
+    {
+        // A project of its own: the shared fixture keeps a stage running on purpose, and the run limit is one,
+        // so a spec that has to walk a card through its stages needs a project where the slot is free.
+        await using var client = await ConnectToOwnProjectAsync($"archive-{Guid.NewGuid():N}");
+
+        // A card nobody has worked cannot be put away: the archive is for work that is over, and hiding a card
+        // mid-flight is the one thing it must not do. The refusal names the stage the card should reach.
+        var unfinished = await CreateCardAsync(client, "task", "A card with work left in it", 7);
+        var refused = await client.CallToolAsync(
+            "aiko_archive_card",
+            new Dictionary<string, object?> { ["cardId"] = unfinished, ["expectedRevision"] = 1L },
+            cancellationToken: CancellationToken.None);
+        Assert.False(refused.IsError == true, FirstText(refused));
+        Assert.Contains("is not finished", FirstText(refused)!, StringComparison.Ordinal);
+        Assert.Contains("'done'", FirstText(refused)!, StringComparison.Ordinal);
+
+        // A card worked to the end of its own pipeline is what the archive accepts.
+        var finished = await CreateCardAsync(client, "task", "A card that ran its course", 6);
+        await FinishAsync(client, finished, "analysis", "implementation", "review", "done");
+
+        var archived = await client.CallToolAsync(
+            "aiko_archive_card",
+            new Dictionary<string, object?>
+            {
+                ["cardId"] = finished,
+                ["expectedRevision"] = await RevisionAsync(client, finished)
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.False(archived.IsError == true, FirstText(archived));
+        Assert.Contains(ArchivedAtMetadataKey, FirstText(archived)!, StringComparison.Ordinal);
+
+        // It is off the board, and the archive has it instead.
+        var board = await client.CallToolAsync("aiko_list_board", cancellationToken: CancellationToken.None);
+        var boardDocument = JsonDocument.Parse(FirstText(board)!);
+        var onBoard = boardDocument.RootElement.GetProperty("cards").EnumerateArray()
+            .Select(card => card.GetProperty("reference").GetProperty("cardId").GetString())
+            .ToArray();
+        var archivedNow = boardDocument.RootElement.GetProperty("archivedCards").EnumerateArray()
+            .Select(card => card.GetProperty("reference").GetProperty("cardId").GetString())
+            .ToArray();
+        Assert.DoesNotContain(finished, onBoard);
+        Assert.Contains(finished, archivedNow);
+
+        // Work on it is refused, and the refusal says how to get it back ...
+        var started = await client.CallToolAsync(
+            "aiko_start_stage",
+            new Dictionary<string, object?>
+            {
+                ["cardId"] = finished,
+                ["stageId"] = "done",
+                ["agentAdapterId"] = "cline"
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.True(started.IsError == true, FirstText(started));
+        Assert.Contains("in the archive", FirstText(started)!, StringComparison.Ordinal);
+        Assert.Contains("aiko_restore_card", FirstText(started)!, StringComparison.Ordinal);
+
+        // ... and so is moving it: a card out of its pipeline must not be walked around the board.
+        var moved = await client.CallToolAsync(
+            "aiko_move_card",
+            new Dictionary<string, object?>
+            {
+                ["cardId"] = finished,
+                ["stageId"] = "review",
+                ["expectedRevision"] = await RevisionAsync(client, finished)
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.True(moved.IsError == true, FirstText(moved));
+        Assert.Contains("in the archive", FirstText(moved)!, StringComparison.Ordinal);
+
+        // Bringing it back puts it on the board where it was, with everything it had.
+        var restored = await client.CallToolAsync(
+            "aiko_restore_card",
+            new Dictionary<string, object?>
+            {
+                ["cardId"] = finished,
+                ["expectedRevision"] = await RevisionAsync(client, finished)
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.False(restored.IsError == true, FirstText(restored));
+        Assert.DoesNotContain(ArchivedAtMetadataKey, FirstText(restored)!, StringComparison.Ordinal);
+        // It came back to the stage it was put away from, not to the backlog.
+        Assert.Contains("\"stageId\":\"done\"", FirstText(restored)!, StringComparison.Ordinal);
+
+        var again = await client.CallToolAsync("aiko_list_board", cancellationToken: CancellationToken.None);
+        var againDocument = JsonDocument.Parse(FirstText(again)!);
+        Assert.Contains(
+            finished,
+            againDocument.RootElement.GetProperty("cards").EnumerateArray()
+                .Select(card => card.GetProperty("reference").GetProperty("cardId").GetString()));
+        Assert.DoesNotContain(
+            finished,
+            againDocument.RootElement.GetProperty("archivedCards").EnumerateArray()
+                .Select(card => card.GetProperty("reference").GetProperty("cardId").GetString()));
+
+        // Bringing a card back cannot spoil anything, so a card that never left the board is answered rather
+        // than refused.
+        var untouched = await client.CallToolAsync(
+            "aiko_restore_card",
+            new Dictionary<string, object?>
+            {
+                ["cardId"] = unfinished,
+                ["expectedRevision"] = await RevisionAsync(client, unfinished)
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.False(untouched.IsError == true, FirstText(untouched));
+        Assert.Contains("is not in the archive", FirstText(untouched)!, StringComparison.Ordinal);
+
+        // A stale revision is answered with the revision the card is at, not with an archive that somebody
+        // else's read would overwrite.
+        var stale = await client.CallToolAsync(
+            "aiko_archive_card",
+            new Dictionary<string, object?> { ["cardId"] = finished, ["expectedRevision"] = 1L },
+            cancellationToken: CancellationToken.None);
+        Assert.False(stale.IsError == true, FirstText(stale));
+        Assert.Contains("changed while you were reading it", FirstText(stale)!, StringComparison.Ordinal);
+    }
+
+    /// <summary>Reads a card's revision, which every write over MCP has to name.</summary>
+    private static async Task<long> RevisionAsync(McpClient client, string cardId)
+    {
+        var read = await client.CallToolAsync(
+            "aiko_get_card",
+            new Dictionary<string, object?> { ["cardId"] = cardId },
+            cancellationToken: CancellationToken.None);
+        Assert.False(read.IsError == true, FirstText(read));
+        return JsonDocument.Parse(FirstText(read)!).RootElement.GetProperty("revision").GetInt64();
+    }
+
+    /// <summary>
+    /// Initializes a project of the spec's own and connects to it over the same daemon.
+    /// </summary>
+    /// <remarks>
+    /// The shared fixture project keeps a stage running on purpose - one spec pins the run limit with it - so a
+    /// spec that needs to walk a card through its stages has no run slot to take there. Nothing about the
+    /// surface changes: same daemon, same protocol, one more project.
+    /// </remarks>
+    private async Task<McpClient> ConnectToOwnProjectAsync(string name)
+    {
+        var root = Path.Combine(fixture.ProjectRoot, name);
+        Directory.CreateDirectory(root);
+        using var http = new HttpClient { BaseAddress = fixture.BaseUrl };
+        using var content = JsonContent.Create(new { rootPath = root, name });
+        using var response = await http.PostAsync("/api/v1/projects/initialize", content);
+        response.EnsureSuccessStatusCode();
+        var initialized = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var projectId = initialized.GetProperty("id").GetString()!;
+
+        var transport = new HttpClientTransport(new HttpClientTransportOptions
+        {
+            Endpoint = new Uri($"{fixture.BaseUrl}mcp/projects/{projectId}"),
+            TransportMode = HttpTransportMode.StreamableHttp
+        });
+
+        return await McpClient.CreateAsync(transport, cancellationToken: CancellationToken.None);
+    }
+
+    /// <summary>
+    /// Walks a card to the end of its own pipeline, stage by stage, so the archive has something to accept.
+    /// </summary>
+    private static async Task FinishAsync(McpClient client, string cardId, params string[] stages)
+    {
+        foreach (var stage in stages)
+        {
+            var started = await client.CallToolAsync(
+                "aiko_start_stage",
+                new Dictionary<string, object?>
+                {
+                    ["cardId"] = cardId,
+                    ["stageId"] = stage,
+                    ["agentAdapterId"] = "cline"
+                },
+                cancellationToken: CancellationToken.None);
+            Assert.False(started.IsError == true, $"{stage}: {FirstText(started)}");
+            var executionId = JsonDocument.Parse(FirstText(started)!).RootElement.GetProperty("id").GetString()!;
+
+            // A stage closes on an estimate, and it is the readiness score that says the work is done: an
+            // estimate that says nothing about how ready the card is leaves the stage looking unworked.
+            var estimated = await client.CallToolAsync(
+                "aiko_estimate_card",
+                new Dictionary<string, object?>
+                {
+                    ["cardId"] = cardId,
+                    ["expectedRevision"] = await RevisionAsync(client, cardId),
+                    ["criterionValues"] = new[] { "readiness=5" }
+                },
+                cancellationToken: CancellationToken.None);
+            Assert.False(estimated.IsError == true, $"{stage}: {FirstText(estimated)}");
+
+            var artifact = stage switch
+            {
+                "analysis" => "analysis.md",
+                "implementation" => "implementation.md",
+                _ => null
+            };
+            if (artifact is not null)
+            {
+                var saved = await client.CallToolAsync(
+                    "aiko_save_card_artifact",
+                    new Dictionary<string, object?>
+                    {
+                        ["cardId"] = cardId,
+                        ["path"] = artifact,
+                        ["content"] = $"# {stage}\n"
+                    },
+                    cancellationToken: CancellationToken.None);
+                Assert.False(saved.IsError == true, $"{stage}: {FirstText(saved)}");
+            }
+
+            var completed = await client.CallToolAsync(
+                "aiko_complete_stage",
+                new Dictionary<string, object?>
+                {
+                    ["executionId"] = executionId,
+                    ["actualChangedFiles"] = Array.Empty<string>(),
+                    ["artifacts"] = artifact is null ? Array.Empty<string>() : new[] { artifact }
+                },
+                cancellationToken: CancellationToken.None);
+            Assert.False(completed.IsError == true, $"{stage}: {FirstText(completed)}");
+        }
     }
 
     [Fact]
@@ -1390,11 +1719,16 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
             blocks,
             block => block.Contains("## How this project scores and sizes a card", StringComparison.Ordinal));
         Assert.Contains(blocks, block => block.Contains("## Card types of this project", StringComparison.Ordinal));
-        // The scheme a release of this project follows travels with the context, its steps included: an agent
-        // asked to conduct a release must not have to invent the order it works in.
-        Assert.Contains(
+        // The schemes a release of this project can follow travel with the context, their steps included: an
+        // agent asked to conduct a release must not have to invent the order it works in, and it has to be able
+        // to read the one the request names. So the section carries every scheme rather than a single one "in
+        // force": two shipped schemes, each printed the same way - a heading with its id, what it is for, then
+        // its steps.
+        var releaseSection = Assert.Single(
             blocks,
-            block => block.Contains("## The release scheme this project follows", StringComparison.Ordinal));
+            block => block.Contains("## The release schemes of this project", StringComparison.Ordinal));
+        Assert.Equal(2, Regex.Matches(releaseSection, "^### ", RegexOptions.Multiline).Count);
+        Assert.Equal(2, Regex.Matches(releaseSection, "^- What it is for: ", RegexOptions.Multiline).Count);
         Assert.DoesNotContain("## Git and commits", blocks[0], StringComparison.Ordinal);
 
         // A section asked for by name comes back on its own and nothing else, so a part of the answer that was

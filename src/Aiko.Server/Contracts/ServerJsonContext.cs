@@ -53,6 +53,7 @@ namespace Aiko.Server.Contracts;
 [JsonSerializable(typeof(AikoEvent))]
 [JsonSerializable(typeof(IReadOnlyList<AikoEvent>))]
 [JsonSerializable(typeof(MoveCardRequest))]
+[JsonSerializable(typeof(ArchiveCardRequest))]
 [JsonSerializable(typeof(LinkProjectRequest))]
 [JsonSerializable(typeof(ProjectLink))]
 [JsonSerializable(typeof(IReadOnlyList<ProjectLink>))]

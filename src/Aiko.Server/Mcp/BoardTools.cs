@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Text.Json;
 using Aiko.Application.Contracts;
 using Aiko.Application.Prioritization;
+using Aiko.Domain.Workflow;
 using Aiko.Server.Contracts;
 using ModelContextProtocol.Server;
 
@@ -38,7 +39,10 @@ internal sealed class BoardTools(
         var projectId = GetProjectId();
         var project = await GetProjectAsync(cancellationToken);
         var definition = await definitions.ReadAsync(projectId, cancellationToken);
-        var boardCards = await cards.ListAsync(projectId, cancellationToken);
+        var projectCards = await cards.ListAsync(projectId, cancellationToken);
+        // The same two lists the screen is served: the board, and the archive beside it. The archive is not
+        // part of Cards, so a counter or a priority derived from this snapshot never sees a card put away.
+        var boardCards = CardArchiving.OnBoard(projectCards);
         var boardRelations = await relations.ListAsync(projectId, cancellationToken);
         var priority = await settings.GetEffectivePriorityAsync(projectId, cancellationToken);
         var snapshot = new ProjectBoardSnapshot(
@@ -48,7 +52,8 @@ internal sealed class BoardTools(
             boardCards,
             boardRelations,
             CardPriorityProjector.Project(boardCards, boardRelations, priority, definition.Workflows),
-            await executions.ReadStageRunsAsync(projectId, cancellationToken));
+            await executions.ReadStageRunsAsync(projectId, cancellationToken),
+            [.. projectCards.Where(card => card.IsArchived)]);
         return JsonSerializer.Serialize(snapshot, ServerJsonContext.Default.ProjectBoardSnapshot);
     }
 }

@@ -76,6 +76,56 @@ public sealed record Card(
             : null;
 
     /// <summary>
+    /// The key a card's archive mark is stored under in <see cref="Metadata"/>: when the card was taken off the
+    /// board.
+    /// </summary>
+    /// <remarks>
+    /// Being out of the way is a reading of the card rather than a place it is moved to: the files, the feed,
+    /// the runs and the relations stay exactly where they were, and this mark is the only thing that changes.
+    /// That is why it lives in the card's own metadata beside <see cref="EstimatedAtMetadataKey"/> instead of
+    /// becoming a stage - a stage would put an archived card back into the pipeline and make "put away" look
+    /// like "in progress" - and instead of a folder, which Aiko would have to keep in step with its own
+    /// projection and with every path it derives from a card's directory.
+    /// </remarks>
+    public const string ArchivedAtMetadataKey = "archivedAt";
+
+    /// <summary>
+    /// When the card was archived in round-trip form, or null when it is not in the archive or its mark cannot
+    /// be read.
+    /// </summary>
+    [JsonIgnore]
+    public DateTimeOffset? ArchivedAt =>
+        Metadata.TryGetValue(ArchivedAtMetadataKey, out var value) &&
+        DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var at)
+            ? at
+            : null;
+
+    /// <summary>
+    /// Whether the card is in the archive: judged by the mark being present, not by its text being readable.
+    /// </summary>
+    /// <remarks>
+    /// A mark nobody can parse still means the card was put away, and reading it as "on the board" would hand a
+    /// card back to the queue on the strength of a typo. <see cref="ArchivedAt"/> is the other half of the pair:
+    /// what a screen shows, when there is anything to show.
+    /// </remarks>
+    [JsonIgnore]
+    public bool IsArchived => Metadata.ContainsKey(ArchivedAtMetadataKey);
+
+    /// <summary>
+    /// The metadata with the archive mark set to <paramref name="at"/>, or with the mark removed when it is
+    /// null. Removing it is what returning a card from the archive does, and it is the only way back.
+    /// </summary>
+    /// <param name="metadata">Metadata to copy.</param>
+    /// <param name="at">Moment the card was archived, or null to take it off the archive.</param>
+    public static IReadOnlyDictionary<string, string> WithArchivedAt(
+        IReadOnlyDictionary<string, string> metadata,
+        DateTimeOffset? at) =>
+        WithText(
+            metadata,
+            ArchivedAtMetadataKey,
+            at?.ToString("O", CultureInfo.InvariantCulture));
+
+    /// <summary>
     /// The key a card's original request is stored under in <see cref="Metadata"/>: what was asked for, in the
     /// words of whoever asked, before anyone turned it into a task.
     /// </summary>

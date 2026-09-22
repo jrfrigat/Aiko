@@ -30,16 +30,23 @@ internal sealed class CardTools(
     IExecutionCoordinator executions) : ProjectToolBase(httpContextAccessor, projects)
 {
     [McpServerTool(Name = "aiko_list_cards", Title = "List Aiko cards")]
-    [Description("Lists cards in the current project. Get project context before taking action.")]
+    [Description(
+        "Lists cards in the current project. Get project context before taking action. Cards in the archive are "
+        + "left out unless they are asked for by includeArchived, so what an agent sees is what the board shows.")]
     public async Task<string> ListCardsAsync(
         [Description("Optional card kind: story, task, or any type the project defines. Pass null for all.")]
         string? kind = null,
         [Description("Optional stage id. Pass null for all stages.")]
         string? stageId = null,
+        [Description(
+            "True to include the cards that were put away. False (the default) lists the board, which is what a "
+            + "person sees; a card in the archive is still readable on its own with aiko_get_card.")]
+        bool includeArchived = false,
         CancellationToken cancellationToken = default)
     {
         var projectId = GetProjectId();
-        var result = await cards.ListAsync(projectId, cancellationToken);
+        var stored = await cards.ListAsync(projectId, cancellationToken);
+        var result = includeArchived ? stored : CardArchiving.OnBoard(stored);
         if (!string.IsNullOrWhiteSpace(kind))
         {
             var parsedKind = ParseCardKind(kind);
@@ -370,6 +377,13 @@ internal sealed class CardTools(
                 card.Revision);
         }
 
+        // A card in the archive is off the board and out of its pipeline: nothing about its position changes
+        // until it is returned. Whether the caller is the board or an agent, the answer is the same rule.
+        if (CardArchiving.RefuseWork(card) is { } archivedRefusal)
+        {
+            throw new InvalidOperationException(archivedRefusal);
+        }
+
         var stages = await CardStageValidation.ReadStagesAsync(card, definitions, cancellationToken);
         var stage = CardStageValidation.FindValidStage(stages, card, stageId)
             ?? throw new ArgumentException(
@@ -546,6 +560,115 @@ internal sealed class CardTools(
                 out var priority)
                 ? priority
                 : throw new ArgumentException($"'{value}' is not a priority.", nameof(value));
+
+    [McpServerTool(Name = "aiko_archive_card", Title = "Put an Aiko card into the archive")]
+    [Description(
+        "Puts a card away: it leaves the board, the work queue and the metrics, and nothing about it is deleted - "
+        + "the feed, the artifacts, the runs, the scores and the relations stay and read exactly as they did. "
+        + "Only a card that reached the end of its own pipeline may be put away, and the refusal says what is in "
+        + "the way. aiko_restore_card brings it back.")]
+    public async Task<string> ArchiveCardAsync(
+        [Description("Card id, for example TASK-001.")]
+        string cardId,
+        [Description("Revision the card was read at, so a card changed meanwhile is not overwritten.")]
+        long expectedRevision,
+        CancellationToken cancellationToken)
+    {
+        var card = await cards.FindAsync(new CardReference(GetProjectId(), cardId), cancellationToken);
+        if (card is null)
+        {
+            return $"Card '{cardId}' was not found.";
+        }
+
+        if (card.Revision != expectedRevision)
+        {
+            return $"Card '{cardId}' changed while you were reading it: you hold revision {expectedRevision} "
+                + $"and it is at {card.Revision}. Read it again with aiko_get_card and repeat the archive.";
+        }
+
+        if (await RefuseArchiveAsync(card, cancellationToken) is { } refusal)
+        {
+            return refusal;
+        }
+
+        return await SaveArchiveAsync(card, archived: true, cancellationToken);
+    }
+
+    [McpServerTool(Name = "aiko_restore_card", Title = "Return an Aiko card from the archive")]
+    [Description(
+        "Brings a card in the archive back to the board. Nothing has to be finished for this and nothing has to "
+        + "be undone: the card is put back with the stage, the feed, the runs, the scores and the relations it "
+        + "had. A card that is not in the archive is left untouched and the answer says so.")]
+    public async Task<string> RestoreCardAsync(
+        [Description("Card id, for example TASK-001.")]
+        string cardId,
+        [Description("Revision the card was read at, so a card changed meanwhile is not overwritten.")]
+        long expectedRevision,
+        CancellationToken cancellationToken)
+    {
+        var card = await cards.FindAsync(new CardReference(GetProjectId(), cardId), cancellationToken);
+        if (card is null)
+        {
+            return $"Card '{cardId}' was not found.";
+        }
+
+        if (card.Revision != expectedRevision)
+        {
+            return $"Card '{cardId}' changed while you were reading it: you hold revision {expectedRevision} "
+                + $"and it is at {card.Revision}. Read it again with aiko_get_card and repeat the restore.";
+        }
+
+        if (!card.IsArchived)
+        {
+            return $"Card '{cardId}' is not in the archive: it is on the board already, in stage "
+                + $"'{card.StageId}'. Nothing was changed.";
+        }
+
+        return await SaveArchiveAsync(card, archived: false, cancellationToken);
+    }
+
+    /// <summary>
+    /// Why the card may not be put into the archive, or null when it may.
+    /// </summary>
+    /// <remarks>
+    /// The rule lives in <see cref="CardArchiving"/>; what is assembled here is the data it judges - the card's
+    /// workflow and the latest run of each of its stages. A run whose state cannot be read is left out rather
+    /// than guessed at: the card then has no known run for that stage, which reads as "not finished" and refuses
+    /// the archive. Guessing the other way would take a card off the board on the strength of a defect.
+    /// </remarks>
+    private async ValueTask<string?> RefuseArchiveAsync(Card card, CancellationToken cancellationToken)
+    {
+        var definition = await definitions.ReadAsync(card.Reference.ProjectId, cancellationToken);
+        var workflow = definition.Workflows.FirstOrDefault(candidate =>
+            StringComparer.Ordinal.Equals(candidate.Id, card.WorkflowId));
+
+        var runs = new List<StageRun>();
+        foreach (var run in await executions.ReadStageRunsAsync(card.Reference.ProjectId, cancellationToken))
+        {
+            if (StringComparer.Ordinal.Equals(run.CardId, card.Reference.CardId) &&
+                run.StateValue is { } state)
+            {
+                runs.Add(new StageRun(run.StageId, state));
+            }
+        }
+
+        return CardArchiving.Refuse(card, workflow, runs);
+    }
+
+    /// <summary>Writes the archive mark, or removes it, and answers with the card as it now is.</summary>
+    private async ValueTask<string> SaveArchiveAsync(
+        Card card,
+        bool archived,
+        CancellationToken cancellationToken)
+    {
+        var updated = card with
+        {
+            Metadata = Card.WithArchivedAt(card.Metadata, archived ? DateTimeOffset.UtcNow : null),
+            Revision = card.Revision + 1
+        };
+        await cards.SaveAsync(updated, card.Revision, cancellationToken);
+        return JsonSerializer.Serialize(updated, ServerJsonContext.Default.Card);
+    }
 
     [McpServerTool(Name = "aiko_get_card_artifact", Title = "Read an Aiko card artifact")]
     [Description(

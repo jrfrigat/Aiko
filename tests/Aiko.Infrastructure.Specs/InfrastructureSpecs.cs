@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Text.Json;
@@ -2035,6 +2036,91 @@ public class InfrastructureSpecs
     }
 
     [Fact]
+    public async Task Scope_expansion_policy_decides_what_a_widening_request_does()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            var settings = new AppSettingsService(new FileAppSettingsStore(context.Catalog));
+            var executions = new SqliteExecutionCoordinator(
+                context.Catalog, context.Cards, context.Database, settings);
+            string[] requested = ["docs/specification.md"];
+            const string reason = "The card's own subject lives there.";
+
+            async Task<StageExecution> StartedAsync(string cardId)
+            {
+                // A scope of its own per card: the run limit and the overlap policy are other specs' business,
+                // and an overlap here would be refused before the policy this test is about is ever read.
+                var card = CreateCard(context.Project.Id, cardId, 1) with { DeclaredScopeFiles = [$"src/{cardId}/**"] };
+                await context.Cards.SaveAsync(card, 0, CancellationToken.None);
+                return await executions.StartAsync(
+                    card.Reference, "implementation", "claude-code", CancellationToken.None);
+            }
+
+            ValueTask SavePolicyAsync(ActionPolicy policy) =>
+                settings.SaveProjectAsync(
+                    context.Project.Id,
+                    new AppSettings(
+                        AppSettings.CurrentSchemaVersion,
+                        new ExecutionSettings(
+                            WorkspaceMode.Shared,
+                            5,
+                            ActionPolicy.Ask,
+                            ActionPolicy.Deny,
+                            ActionPolicy.Deny,
+                            policy)),
+                    CancellationToken.None);
+
+            // A project that states nothing asks: that is what Aiko did while asking was its only answer.
+            var unstated = await StartedAsync("TASK-SCOPE-DEFAULT");
+            var waited = await executions.RequestScopeExpansionAsync(
+                unstated.Id, requested, reason, CancellationToken.None);
+            Assert.Equal(StageExecutionState.WaitingForUser, waited.State);
+            Assert.Equal(requested, waited.RequestedScopeFiles);
+
+            // Asking is not granting: the requested file sits on the run as a question, so the declared scope
+            // the run reports itself against must not grow from it. A verdict read off RequestedScopeFiles
+            // would call this file allowed while a person is still being waited on.
+            Assert.Equal(["src/TASK-SCOPE-DEFAULT/**"], waited.DeclaredScopeFiles);
+
+            // Deny: refused outright, and neither the run nor the card is touched.
+            await SavePolicyAsync(ActionPolicy.Deny);
+            var denied = await StartedAsync("TASK-SCOPE-DENY");
+            var refusal = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await executions.RequestScopeExpansionAsync(denied.Id, requested, reason, CancellationToken.None));
+            Assert.Contains("scopeExpansionPolicy is Deny", refusal.Message, StringComparison.Ordinal);
+            var afterDenial = await executions.FindAsync(denied.Id, CancellationToken.None);
+            Assert.Equal(StageExecutionState.Running, afterDenial!.State);
+            Assert.Empty(afterDenial.RequestedScopeFiles);
+            var deniedCard = await context.Cards.FindAsync(denied.Card, CancellationToken.None);
+            Assert.Equal(["src/TASK-SCOPE-DENY/**"], deniedCard!.DeclaredScopeFiles);
+
+            // Allow: the files join the card's declared scope and the run keeps going - nobody is asked.
+            await SavePolicyAsync(ActionPolicy.Allow);
+            var allowed = await StartedAsync("TASK-SCOPE-ALLOW");
+            var granted = await executions.RequestScopeExpansionAsync(
+                allowed.Id, requested, reason, CancellationToken.None);
+            Assert.Equal(StageExecutionState.Running, granted.State);
+            Assert.Contains("scopeExpansionPolicy is Allow", granted.ProgressSummary, StringComparison.Ordinal);
+            var allowedCard = await context.Cards.FindAsync(allowed.Card, CancellationToken.None);
+            Assert.Equal(["src/TASK-SCOPE-ALLOW/**", "docs/specification.md"], allowedCard!.DeclaredScopeFiles);
+
+            // ...and the run's own snapshot follows the grant. It used to keep the scope it started with, so the
+            // file the policy had just granted came back as a violation at completion (TASK-142): the card said
+            // in-scope and the run said out-of-scope, about the same file. A grant the run cannot see is not a
+            // grant - the run is what reports what it was allowed to touch.
+            Assert.Equal(["src/TASK-SCOPE-ALLOW/**", "docs/specification.md"], granted.DeclaredScopeFiles);
+            var reported = await executions.ReportProgressAsync(
+                allowed.Id,
+                "Edited the file the policy granted.",
+                [],
+                [],
+                ["docs/specification.md"],
+                CancellationToken.None);
+            Assert.Empty(reported.OutOfScopeFiles);
+        });
+    }
+
+    [Fact]
     public async Task Overlapping_scope_is_gated_by_scope_overlap_policy()
     {
         await WithInitializedProjectAsync(async context =>
@@ -3752,5 +3838,70 @@ public class InfrastructureSpecs
                 Directory.Delete(normalizedRoot, true);
             }
         }
+    }
+
+    [Fact]
+    public void A_run_state_reads_as_the_execution_state_it_names()
+    {
+        // The state travels as text - that is what the runs table stores - while the rules that judge a card
+        // work with the enum. The parse lives on the contract, so no caller writes its own.
+        Assert.Equal(
+            StageExecutionState.Completed,
+            new StageRunSummary("TASK-1", "done", nameof(StageExecutionState.Completed)).StateValue);
+        Assert.Equal(
+            StageExecutionState.NeedsAttention,
+            new StageRunSummary("TASK-1", "done", nameof(StageExecutionState.NeedsAttention)).StateValue);
+
+        // A text nobody recognises reads as "nothing known" rather than as whatever it happens to parse to:
+        // Enum.TryParse on its own accepts a number, and a number that lands on a member would become that
+        // state - so an unreadable run would decide a card is finished.
+        Assert.Null(new StageRunSummary("TASK-1", "done", "finished").StateValue);
+        Assert.Null(new StageRunSummary("TASK-1", "done", "7").StateValue);
+        Assert.Null(new StageRunSummary("TASK-1", "done", string.Empty).StateValue);
+
+        // The derived value is not a field of the document: a run carries its state, and the state is read
+        // from it rather than stored beside it.
+        var json = JsonSerializer.Serialize(new StageRunSummary("TASK-1", "done", "Completed"));
+        Assert.Contains("\"Completed\"", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("StateValue", json, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_project_distributions_leave_the_archive_out()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            var onBoard = CreateCard(context.Project.Id, "TASK-KEEP", 1) with { Size = "S" };
+            await context.Cards.SaveAsync(onBoard, 0, CancellationToken.None);
+
+            // Put away the way the archive action writes it: the mark in the card's own metadata, which is
+            // what the projection carries as a whole document and what the chart's query has to skip.
+            var putAway = CreateCard(context.Project.Id, "TASK-AWAY", 1) with
+            {
+                Size = "S",
+                Metadata = new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    [Card.ArchivedAtMetadataKey] = DateTimeOffset.UnixEpoch.ToString("O", CultureInfo.InvariantCulture)
+                }
+            };
+            await context.Cards.SaveAsync(putAway, 0, CancellationToken.None);
+
+            var analytics = new SqliteProjectAnalytics(context.Database, context.Catalog);
+            var report = await analytics.ReadAsync(context.Project.Id, 8, CancellationToken.None);
+
+            // Both distributions describe the board, and a card in the archive is history the board no longer
+            // counts: one card each, not two.
+            var byKind = Assert.Single(report.ByKind);
+            Assert.Equal(1, byKind.Count);
+            var bySize = Assert.Single(report.BySize);
+            Assert.Equal(1, bySize.Count);
+
+            // The card itself is untouched by being left out of a chart: it is still in the store, and it is
+            // the same store the board reads - only the reading that draws the board leaves it out.
+            var stored = await context.Cards.ListAsync(context.Project.Id, CancellationToken.None);
+            Assert.Equal(2, stored.Count);
+            Assert.Single(stored, card => card.IsArchived);
+            Assert.Single(CardArchiving.OnBoard(stored));
+        });
     }
 }

@@ -50,7 +50,9 @@ internal sealed class WorkQueueTools(
         CancellationToken cancellationToken = default)
     {
         var projectId = GetProjectId();
-        var boardCards = await cards.ListAsync(projectId, cancellationToken);
+        // The archive is not work: a card put away leaves the queue before its priority or its blockers are
+        // even read, so nothing it holds can order or hold up the cards that are still on the board.
+        var boardCards = CardArchiving.OnBoard(await cards.ListAsync(projectId, cancellationToken));
         var boardRelations = await relations.ListAsync(projectId, cancellationToken);
         var definition = await definitions.ReadAsync(projectId, cancellationToken);
         var priority = await settings.GetEffectivePriorityAsync(projectId, cancellationToken);
@@ -85,13 +87,10 @@ internal sealed class WorkQueueTools(
                 : [];
             var currentRun = runs.FirstOrDefault(run =>
                 StringComparer.Ordinal.Equals(run.StageId, card.StageId));
-            // Finished is where the pipeline ends rather than a matter of opinion: the card sits in the last
-            // stage of its own workflow and that stage has a finished run. A card in a middle stage with a
-            // finished run is still work - the next stage is what it waits for.
-            var finished = workflow is not null &&
-                           stage is not null &&
-                           WorkflowDefinition.IsLastStage(workflow, stage) &&
-                           currentRun is { State: "Completed" };
+            // Finished is where the pipeline ends rather than a matter of opinion, and the rule lives in the
+            // domain: the queue hides finished cards, the archive accepts nothing else, and the board draws
+            // what either of them decided. One expression, asked by all three.
+            var finished = CardCompletion.IsFinished(workflow, card.StageId, currentRun?.StateValue);
             if (finished && !includeFinished)
             {
                 continue;

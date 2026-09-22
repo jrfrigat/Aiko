@@ -15,6 +15,7 @@ internal sealed class ExecutionTools(
     IHttpContextAccessor httpContextAccessor,
     IProjectCatalog projects,
     ICardBlockers blockers,
+    ICardStore cards,
     IExecutionCoordinator executions) : ProjectToolBase(httpContextAccessor, projects)
 {
     [McpServerTool(Name = "aiko_start_stage", Title = "Start Aiko stage")]
@@ -33,11 +34,21 @@ internal sealed class ExecutionTools(
         string agentAdapterId,
         CancellationToken cancellationToken)
     {
+        // A card in the archive is off the board and out of its pipeline: work on it begins only after it is
+        // returned. Without this gate an agent could start a stage on a card nobody can see, and the run would
+        // happen where the person looking at the board has no way to notice it.
+        var reference = new CardReference(GetProjectId(), cardId);
+        if (await cards.FindAsync(reference, cancellationToken) is { } stored &&
+            CardArchiving.RefuseWork(stored) is { } archivedRefusal)
+        {
+            throw new InvalidOperationException(archivedRefusal);
+        }
+
         // Work waits for the cards that block it. `blocks` is the user's own order, and until this gate existed
         // it lived only in relations.json: a blocked card started exactly like a free one, which is how a card
         // was worked while the card it waited for sat in the backlog. The refusal names the blocker, because the
         // agent's next move is to say so to the user and offer that card - not to retry.
-        var card = new CardReference(GetProjectId(), cardId);
+        var card = reference;
         var blockedBy = await blockers.UnfinishedAsync(card, cancellationToken);
         if (CardBlocking.RefuseStart(cardId, blockedBy) is { } refusal)
         {
@@ -82,7 +93,10 @@ internal sealed class ExecutionTools(
         Name = "aiko_request_scope_expansion",
         Title = "Request Aiko scope expansion")]
     [Description(
-        "Warns that work outside declaredScopeFiles is needed and pauses for user review.")]
+        "Warns that work outside declaredScopeFiles is needed. What happens next is the project's own " +
+        "scopeExpansionPolicy: ask (the default) pauses the run for the user, allow adds the files to the " +
+        "card's declared scope and the run continues, and deny refuses - the call fails and nothing is " +
+        "written, so stop and tell the user which files are needed.")]
     public async Task<string> RequestScopeExpansionAsync(
         [Description("Stage execution id.")]
         string executionId,

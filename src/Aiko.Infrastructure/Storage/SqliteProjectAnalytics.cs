@@ -73,13 +73,29 @@ public sealed class SqliteProjectAnalytics(AikoDatabase database, IProjectCatalo
             // Keyed by the resolved id, not by the value the caller sent: the cards projection is written
             // under the project's immutable id, so grouping by the readable handle the project page holds
             // matched nothing and the distribution chart came back empty.
-            await ReadGroupedAsync(connection, project.Id, "SELECT kind, COUNT(*) FROM cards WHERE project_id = $projectId GROUP BY kind", cancellationToken),
+            //
+            // Cards in the archive are left out of both distributions: the archive is history the board no
+            // longer counts, and the flag lives in the card's own metadata, which the projection carries as a
+            // whole document - so what the chart must skip is one json_extract away and needs no schema change.
+            await ReadGroupedAsync(
+                connection,
+                project.Id,
+                """
+                SELECT kind, COUNT(*) FROM cards
+                WHERE project_id = $projectId
+                  AND COALESCE(json_extract(document_json, '$.metadata.archivedAt'), '') = ''
+                GROUP BY kind
+                """,
+                cancellationToken),
             await ReadGroupedAsync(
                 connection,
                 project.Id,
                 """
                 SELECT COALESCE(json_extract(document_json, '$.size'), '') AS size, COUNT(*)
-                FROM cards WHERE project_id = $projectId GROUP BY size ORDER BY size
+                FROM cards
+                WHERE project_id = $projectId
+                  AND COALESCE(json_extract(document_json, '$.metadata.archivedAt'), '') = ''
+                GROUP BY size ORDER BY size
                 """,
                 cancellationToken));
     }

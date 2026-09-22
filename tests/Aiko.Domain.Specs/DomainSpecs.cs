@@ -53,6 +53,15 @@ public class DomainSpecs
             ActionPolicy.Deny,
             new ExecutionSettings(
                 WorkspaceMode.Shared, 1, ActionPolicy.Ask, ActionPolicy.Allow).SharedCheckoutPushPolicy);
+
+        // The scope-expansion policy is optional for the same reason, and its safe value is Ask: a document
+        // written before it existed reads as the behaviour Aiko had then - a question - and not as permission.
+        Assert.Equal(ActionPolicy.Ask, ExecutionSettings.SafeDefault.ScopeExpansionPolicy);
+        Assert.Equal(
+            ActionPolicy.Ask,
+            new ExecutionSettings(
+                WorkspaceMode.Shared, 1, ActionPolicy.Ask, ActionPolicy.Deny, ActionPolicy.Deny)
+                .ScopeExpansionPolicy);
     }
 
     [Fact]
@@ -555,4 +564,192 @@ public class DomainSpecs
         Assert.Null(AppearanceCatalog.NormalizeIcon(" "));
         Assert.Equal("target", AppearanceCatalog.NormalizeIcon(" target "));
     }
+
+    [Fact]
+    public void A_card_is_archived_by_the_mark_present_and_not_by_its_text()
+    {
+        var card = CardAt("done");
+        Assert.False(card.IsArchived);
+        Assert.Null(card.ArchivedAt);
+
+        var at = new DateTimeOffset(2026, 9, 22, 12, 0, 0, TimeSpan.Zero);
+        var archived = Archived(card, at);
+        Assert.True(archived.IsArchived);
+        Assert.Equal(at, archived.ArchivedAt);
+
+        // A mark nobody can read still means the card was put away: reading it as "on the board" would hand
+        // the card back to the queue on the strength of a typo.
+        var unreadable = card with { Metadata = Mark("yesterday") };
+        Assert.True(unreadable.IsArchived);
+        Assert.Null(unreadable.ArchivedAt);
+
+        // Clearing the mark is the only way back, and it leaves no empty key behind.
+        var restored = card with { Metadata = Card.WithArchivedAt(archived.Metadata, null) };
+        Assert.False(restored.IsArchived);
+        Assert.DoesNotContain(Card.ArchivedAtMetadataKey, restored.Metadata.Keys);
+    }
+
+    [Fact]
+    public void Finishing_is_the_end_of_a_cards_own_pipeline_and_not_the_name_done()
+    {
+        var pipeline = Pipeline("shipped");
+
+        Assert.True(CardCompletion.IsFinished(pipeline, "shipped", StageExecutionState.Completed));
+
+        // The last stage without a finished run is work left to do, whoever is standing in it.
+        Assert.False(CardCompletion.IsFinished(pipeline, "shipped", StageExecutionState.Running));
+        Assert.False(CardCompletion.IsFinished(pipeline, "shipped", null));
+
+        // A stage called 'done' that this pipeline does not end with is the end of nothing.
+        Assert.False(CardCompletion.IsFinished(pipeline, "done", StageExecutionState.Completed));
+
+        // A middle stage with a finished run is still work: the next stage is what it waits for.
+        Assert.False(CardCompletion.IsFinished(pipeline, "backlog", StageExecutionState.Completed));
+
+        // A card whose type has no pipeline has no end to have reached.
+        Assert.False(CardCompletion.IsFinished(null, "shipped", StageExecutionState.Completed));
+    }
+
+    [Fact]
+    public void The_archive_gate_answers_a_repeated_action_first()
+    {
+        // The card is finished, so every other check would let it through; the mark is what makes the answer
+        // "already there" rather than "you may".
+        var refusal = CardArchiving.Refuse(
+            Archived(CardAt("done"), DateTimeOffset.UnixEpoch),
+            Pipeline("done"),
+            [new StageRun("done", StageExecutionState.Completed)]);
+
+        Assert.NotNull(refusal);
+        Assert.Contains("already in the archive", refusal, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_archive_gate_refuses_a_card_whose_stage_is_still_open()
+    {
+        var pipeline = Pipeline("done");
+
+        // The gate reads the latest run of a stage, and NeedsAttention is a stage left hanging: putting the
+        // card away would hide the work someone has to come back to.
+        var refusal = CardArchiving.Refuse(
+            CardAt("done"),
+            pipeline,
+            [new StageRun("done", StageExecutionState.NeedsAttention)]);
+
+        Assert.NotNull(refusal);
+        Assert.Contains("open run", refusal, StringComparison.Ordinal);
+        Assert.Contains("NeedsAttention", refusal, StringComparison.Ordinal);
+
+        // A run that closed the stage is not open, so the same card is accepted.
+        Assert.Null(CardArchiving.Refuse(
+            CardAt("done"),
+            pipeline,
+            [new StageRun("done", StageExecutionState.Completed)]));
+    }
+
+    [Fact]
+    public void The_archive_gate_refuses_a_card_that_has_not_reached_the_end()
+    {
+        var pipeline = Pipeline("done");
+
+        // Mid-pipeline: the refusal names the stage the card sits in and the last stage it should reach.
+        var midway = CardArchiving.Refuse(
+            CardAt("backlog"),
+            pipeline,
+            [new StageRun("backlog", StageExecutionState.Completed)]);
+
+        Assert.NotNull(midway);
+        Assert.Contains("not finished", midway, StringComparison.Ordinal);
+        Assert.Contains("'done'", midway, StringComparison.Ordinal);
+
+        // A card nobody started says so, instead of naming a run state that does not exist.
+        var untouched = CardArchiving.Refuse(CardAt("done"), pipeline, []);
+        Assert.NotNull(untouched);
+        Assert.Contains("not started", untouched, StringComparison.Ordinal);
+
+        // No pipeline at all: there is no end for the card to have reached.
+        Assert.NotNull(CardArchiving.Refuse(CardAt("done"), null, []));
+    }
+
+    [Fact]
+    public void An_archived_card_is_not_taken_into_work()
+    {
+        Assert.Null(CardArchiving.RefuseWork(CardAt("done")));
+
+        var refusal = CardArchiving.RefuseWork(Archived(CardAt("done"), DateTimeOffset.UnixEpoch));
+        Assert.NotNull(refusal);
+        Assert.Contains("aiko_restore_card", refusal, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_board_leaves_archived_cards_out()
+    {
+        var onBoard = CardAt("done", "TASK-1");
+        var putAway = Archived(CardAt("backlog", "TASK-2"), DateTimeOffset.UnixEpoch);
+
+        var shown = CardArchiving.OnBoard([onBoard, putAway]);
+
+        var only = Assert.Single(shown);
+        Assert.Equal(onBoard.Reference.CardId, only.Reference.CardId);
+    }
+
+    [Fact]
+    public void A_card_at_the_end_of_its_pipeline_does_not_block_another_one()
+    {
+        // The two rules hold together, and this is where they are pinned: CardBlocking counts a blocker that
+        // reached the end of its pipeline as finished, and the archive accepts nothing but such a card - so
+        // putting a card away cannot hide a blockage, because an archivable card blocked nobody.
+        var pipeline = Pipeline("done");
+        var blocker = CardAt("done", "TASK-1");
+        var waiting = CardAt("backlog", "TASK-2");
+        var relation = new CardRelation(
+            "relation-1",
+            blocker.Reference,
+            waiting.Reference,
+            RelationTypes.Blocks,
+            DateTimeOffset.UnixEpoch);
+
+        Assert.Empty(CardBlocking.Unfinished(waiting.Reference, [relation], [blocker, waiting], [pipeline]));
+        Assert.Null(CardArchiving.Refuse(
+            blocker,
+            pipeline,
+            [new StageRun("done", StageExecutionState.Completed)]));
+    }
+
+    /// <summary>A card in the given stage, with an id of its own so a pair of them stay apart.</summary>
+    private static Card CardAt(string stageId, string cardId = "TASK-1") =>
+        new(
+            new CardReference("project-1", cardId),
+            "Task",
+            "A card",
+            "task",
+            stageId,
+            1,
+            0m,
+            [],
+            [],
+            Mark(null));
+
+    /// <summary>Metadata carrying the archive mark with the given text, or none when it is null.</summary>
+    private static IReadOnlyDictionary<string, string> Mark(string? at) =>
+        at is null
+            ? new Dictionary<string, string>(StringComparer.Ordinal)
+            : new Dictionary<string, string>(StringComparer.Ordinal) { [Card.ArchivedAtMetadataKey] = at };
+
+    /// <summary>The card with the archive mark set, as the archive action would save it.</summary>
+    private static Card Archived(Card card, DateTimeOffset at) =>
+        card with { Metadata = Card.WithArchivedAt(card.Metadata, at) };
+
+    /// <summary>A two-stage pipeline whose last stage is named as asked, so 'done' is never assumed.</summary>
+    private static WorkflowDefinition Pipeline(string lastStageId) =>
+        new(
+            "task",
+            "Tasks",
+            [
+                new StageDefinition(
+                    "backlog", "Backlog", 10, "Start", ["Task"], null, [], new Dictionary<string, ActionPolicy>()),
+                new StageDefinition(
+                    lastStageId, lastStageId, 20, "Finish", ["Task"], null, [], new Dictionary<string, ActionPolicy>())
+            ],
+            1);
 }

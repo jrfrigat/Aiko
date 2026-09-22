@@ -1,3 +1,6 @@
+using System.Text.Json.Serialization;
+using Aiko.Domain.Execution;
+
 namespace Aiko.Application.Contracts;
 
 /// <summary>
@@ -14,4 +17,20 @@ namespace Aiko.Application.Contracts;
 /// <param name="State">
 /// State of that pair's latest run, as <c>StageExecutionState</c> writes it ("Running", "Paused", ...).
 /// </param>
-public sealed record StageRunSummary(string CardId, string StageId, string State);
+public sealed record StageRunSummary(string CardId, string StageId, string State)
+{
+    /// <summary>
+    /// <see cref="State"/> as the stage-execution state it names, or null when the text names none.
+    /// </summary>
+    /// <remarks>
+    /// The state travels as text because that is what the runs table stores, while the rules that judge a card
+    /// work with <c>StageExecutionState</c>. Parsing it here keeps every caller from writing the same
+    /// <c>Enum.TryParse</c>, and a text nobody recognises reads as "nothing known" rather than as whatever it
+    /// happens to parse to - which is why the value is checked against the enum and not only parsed.
+    /// </remarks>
+    [JsonIgnore]
+    public StageExecutionState? StateValue =>
+        Enum.TryParse<StageExecutionState>(State, ignoreCase: false, out var parsed) && Enum.IsDefined(parsed)
+            ? parsed
+            : null;
+}

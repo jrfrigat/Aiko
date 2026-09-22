@@ -3,6 +3,7 @@ using Aiko.Application.Cards;
 using Aiko.Application.Contracts;
 using Aiko.Domain.Cards;
 using Aiko.Server.Contracts;
+using Aiko.Domain.Workflow;
 using Aiko.Server.Workflow;
 
 namespace Aiko.Server.Endpoints;
@@ -40,6 +41,14 @@ internal static class CardEndpoints
                         card.Revision));
                 }
 
+                // A card in the archive is put away: it is off the board and out of its pipeline, so nothing
+                // about its position may change until it is returned. The rule is the domain's; the refusal is
+                // repeated to the caller unchanged.
+                if (CardArchiving.RefuseWork(card) is { } archivedRefusal)
+                {
+                    return Results.BadRequest(new ErrorResponse(archivedRefusal));
+                }
+
                 var stage = await CardStageValidation.FindValidStageAsync(
                     card,
                     request.StageId,
@@ -54,6 +63,48 @@ internal static class CardEndpoints
                 await cards.SaveAsync(moved, request.ExpectedRevision, cancellationToken);
 
                 return Results.Ok(moved);
+            });
+        app.MapPut(
+            "/api/v1/projects/{projectId}/cards/{cardId}/archive",
+            async (
+                string projectId,
+                string cardId,
+                ArchiveCardRequest request,
+                IProjectDefinitionStore definitions,
+                ICardStore cards,
+                IExecutionCoordinator executions,
+                CancellationToken cancellationToken) =>
+            {
+                var reference = new CardReference(projectId, cardId);
+                var card = await cards.FindAsync(reference, cancellationToken);
+                if (card is null)
+                {
+                    return Results.NotFound();
+                }
+                if (card.Revision != request.ExpectedRevision)
+                {
+                    return Results.Conflict(new RevisionConflictResponse(
+                        request.ExpectedRevision,
+                        card.Revision));
+                }
+
+                // Only putting the card away is gated: putting it away hides work, and the gate is what keeps a
+                // card mid-flight from disappearing behind it. Bringing a card back can spoil nothing, so a card
+                // that is not in the archive is simply answered with the board it is on.
+                if (request.Archived && await RefuseArchiveAsync(card, definitions, executions, cancellationToken) is { } refusal)
+                {
+                    return Results.BadRequest(new ErrorResponse(refusal));
+                }
+
+                var archived = card with
+                {
+                    Metadata = Card.WithArchivedAt(
+                        card.Metadata,
+                        request.Archived ? DateTimeOffset.UtcNow : null),
+                    Revision = card.Revision + 1
+                };
+                await cards.SaveAsync(archived, request.ExpectedRevision, cancellationToken);
+                return Results.Ok(archived);
             });
         app.MapPut(
             "/api/v1/projects/{projectId}/cards/{cardId}",
@@ -370,4 +421,40 @@ internal static class CardEndpoints
     /// </summary>
     private static string? NormalizeSize(string? size) =>
         string.IsNullOrWhiteSpace(size) ? null : size.Trim();
+
+    /// <summary>
+    /// Why the card may not be put into the archive, or null when it may.
+    /// </summary>
+    /// <remarks>
+    /// The rule lives in <see cref="CardArchiving"/>; what is assembled here is the data it judges - the card's
+    /// workflow and the latest run of each of its stages. The same assembly is written a second time in the MCP
+    /// tool, which is how the two surfaces already share every other rule in this file.
+    /// <para>
+    /// A run whose state cannot be read is left out rather than guessed at: the card then has no known run for
+    /// that stage, which reads as "not finished" and refuses the archive. Guessing the other way would take a
+    /// card off the board on the strength of a defect.
+    /// </para>
+    /// </remarks>
+    private static async ValueTask<string?> RefuseArchiveAsync(
+        Card card,
+        IProjectDefinitionStore definitions,
+        IExecutionCoordinator executions,
+        CancellationToken cancellationToken)
+    {
+        var definition = await definitions.ReadAsync(card.Reference.ProjectId, cancellationToken);
+        var workflow = definition.Workflows.FirstOrDefault(candidate =>
+            StringComparer.Ordinal.Equals(candidate.Id, card.WorkflowId));
+
+        var runs = new List<StageRun>();
+        foreach (var run in await executions.ReadStageRunsAsync(card.Reference.ProjectId, cancellationToken))
+        {
+            if (StringComparer.Ordinal.Equals(run.CardId, card.Reference.CardId) &&
+                run.StateValue is { } state)
+            {
+                runs.Add(new StageRun(run.StageId, state));
+            }
+        }
+
+        return CardArchiving.Refuse(card, workflow, runs);
+    }
 }

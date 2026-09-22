@@ -1,6 +1,7 @@
 using Aiko.Application.Contracts;
 using Aiko.Application.Prioritization;
 using Aiko.Domain.Cards;
+using Aiko.Domain.Workflow;
 
 namespace Aiko.Server.Endpoints;
 
@@ -33,7 +34,10 @@ internal static class BoardEndpoints
                 }
 
                 var definition = await definitions.ReadAsync(projectId, cancellationToken);
-                var boardCards = await cards.ListAsync(projectId, cancellationToken);
+                var projectCards = await cards.ListAsync(projectId, cancellationToken);
+                // The board draws work, not history. The archive is carried beside it rather than among its
+                // cards, so a column, a counter and a priority never see a card that was put away.
+                var boardCards = CardArchiving.OnBoard(projectCards);
                 var boardRelations = await relations.ListAsync(projectId, cancellationToken);
                 var priority = await settings.GetEffectivePriorityAsync(projectId, cancellationToken);
                 return Results.Ok(new ProjectBoardSnapshot(
@@ -44,7 +48,8 @@ internal static class BoardEndpoints
                     boardRelations,
                     CardPriorityProjector.Project(boardCards, boardRelations, priority, definition.Workflows),
                     // Where each card's stage got to, so the board can show it without a request per card.
-                    await executions.ReadStageRunsAsync(projectId, cancellationToken)));
+                    await executions.ReadStageRunsAsync(projectId, cancellationToken),
+                    [.. projectCards.Where(card => card.IsArchived)]));
             });
     }
 }
