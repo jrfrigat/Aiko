@@ -12,7 +12,7 @@
       Aiko never renders keep Material's numbers, and none of Material's CSS is loaded (the theme is
       its own style family with its own StyleAssets).
     -->
-    <PackageReference Include="Flare.Theme.MaterialDesign3Expressive" Version="0.38.0" />
+    <PackageReference Include="Flare.Theme.MaterialDesign3Expressive" Version="0.39.0" />
   </ItemGroup>
 
 </Project>
