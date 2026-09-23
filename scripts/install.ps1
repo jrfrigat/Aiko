@@ -202,7 +202,16 @@ try {
     $previous = "$InstallDir.previous-$([DateTime]::UtcNow.ToString('yyyyMMddHHmmssfff'))"
     if (Test-Path $InstallDir) {
         New-Item -ItemType Directory -Path $previous | Out-Null
-        Get-ChildItem -Path $InstallDir -Force | Move-Item -Destination $previous
+        try {
+            Get-ChildItem -Path $InstallDir -Force | Move-Item -Destination $previous
+        }
+        catch {
+            # Whatever moved aside before the failure goes back, so a refused move leaves the installation whole.
+            $failure = $_.Exception.Message
+            Get-ChildItem -Path $previous -Force | Move-Item -Destination $InstallDir -Force -ErrorAction SilentlyContinue
+            Remove-Item -Path $previous -Recurse -Force -ErrorAction SilentlyContinue
+            throw "Could not move the installed files in $InstallDir aside, so nothing was replaced: $failure"
+        }
     }
     else {
         New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
