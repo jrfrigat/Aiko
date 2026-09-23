@@ -7,6 +7,11 @@ namespace Aiko.Infrastructure.Memory;
 /// File-based store of the durable project memory: Markdown in .aiko/memory,
 /// paths strictly inside the memory directory, full-text search over the SQLite projection.
 /// </summary>
+/// <remarks>
+/// A caller may name the project by its id or by its readable handle; the projection is always keyed by
+/// the id, the way a reindex writes it, so both names reach the same rows and a renamed handle loses
+/// nothing.
+/// </remarks>
 public sealed class FileMemoryStore(
     IProjectCatalog projects,
     AikoDatabase database) : IMemoryStore
@@ -28,7 +33,7 @@ public sealed class FileMemoryStore(
             return [];
         }
 
-        await EnsureProjectExistsAsync(projectId, cancellationToken);
+        var project = await EnsureProjectExistsAsync(projectId, cancellationToken);
         await using var connection = database.CreateConnection();
         await connection.OpenAsync(cancellationToken);
 
@@ -41,7 +46,7 @@ public sealed class FileMemoryStore(
             ORDER BY updated_utc DESC, path
             LIMIT $limit;
             """;
-        command.Parameters.AddWithValue("$projectId", projectId);
+        command.Parameters.AddWithValue("$projectId", project.Id);
         command.Parameters.AddWithValue("$match", match);
         command.Parameters.AddWithValue("$limit", limit);
 
@@ -73,7 +78,7 @@ public sealed class FileMemoryStore(
         var updatedAt = DateTimeOffset.UtcNow;
         await WriteAtomicallyAsync(fullPath, content, cancellationToken);
         await UpsertProjectionAsync(
-            projectId,
+            project.Id,
             relativePath,
             content,
             updatedAt,
@@ -143,7 +148,7 @@ public sealed class FileMemoryStore(
             DELETE FROM memory_fts
             WHERE project_id = $projectId AND path = $path;
             """;
-        command.Parameters.AddWithValue("$projectId", projectId);
+        command.Parameters.AddWithValue("$projectId", project.Id);
         command.Parameters.AddWithValue("$path", relativePath);
         await command.ExecuteNonQueryAsync(cancellationToken);
     }

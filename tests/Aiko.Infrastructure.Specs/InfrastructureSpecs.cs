@@ -1345,6 +1345,72 @@ public class InfrastructureSpecs
     }
 
     [Fact]
+    public async Task Memory_stored_through_the_handle_is_found_by_either_name_and_once_after_a_reindex()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            // Agents are connected by the readable handle, while a reindex writes the projection under the
+            // id: both names have to reach one set of rows, or the agent never sees what the reindex found.
+            var handle = context.Project.Slug!;
+            Assert.NotEqual(context.Project.Id, handle);
+            await context.Memory.StoreAsync(
+                handle,
+                "decisions/handles.md",
+                "# Handles\n\nMemory follows the project, not its readable name.",
+                CancellationToken.None);
+
+            Assert.Single(await context.Memory.SearchAsync(handle, "readable", 10, CancellationToken.None));
+            Assert.Single(await context.Memory.SearchAsync(context.Project.Id, "readable", 10, CancellationToken.None));
+
+            await context.Reindexer.ReindexAsync(context.Project.Id, CancellationToken.None);
+            Assert.Single(await context.Memory.SearchAsync(handle, "readable", 10, CancellationToken.None));
+
+            await context.Memory.RemoveAsync(handle, "decisions/handles.md", CancellationToken.None);
+            Assert.Empty(await context.Memory.SearchAsync(context.Project.Id, "readable", 10, CancellationToken.None));
+        });
+    }
+
+    [Fact]
+    public async Task An_upgraded_database_moves_memory_rows_kept_under_the_handle_to_the_project_id()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            // What an older daemon left behind: the same document under the handle (written by an agent) and
+            // under the id (written by a reindex), plus one only the handle knew about.
+            await using (var connection = context.Database.CreateConnection())
+            {
+                await connection.OpenAsync();
+                await using var command = connection.CreateCommand();
+                command.CommandText =
+                    """
+                    INSERT INTO memory_fts(project_id, path, content, updated_utc) VALUES
+                        ($id, 'shared.md', 'older twin', '2026-01-01T00:00:00.0000000+00:00'),
+                        ($slug, 'shared.md', 'newer twin', '2026-02-01T00:00:00.0000000+00:00'),
+                        ($slug, 'only-handle.md', 'lonely handle', '2026-01-01T00:00:00.0000000+00:00');
+                    """;
+                command.Parameters.AddWithValue("$id", context.Project.Id);
+                command.Parameters.AddWithValue("$slug", context.Project.Slug!);
+                await command.ExecuteNonQueryAsync();
+            }
+
+            await context.Database.InitializeAsync();
+
+            var twin = Assert.Single(await context.Memory.SearchAsync(context.Project.Id, "twin", 10, CancellationToken.None));
+            Assert.Equal("newer twin", twin.Content);
+            Assert.Single(await context.Memory.SearchAsync(context.Project.Id, "lonely", 10, CancellationToken.None));
+
+            await using (var connection = context.Database.CreateConnection())
+            {
+                await connection.OpenAsync();
+                await using var command = connection.CreateCommand();
+                command.CommandText = "SELECT COUNT(*) FROM memory_fts WHERE project_id = $slug;";
+                command.Parameters.AddWithValue("$slug", context.Project.Slug!);
+                Assert.Equal(0L, (long)(await command.ExecuteScalarAsync())!);
+            }
+        });
+    }
+
+    [Fact]
     public async Task Project_settings_resolve_over_the_built_in_defaults()
     {
         await WithInitializedProjectAsync(async context =>

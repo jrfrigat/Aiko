@@ -31,6 +31,7 @@ public sealed class AikoDatabase(AikoDataPaths paths)
         await ExecuteSchemaAsync(connection, cancellationToken);
         await MigrateProjectSlugsAsync(connection, cancellationToken);
         await MigrateMemoryToFtsAsync(connection, cancellationToken);
+        await MigrateMemoryToProjectIdsAsync(connection, cancellationToken);
     }
 
     /// <summary>
@@ -266,6 +267,49 @@ public sealed class AikoDatabase(AikoDataPaths paths)
                 "VALUES (5, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));";
             await record.ExecuteNonQueryAsync(cancellationToken);
         }
+    }
+
+    /// <summary>
+    /// Moves memory rows an older daemon kept under a project's handle onto the project's id, which is what
+    /// the memory store and the reindex key them by now, and keeps the newest row where both names held the
+    /// same document.
+    /// </summary>
+    /// <remarks>
+    /// Runs on every start rather than once: it touches nothing when no row carries a handle, and a daemon
+    /// of an older version sharing the database could write one again. Rows under a handle the project no
+    /// longer has stay where they are - the files are the source of truth, and a reindex rebuilds them.
+    /// </remarks>
+    private static async ValueTask MigrateMemoryToProjectIdsAsync(
+        SqliteConnection connection,
+        CancellationToken cancellationToken)
+    {
+        await using var transaction = connection.BeginTransaction();
+        await using (var move = connection.CreateCommand())
+        {
+            move.Transaction = transaction;
+            move.CommandText =
+                """
+                UPDATE memory_fts
+                SET project_id = (SELECT id FROM projects WHERE slug = memory_fts.project_id)
+                WHERE project_id IN (SELECT slug FROM projects WHERE slug IS NOT NULL AND slug <> id);
+
+                DELETE FROM memory_fts
+                WHERE rowid IN (
+                    SELECT older.rowid
+                    FROM memory_fts AS older
+                    JOIN memory_fts AS newer
+                        ON newer.project_id = older.project_id
+                        AND newer.path = older.path
+                        AND (newer.updated_utc > older.updated_utc
+                            OR (newer.updated_utc = older.updated_utc AND newer.rowid > older.rowid)));
+
+                INSERT OR IGNORE INTO schema_migrations(version, applied_utc)
+                VALUES (8, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+                """;
+            await move.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        await transaction.CommitAsync(cancellationToken);
     }
 }
 
