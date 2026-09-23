@@ -104,8 +104,15 @@ internal sealed class WorkspaceState : IAsyncDisposable
     /// <summary>The last failure to show, cleared by the next successful load.</summary>
     public string? Error { get; private set; }
 
-    /// <summary>Whether a load is in flight.</summary>
+    /// <summary>Whether a load is in flight that the page cannot be shown without: the first one, or a project switch.</summary>
     public bool Loading { get; private set; } = true;
+
+    /// <summary>
+    /// Whether a refresh of data the page already shows is in flight. Kept apart from <see cref="Loading"/>
+    /// because the shell replaces the page with its spinner while loading, and a refresh must not destroy a
+    /// page with unsaved input on it.
+    /// </summary>
+    public bool Refreshing { get; private set; }
 
     /// <summary>Whether the open project's SSE stream is connected, as the browser reported it.</summary>
     public bool EventsConnected { get; private set; }
@@ -350,10 +357,12 @@ internal sealed class WorkspaceState : IAsyncDisposable
         }
     }
 
-    /// <summary>Re-reads the shell and the open board, showing the shell's spinner while it runs.</summary>
+    /// <summary>
+    /// Re-reads the shell and the open board while the page stays on screen; see <see cref="Refreshing"/>.
+    /// </summary>
     public async Task ReloadAsync()
     {
-        Loading = true;
+        Refreshing = true;
         await NotifyAsync();
         try
         {
@@ -364,7 +373,7 @@ internal sealed class WorkspaceState : IAsyncDisposable
         }
         finally
         {
-            Loading = false;
+            Refreshing = false;
             await NotifyAsync();
         }
     }

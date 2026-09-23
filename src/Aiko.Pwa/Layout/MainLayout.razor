@@ -172,7 +172,7 @@
                 <FlareIconButton Variant="ButtonVariant.Text"
                                  Icon="@MaterialDesign3Icons.Regular.Refresh"
                                  AriaLabel="@Loc.Get("Refresh")"
-                                 Loading="@State.Loading"
+                                 Loading="@(State.Loading || State.Refreshing)"
                                  OnClick="State.ReloadAsync" />
 
                 @* Where the product lives, in the corner of the bar. It is drawn with GitHub's own mark

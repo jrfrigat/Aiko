@@ -946,9 +946,23 @@
 
     protected override async Task OnParametersSetAsync()
     {
+        // Blazor sets parameters again on every render of the parent - and the fragments this editor takes
+        // always count as changed - so reading here unconditionally threw the person's unsaved edits away each
+        // time a live event re-rendered the page. The settings are read when what is edited changes, and after
+        // a save, and at no other moment.
+        var key = $"{ProjectId}|{TemplateId}";
+        if (string.Equals(key, _loadedKey, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _loadedKey = key;
         await LoadAsync();
         await RunDiagnosticsAsync();
     }
+
+    /// <summary>What the form was last read for: the project, or the template when there is no project.</summary>
+    private string? _loadedKey;
 
     private async Task LoadAsync()
     {
