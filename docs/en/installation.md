@@ -154,9 +154,9 @@ installed after Aiko is the ordinary case, and the line says which command conne
 | `AIKO_PAIR_CODE` | Fixed pairing code (used by tests/scripts) |
 | `AIKO_INSECURE` | Set to `1` to disable authentication (local debugging only) |
 
-The daemon prefers port `24560`; if it is busy it asks for another port (or picks a free one from
-`18000-18999` in non-interactive mode) and remembers the choice in `settings.json` next to the
-database.
+On its first start the daemon takes port `24560`, or a free one from `18000-18999` when that is busy, and
+remembers the choice in `settings.json` next to the database. A saved port is kept: to move the daemon, start
+it once with `AIKO_PORT` set to the new port and run `aiko repair --fix` (see Troubleshooting).
 
 ## Register a project
 
@@ -242,16 +242,19 @@ powershell -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.c
 The installer unpacks a released build into `%LOCALAPPDATA%\Aiko\bin`; a build from a working copy never
 reaches that folder by itself. To move an installation to a newer build:
 
-1. Stop the running daemon (the daemon screen's stop action, or `aiko status` and then stopping the process).
-2. Either run the installer again - it installs the latest release - or publish the working copy yourself and
-   copy it over the folder:
+1. Stop the running daemon: `aiko serve stop` (or the stop action on the daemon screen).
+2. Either run the release installer again - it installs the latest release - or, from a clone of the
+   repository, run the contributor installer in its root:
 
    ```powershell
-   dotnet publish src/Aiko.Server/Aiko.Server.csproj -c Release -p:PublishAot=false -o .\artifacts\publish
-   Copy-Item .\artifacts\publish\* "$env:LOCALAPPDATA\Aiko\bin" -Recurse -Force
+   .\install.ps1
    ```
 
-3. Start the daemon again and reload the board once.
+   It publishes the working copy framework-dependent into `%LOCALAPPDATA%\Aiko\bin`, so it needs the
+   .NET 10 SDK. The daemon it publishes sits in the root of `bin` and is the one `aiko` starts from then on;
+   a released daemon left in `bin\server` is no longer used, and running the release installer again
+   returns the installation to the released build.
+3. Start the daemon again (`aiko serve -d` or `aiko ui`) and reload the board once.
 
 The client is served by the daemon, so a page that is already open belongs to the build that served it. The
 service worker asks the daemon for the app shell first and keeps only content-hashed files in its cache, so one

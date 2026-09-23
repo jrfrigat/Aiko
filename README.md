@@ -154,10 +154,13 @@ remembers the choice in `settings.json` next to the database. Open the UI at
 
 ```sh
 curl -X POST http://127.0.0.1:24560/api/v1/projects/initialize \
+     -H "Authorization: Bearer $(aiko token)" \
      -H "Content-Type: application/json" \
      -d "{ \"rootPath\": \"C:/path/to/your/project\" }"
 # => { "id": "<projectId>", ... }   MCP: http://127.0.0.1:24560/mcp/projects/<handle>
 ```
+
+Every REST and MCP request carries the access token; `aiko token` prints it.
 
 `.\install.ps1` in the repository root publishes this checkout into `%LOCALAPPDATA%\Aiko\bin`, so
 `aiko serve` and `aiko status` behave exactly as in an installed release.

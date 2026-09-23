@@ -43,12 +43,16 @@ If a daemon you left running holds it, stop that one first instead of hunting fo
 aiko serve stop
 ```
 
-Aiko prefers port `24560`. If it is busy, `aiko serve` asks for another port (or picks a free one
-from `18000-18999` in non-interactive mode) and saves it. If the port changed, the agent MCP
-configs may be stale - reinstall them:
+On the first start Aiko takes port `24560`, or a free one from `18000-18999` when that is busy, and saves
+the choice in `settings.json`. From then on it keeps the saved port and refuses to start when something
+else holds it. To move the daemon to another port, start it once with that port asked for explicitly - the
+start saves it - and then point the agents at it:
 
 ```powershell
-aiko agent install --project <projectId>
+$env:AIKO_PORT = 18123   # any free port
+aiko serve -d
+Remove-Item Env:AIKO_PORT
+aiko repair --fix         # rewrites the agents' MCP configurations for the new port
 ```
 
 ## The daemon stopped by itself

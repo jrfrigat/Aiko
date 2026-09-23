@@ -3358,7 +3358,8 @@ public class InfrastructureSpecs
             {
                 var failure = await Assert.ThrowsAsync<IOException>(async () =>
                     await configuration.LoadOrCreateAsync(null, CancellationToken.None));
-                Assert.Contains("installer", failure.Message, StringComparison.OrdinalIgnoreCase);
+                // The refusal names the way out that exists: an explicit AIKO_PORT start saves the new port.
+                Assert.Contains("AIKO_PORT", failure.Message, StringComparison.Ordinal);
             }
             finally
             {

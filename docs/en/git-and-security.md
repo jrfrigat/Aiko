@@ -44,7 +44,9 @@ If you see `401 Unauthorized`, the client is not holding the current token: re-p
 The UI needs a token, so the browser is paired with a **one-time code**:
 
 - `aiko ui` starts the daemon if none is answering, pairs the browser and opens the board;
-- `aiko pair` prints a code for a second machine or a second browser.
+- another browser on this machine is paired the same way: run `aiko ui` again (each run issues a fresh
+  code), or open the `Aiko pairing URL` the daemon prints when it starts. Aiko listens on the loopback
+  interface only, so a browser on another machine cannot reach it.
 
 The code is single-use: consuming it removes it from the set of valid codes. `AIKO_PAIR_CODE` fixes the
 pairing code to a known value and is meant for tests and scripts.

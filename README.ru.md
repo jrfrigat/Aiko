@@ -154,10 +154,13 @@ dotnet run --project src/Aiko.Server
 
 ```sh
 curl -X POST http://127.0.0.1:24560/api/v1/projects/initialize \
+     -H "Authorization: Bearer $(aiko token)" \
      -H "Content-Type: application/json" \
      -d "{ \"rootPath\": \"C:/путь/к/проекту\" }"
 # => { "id": "<projectId>", ... }   MCP: http://127.0.0.1:24560/mcp/projects/<handle>
 ```
+
+Каждый запрос к REST и MCP несёт токен доступа; `aiko token` его печатает.
 
 `.\install.ps1` в корне репозитория публикует текущий checkout в `%LOCALAPPDATA%\Aiko\bin` - после
 этого `aiko serve` и `aiko status` работают так же, как в установленном релизе.

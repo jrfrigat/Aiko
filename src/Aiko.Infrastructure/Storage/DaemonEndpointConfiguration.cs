@@ -177,10 +177,14 @@ public sealed class DaemonEndpointConfiguration(AikoDataPaths paths)
             return;
         }
 
+        // The message names steps that exist: nothing else chooses the port once one is saved, so the way out
+        // is to start the daemon once with the port asked for explicitly - that start saves it - and then to
+        // point the agents' configurations at it.
         var source = persisted ? "saved" : "requested";
         throw new IOException(
             $"The {source} Aiko port {port} is already in use. " +
-            "Run the Aiko installer to choose and apply another port.");
+            "Start the daemon once with AIKO_PORT set to a free port (it saves the new port), " +
+            "then run `aiko repair --fix` so the agents' configurations follow it.");
     }
 
     private static bool IsAvailable(int port)
