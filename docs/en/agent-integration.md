@@ -249,7 +249,7 @@ over is therefore the same address the UI links to itself, not a second form of 
 | Hand off to another agent | `/aiko-handoff` | `aiko_handoff_execution` | Card page - execution history |
 | Complete a stage | `/aiko-run` | `aiko_complete_stage` | Drag to the next column |
 | Post the stage's outcome into the card's discussion | `/aiko-run` | `aiko_add_comment`, `aiko_list_comments` | Card page - discussion tab |
-| Record and search memory | `/aiko-memory` | `aiko_store_memory`, `aiko_search_memory` | — (not in the UI yet) |
+| Record and search memory | `/aiko-memory` | `aiko_store_memory`, `aiko_search_memory` | — (not in the UI yet; REST: `GET .../memory`, `GET .../memory/search?q=`, `GET`/`PUT`/`DELETE .../memory/document`) |
 | Edit the pipeline | — | — | Workflow page |
 | Read settings | — | `aiko_get_settings` | Settings page |
 | Change settings | `/aiko-settings` | `aiko_update_settings` | Settings page |

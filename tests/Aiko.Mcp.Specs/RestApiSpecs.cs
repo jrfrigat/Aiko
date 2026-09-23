@@ -1331,4 +1331,54 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
         Assert.Equal(HttpStatusCode.Created, again.StatusCode);
     }
 
+    [Fact]
+    public async Task Project_memory_is_listed_searched_read_written_and_removed_over_http()
+    {
+        using var http = CreateClient();
+        var projects = await http.GetFromJsonAsync<JsonElement>("api/v1/projects");
+        var handle = projects.EnumerateArray()
+            .First(project => project.GetProperty("id").GetString() == fixture.ProjectId)
+            .GetProperty("handle").GetString()!;
+        var path = $"rest-{Guid.NewGuid():N}/decision.md";
+
+        // Written under the readable handle, found under the id: memory belongs to the project, whatever the
+        // address a screen used to reach it.
+        using var stored = await http.PutAsJsonAsync(
+            $"api/v1/projects/{handle}/memory/document",
+            new { path, content = "# Decision\n\nWe keep zebrafish tables sorted." });
+        stored.EnsureSuccessStatusCode();
+
+        var list = await http.GetFromJsonAsync<JsonElement>($"api/v1/projects/{fixture.ProjectId}/memory");
+        Assert.Contains(list.EnumerateArray(), entry => entry.GetProperty("path").GetString() == path);
+
+        var found = await http.GetFromJsonAsync<JsonElement>(
+            $"api/v1/projects/{fixture.ProjectId}/memory/search?q=zebrafish");
+        Assert.Contains(found.EnumerateArray(), entry => entry.GetProperty("path").GetString() == path);
+
+        var read = await http.GetFromJsonAsync<JsonElement>(
+            $"api/v1/projects/{handle}/memory/document?path={Uri.EscapeDataString(path)}");
+        Assert.Contains("zebrafish", read.GetProperty("content").GetString(), StringComparison.Ordinal);
+
+        // A path that leaves the memory directory, or is not Markdown, is refused with its reason.
+        using var escape = await http.PutAsJsonAsync(
+            $"api/v1/projects/{handle}/memory/document",
+            new { path = "../outside.md", content = "no" });
+        Assert.Equal(HttpStatusCode.BadRequest, escape.StatusCode);
+        using var notMarkdown = await http.GetAsync(
+            $"api/v1/projects/{handle}/memory/document?path=notes.txt");
+        Assert.Equal(HttpStatusCode.BadRequest, notMarkdown.StatusCode);
+
+        // An unknown project and a missing document are both 404, and say which.
+        using var noProject = await http.GetAsync("api/v1/projects/no-such-project/memory");
+        Assert.Equal(HttpStatusCode.NotFound, noProject.StatusCode);
+        using var removed = await http.DeleteAsync(
+            $"api/v1/projects/{handle}/memory/document?path={Uri.EscapeDataString(path)}");
+        Assert.Equal(HttpStatusCode.NoContent, removed.StatusCode);
+        using var gone = await http.GetAsync(
+            $"api/v1/projects/{handle}/memory/document?path={Uri.EscapeDataString(path)}");
+        Assert.Equal(HttpStatusCode.NotFound, gone.StatusCode);
+        var after = await http.GetFromJsonAsync<JsonElement>(
+            $"api/v1/projects/{fixture.ProjectId}/memory/search?q=zebrafish");
+        Assert.DoesNotContain(after.EnumerateArray(), entry => entry.GetProperty("path").GetString() == path);
+    }
 }

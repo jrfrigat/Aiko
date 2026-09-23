@@ -81,6 +81,48 @@ public sealed class FileMemoryStore(
     }
 
     /// <inheritdoc />
+    public async ValueTask<IReadOnlyList<MemoryDocumentSummary>> ListAsync(
+        string projectId,
+        CancellationToken cancellationToken)
+    {
+        var project = await EnsureProjectExistsAsync(projectId, cancellationToken);
+        var memoryRoot = Path.GetFullPath(Path.Combine(AikoProjectPaths.DataRoot(project.RootPath), "memory"));
+        if (!Directory.Exists(memoryRoot))
+        {
+            return [];
+        }
+
+        return Directory
+            .EnumerateFiles(memoryRoot, "*.md", SearchOption.AllDirectories)
+            .Select(file => new FileInfo(file))
+            .Select(info => new MemoryDocumentSummary(
+                Path.GetRelativePath(memoryRoot, info.FullName).Replace(Path.DirectorySeparatorChar, '/'),
+                info.Length,
+                new DateTimeOffset(info.LastWriteTimeUtc, TimeSpan.Zero)))
+            .OrderBy(summary => summary.Path, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<MemoryDocument?> ReadAsync(
+        string projectId,
+        string path,
+        CancellationToken cancellationToken)
+    {
+        var project = await EnsureProjectExistsAsync(projectId, cancellationToken);
+        var (fullPath, relativePath) = ResolveMemoryPath(project.RootPath, path);
+        if (!File.Exists(fullPath))
+        {
+            return null;
+        }
+
+        return new MemoryDocument(
+            relativePath,
+            await File.ReadAllTextAsync(fullPath, cancellationToken),
+            new DateTimeOffset(File.GetLastWriteTimeUtc(fullPath), TimeSpan.Zero));
+    }
+
+    /// <inheritdoc />
     public async ValueTask RemoveAsync(
         string projectId,
         string path,

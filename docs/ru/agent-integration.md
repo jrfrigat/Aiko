@@ -253,7 +253,7 @@ UI пока нет, таблица говорит это прямо, а не д�
 | Передать этап другому агенту | `/aiko-handoff` | `aiko_handoff_execution` | Страница карточки - история исполнения |
 | Завершить этап | `/aiko-run` | `aiko_complete_stage` | Перетаскивание в следующую колонку |
 | Записать итог этапа в обсуждение карточки | `/aiko-run` | `aiko_add_comment`, `aiko_list_comments` | Страница карточки - вкладка обсуждения |
-| Записать и найти память | `/aiko-memory` | `aiko_store_memory`, `aiko_search_memory` | — (в UI пока нет) |
+| Записать и найти память | `/aiko-memory` | `aiko_store_memory`, `aiko_search_memory` | — (в UI пока нет; REST: `GET .../memory`, `GET .../memory/search?q=`, `GET`/`PUT`/`DELETE .../memory/document`) |
 | Изменить конвейер | — | — | Страница Workflow |
 | Прочитать настройки | — | `aiko_get_settings` | Страница Settings |
 | Изменить настройки | `/aiko-settings` | `aiko_update_settings` | Страница Settings |

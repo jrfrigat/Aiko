@@ -266,6 +266,7 @@ app.MapExecutionEndpoints();
 app.MapCommandEndpoints();
 app.MapGitEndpoints();
 app.MapArtifactEndpoints();
+app.MapMemoryEndpoints();
 app.MapAgentEndpoints();
 app.MapSettingsEndpoints();
 app.MapReleaseEndpoints();
