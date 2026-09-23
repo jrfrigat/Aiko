@@ -63,9 +63,20 @@
                     @foreach (var cardId in _record.Cards)
                     {
                         var card = cardId;
-                        <FlareNavLink Href="@ProjectRoutes.Card(Handle, card)">
-                            <ChildContent>@card</ChildContent>
-                        </FlareNavLink>
+                        @* The title is read from the live card; a card the daemon can no longer find keeps
+                           its bare id, which is still what the release named. *@
+                        var title = _record.CardTitles?.GetValueOrDefault(card);
+                        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
+                            <FlareNavLink Href="@ProjectRoutes.Card(Handle, card)">
+                                <ChildContent>@card</ChildContent>
+                            </FlareNavLink>
+                            @if (!string.IsNullOrWhiteSpace(title))
+                            {
+                                <FlareText Element="span" Typo="TypographyScale.BodyMedium" Color="FlareColor.OnSurfaceVariant">
+                                    @title
+                                </FlareText>
+                            }
+                        </FlareStack>
                     }
                 </FlareStack>
             }

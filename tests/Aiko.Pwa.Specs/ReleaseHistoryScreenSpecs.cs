@@ -55,6 +55,8 @@ public sealed class ReleaseHistoryScreenSpecs
             StringComparison.Ordinal);
         // The tasks are links to their cards, built by the one helper that builds card addresses.
         Assert.Contains("ProjectRoutes.Card(Handle, card)", page, StringComparison.Ordinal);
+        // Beside each id stands the card's title, when the daemon could still find the card.
+        Assert.Contains("_record.CardTitles", page, StringComparison.Ordinal);
         // And a release that carried nothing says so instead of showing an empty list.
         Assert.Contains("Loc.Get(\"ReleaseRecordEmpty\")", page, StringComparison.Ordinal);
         // The way back to the screen is an address, not a browser-history guess.

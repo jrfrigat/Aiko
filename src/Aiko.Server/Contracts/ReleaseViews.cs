@@ -29,16 +29,25 @@ public sealed record ReleaseHistoryItem(
 /// <param name="ReleasedAt">When the release was recorded.</param>
 /// <param name="Notes">What was remembered about this release, or null.</param>
 /// <param name="Cards">The cards the release named; an empty list says it carried none.</param>
+/// <param name="CardTitles">
+/// The current title of every named card the daemon could still find, keyed by the id as the record holds it.
+/// The record itself keeps ids only - it says which cards went in, not what they said - so the titles are read
+/// from the live cards when the view is built, and a card that is gone simply has no entry here.
+/// </param>
 public sealed record ReleaseView(
     string Version,
     string SchemeId,
     DateTimeOffset ReleasedAt,
     string? Notes,
-    IReadOnlyList<string> Cards)
+    IReadOnlyList<string> Cards,
+    IReadOnlyDictionary<string, string>? CardTitles = null)
 {
     /// <summary>The view of a stored record.</summary>
     /// <param name="record">Record to show.</param>
-    public static ReleaseView From(ReleaseRecord record)
+    /// <param name="cardTitles">Titles of the named cards that could be found, or null.</param>
+    public static ReleaseView From(
+        ReleaseRecord record,
+        IReadOnlyDictionary<string, string>? cardTitles = null)
     {
         ArgumentNullException.ThrowIfNull(record);
         return new ReleaseView(
@@ -46,6 +55,7 @@ public sealed record ReleaseView(
             record.SchemeId,
             record.ReleasedAt,
             record.Notes,
-            record.Cards);
+            record.Cards,
+            cardTitles);
     }
 }

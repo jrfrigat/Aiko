@@ -1,4 +1,6 @@
+using System.Text.Json;
 using Aiko.Application.Contracts;
+using Aiko.Domain.Cards;
 using Aiko.Server.Contracts;
 
 namespace Aiko.Server.Endpoints;
@@ -70,11 +72,14 @@ internal static class ReleaseEndpoints
                 string projectId,
                 string version,
                 IReleaseStore releases,
+                ICardStore cards,
                 CancellationToken cancellationToken) =>
             {
                 var document = await releases.ReadAsync(projectId, cancellationToken);
                 return document.Find(version) is { } record
-                    ? Results.Ok(ReleaseView.From(record))
+                    ? Results.Ok(ReleaseView.From(
+                        record,
+                        await ReadTitlesAsync(projectId, record, cards, cancellationToken)))
                     : Results.NotFound(new ErrorResponse(
                         $"Release '{version}' is not recorded in this project."));
             });
@@ -88,6 +93,7 @@ internal static class ReleaseEndpoints
                 string projectId,
                 string cardId,
                 IReleaseStore releases,
+                ICardStore cards,
                 CancellationToken cancellationToken) =>
             {
                 var document = await releases.ReadAsync(projectId, cancellationToken);
@@ -96,9 +102,48 @@ internal static class ReleaseEndpoints
                 // or not there. Whether the card itself exists is not asked - this route is about releases.
                 return document.Entries.FirstOrDefault(record => record.Cards.Any(card =>
                         StringComparer.OrdinalIgnoreCase.Equals(card.Trim(), cardId.Trim()))) is { } record
-                    ? Results.Ok(ReleaseView.From(record))
+                    ? Results.Ok(ReleaseView.From(
+                        record,
+                        await ReadTitlesAsync(projectId, record, cards, cancellationToken)))
                     : Results.NotFound(new ErrorResponse(
                         $"Card '{cardId}' is not named in any release of this project."));
             });
+    }
+
+    /// <summary>
+    /// Reads the current title of every card a release named, keyed by the id as the record holds it.
+    /// </summary>
+    /// <remarks>
+    /// The record is history and keeps ids only, so the titles come from the live cards. A card that is gone, an
+    /// id that is not a valid card id, or a card file that cannot be read leaves that id without a title: the
+    /// release page must open whatever became of the cards it lists. An archived card is still a card file, so
+    /// it keeps its title.
+    /// </remarks>
+    private static async Task<IReadOnlyDictionary<string, string>> ReadTitlesAsync(
+        string projectId,
+        ReleaseRecord record,
+        ICardStore cards,
+        CancellationToken cancellationToken)
+    {
+        var titles = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var cardId in record.Cards.Distinct(StringComparer.Ordinal))
+        {
+            try
+            {
+                var card = await cards.FindAsync(new CardReference(projectId, cardId.Trim()), cancellationToken);
+                if (card is { Title.Length: > 0 })
+                {
+                    titles[cardId] = card.Title;
+                }
+            }
+            catch (Exception exception) when (
+                exception is ArgumentException or IOException or JsonException or KeyNotFoundException
+                    or UnauthorizedAccessException)
+            {
+                // The id stays bare; see the remarks.
+            }
+        }
+
+        return titles;
     }
 }

@@ -504,7 +504,7 @@ the person as the command's `failed` message.
 
 | Surface | Path |
 | :-- | :-- |
-| REST | `GET .../releases` (the history, newest first, each line with its card count), `GET .../releases/{version}` (one record with its cards), `GET .../cards/{cardId}/release` (the release that named the card, or 404) |
+| REST | `GET .../releases` (the history, newest first, each line with its card count), `GET .../releases/{version}` (one record with its cards and the current title of each card that can still be found), `GET .../cards/{cardId}/release` (the release that named the card, or 404) |
 | MCP | `aiko_list_releases` (the history - the previous release is what tells the agent which cards have shipped since) and `aiko_record_release(version, schemeId, cards, notes)` (the one writer of the document) |
 | UI | Release screen - the history, newest first, with each release marked ordinary or preliminary by its tag's suffix; a page per release at `/p/{handle}/release/{version}`, listing the tasks that went into it; a task's card says which release it went into, and says nothing when no release named it |
 | Event | `releases.updated`, published when a release is recorded |

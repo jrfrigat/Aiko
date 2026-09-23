@@ -138,6 +138,44 @@ public class ReleaseSurfaceSpecs(AikoServerFixture fixture) : IClassFixture<Aiko
     }
 
     [Fact]
+    public async Task One_release_carries_the_titles_of_the_cards_it_can_still_find()
+    {
+        await using var client = await ConnectAsync();
+        using var http = CreateClient();
+
+        var created = await client.CallToolAsync(
+            "aiko_create_card",
+            new Dictionary<string, object?>
+            {
+                ["kind"] = "task",
+                ["title"] = "Release page shows card titles",
+                ["ownPriority"] = 1
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.NotEqual(true, created.IsError);
+        var cardId = JsonDocument.Parse(FirstText(created)!).RootElement
+            .GetProperty("reference").GetProperty("cardId").GetString()!;
+
+        var version = UniqueVersion("5");
+        await RecordAsync(client, version, "git-release", [cardId, "TASK-99999"]);
+
+        // The record keeps ids only; the title is read from the live card, and an id nobody can find stays a
+        // bare id instead of failing the page.
+        foreach (var route in new[]
+                 {
+                     $"/api/v1/projects/{fixture.ProjectId}/releases/{version}",
+                     $"/api/v1/projects/{fixture.ProjectId}/cards/{cardId}/release"
+                 })
+        {
+            var release = await http.GetFromJsonAsync<JsonElement>(route);
+            var titles = release.GetProperty("cardTitles");
+            Assert.Equal("Release page shows card titles", titles.GetProperty(cardId).GetString());
+            Assert.False(titles.TryGetProperty("TASK-99999", out _));
+            Assert.Equal(2, release.GetProperty("cards").GetArrayLength());
+        }
+    }
+
+    [Fact]
     public async Task One_version_keeps_one_record_and_recording_it_again_is_refused()
     {
         await using var client = await ConnectAsync();

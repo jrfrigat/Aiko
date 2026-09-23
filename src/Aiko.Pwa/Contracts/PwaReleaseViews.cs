@@ -28,9 +28,13 @@ internal sealed record ReleaseHistoryItem(
 /// <param name="ReleasedAt">When the release was recorded.</param>
 /// <param name="Notes">What was remembered about this release, or null.</param>
 /// <param name="Cards">The cards the release named; an empty list says it carried none.</param>
+/// <param name="CardTitles">
+/// The current title of each named card the daemon could still find; a card missing here is shown by its id.
+/// </param>
 internal sealed record ReleaseView(
     string Version,
     string SchemeId,
     DateTimeOffset ReleasedAt,
     string? Notes,
-    IReadOnlyList<string> Cards);
+    IReadOnlyList<string> Cards,
+    IReadOnlyDictionary<string, string>? CardTitles = null);
