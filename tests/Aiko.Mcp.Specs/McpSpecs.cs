@@ -1987,6 +1987,7 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
             RedirectStandardOutput = true,
             RedirectStandardError = true
         };
+        AikoServerFixture.ClearInheritedAikoVariables(startInfo);
         startInfo.EnvironmentVariables["AIKO_DATABASE"] = Path.Combine(root, "data", "aiko.db");
         startInfo.EnvironmentVariables["AIKO_PORT"] = port.ToString(CultureInfo.InvariantCulture);
         startInfo.EnvironmentVariables["AIKO_TOKEN"] = "test-token-123";

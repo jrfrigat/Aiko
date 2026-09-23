@@ -76,6 +76,24 @@ public sealed class AikoServerFixture : IAsyncLifetime
     public string FindStdioProxyAssembly() =>
         FindRepositoryBinary("Aiko.StdioProxy", "aiko-stdio.dll");
 
+    /// <summary>
+    /// Removes every AIKO_* variable the test runner inherited, so a daemon under test is configured by
+    /// the spec alone. A machine with Aiko installed carries AIKO_TOKEN (and may carry AIKO_URL or
+    /// AIKO_INSECURE); leaked into the daemon, they change which token it uses, where it listens and
+    /// whether it authenticates at all.
+    /// </summary>
+    public static void ClearInheritedAikoVariables(ProcessStartInfo startInfo)
+    {
+        var inherited = startInfo.EnvironmentVariables.Keys
+            .Cast<string>()
+            .Where(name => name.StartsWith("AIKO_", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        foreach (var name in inherited)
+        {
+            startInfo.EnvironmentVariables.Remove(name);
+        }
+    }
+
     private Process StartServer(string serverDll, int port)
     {
         var startInfo = new ProcessStartInfo
@@ -88,6 +106,7 @@ public sealed class AikoServerFixture : IAsyncLifetime
             RedirectStandardOutput = true,
             RedirectStandardError = true
         };
+        ClearInheritedAikoVariables(startInfo);
         startInfo.EnvironmentVariables["AIKO_DATABASE"] =
             Path.Combine(_root, "data", "aiko.db");
         startInfo.EnvironmentVariables["AIKO_PORT"] = port.ToString(CultureInfo.InvariantCulture);
