@@ -919,11 +919,11 @@ public sealed class SqliteExecutionCoordinator(
         var card = await cards.FindAsync(execution.Card, cancellationToken)
             ?? throw new KeyNotFoundException(
                 $"Unknown card: {execution.Card.ProjectId}/{execution.Card.CardId}");
+        // The handoff is filed beside the card where it actually is; see FileCardStore.FindCardDirectory.
         var handoffDirectory = Path.Combine(
-            FileCardStore.GetCardDirectory(
-                project.RootPath,
-                card.Reference.CardId,
-                card.Kind),
+            FileCardStore.FindCardDirectory(project.RootPath, card.Reference.CardId)
+                ?? throw new KeyNotFoundException(
+                    $"Unknown card: {execution.Card.ProjectId}/{execution.Card.CardId}"),
             "handoffs");
         Directory.CreateDirectory(handoffDirectory);
         var previousAttempt = execution.Attempts.LastOrDefault();

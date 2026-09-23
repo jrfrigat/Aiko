@@ -127,9 +127,12 @@ public sealed class FileCardArtifactStore(
     {
         var project = await projects.FindAsync(reference.ProjectId, cancellationToken)
             ?? throw new KeyNotFoundException($"Unknown Aiko project: {reference.ProjectId}");
-        var card = await cards.FindAsync(reference, cancellationToken)
+        _ = await cards.FindAsync(reference, cancellationToken)
             ?? throw new KeyNotFoundException($"Unknown Aiko card: {reference.CardId}");
-        return FileCardStore.GetCardDirectory(project.RootPath, reference.CardId, card.Kind);
+        // Beside the card where it actually is - not where its type's name says it should be, which after a
+        // rename is another collection and would split the card's directory in two.
+        return FileCardStore.FindCardDirectory(project.RootPath, reference.CardId)
+            ?? throw new KeyNotFoundException($"Unknown Aiko card: {reference.CardId}");
     }
 
     private static string ResolveArtifactPath(string cardDirectory, string path)

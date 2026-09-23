@@ -118,15 +118,12 @@ public sealed class FileCardDiscussionStore(IProjectCatalog projects, ICardStore
     private async ValueTask<string> ResolvePathAsync(CardReference card, CancellationToken cancellationToken)
     {
         var project = await FindProjectAsync(card.ProjectId, cancellationToken);
-        var existing = await cards.FindAsync(card, cancellationToken);
-        // The card store decides where a card is filed, and the notes go into that same directory: a card
-        // that has not been migrated yet therefore keeps its notes beside it, in the old place, rather than in
-        // a directory that does not exist. "Task" is the fallback for a note about a card nobody has yet.
-        var directory = FileCardStore.GetExistingCardDirectory(
-            project.RootPath,
-            card.CardId,
-            existing?.Kind ?? "Task");
-        Directory.CreateDirectory(directory);
+        // The notes go into the directory the card is actually in, found without creating anything: a note
+        // about a card nobody has is refused rather than filed in a directory a future card would inherit.
+        _ = await cards.FindAsync(card, cancellationToken)
+            ?? throw new KeyNotFoundException($"Unknown Aiko card: {card.CardId}");
+        var directory = FileCardStore.FindCardDirectory(project.RootPath, card.CardId)
+            ?? throw new KeyNotFoundException($"Unknown Aiko card: {card.CardId}");
         return Path.Combine(directory, FileName);
     }
 

@@ -74,7 +74,7 @@ public sealed class CardTypeDataSpecs
         // The workflow asks for `Tasks`, and the card is where the older rule filed it: reading is not the
         // moment to move a project around, so the card is found where it lies.
         Assert.Equal("Tasks", FileCardStore.CollectionFor(project.Root, "Task"));
-        Assert.Equal(older, FileCardStore.GetExistingCardDirectory(project.Root, "TASK-1", "Task"));
+        Assert.Equal(older, FileCardStore.FindCardDirectory(project.Root, "TASK-1"));
         Assert.Contains(
             "tasks",
             Directory.EnumerateDirectories(AikoProjectPaths.CardCollectionsRoot(project.Root))

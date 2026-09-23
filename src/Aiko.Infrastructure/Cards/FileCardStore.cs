@@ -121,15 +121,13 @@ public sealed class FileCardStore(
                     actualRevision);
             }
 
-            var cardDirectory = GetCardDirectory(
-                project.RootPath,
-                card.Reference.CardId,
-                card.Kind);
             // A card still filed the old way moves to where cards live now, and it moves whole: its artifacts,
             // its discussion and its handoffs are inside that directory, so moving the card alone would break
-            // it. Skipped when the new place already holds this card - there the new copy is the one this
-            // write is about, and the leftover in the old place is for the diagnosis to name.
-            MoveLegacyCardDirectory(project.RootPath, card, existingPath);
+            // it. When the new place is already taken the card stays where it is and is written there: writing
+            // beside it would leave the card in two directories.
+            var cardDirectory = existingPath is null
+                ? GetCardDirectory(project.RootPath, card.Reference.CardId, card.Kind)
+                : MoveLegacyCardDirectory(project.RootPath, card, existingPath);
             Directory.CreateDirectory(cardDirectory);
             var cardPath = Path.Combine(cardDirectory, "card.json");
             await WriteCardAtomicallyAsync(cardPath, card, cancellationToken);
@@ -150,25 +148,30 @@ public sealed class FileCardStore(
     /// </summary>
     /// <remarks>
     /// The whole card directory is moved rather than the document copied, so everything filed beside the card
-    /// travels with it. A target that already exists is left alone: that means the card is in both places,
-    /// and the copy in the new place is the one being written.
+    /// travels with it. A target that already exists is left alone and the card keeps its directory: the copy
+    /// being written is the one the store reads, and a second copy beside it would split the card. Returns the
+    /// directory the card is to be written in.
     /// </remarks>
-    private static void MoveLegacyCardDirectory(string projectRoot, Card card, string? existingPath)
+    private static string MoveLegacyCardDirectory(string projectRoot, Card card, string existingPath)
     {
-        if (existingPath is null)
+        var target = GetCardDirectory(projectRoot, card.Reference.CardId, card.Kind);
+        // Resolving the target may itself have renamed the card's whole collection to the name the workflow now
+        // has, carrying the card along - so the card is looked up again rather than trusted to be where it was.
+        var source = FindCardDirectory(projectRoot, card.Reference.CardId)
+            ?? Path.GetDirectoryName(existingPath)!;
+        if (StringComparer.OrdinalIgnoreCase.Equals(source, target))
         {
-            return;
+            return target;
         }
 
-        var source = Path.GetDirectoryName(existingPath)!;
-        var target = GetCardDirectory(projectRoot, card.Reference.CardId, card.Kind);
-        if (StringComparer.OrdinalIgnoreCase.Equals(source, target) || Directory.Exists(target))
+        if (Directory.Exists(target))
         {
-            return;
+            return source;
         }
 
         Directory.CreateDirectory(Path.GetDirectoryName(target)!);
         Directory.Move(source, target);
+        return target;
     }
 
     private async ValueTask<RegisteredProject> FindProjectAsync(
@@ -197,16 +200,60 @@ public sealed class FileCardStore(
             ? Collections(projectRoot)
             : ExistingCollections(projectRoot, expectedKind);
 
+        // Every copy is looked at, not just the first one: a card that ended up in two collections must be read
+        // from the same copy whatever order the directories are listed in, and the copy that saw the most writes
+        // is the card. On a tie the candidate order decides - the new root before the old one.
+        string? found = null;
+        long foundRevision = long.MinValue;
         foreach (var (root, collection) in Candidates(projectRoot, collections))
         {
             var candidate = Path.Combine(root, collection, cardId, "card.json");
-            if (File.Exists(candidate))
+            if (!File.Exists(candidate))
             {
-                return candidate;
+                continue;
+            }
+
+            if (found is null)
+            {
+                found = candidate;
+                foundRevision = long.MinValue;
+                continue;
+            }
+
+            if (foundRevision == long.MinValue)
+            {
+                foundRevision = ReadRevision(found);
+            }
+
+            var revision = ReadRevision(candidate);
+            if (revision > foundRevision)
+            {
+                found = candidate;
+                foundRevision = revision;
             }
         }
 
-        return null;
+        return found;
+    }
+
+    /// <summary>
+    /// The revision a card document records, or -1 when it cannot be read: only used to choose between copies
+    /// of one card, so an unreadable copy simply loses.
+    /// </summary>
+    private static long ReadRevision(string cardPath)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(File.ReadAllBytes(cardPath));
+            return document.RootElement.TryGetProperty("revision", out var revision) &&
+                   revision.TryGetInt64(out var value)
+                ? value
+                : -1;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException)
+        {
+            return -1;
+        }
     }
 
     /// <summary>
@@ -351,19 +398,17 @@ public sealed class FileCardStore(
     }
 
     /// <summary>
-    /// The directory a card that already exists actually sits in - the old place for a project that has not
-    /// been migrated yet. Artifacts and notes are written beside the card, not beside where it will be.
+    /// The directory a card that exists actually sits in, or null when there is no such card. Artifacts, notes
+    /// and handoffs are written beside the card, not beside where it will be.
     /// </summary>
-    internal static string GetExistingCardDirectory(
-        string projectRoot,
-        string cardId,
-        string kind)
-    {
-        var path = GetCardPath(projectRoot, cardId, kind);
-        return path is null
-            ? GetCardDirectory(projectRoot, cardId, kind)
-            : Path.GetDirectoryName(path)!;
-    }
+    /// <remarks>
+    /// Every collection is searched, whatever the card's type is called today: a type renamed since the card was
+    /// written names another collection, and the card is still where it was. Nothing is created and nothing is
+    /// moved - finding a card must never be what files it somewhere new, because a directory made for a card's
+    /// notes is exactly what used to leave the card itself in two places.
+    /// </remarks>
+    internal static string? FindCardDirectory(string projectRoot, string cardId) =>
+        GetCardPath(projectRoot, cardId, null) is { } path ? Path.GetDirectoryName(path) : null;
 
     /// <summary>
     /// The collection a card of this type is filed under: the title of the workflow that defines it.

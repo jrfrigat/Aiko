@@ -152,7 +152,7 @@ public sealed class CardLayoutSpecs
             // in a directory the card is not in.
             Assert.Equal(
                 oldDirectory,
-                FileCardStore.GetExistingCardDirectory(context.ProjectRoot, cardId, "Task"));
+                FileCardStore.FindCardDirectory(context.ProjectRoot, cardId));
             return Task.CompletedTask;
         });
     }
