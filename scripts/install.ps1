@@ -109,6 +109,39 @@ catch {
     Write-Verbose "Could not select TLS 1.2 explicitly; using the platform default. $($_.Exception.Message)"
 }
 
+# The directory is the installer's to replace only when it is empty or already holds an installation. Anything
+# else - -InstallDir pointed at a folder of other tools, or at the data directory - holds someone else's files,
+# and replacing its contents would delete them. Checked before the download, while refusing costs nothing.
+function Assert-InstallDirIsOurs([string] $dir) {
+    if (-not (Test-Path $dir)) { return }
+    if (@(Get-ChildItem -Path $dir -Force).Count -eq 0) { return }
+    if ((Test-Path (Join-Path $dir "$command.exe")) -or (Test-Path (Join-Path $dir 'install.json'))) { return }
+    throw "$dir is not empty and holds no Aiko installation, so installing there would delete what it holds. " +
+        'Choose an empty directory or one Aiko was installed into.'
+}
+
+# A running daemon and the agents' aiko-stdio proxies hold their executables open, and a replacement under them
+# fails half-way. The daemon is asked to stop; whatever still runs from the directory is stopped with it - an
+# agent starts its proxy again on its next call.
+function Stop-InstalledAiko([string] $dir) {
+    $cli = Join-Path $dir "$command.exe"
+    if (Test-Path $cli) {
+        try {
+            & $cli serve stop | Out-Null
+        }
+        catch {
+            Write-Verbose "The installed daemon did not stop on request: $($_.Exception.Message)"
+        }
+    }
+
+    $prefix = (Join-Path $dir '').TrimEnd('\') + '\'
+    Get-Process -ErrorAction SilentlyContinue |
+        Where-Object { $_.Path -and $_.Path.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase) } |
+        Stop-Process -Force -ErrorAction SilentlyContinue
+}
+
+Assert-InstallDirIsOurs $InstallDir
+
 $headers = @{ 'User-Agent' = 'aiko-installer' }
 $tag = $Version
 if ($Version -eq 'latest') {
@@ -153,16 +186,45 @@ try {
     $staging = Join-Path $temp 'unpacked'
     Expand-Archive -Path $archive -DestinationPath $staging -Force
 
-    # Replace the contents rather than the directory itself: the directory may already be on PATH,
-    # and a running shell keeps resolving the path it was given.
+    # The archive is checked before anything installed is touched, so a broken download costs nothing.
+    if (-not (Test-Path (Join-Path $staging "$command.exe"))) {
+        throw "The archive did not contain $command.exe. Contents: $((Get-ChildItem $staging | ForEach-Object Name) -join ', ')"
+    }
+    if (-not (Test-Path (Join-Path $staging 'server\Aiko.Server.exe'))) {
+        throw "The archive did not contain server\Aiko.Server.exe. Contents: $((Get-ChildItem $staging -Recurse | ForEach-Object Name) -join ', ')"
+    }
+
+    Stop-InstalledAiko $InstallDir
+
+    # Replace the contents rather than the directory itself: the directory may already be on PATH, and a
+    # running shell keeps resolving the path it was given. What is installed is moved aside first - a rename
+    # within one volume, which works even on a file something still holds - and comes back if the copy fails.
+    $previous = "$InstallDir.previous-$([DateTime]::UtcNow.ToString('yyyyMMddHHmmssfff'))"
     if (Test-Path $InstallDir) {
-        Get-ChildItem -Path $InstallDir -Force | Remove-Item -Recurse -Force
+        New-Item -ItemType Directory -Path $previous | Out-Null
+        Get-ChildItem -Path $InstallDir -Force | Move-Item -Destination $previous
     }
     else {
         New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
     }
 
-    Copy-Item -Path (Join-Path $staging '*') -Destination $InstallDir -Recurse -Force
+    try {
+        Copy-Item -Path (Join-Path $staging '*') -Destination $InstallDir -Recurse -Force
+    }
+    catch {
+        $failure = $_.Exception.Message
+        Get-ChildItem -Path $InstallDir -Force | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+        if (Test-Path $previous) {
+            Get-ChildItem -Path $previous -Force | Move-Item -Destination $InstallDir -Force
+            Remove-Item -Path $previous -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        throw "Installing into $InstallDir failed and the previous installation was put back: $failure"
+    }
+
+    # A file still held open keeps the old copy from going; the next run's installer clears it away.
+    if (Test-Path $previous) {
+        Remove-Item -Path $previous -Recurse -Force -ErrorAction SilentlyContinue
+    }
 }
 
 finally {

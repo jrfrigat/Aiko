@@ -122,6 +122,25 @@ public sealed class InstallationEngineSpecs
     }
 
     [Fact]
+    public async Task A_directory_that_is_not_an_aiko_installation_is_refused_before_anything_is_touched()
+    {
+        using var fixture = new EngineFixture();
+        fixture.Publish("v0.9.2");
+        File.Delete(Path.Combine(fixture.InstallDirectory, ReleaseLayout.CliFileName));
+        File.WriteAllText(Path.Combine(fixture.InstallDirectory, "some-other-tool.exe"), "not ours");
+        var daemon = new FakeDaemon { Running = true };
+        var before = fixture.Fingerprint();
+
+        var report = await Fixture(fixture, daemon).InstallAsync(fixture.Request("v0.9.2"), CancellationToken.None);
+
+        Assert.Equal(InstallationOutcome.Refused, report.Outcome);
+        Assert.Contains(fixture.InstallDirectory, report.Summary, StringComparison.Ordinal);
+        Assert.Equal(before, fixture.Fingerprint());
+        Assert.True(daemon.Running, "a refused run must not stop the daemon");
+        Assert.Empty(Directory.GetDirectories(fixture.Root, "*.staging-*"));
+    }
+
+    [Fact]
     public async Task An_older_release_is_refused_without_force_and_replaces_with_it()
     {
         using var fixture = new EngineFixture();

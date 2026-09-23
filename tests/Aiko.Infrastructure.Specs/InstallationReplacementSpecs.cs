@@ -33,6 +33,36 @@ public sealed class InstallationReplacementSpecs
         Assert.Empty(fixture.PreviousDirectories());
     }
 
+    [Theory]
+    [InlineData("some-other-tool.exe")]
+    [InlineData("aiko.db")]
+    public void A_directory_that_holds_something_other_than_aiko_is_refused_and_left_as_it_was(string foreign)
+    {
+        // -InstallDir D:\Tools, or the data directory by mistake: the directory is not Aiko's to empty.
+        using var fixture = new ReplacementFixture();
+        fixture.Install(foreign);
+        var staged = fixture.Stage(ReleaseLayout.CliFileName);
+
+        var refused = Assert.Throws<InstallationRefusedException>(() =>
+            fixture.Replacement.Apply(staged, fixture.InstallDirectory, updatePath: false));
+
+        Assert.Contains(fixture.InstallDirectory, refused.Message, StringComparison.Ordinal);
+        Assert.Equal([foreign], fixture.InstalledNames());
+        Assert.Empty(fixture.PreviousDirectories());
+    }
+
+    [Fact]
+    public void An_empty_directory_and_an_existing_installation_are_both_the_installers_to_fill()
+    {
+        Assert.Null(InstallationReplacement.DescribeForeignContent(
+            Path.Combine(Path.GetTempPath(), "Aiko.Specs", Guid.NewGuid().ToString("N"))));
+
+        using var fixture = new ReplacementFixture();
+        Assert.Null(InstallationReplacement.DescribeForeignContent(fixture.InstallDirectory));
+        fixture.Install(InstallationFiles.VersionFileName, "whatever.dll");
+        Assert.Null(InstallationReplacement.DescribeForeignContent(fixture.InstallDirectory));
+    }
+
     [Fact]
     public void The_previous_version_comes_back_when_the_record_cannot_be_written()
     {

@@ -63,6 +63,12 @@ Options need the scriptblock form, because `irm ... | iex` cannot take parameter
     -Version v0.1.0 -InstallDir D:\Tools\Aiko
 ```
 
+The install directory belongs to Aiko: its contents are replaced on every install and update. The installer
+therefore accepts only a directory that does not exist yet, an empty one, or one Aiko was installed into, and
+refuses any other - `-InstallDir D:\Tools` or the data directory `%LOCALAPPDATA%\Aiko` - without touching it.
+Running it again over an installation is the way to update: it stops the running daemon and the agents'
+`aiko-stdio` proxies first, moves the old files aside and puts them back if the copy fails.
+
 ### Install from the ZIP
 
 When the script cannot run on the machine - a PowerShell locked down by group policy, or a security

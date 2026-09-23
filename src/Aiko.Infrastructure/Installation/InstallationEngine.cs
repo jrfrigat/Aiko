@@ -95,6 +95,14 @@ public sealed class InstallationEngine(
             }
         }
 
+        // Before anything is downloaded, unpacked or stopped: a directory holding someone else's files is not
+        // the installer's to empty, and saying so costs nothing yet.
+        if (InstallationReplacement.DescribeForeignContent(installDirectory) is { } foreign)
+        {
+            steps.Add(new InstallationStep("replace", false, foreign));
+            return new InstallationReport(InstallationOutcome.Refused, installed, available, steps, foreign);
+        }
+
         StagedRelease staged;
         try
         {

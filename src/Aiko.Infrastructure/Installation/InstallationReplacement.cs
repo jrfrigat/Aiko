@@ -35,6 +35,10 @@ public sealed class InstallationReplacement
     {
         ArgumentNullException.ThrowIfNull(staged);
         ArgumentException.ThrowIfNullOrWhiteSpace(installDirectory);
+        if (DescribeForeignContent(installDirectory) is { } foreign)
+        {
+            throw new InstallationRefusedException(foreign);
+        }
 
         var recovered = RepairInterruptedReplacement(installDirectory);
         Directory.CreateDirectory(installDirectory);
@@ -68,6 +72,41 @@ public sealed class InstallationReplacement
         }
 
         return new ReplacementResult(version, replaced, recovered);
+    }
+
+    /// <summary>
+    /// Why the directory is not the installer's to fill, or null when it is.
+    /// </summary>
+    /// <remarks>
+    /// A replacement moves every entry of the directory aside and drops them, which is right only for a
+    /// directory that belongs to Aiko: one that does not exist or is empty, one holding an installation
+    /// (<c>aiko.exe</c> or <c>install.json</c>), or one an interrupted replacement left a <c>previous</c> beside.
+    /// Anything else - <c>-InstallDir D:\Tools</c>, or the data directory by mistake - holds someone else's
+    /// files, and emptying it would delete them.
+    /// </remarks>
+    /// <param name="installDirectory">Directory the release would go into.</param>
+    public static string? DescribeForeignContent(string installDirectory)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(installDirectory);
+        if (!Directory.Exists(installDirectory) ||
+            !Directory.EnumerateFileSystemEntries(installDirectory).Any() ||
+            File.Exists(Path.Combine(installDirectory, ReleaseLayout.CliFileName)) ||
+            File.Exists(Path.Combine(installDirectory, InstallationFiles.VersionFileName)))
+        {
+            return null;
+        }
+
+        var full = Path.GetFullPath(installDirectory);
+        var parent = Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(full));
+        var name = Path.GetFileName(Path.TrimEndingDirectorySeparator(full));
+        if (parent is not null && Directory.Exists(parent) &&
+            Directory.GetDirectories(parent, $"{name}.previous-*").Length > 0)
+        {
+            return null;
+        }
+
+        return $"{installDirectory} is not empty and holds no Aiko installation, so installing there would " +
+            "delete what it holds. Choose an empty directory or one Aiko was installed into.";
     }
 
     /// <summary>
