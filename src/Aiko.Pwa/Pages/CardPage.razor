@@ -270,7 +270,7 @@ else
             var effective = State.Board?.CardPriorities
                 .FirstOrDefault(priority => StringComparer.Ordinal.Equals(
                     priority.CardId, card.Reference.CardId))
-                ?.Snapshot.EffectivePriority ?? card.OwnPriority;
+                ?.Snapshot.EffectivePriority ?? PriorityCalculator.ManualScore(card.OwnPriority);
 
             return
             [

@@ -699,7 +699,8 @@ public sealed class RazorMarkupSpecs
 
         // The same entry, the same fallback and the same formatter as the card's own panel - one page
         // stating one figure in two ways is what adding the counter was meant to avoid.
-        Assert.Contains("?.Snapshot.EffectivePriority ?? card.OwnPriority", page, StringComparison.Ordinal);
+        Assert.Contains("?.Snapshot.EffectivePriority ?? PriorityCalculator.ManualScore(card.OwnPriority)", page, StringComparison.Ordinal);
+        Assert.Contains("effective ?? PriorityCalculator.ManualScore(Card.OwnPriority)", inspector, StringComparison.Ordinal);
         Assert.Contains("DisplayFormat.Priority(", inspector, StringComparison.Ordinal);
     }
 
