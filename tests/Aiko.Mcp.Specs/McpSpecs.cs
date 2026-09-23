@@ -768,7 +768,7 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
                 {
                     ["cardId"] = cardId,
                     ["expectedRevision"] = await RevisionAsync(client, cardId),
-                    ["criterionValues"] = new[] { "readiness=5" }
+                    ["criterionValues"] = new[] { "complete=5" }
                 },
                 cancellationToken: CancellationToken.None);
             Assert.False(estimated.IsError == true, $"{stage}: {FirstText(estimated)}");

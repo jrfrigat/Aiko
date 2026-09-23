@@ -171,7 +171,10 @@ parent to the child, which is the direction the board reads as "this card belong
 
 `/aiko-estimate <cardId>` re-estimates a card on its own, which is what the card page's *Ask to estimate*
 action hands to an agent. The agent reads the card and the project context (the size grid's descriptions
-and each criterion's range) and calls `aiko_estimate_card` with the size step and the scores.
+and each criterion's range) and calls `aiko_estimate_card` with the size step and the scores. The scores
+are merged into the ones the card already carries, so re-scoring readiness alone keeps the rest
+(`replaceScores` drops the ones left out). A score for a criterion the project does not define, or outside
+that criterion's range, is refused with the criteria the project does accept, and nothing is written.
 
 `/aiko-run <cardId> [stageId]` runs a card: it starts the stage with `aiko_start_stage`, does what that
 stage's instruction asks for, produces its artifacts, reports progress and completes the stage. A stage id

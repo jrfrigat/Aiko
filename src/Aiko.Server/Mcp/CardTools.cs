@@ -7,6 +7,7 @@ using ModelContextProtocol.Server;
 using Aiko.Application.Cards;
 using Aiko.Application.Contracts;
 using Aiko.Domain.Cards;
+using Aiko.Domain.Prioritization;
 using Aiko.Domain.Workflow;
 using Aiko.Server.Contracts;
 using Aiko.Server.Workflow;
@@ -27,7 +28,8 @@ internal sealed class CardTools(
     ICardDiscussionStore discussion,
     ICardBlockers blockers,
     ICardArtifactStore artifacts,
-    IExecutionCoordinator executions) : ProjectToolBase(httpContextAccessor, projects)
+    IExecutionCoordinator executions,
+    IAppSettingsService settings) : ProjectToolBase(httpContextAccessor, projects)
 {
     [McpServerTool(Name = "aiko_list_cards", Title = "List Aiko cards")]
     [Description(
@@ -189,7 +191,9 @@ internal sealed class CardTools(
         "Records an estimate on a card: the size step from the project's grid and the score for every "
         + "criterion the project defines. Read the card and aiko_get_project_context first - the context "
         + "carries each criterion's range and each size step's description. Only the fields you pass are "
-        + "written, so an estimate that only sets the size leaves the scores alone.")]
+        + "written, so an estimate that only sets the size leaves the scores alone, and the scores you pass "
+        + "are merged into the ones the card carries. A score for a criterion the project does not define, "
+        + "or outside that criterion's range, is refused and nothing is written.")]
     public async Task<string> EstimateCardAsync(
         [Description("Card id to estimate.")]
         string cardId,
@@ -198,11 +202,15 @@ internal sealed class CardTools(
         [Description("Size step from the project's size grid that matches the work.")]
         [Optional] string? size,
         [Description(
-            "Scores to write, one \"criterionId=score\" per entry, for example \"complexity=5\". Pass a score "
-            + "for every criterion the project defines; criteria left out keep their stored value.")]
+            "Scores to write, one \"criterionId=score\" per entry, for example \"complexity=5\". Criteria left "
+            + "out keep their stored value, so re-scoring readiness alone is enough to close a stage.")]
         [Optional] string[]? criterionValues,
         [Description("Own priority the estimate implies, as a number, when the criteria are not the whole story.")]
         [Optional] string? ownPriority,
+        [Description(
+            "True to replace the card's scores with exactly the ones passed, dropping the rest; left out, the "
+            + "passed scores are merged into the stored ones.")]
+        [Optional] bool? replaceScores,
         CancellationToken cancellationToken)
     {
         var reference = new CardReference(GetProjectId(), cardId);
@@ -217,6 +225,24 @@ internal sealed class CardTools(
         }
 
         var scores = ParseScores(criterionValues);
+        if (scores is not null)
+        {
+            RefuseUnknownScores(
+                scores,
+                await settings.GetEffectivePriorityAsync(GetProjectId(), cancellationToken));
+            if (replaceScores != true && existing.CriterionValues is { Count: > 0 } stored)
+            {
+                // A merge: the estimate says what changed, and what it does not mention stays as it was.
+                var merged = new Dictionary<string, decimal>(stored, StringComparer.Ordinal);
+                foreach (var (id, score) in scores)
+                {
+                    merged[id] = score;
+                }
+
+                scores = merged;
+            }
+        }
+
         var updated = existing with
         {
             // Absent means "leave it alone", which is why each field is only written when the caller sent it.
@@ -550,6 +576,38 @@ internal sealed class CardTools(
     }
 
     /// <summary>Reads an optional decimal the caller sent as text, or null when it sent none.</summary>
+    /// <summary>
+    /// Refuses a score the project could not use: one for a criterion it does not define - a misspelt id
+    /// would otherwise be stored, count for nothing and still satisfy the stage gate - or one outside the
+    /// criterion's range. The refusal lists what the project does accept, so the agent can correct itself.
+    /// </summary>
+    private static void RefuseUnknownScores(
+        IReadOnlyDictionary<string, decimal> scores,
+        PrioritySettings priority)
+    {
+        var known = priority.Criteria.ToDictionary(criterion => criterion.Id, StringComparer.Ordinal);
+        foreach (var (id, score) in scores)
+        {
+            if (!known.TryGetValue(id, out var criterion))
+            {
+                throw new ArgumentException(
+                    known.Count == 0
+                        ? $"This project defines no priority criteria, so '{id}' cannot be scored."
+                        : $"This project has no priority criterion '{id}'. Its criteria are: "
+                            + string.Join(", ", priority.Criteria.Select(item => item.Id)) + ".");
+            }
+
+            if (score < criterion.Minimum || score > criterion.Maximum)
+            {
+                throw new ArgumentException(
+                    $"'{id}' takes a score in {Number(criterion.Minimum)}..{Number(criterion.Maximum)}, "
+                    + $"not {Number(score)}.");
+            }
+        }
+
+        static string Number(decimal value) => value.ToString("0.##", CultureInfo.InvariantCulture);
+    }
+
     private static decimal? ParseOwnPriority(string? value) =>
         string.IsNullOrWhiteSpace(value)
             ? null
