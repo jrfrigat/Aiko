@@ -334,7 +334,7 @@ diff comes from the working tree, and from the last commit that changed the file
 already.
 
 Where it shows: the branch in the dashboard's project table, the diff in the card's **Code changes** tab
-(the file, `+N`/`-N`, and the coloured patch). Aiko never writes to the repository - no commits, no branches:
+(the file, `+N`/`-N`, and the coloured patch). Aiko only reads the repository - no commits, no branches:
 commits stay under the policy below, and push is post-MVP.
 
 ## Discussion & commands

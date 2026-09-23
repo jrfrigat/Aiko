@@ -109,7 +109,7 @@ agent reported it, not that its process is alive: Aiko never starts agents.
 (`LocalOnly` ignores it and keeps it on the machine, `TrackProjectKnowledge` commits the project knowledge,
 `Custom` leaves `.gitignore` to the person) - and its **commit policy** for the shared checkout: `Allow`
 (make the commit and record it with `aiko_report_commit`), `Ask` (propose it and wait for the answer) or `Deny`
-(do not commit). Aiko never runs git itself and never creates a commit; it only records what an agent reports.
+(do not commit). Aiko never creates a commit; it only records what an agent reports, and runs `git` only to read.
 
 The card's feed is the notebook between stages: the project context asks the agent to read it with
 `aiko_list_comments` before it works a stage and to post the outcome with `aiko_add_comment` before it completes

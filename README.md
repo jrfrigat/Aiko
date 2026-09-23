@@ -58,13 +58,17 @@ rate limit) hands off to another agent without losing history.
 - **Unified agent installer** - discovers Claude Code, Codex, Cursor, ZCode and Cline installations and
   applies idempotent, user-config-preserving project configuration (MCP entries, managed blocks,
   owned skills/commands) with per-adapter plans and surgical uninstall
-- **SQLite projections, rebuildable** - the global SQLite database is an index and runtime state;
-  deleting it is safe, `reindex` rebuilds everything from `.aiko` files
+- **`.aiko` is the source of truth** - cards, workflows, artifacts and memory live in `.aiko` files;
+  the global SQLite database holds the project registry, the run history, the event journal and the search
+  indexes. `reindex` rebuilds the indexes from `.aiko`, but the run history and the journal exist only in the
+  database, so keep it
 - **Security by default** - loopback bind only, `Host`/`Origin` validation against DNS rebinding
   and remote-browser origins, no wildcard CORS
 - **Git, read through your own client** - the branch, the changes, the log and the diff of a card's files,
   read by running the `git` executable; a machine without it says "Git client unavailable" instead of
-  failing, and Aiko never writes to the repository
+  failing. Aiko only reads the repository - the one file it edits is `.gitignore`, when a project is
+  registered under the local-only git policy - and never commits: commits are the agent's, under the
+  project's commit policy
 - **Workflow sets you can author** - the pipelines and defaults a project starts from, plus what an agent
   must do right after creating it (the structure the project should have, for instance): captured from a
   project, exported and imported between machines, and applied to an existing project by an explicit action
@@ -89,7 +93,8 @@ unpacks it into `%LOCALAPPDATA%\Aiko\bin` (CLI `aiko`, stdio proxy `aiko-stdio`,
 administrator rights are needed.
 
 At the end it connects the agents it finds on this machine (`aiko agent install --scope user`): the
-global MCP entry, `/aiko-*` skills and shared memory go into those and nobody else. Name them instead
+global `/aiko-*` skills, commands and rules go into those and nobody else (each project connects its agents
+to its own MCP endpoint with `aiko agent install --project <id>`). Name them instead
 with `-Agents claude-code,codex`, or skip the step with `-NoAgentSetup`.
 
 ```powershell
@@ -108,7 +113,8 @@ Pin a specific release or choose another directory by fetching the script into a
 ```
 
 Re-running the installer is the update path: binaries are replaced, project data and settings are
-kept. To remove Aiko, delete `%LOCALAPPDATA%\Aiko\bin` and drop it from the user `PATH`; `.aiko`
+kept. To remove Aiko, run `aiko uninstall`: it stops the daemon, removes autostart and the installed
+binaries, and takes `%LOCALAPPDATA%\Aiko\bin` off the user `PATH`. `.aiko`
 directories and the database are never deleted automatically.
 
 ### Configuration

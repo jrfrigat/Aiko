@@ -32,8 +32,8 @@ unique automatically, a typed one is refused when it is taken.
 
 ## 3. Connect an agent
 
-Install the global agent integration once (it adds the Aiko MCP entry, skills and memory to every
-detected agent), then connect the agent to this project:
+Install the global agent integration once (it adds the Aiko skills, commands and rules to every
+detected agent), then connect the agent to this project - that is what writes its MCP entry:
 
 ```powershell
 aiko agent install --project <projectId>

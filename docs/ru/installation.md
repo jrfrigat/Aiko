@@ -39,8 +39,9 @@ irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1 | i
 %LOCALAPPDATA%\Aiko\bin\server\Aiko.Server.exe   демон, PWA в server\wwwroot
 ```
 
-В конце установщик запускает `aiko agent install --scope user`, и она записывает глобальную MCP-запись,
-скиллы `/aiko-*` и общую память тем агентам, которые найдены на этой машине. Списка для выбора больше
+В конце установщик запускает `aiko agent install --scope user`, и она записывает глобальные скиллы
+`/aiko-*`, команды и правила тем агентам, которые найдены на этой машине; к MCP-эндпоинту своего проекта
+агентов подключают позже, командой `aiko agent install --project <id>`. Списка для выбора больше
 нет: команда сама спрашивает каждый адаптер, что он обнаружил. `-Agents claude-code,codex` называет
 агентов вместо этого, `-NoAgentSetup` не подключает никого.
 

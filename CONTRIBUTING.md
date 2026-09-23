@@ -29,8 +29,10 @@ To exercise the installed experience without touching your machine-wide setup:
 aiko status
 ```
 
-Project data lives in `.aiko` directories and in `%LOCALAPPDATA%\Aiko\aiko.db`; both are safe to
-delete, because everything is rebuildable from the `.aiko` files (`aiko reindex <projectId>`).
+Project data lives in `.aiko` directories and in `%LOCALAPPDATA%\Aiko\aiko.db`. The `.aiko` files are the
+source of truth and must not be deleted. The database's search indexes are rebuildable from them
+(`aiko reindex <projectId>`), but the project registry, the run history and the event journal live only in
+the database.
 
 ## Code conventions
 

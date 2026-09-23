@@ -85,7 +85,8 @@ The project's **commit policy** answers who commits during a stage execution:
   `waiting-for-user`; approve with `aiko_approve_commit` or in the UI);
 - `allow` - the agent makes the commit and reports the SHA.
 
-Aiko itself never runs `git` and never creates a commit: it only records what the agent reports. The policy
+Aiko itself never creates a commit: it only records what the agent reports. It does run `git`, read-only -
+`status`, `log`, `diff` and `show` for the branch, the changes and a card's diff. The policy
 is therefore a rule the agent reads, not something the daemon can enforce for it.
 
 ### Push policy

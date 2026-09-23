@@ -40,7 +40,8 @@ The installed layout:
 ```
 
 When the install finishes, the installer runs `aiko agent install --scope user`, which writes the global
-MCP entry, the `/aiko-*` skills and the shared memory into the agents it finds on this machine. There is
+`/aiko-*` skills, commands and rules into the agents it finds on this machine; each project connects its
+agents to its own MCP endpoint later, with `aiko agent install --project <id>`. There is
 no list to pick from: the command asks each adapter what it has detected. `-Agents claude-code,codex`
 names them instead, and `-NoAgentSetup` connects nobody.
 
