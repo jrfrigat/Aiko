@@ -112,7 +112,12 @@
   <data name="HistoryUnavailable" xml:space="preserve"><value>История executions недоступна: {0}</value></data>
   <data name="InvalidPriority" xml:space="preserve"><value>Введите неотрицательное число.</value></data>
   <data name="TitleRequired" xml:space="preserve"><value>Название карточки обязательно.</value></data>
-  <data name="CardConflict" xml:space="preserve"><value>Карточка уже изменена другим агентом. Данные доски обновлены.</value></data>
+  <data name="CardConflict" xml:space="preserve"><value>Карточку изменил другой агент раньше этого сохранения. Ваши правки сохранены в форме - сверьте их с карточкой и сохраните снова.</value></data>
+  <data name="CardChangedWhileEditing" xml:space="preserve"><value>Карточка изменилась, пока вы её редактировали. Ваши правки сохранены в форме.</value></data>
+  <data name="DiscardMyEdits" xml:space="preserve"><value>Отменить мои правки</value></data>
+  <data name="LeaveWithUnsavedEdits" xml:space="preserve"><value>Есть несохранённые правки. Уйти и потерять их?</value></data>
+  <data name="ArtifactModified" xml:space="preserve"><value>Изменён</value></data>
+  <data name="DiscardDocumentEdits" xml:space="preserve"><value>Перечитать документ и потерять несохранённые правки?</value></data>
   <data name="ChangesSaved" xml:space="preserve"><value>Изменения сохранены.</value></data>
   <data name="SaveCardFailed" xml:space="preserve"><value>Не удалось сохранить карточку: {0}</value></data>
   <data name="DocumentsTitle" xml:space="preserve"><value>Документы</value></data>

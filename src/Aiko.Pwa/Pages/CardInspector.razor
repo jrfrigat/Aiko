@@ -1,5 +1,22 @@
 @inject HttpClient Http
 @inject WorkspaceState State
+@inject IJSRuntime Js
+
+@* Unsaved edits are not left behind by a click: a link inside the app asks first, and closing or reloading the
+   tab gets the browser's own prompt. *@
+<NavigationLock ConfirmExternalNavigation="@IsDirty" OnBeforeInternalNavigation="ConfirmLeaveAsync" />
+
+@if (_changedWhileEditing && IsDirty)
+{
+    @* The card moved underneath the form - an agent wrote a revision, or a save was refused for a newer one.
+       The fields the person changed kept their text; this says so, and offers the card's own values instead. *@
+    <FlareAlert Severity="AlertSeverity.Warning" Variant="AlertVariant.Outlined">
+        <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small" Wrap="true">
+            <span>@Loc.Get("CardChangedWhileEditing")</span>
+            <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm" OnClick="DiscardEdits">@Loc.Get("DiscardMyEdits")</FlareButton>
+        </FlareStack>
+    </FlareAlert>
+}
 
 @* The card's own body, laid out the way the design lays a card out: two columns of panels - the work on
    the left (what the stage asks for, what the last run reported, where the diff will stand, the artifacts
@@ -1237,7 +1254,18 @@
     /// <summary>Raised when the identity editor opens or closes.</summary>
     [Parameter] public EventCallback<bool> EditOpenChanged { get; set; }
 
-    private Task OnEditOpenChanged(bool open) => EditOpenChanged.InvokeAsync(open);
+    private Task OnEditOpenChanged(bool open)
+    {
+        // Closing the drawer without saving puts the title back: the drawer is where the title is edited, and
+        // leaving it is the person's "never mind" - otherwise the abandoned title would go out with the next
+        // save of some other field.
+        if (!open && _baseline is not null)
+        {
+            _title = _baseline.Title;
+        }
+
+        return EditOpenChanged.InvokeAsync(open);
+    }
 
     private string? _loadedCardKey;
     private int _lastRefreshTick;
@@ -1832,20 +1860,26 @@
     protected override async Task OnParametersSetAsync()
     {
         var key = $"{Card.Reference.ProjectId}/{Card.Reference.CardId}/{Card.Revision}";
+        var identity = $"{Card.Reference.ProjectId}/{Card.Reference.CardId}";
         var cardChanged = _loadedCardKey != key;
         if (cardChanged)
         {
             _loadedCardKey = key;
-            _title = Card.Title;
-            _priority = Card.OwnPriority;
-            _size = Card.Size;
-            _scope = string.Join(Environment.NewLine, Card.DeclaredScopeFiles);
-            _requirements = Card.Requirements;
-            _request = Card.Request;
-            LoadCriterionValues();
-            _message = null;
-            _hasError = false;
-            _priorityError = null;
+            if (_loadedCardIdentity != identity)
+            {
+                // Another card: the form belongs to it now, whatever the previous one held.
+                _loadedCardIdentity = identity;
+                ResetFormToCard();
+                _message = null;
+                _hasError = false;
+                _priorityError = null;
+            }
+            else
+            {
+                // The same card at a new revision - an agent wrote it, or a save of ours came back. What the
+                // person has typed stays; see MergeNewRevision.
+                MergeNewRevision();
+            }
         }
 
         _estimateAgent ??= Agents.FirstOrDefault()?.Id;
@@ -1858,6 +1892,141 @@
             // The diff costs a git process per card, so it is read when the card itself changed - not when a
             // pulse only refreshed the counters.
             await LoadExecutionsAsync(includeDiff: cardChanged);
+        }
+    }
+
+    /// <summary>The card's editable values as they were last read, to tell an edit from the card itself.</summary>
+    private sealed record FormValues(
+        string? Title,
+        decimal? Priority,
+        string? Size,
+        string? Scope,
+        string? Requirements,
+        string? Request,
+        IReadOnlyDictionary<string, decimal?> Criteria);
+
+    /// <summary>The values the form was filled from - the card as it stood before the person typed.</summary>
+    private FormValues? _baseline;
+
+    /// <summary>Which card the form belongs to, without its revision: a new revision is not a new card.</summary>
+    private string? _loadedCardIdentity;
+
+    /// <summary>Whether the card changed underneath edits the form still holds.</summary>
+    private bool _changedWhileEditing;
+
+    private FormValues CardValues() => new(
+        Card.Title,
+        Card.OwnPriority,
+        Card.Size,
+        string.Join(Environment.NewLine, Card.DeclaredScopeFiles),
+        Card.Requirements,
+        Card.Request,
+        Criteria.ToDictionary(
+            criterion => criterion.Id,
+            criterion => Card.CriterionValues is { } values && values.TryGetValue(criterion.Id, out var value)
+                ? (decimal?)value
+                : null,
+            StringComparer.Ordinal));
+
+    /// <summary>Whether any field holds something other than what the card held when it was read.</summary>
+    private bool IsDirty => _baseline is { } baseline &&
+        (!string.Equals(_title, baseline.Title, StringComparison.Ordinal) ||
+         _priority != baseline.Priority ||
+         !string.Equals(_size, baseline.Size, StringComparison.Ordinal) ||
+         !string.Equals(_scope, baseline.Scope, StringComparison.Ordinal) ||
+         !string.Equals(_requirements, baseline.Requirements, StringComparison.Ordinal) ||
+         !string.Equals(_request, baseline.Request, StringComparison.Ordinal) ||
+         _criterionValues.Any(pair =>
+             !baseline.Criteria.TryGetValue(pair.Key, out var value) || value != pair.Value));
+
+    /// <summary>Fills every field from the card, dropping whatever the form held.</summary>
+    private void ResetFormToCard()
+    {
+        _baseline = CardValues();
+        _title = _baseline.Title;
+        _priority = _baseline.Priority;
+        _size = _baseline.Size;
+        _scope = _baseline.Scope;
+        _requirements = _baseline.Requirements;
+        _request = _baseline.Request;
+        LoadCriterionValues();
+        _changedWhileEditing = false;
+    }
+
+    /// <summary>
+    /// Takes a new revision of the card the form is showing without throwing edits away: a field the person
+    /// left alone follows the card, a field they changed keeps their text, and the banner says the card moved
+    /// underneath them. The message stays too - a conflict reported by a save is what brings this revision in,
+    /// and wiping it would hide why the save did not go through.
+    /// </summary>
+    private void MergeNewRevision()
+    {
+        var incoming = CardValues();
+        if (_baseline is not { } baseline)
+        {
+            ResetFormToCard();
+            return;
+        }
+
+        var kept = false;
+        _title = Merge(_title, baseline.Title, incoming.Title, ref kept);
+        _requirements = Merge(_requirements, baseline.Requirements, incoming.Requirements, ref kept);
+        _request = Merge(_request, baseline.Request, incoming.Request, ref kept);
+        _size = Merge(_size, baseline.Size, incoming.Size, ref kept);
+        _scope = Merge(_scope, baseline.Scope, incoming.Scope, ref kept);
+        if (_priority == baseline.Priority)
+        {
+            _priority = incoming.Priority;
+        }
+        else
+        {
+            kept |= _priority != incoming.Priority;
+        }
+
+        foreach (var (id, value) in incoming.Criteria)
+        {
+            var edited = _criterionValues.TryGetValue(id, out var current) &&
+                (!baseline.Criteria.TryGetValue(id, out var before) || before != current);
+            if (!edited)
+            {
+                _criterionValues[id] = value;
+            }
+            else
+            {
+                kept |= current != value;
+            }
+        }
+
+        _baseline = incoming;
+        _changedWhileEditing |= kept;
+    }
+
+    private static string? Merge(string? current, string? before, string? incoming, ref bool kept)
+    {
+        if (string.Equals(current, before, StringComparison.Ordinal))
+        {
+            return incoming;
+        }
+
+        kept |= !string.Equals(current, incoming, StringComparison.Ordinal);
+        return current;
+    }
+
+    /// <summary>Drops the person's edits for the card as it is now.</summary>
+    private void DiscardEdits()
+    {
+        ResetFormToCard();
+        _message = null;
+        _hasError = false;
+        _priorityError = null;
+    }
+
+    /// <summary>Asks before a click inside the app leaves a card with unsaved edits behind.</summary>
+    private async Task ConfirmLeaveAsync(LocationChangingContext context)
+    {
+        if (IsDirty && !await Js.InvokeAsync<bool>("confirm", Loc.Get("LeaveWithUnsavedEdits")))
+        {
+            context.PreventNavigation();
         }
     }
 

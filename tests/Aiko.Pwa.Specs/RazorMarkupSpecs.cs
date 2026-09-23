@@ -120,7 +120,9 @@ public sealed class RazorMarkupSpecs
         // What was typed lives in the page's fields, not in the tab, so switching tabs cannot drop it ...
         Assert.Contains("Value=\"@_request\"", text, StringComparison.Ordinal);
         Assert.Contains("Value=\"@_requirements\"", text, StringComparison.Ordinal);
-        Assert.Contains("_request = Card.Request;", text, StringComparison.Ordinal);
+        // The form is filled from the card's values through the baseline an edit is measured against.
+        Assert.Contains("_request = _baseline.Request;", text, StringComparison.Ordinal);
+        Assert.Contains("Card.Request,", text, StringComparison.Ordinal);
 
         // ... and saving sends all three texts, the request included - a tab whose content the save drops would
         // be decoration.

@@ -121,7 +121,12 @@
   <data name="HistoryUnavailable" xml:space="preserve"><value>Execution history is unavailable: {0}</value></data>
   <data name="InvalidPriority" xml:space="preserve"><value>Enter a non-negative number.</value></data>
   <data name="TitleRequired" xml:space="preserve"><value>A card title is required.</value></data>
-  <data name="CardConflict" xml:space="preserve"><value>Another agent has already changed the card. The board has been refreshed.</value></data>
+  <data name="CardConflict" xml:space="preserve"><value>Another agent changed the card before this save. Your edits are kept - check them against the card and save again.</value></data>
+  <data name="CardChangedWhileEditing" xml:space="preserve"><value>The card changed while you were editing it. Your edits are kept.</value></data>
+  <data name="DiscardMyEdits" xml:space="preserve"><value>Discard my edits</value></data>
+  <data name="LeaveWithUnsavedEdits" xml:space="preserve"><value>You have unsaved edits. Leave and lose them?</value></data>
+  <data name="ArtifactModified" xml:space="preserve"><value>Modified</value></data>
+  <data name="DiscardDocumentEdits" xml:space="preserve"><value>Reload the document and lose your unsaved edits?</value></data>
   <data name="ChangesSaved" xml:space="preserve"><value>Changes saved.</value></data>
   <data name="SaveCardFailed" xml:space="preserve"><value>Could not save the card: {0}</value></data>
   <data name="TaskFlow" xml:space="preserve"><value>Task flow</value></data>

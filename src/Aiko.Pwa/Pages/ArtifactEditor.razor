@@ -1,4 +1,8 @@
 @inject HttpClient Http
+@inject IJSRuntime Js
+
+@* A document with unsaved text is not left behind by a click: see ConfirmLeaveAsync. *@
+<NavigationLock ConfirmExternalNavigation="@HasUnsavedEdits" OnBeforeInternalNavigation="ConfirmLeaveAsync" />
 
 @* Markdown artifact workbench. The document switcher is a FlareTabs bar (one tab per artifact, the tab
    badge carries the artifact state) and the editor is a FlareCodeBlock, so both the tab strip and the
@@ -92,6 +96,51 @@
     private string? _newPath;
     private string _content = string.Empty;
     private string? _version;
+
+    /// <summary>The selected document's text as it was read or last saved - what an edit is measured against.</summary>
+    private string _baseline = string.Empty;
+
+    /// <summary>
+    /// Unsaved text of documents the person moved away from, by path. One editor surface serves every tab, so
+    /// switching tabs used to overwrite the text; each document now keeps its own draft until it is saved or
+    /// the person discards it.
+    /// </summary>
+    private readonly Dictionary<string, (string Content, string? Version, string Baseline)> _drafts =
+        new(StringComparer.OrdinalIgnoreCase);
+
+    private bool IsDirty => _selectedPath is not null && !string.Equals(_content, _baseline, StringComparison.Ordinal);
+
+    private bool HasUnsavedEdits => IsDirty || _drafts.Count > 0;
+
+    private bool IsModified(string path) =>
+        _drafts.ContainsKey(path) ||
+        (IsDirty && StringComparer.OrdinalIgnoreCase.Equals(path, _selectedPath));
+
+    /// <summary>Keeps the selected document's unsaved text before the editor shows another one.</summary>
+    private void StashSelected()
+    {
+        if (_selectedPath is null)
+        {
+            return;
+        }
+
+        if (IsDirty)
+        {
+            _drafts[_selectedPath] = (_content, _version, _baseline);
+        }
+        else
+        {
+            _drafts.Remove(_selectedPath);
+        }
+    }
+
+    private async Task ConfirmLeaveAsync(LocationChangingContext context)
+    {
+        if (HasUnsavedEdits && !await Js.InvokeAsync<bool>("confirm", Loc.Get("LeaveWithUnsavedEdits")))
+        {
+            context.PreventNavigation();
+        }
+    }
     private string? _message;
     private bool _hasError;
     private bool _loading;
@@ -121,8 +170,24 @@
             return;
         }
 
+        var identity = $"{Card.Reference.ProjectId}/{Card.Reference.CardId}";
+        var sameCard = _loadedCardKey?.StartsWith(identity + "/", StringComparison.Ordinal) == true;
         _loadedCardKey = key;
+        if (sameCard)
+        {
+            // The same card at a new revision - an agent wrote it. The list is read again, and the open document
+            // too unless the person is editing it: their text is not replaced by the agent's behind their back.
+            await LoadListAsync();
+            if (_selectedPath is not null && !IsDirty)
+            {
+                await LoadDocumentAsync(_selectedPath);
+            }
+
+            return;
+        }
+
         _addedPaths.Clear();
+        _drafts.Clear();
         await LoadListAsync();
         _selectedPath = AvailablePaths.FirstOrDefault();
         SyncActiveIndex();
@@ -168,12 +233,35 @@
             return;
         }
 
+        StashSelected();
         _selectedPath = path;
+        if (_drafts.Remove(path, out var draft))
+        {
+            (_content, _version, _baseline) = draft;
+            _message = null;
+            _hasError = false;
+            return;
+        }
+
         await LoadDocumentAsync(path);
     }
 
-    private Task ReloadDocumentAsync() =>
-        _selectedPath is null ? Task.CompletedTask : LoadDocumentAsync(_selectedPath);
+    /// <summary>Reads the open document again - after asking, when that would throw an edit away.</summary>
+    private async Task ReloadDocumentAsync()
+    {
+        if (_selectedPath is null)
+        {
+            return;
+        }
+
+        if (IsDirty && !await Js.InvokeAsync<bool>("confirm", Loc.Get("DiscardDocumentEdits")))
+        {
+            return;
+        }
+
+        _drafts.Remove(_selectedPath);
+        await LoadDocumentAsync(_selectedPath);
+    }
 
     private async Task LoadDocumentAsync(string path)
     {
@@ -187,6 +275,7 @@
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
                 _content = $"# {Path.GetFileNameWithoutExtension(path)}{Environment.NewLine}{Environment.NewLine}";
+                _baseline = _content;
                 _version = null;
                 _message = Loc.Get("FileNotCreatedYet");
                 return;
@@ -196,6 +285,7 @@
             var document = await response.Content.ReadFromJsonAsync<CardArtifactDocument>(PwaJson.Options)
                 ?? throw new InvalidDataException(Loc.Get("ServerEmptyDoc"));
             _content = document.Content;
+            _baseline = _content;
             _version = document.Version;
         }
         catch (Exception exception)
@@ -217,11 +307,13 @@
             return;
         }
 
+        StashSelected();
         _addedPaths.Add(path);
         _newPath = null;
         _selectedPath = path;
         SyncActiveIndex();
         _content = $"# {Path.GetFileNameWithoutExtension(path)}{Environment.NewLine}{Environment.NewLine}";
+        _baseline = _content;
         _version = null;
         _message = Loc.Get("NewDocPrepared");
         _hasError = false;
@@ -260,6 +352,8 @@
                 ?? throw new InvalidDataException(Loc.Get("ServerNoDoc"));
             _version = saved.Version;
             _content = saved.Content;
+            _baseline = _content;
+            _drafts.Remove(_selectedPath);
             _message = Loc.Get("DocSaved");
             await LoadListAsync();
         }
@@ -292,6 +386,11 @@
 
     private string ArtifactState(string path)
     {
+        if (IsModified(path))
+        {
+            return Loc.Get("ArtifactModified");
+        }
+
         if (_savedArtifacts.Any(item =>
                 StringComparer.OrdinalIgnoreCase.Equals(item.Path, path)))
         {
@@ -310,6 +409,11 @@
     /// </summary>
     private FlareColor ArtifactStateColor(string path)
     {
+        if (IsModified(path))
+        {
+            return FlareColor.Warning;
+        }
+
         if (_savedArtifacts.Any(item =>
                 StringComparer.OrdinalIgnoreCase.Equals(item.Path, path)))
         {
