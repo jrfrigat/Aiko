@@ -165,12 +165,13 @@ public class DomainSpecs
                 new("XL", "XL", "Больше недели", 0.8m)
             ]);
 
-        Assert.Equal(8m, PriorityCalculator.CalculateOwnScore(8m, null, settings, "M"));
-        Assert.Equal(8.64m, PriorityCalculator.CalculateOwnScore(8m, null, settings, "S"));
-        Assert.Equal(6.4m, PriorityCalculator.CalculateOwnScore(8m, null, settings, "XL"));
+        // A manual priority is on the board's 0..100 scale, so 8 is a score of 0.08.
+        Assert.Equal(0.08m, PriorityCalculator.CalculateOwnScore(8m, null, settings, "M"));
+        Assert.Equal(0.0864m, PriorityCalculator.CalculateOwnScore(8m, null, settings, "S"));
+        Assert.Equal(0.064m, PriorityCalculator.CalculateOwnScore(8m, null, settings, "XL"));
         // No size, and a step that is not in the grid any more, are both neutral.
-        Assert.Equal(8m, PriorityCalculator.CalculateOwnScore(8m, null, settings, null));
-        Assert.Equal(8m, PriorityCalculator.CalculateOwnScore(8m, null, settings, "XXXL"));
+        Assert.Equal(0.08m, PriorityCalculator.CalculateOwnScore(8m, null, settings, null));
+        Assert.Equal(0.08m, PriorityCalculator.CalculateOwnScore(8m, null, settings, "XXXL"));
     }
 
     [Fact]
@@ -183,12 +184,65 @@ public class DomainSpecs
 
         // Criteria configured and a value present: the value decides.
         Assert.Equal(0.5m, PriorityCalculator.CalculateOwnScore(9m, values, settings, null));
-        // No value on the card: the manually entered priority stands.
-        Assert.Equal(9m, PriorityCalculator.CalculateOwnScore(9m, null, settings, null));
+        // No value on the card: the manually entered priority stands, on the same 0..1 scale as a score - an
+        // unscored card with a manual 9 no longer outranks every scored one.
+        Assert.Equal(0.09m, PriorityCalculator.CalculateOwnScore(9m, null, settings, null));
         // No criteria in the project at all: likewise.
         Assert.Equal(
-            9m,
+            0.09m,
             PriorityCalculator.CalculateOwnScore(9m, values, PrioritySettings.SafeDefault, null));
+    }
+
+    [Fact]
+    public void A_bad_value_read_from_disk_is_clamped_rather_than_taking_the_board_down()
+    {
+        var settings = PrioritySettings.SafeDefault;
+
+        // A negative manual priority scores nothing, and one above the scale is the top of it.
+        Assert.Equal(0m, PriorityCalculator.CalculateOwnScore(-1m, null, settings, null));
+        Assert.Equal(1m, PriorityCalculator.CalculateOwnScore(250m, null, settings, null));
+
+        // A negative own score or parent is read as zero.
+        var task = PriorityCalculator.CalculateTask(-3m, [-1m, 0.4m]);
+        Assert.Equal(0m, task.OwnPriority);
+        Assert.Equal(0.4m, task.MaximumParentPriority);
+
+        // A criterion with a negative weight does not count.
+        var score = PriorityCalculator.CalculateOwnPriority(
+            new Dictionary<string, decimal> { ["good"] = 10m, ["bad"] = 10m },
+            [new("good", "Good", "", 1m, 0m, 10m), new("bad", "Bad", "", -5m, 0m, 10m)]);
+        Assert.Equal(1m, score);
+    }
+
+    [Theory]
+    [InlineData(-0.1, 0, 10, "weight")]
+    [InlineData(1, 5, 5, "range")]
+    [InlineData(1, 10, 0, "range")]
+    public void Settings_with_an_impossible_criterion_are_refused_with_the_reason(
+        double weight,
+        double minimum,
+        double maximum,
+        string reason)
+    {
+        var settings = new PrioritySettings(
+            PriorityWeights.Default,
+            [new("benefit", "Benefit", "", (decimal)weight, (decimal)minimum, (decimal)maximum)]);
+
+        var refused = Assert.Throws<ArgumentException>(settings.Validate);
+        Assert.Contains("benefit", refused.Message, StringComparison.Ordinal);
+        Assert.Contains(reason, refused.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Two_criteria_with_one_id_are_refused_and_the_standard_ones_pass()
+    {
+        var duplicated = new PrioritySettings(
+            PriorityWeights.Default,
+            [new("benefit", "A", "", 1m, 0m, 10m), new("Benefit", "B", "", 1m, 0m, 10m)]);
+        Assert.Throws<ArgumentException>(duplicated.Validate);
+
+        new PrioritySettings(PriorityWeights.Default, PrioritySettings.StandardCriteria).Validate();
+        PrioritySettings.SafeDefault.Validate();
     }
 
     [Fact]

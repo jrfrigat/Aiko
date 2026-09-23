@@ -353,6 +353,8 @@ public sealed class FileProjectTemplateStore(AikoDataPaths paths) : IProjectTemp
     {
         ArgumentNullException.ThrowIfNull(template);
         FileSystemSafeIdentifiers.Validate(template.Id, "template");
+        // A template hands its settings to every project made from it, so they are checked where it is written.
+        template.Settings?.Priority?.Validate();
 
         var directory = paths.TemplateDirectory(template.Id);
         Directory.CreateDirectory(directory);

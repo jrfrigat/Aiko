@@ -119,6 +119,43 @@ public sealed record PrioritySettings(
     public IReadOnlyList<SizeDefinition> Grid => Sizes ?? [];
 
     /// <summary>
+    /// Refuses criteria no card could be scored against: a negative weight, a range that is empty or upside
+    /// down, or two criteria under one id (ids are compared without case, the way the settings screen shows
+    /// them). Checked when settings are written; settings read back from disk are clamped by the calculator
+    /// instead, so a hand-edited file slows nothing down but never takes the board with it.
+    /// </summary>
+    /// <exception cref="ArgumentException">A criterion is impossible; the message names it and why.</exception>
+    public void Validate()
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var criterion in Criteria)
+        {
+            if (string.IsNullOrWhiteSpace(criterion.Id))
+            {
+                throw new ArgumentException("Every priority criterion needs an id.");
+            }
+
+            if (!seen.Add(criterion.Id))
+            {
+                throw new ArgumentException($"Two priority criteria share the id '{criterion.Id}'.");
+            }
+
+            if (criterion.Weight < 0m)
+            {
+                throw new ArgumentException(
+                    $"Priority criterion '{criterion.Id}' has a negative weight ({criterion.Weight}).");
+            }
+
+            if (criterion.Maximum <= criterion.Minimum)
+            {
+                throw new ArgumentException(
+                    $"Priority criterion '{criterion.Id}' has an empty range: its maximum " +
+                    $"({criterion.Maximum}) must be above its minimum ({criterion.Minimum}).");
+            }
+        }
+    }
+
+    /// <summary>
     /// The multiplier a card of this step gets. A card with no size, or with a step that is no longer in
     /// the grid (a renamed or removed step), is neutral rather than penalized.
     /// </summary>

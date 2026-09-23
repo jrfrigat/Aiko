@@ -72,8 +72,12 @@ Every card is a folder in `.aiko` with a `card.json` and Markdown artifacts. A c
   action records which agent was asked, and that agent runs `/aiko-estimate <cardId>`.
 
 A card's own score is the weighted average of its normalized criterion values, or its own priority when
-the project defines no criteria; the size coefficient multiplies either. A task then blends that with the
-highest parent value using the project's weights (ТЗ §10).
+the card carries no scores; the size coefficient multiplies either. Both land on one 0..1 scale, which the
+board prints as 0..100: an own priority is typed on that 0..100 scale, so an unscored card with priority 25
+ranks like a scored card at 0.25 rather than above every scored one. A priority below 0 is refused, and one
+above 100 counts as 100. A task then blends its score with the highest parent value using the project's
+weights (ТЗ §10). Settings are checked when saved: a criterion needs a weight of 0 or more, a maximum above
+its minimum and an id of its own.
 
 A project created from the default template starts with three criteria: `app-point` (how much the product
 itself needs the work - correctness, architecture, the cost of not doing it; weight 0.35), `user-point` (how

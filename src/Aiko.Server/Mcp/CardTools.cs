@@ -558,7 +558,9 @@ internal sealed class CardTools(
                 NumberStyles.Number,
                 CultureInfo.InvariantCulture,
                 out var priority)
-                ? priority
+                ? priority >= 0m
+                    ? priority
+                    : throw new ArgumentException($"A priority cannot be negative: {value}.", nameof(value))
                 : throw new ArgumentException($"'{value}' is not a priority.", nameof(value));
 
     [McpServerTool(Name = "aiko_archive_card", Title = "Put an Aiko card into the archive")]

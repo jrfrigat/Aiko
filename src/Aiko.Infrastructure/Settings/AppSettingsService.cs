@@ -91,6 +91,8 @@ public sealed class AppSettingsService(IAppSettingsStore store) : IAppSettingsSe
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
         ArgumentNullException.ThrowIfNull(settings);
+        // Written settings are checked; settings read back are clamped by the calculator (see Validate).
+        settings.Priority?.Validate();
         return store.SaveProjectAsync(
             projectId,
             settings with { SchemaVersion = AppSettings.CurrentSchemaVersion },

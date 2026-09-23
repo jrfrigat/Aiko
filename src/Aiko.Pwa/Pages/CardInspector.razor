@@ -1598,7 +1598,7 @@
                 ?.Snapshot.EffectivePriority;
             // The same 0..100 scale the board prints, so the card page and the board never disagree about
             // what a card is worth.
-            return DisplayFormat.Priority(effective ?? Card.OwnPriority);
+            return DisplayFormat.Priority(effective ?? PriorityCalculator.ManualScore(Card.OwnPriority));
         }
     }
 

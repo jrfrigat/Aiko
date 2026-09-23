@@ -10,9 +10,25 @@ public static class PriorityCalculator
     /// Version 2 uses the effective (blended) priority of parents instead of their own value.
     /// Version 3 normalizes a criterion's value by its configured range and multiplies the card's own
     /// score by its size coefficient (ТЗ §10), so two snapshots computed by different versions are not
-    /// comparable - which is exactly what the version is for.
+    /// comparable - which is exactly what the version is for. Version 4 reads a manual priority on the
+    /// board's 0..100 scale, so it lands on the same 0..1 scale as a score instead of outranking every scored
+    /// card.
     /// </summary>
-    public const string CurrentFormulaVersion = "3";
+    public const string CurrentFormulaVersion = "4";
+
+    /// <summary>
+    /// The top of the scale a manual priority is typed on: the board prints every priority as 0..100, so a
+    /// person who types 25 means what the board shows as 25.
+    /// </summary>
+    public const decimal ManualScale = 100m;
+
+    /// <summary>
+    /// A manual priority as a score: its place on the 0..100 scale as a fraction, clamped to the scale - a
+    /// negative value is nothing, and a value above the scale is the top of it.
+    /// </summary>
+    /// <param name="manualPriority">The priority a person or an agent typed.</param>
+    public static decimal ManualScore(decimal manualPriority) =>
+        Math.Clamp(manualPriority, 0m, ManualScale) / ManualScale;
 
     /// <summary>
     /// A card's own score: the weighted average of its normalized criterion values, multiplied by the
@@ -21,8 +37,11 @@ public static class PriorityCalculator
     /// <remarks>
     /// A card keeps its manually entered priority until its project defines criteria and the card carries
     /// values for them: an empty criterion set scores nothing, and returning zero there would drop every
-    /// card of a project that never opted into criteria. The size still applies in both cases, because the
-    /// size is a statement about the card rather than about the formula.
+    /// card of a project that never opted into criteria. The manual value is read on the 0..100 scale (see
+    /// <see cref="ManualScore"/>), so both kinds of card rank on one scale. The size still applies in both
+    /// cases, because the size is a statement about the card rather than about the formula. Values are read
+    /// from files a person can edit, so a negative one is clamped rather than refused: one bad card must not
+    /// take the whole board down.
     /// </remarks>
     /// <param name="manualPriority">The card's own priority as stored.</param>
     /// <param name="criterionValues">Per-criterion values on the card, keyed by criterion id.</param>
@@ -35,11 +54,10 @@ public static class PriorityCalculator
         string? sizeId)
     {
         ArgumentNullException.ThrowIfNull(settings);
-        ArgumentOutOfRangeException.ThrowIfNegative(manualPriority);
 
         var ownPriority = criterionValues is { Count: > 0 } && settings.Criteria.Count > 0
             ? CalculateOwnPriority(criterionValues, settings.Criteria)
-            : manualPriority;
+            : ManualScore(manualPriority);
 
         return ownPriority * settings.SizeFactor(sizeId);
     }
@@ -54,13 +72,10 @@ public static class PriorityCalculator
         PriorityWeights? weights = null)
     {
         ArgumentNullException.ThrowIfNull(parentPriorities);
-        ArgumentOutOfRangeException.ThrowIfNegative(ownPriority);
 
-        var parentValues = parentPriorities.ToArray();
-        if (parentValues.Any(value => value < 0))
-        {
-            throw new ArgumentOutOfRangeException(nameof(parentPriorities));
-        }
+        // Clamped rather than refused, for the same reason as the own score: these come from files.
+        ownPriority = Math.Max(ownPriority, 0m);
+        var parentValues = parentPriorities.Select(value => Math.Max(value, 0m)).ToArray();
 
         if (parentValues.Length == 0)
         {
@@ -111,7 +126,7 @@ public static class PriorityCalculator
             }
 
             var span = criterion.Maximum - criterion.Minimum;
-            if (span <= 0m)
+            if (span <= 0m || criterion.Weight <= 0m)
             {
                 continue;
             }

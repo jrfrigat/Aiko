@@ -125,12 +125,12 @@ public sealed class CardTypeDataSpecs
 
         // The type whose workflow declares the flag rolls its score up into the parent...
         var blended = priorities.Single(priority => priority.CardId == "CHILD-A").Snapshot;
-        Assert.Equal(10m, blended.MaximumParentPriority);
+        Assert.Equal(0.1m, blended.MaximumParentPriority);
 
         // ...and the type that does not keeps its own score, whatever it is called.
         var kept = priorities.Single(priority => priority.CardId == "CHILD-B").Snapshot;
         Assert.Null(kept.MaximumParentPriority);
-        Assert.Equal(4m, kept.EffectivePriority);
+        Assert.Equal(0.04m, kept.EffectivePriority);
     }
 
     private static Card MakeCard(

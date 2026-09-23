@@ -1435,12 +1435,13 @@ public class InfrastructureSpecs
             var taskSnapshot = priorities
                 .Single(priority => priority.CardId == task.Reference.CardId)
                 .Snapshot;
-            Assert.Equal(8m, taskSnapshot.MaximumParentPriority);
-            Assert.Equal(5.2m, taskSnapshot.EffectivePriority);
+            // Manual priorities are read on the 0..100 scale: a story typed as 8 is a score of 0.08.
+            Assert.Equal(0.08m, taskSnapshot.MaximumParentPriority);
+            Assert.Equal(0.052m, taskSnapshot.EffectivePriority);
             var storySnapshot = priorities
                 .Single(priority => priority.CardId == story.Reference.CardId)
                 .Snapshot;
-            Assert.Equal(8m, storySnapshot.EffectivePriority);
+            Assert.Equal(0.08m, storySnapshot.EffectivePriority);
         });
     }
 
@@ -2359,12 +2360,12 @@ public class InfrastructureSpecs
                 ]);
 
             var taskSnapshot = priorities.Single(priority => priority.CardId == "TASK-DEEP").Snapshot;
-            Assert.Equal(5.8m, taskSnapshot.EffectivePriority);
-            Assert.Equal(10m, taskSnapshot.MaximumParentPriority);
+            Assert.Equal(0.058m, taskSnapshot.EffectivePriority);
+            Assert.Equal(0.1m, taskSnapshot.MaximumParentPriority);
 
             var subtaskSnapshot = priorities.Single(priority => priority.CardId == "SUB-DEEP").Snapshot;
-            Assert.Equal(5.8m, subtaskSnapshot.MaximumParentPriority);
-            Assert.Equal(2.44m, subtaskSnapshot.EffectivePriority);
+            Assert.Equal(0.058m, subtaskSnapshot.MaximumParentPriority);
+            Assert.Equal(0.0244m, subtaskSnapshot.EffectivePriority);
         });
     }
 
