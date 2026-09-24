@@ -190,6 +190,9 @@ public sealed class FileMemoryStore(
                 nameof(path));
         }
 
+        // Inside by its name is not inside on the disk: a junction under .aiko/memory would take the write
+        // anywhere, so the way down is checked too.
+        PathConfinement.Resolve(AikoProjectPaths.DataRoot(projectRoot), fullPath);
         var relativePath = Path.GetRelativePath(memoryRoot, fullPath)
             .Replace(Path.DirectorySeparatorChar, '/');
         return (fullPath, relativePath);

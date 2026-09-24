@@ -1,3 +1,4 @@
+using Aiko.Infrastructure.Storage;
 using Aiko.Application.Agents;
 using Aiko.Domain.Execution;
 
@@ -114,6 +115,21 @@ public abstract class BuiltInAgentAdapter : IAgentAdapter
                 .Any());
     }
 
+    /// <summary>
+    /// Checks a project file the whole way down from the project root: its name is built from card types read
+    /// from .aiko, and a linked directory inside the project would lead the write elsewhere. A file an agent keeps
+    /// outside the project - Cline's own settings - is a fixed path the adapter names, not one built from data.
+    /// </summary>
+    private static void ConfineToProject(string fullRoot, string path)
+    {
+        var fullPath = Path.GetFullPath(path);
+        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        if (fullPath.StartsWith(Path.TrimEndingDirectorySeparator(fullRoot) + Path.DirectorySeparatorChar, comparison))
+        {
+            PathConfinement.Resolve(fullRoot, fullPath);
+        }
+    }
+
     /// <inheritdoc />
     public ValueTask<bool> IsUserConfiguredAsync(CancellationToken cancellationToken)
     {
@@ -141,6 +157,7 @@ public abstract class BuiltInAgentAdapter : IAgentAdapter
             cancellationToken.ThrowIfCancellationRequested();
             try
             {
+                ConfineToProject(fullRoot, definition.Path);
                 files.Add(await AgentConfigurationWriter.ApplyAsync(
                     definition,
                     cancellationToken));
@@ -209,6 +226,7 @@ public abstract class BuiltInAgentAdapter : IAgentAdapter
             cancellationToken.ThrowIfCancellationRequested();
             try
             {
+                ConfineToProject(fullRoot, definition.Path);
                 files.Add(await AgentConfigurationWriter.RemoveAsync(
                     definition,
                     cancellationToken));

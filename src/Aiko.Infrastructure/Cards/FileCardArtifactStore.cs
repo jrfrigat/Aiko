@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using Aiko.Infrastructure.Storage;
 using Aiko.Application.Contracts;
 using Aiko.Domain.Cards;
 using Aiko.Infrastructure.Threading;
@@ -131,8 +132,11 @@ public sealed class FileCardArtifactStore(
             ?? throw new KeyNotFoundException($"Unknown Aiko card: {reference.CardId}");
         // Beside the card where it actually is - not where its type's name says it should be, which after a
         // rename is another collection and would split the card's directory in two.
-        return FileCardStore.FindCardDirectory(project.RootPath, reference.CardId)
+        var directory = FileCardStore.FindCardDirectory(project.RootPath, reference.CardId)
             ?? throw new KeyNotFoundException($"Unknown Aiko card: {reference.CardId}");
+        // The check below the card directory covers the artifact's own path; this one covers the way to the
+        // card directory itself, from .aiko down, where a linked collection would lead writes elsewhere.
+        return PathConfinement.Resolve(AikoProjectPaths.DataRoot(project.RootPath), directory);
     }
 
     private static string ResolveArtifactPath(string cardDirectory, string path)

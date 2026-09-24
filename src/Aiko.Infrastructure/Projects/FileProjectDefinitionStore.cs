@@ -30,7 +30,8 @@ public sealed class FileProjectDefinitionStore(IProjectCatalog projects) : IProj
         var workflows = await ReadDocumentsAsync(
             Path.Combine(stitchRoot, "workflows"),
             ProjectJsonContext.Default.WorkflowDefinition,
-            cancellationToken);
+            cancellationToken,
+            ValidateIdentifiers);
         var projections = await ReadDocumentsAsync(
             Path.Combine(stitchRoot, "projections"),
             ProjectJsonContext.Default.BoardProjectionDefinition,
@@ -232,7 +233,26 @@ public sealed class FileProjectDefinitionStore(IProjectCatalog projects) : IProj
     }
 
     private static string WorkflowPath(string projectRoot, string workflowId) =>
-        Path.Combine(AikoProjectPaths.DataRoot(projectRoot), "workflows", $"{workflowId}.json");
+        PathConfinement.Resolve(
+            AikoProjectPaths.DataRoot(projectRoot),
+            Path.Combine(AikoProjectPaths.DataRoot(projectRoot), "workflows", $"{workflowId}.json"));
+
+    /// <summary>
+    /// Refuses a workflow read from disk whose identifiers could not be file names: its id, its stages and the
+    /// card kinds it takes become directory and command names, and the file is data a repository carries.
+    /// </summary>
+    private static void ValidateIdentifiers(WorkflowDefinition workflow)
+    {
+        FileSystemSafeIdentifiers.Validate(workflow.Id, "workflow");
+        foreach (var stage in workflow.Stages ?? [])
+        {
+            FileSystemSafeIdentifiers.Validate(stage.Id, "stage");
+            foreach (var kind in stage.AllowedCardKinds ?? [])
+            {
+                FileSystemSafeIdentifiers.Validate(kind, "card kind");
+            }
+        }
+    }
 
     /// <summary>
     /// The title of one workflow, read from its own document by the project root alone.
@@ -273,7 +293,8 @@ public sealed class FileProjectDefinitionStore(IProjectCatalog projects) : IProj
     private static async ValueTask<IReadOnlyList<T>> ReadDocumentsAsync<T>(
         string directory,
         System.Text.Json.Serialization.Metadata.JsonTypeInfo<T> typeInfo,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Action<T>? validate = null)
     {
         if (!Directory.Exists(directory))
         {
@@ -286,6 +307,15 @@ public sealed class FileProjectDefinitionStore(IProjectCatalog projects) : IProj
             await using var input = File.OpenRead(path);
             var document = await JsonSerializer.DeserializeAsync(input, typeInfo, cancellationToken)
                 ?? throw new InvalidDataException($"Invalid Aiko document: {path}");
+            try
+            {
+                validate?.Invoke(document);
+            }
+            catch (ArgumentException exception)
+            {
+                throw new InvalidDataException($"Invalid Aiko document {path}: {exception.Message}", exception);
+            }
+
             documents.Add(document);
         }
 

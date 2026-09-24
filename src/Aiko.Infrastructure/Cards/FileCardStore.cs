@@ -332,10 +332,15 @@ public sealed class FileCardStore(
         string kind)
     {
         ValidateCardId(cardId);
-        return Path.Combine(
-            AikoProjectPaths.CardCollectionsRoot(projectRoot),
-            ResolvedCollection(projectRoot, kind),
-            cardId);
+        // The kind names a directory, and it comes from card.json - data a repository carries, not a trusted
+        // input - so it is held to the rule an id is held to, and the result has to stay under .aiko.
+        FileSystemSafeIdentifiers.Validate(kind, "card kind");
+        return PathConfinement.Resolve(
+            AikoProjectPaths.DataRoot(projectRoot),
+            Path.Combine(
+                AikoProjectPaths.CardCollectionsRoot(projectRoot),
+                ResolvedCollection(projectRoot, kind),
+                cardId));
     }
 
     /// <summary>
