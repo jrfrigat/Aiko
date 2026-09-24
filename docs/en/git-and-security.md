@@ -69,7 +69,7 @@ as described above.
 
 A project records a **git policy** that decides how `.aiko` is treated by version control:
 
-- `local-only` (the default) - the whole `.aiko` directory is added to `.gitignore`, so project knowledge
+- `local-only` (the built-in template's) - the whole `.aiko` directory is added to `.gitignore`, so project knowledge
   stays on this machine;
 - `track-project-knowledge` - `.aiko` workflows, settings and memory stay under version control, so the
   project's rules travel with the code.

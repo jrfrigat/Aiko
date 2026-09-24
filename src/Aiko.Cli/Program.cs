@@ -60,9 +60,9 @@ static int Help()
           templates                                     List the project templates to create from
           project find [path]                           Report which Aiko project owns a folder
           project remove <id> [--yes]                   Unregister a project (keeps its files)
-          serve [-d|--detached] [--port <p>]              Start the Aiko daemon: in this terminal by
+          serve [-d|--detached]                         Start the Aiko daemon: in this terminal by
                                                         default, in the background with -d (its log goes
-                                                        to the data directory)
+                                                        to the data directory); AIKO_PORT picks the port
           serve stop [--port <p>]                       Ask a running daemon to stop (the port it saved,
                                                         or one given with --port)
           ui                                            Open the UI in the browser, starting a background
@@ -72,10 +72,12 @@ static int Help()
           repair [--fix] [--project <id>] [--agent <ids>]
                                                         Reindex and rewrite stale agent configs
           agent list                                    List agents and detected installs
-          agent install --project <id> [--agent <ids>] [--scope user]
-                                                        Connect an agent to a project
-          agent uninstall --project <id> [--agent <ids>] [--scope user]
-                                                        Disconnect an agent from a project
+          agent install [--project <id>] [--agent <ids>] [--scope user]
+                                                        Connect an agent to a project, or with
+                                                        --scope user to every project (no --project)
+          agent uninstall [--project <id>] [--agent <ids>] [--scope user]
+                                                        Disconnect an agent from a project, or with
+                                                        --scope user from the user scope
           token show                                    Print the local access token
           uninstall [--yes] [--remove-data] [--remove-project-data]
                                                         Remove the installation: stop the daemon, drop the
@@ -105,7 +107,8 @@ static int Help()
                                                         Show the commands a screen placed for an agent;
                                                         --state is open (default), all, or one state
 
-        Git policies: local-only (default), track-project-knowledge, custom.
+        Git policies: local-only, track-project-knowledge, custom. Without --git-policy, init takes
+        the template's (the built-in template's is local-only).
         """);
     return 0;
 }
@@ -1692,7 +1695,7 @@ static async Task<int> AgentAsync(string[] args)
 {
     if (args.Length < 2)
     {
-        Console.Error.WriteLine("Usage: aiko agent list | install --project <id> [--agent <ids>] | uninstall --project <id> [--agent <ids>]");
+        Console.Error.WriteLine("Usage: aiko agent list | install [--project <id>] [--agent <ids>] [--scope user] | uninstall [--project <id>] [--agent <ids>] [--scope user]");
         return 2;
     }
 
@@ -1754,7 +1757,7 @@ static async Task<int> AgentInstallAsync(string[] args, bool uninstall)
     var projectId = ReadOption(args, "--project");
     if (string.IsNullOrWhiteSpace(projectId))
     {
-        Console.Error.WriteLine($"Usage: aiko agent {(uninstall ? "uninstall" : "install")} --project <id> [--agent <ids>] [--scope user]");
+        Console.Error.WriteLine($"Usage: aiko agent {(uninstall ? "uninstall" : "install")} --project <id> [--agent <ids>], or --scope user without a project");
         return 2;
     }
 
@@ -2075,9 +2078,10 @@ static string? ReadOption(string[] args, string name)
     return null;
 }
 
-static ProjectGitPolicy ParseGitPolicy(string? value) =>
+// No option is no choice: the initializer then takes the template's policy, which is what the template is for.
+static ProjectGitPolicy? ParseGitPolicy(string? value) =>
     string.IsNullOrWhiteSpace(value)
-        ? ProjectGitPolicy.LocalOnly
+        ? null
         : value.Trim().ToLowerInvariant() switch
         {
             "local-only" => ProjectGitPolicy.LocalOnly,

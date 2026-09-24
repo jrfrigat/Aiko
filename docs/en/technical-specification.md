@@ -679,7 +679,7 @@ for all registered projects. The UI can be opened manually, from the CLI, a deep
 or a skill.
 
 ```text
-aiko ui [--project <id>] [--card <id>]
+aiko ui
 ```
 
 `aiko-ui` is the canonical skill; `stitch-ui` is a possible alias.

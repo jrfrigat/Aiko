@@ -667,7 +667,7 @@ MVP UI локален и доступен по постоянному loopback U
 зарегистрированных проектов. UI можно открыть вручную, CLI, deep link, MCP tool или skill.
 
 ```text
-aiko ui [--project <id>] [--card <id>]
+aiko ui
 ```
 
 `aiko-ui` - канонический skill, `stitch-ui` - возможный alias.
