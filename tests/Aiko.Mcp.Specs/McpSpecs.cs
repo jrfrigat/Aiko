@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
@@ -2003,24 +2002,13 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         probe.Stop();
         var baseUrl = new Uri($"http://127.0.0.1:{port}");
 
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = "dotnet",
-            Arguments = $"\"{serverDll}\"",
-            WorkingDirectory = root,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true
-        };
-        AikoServerFixture.ClearInheritedAikoVariables(startInfo);
-        startInfo.EnvironmentVariables["AIKO_DATABASE"] = Path.Combine(root, "data", "aiko.db");
-        startInfo.EnvironmentVariables["AIKO_PORT"] = port.ToString(CultureInfo.InvariantCulture);
-        startInfo.EnvironmentVariables["AIKO_TOKEN"] = "test-token-123";
-        startInfo.EnvironmentVariables["AIKO_PAIR_CODE"] = "pair-123";
-
-        using var server = Process.Start(startInfo)
-            ?? throw new InvalidOperationException("Failed to start the Aiko server.");
+        using var server = SpecDaemon.Start(
+            serverDll,
+            root,
+            ("AIKO_DATABASE", Path.Combine(root, "data", "aiko.db")),
+            ("AIKO_PORT", port.ToString(CultureInfo.InvariantCulture)),
+            ("AIKO_TOKEN", "test-token-123"),
+            ("AIKO_PAIR_CODE", "pair-123"));
         try
         {
             using var httpClient = new HttpClient { BaseAddress = baseUrl };
@@ -2136,13 +2124,9 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         finally
         {
             // The last part of this spec stops the daemon through its own endpoint, so it may already be gone
-            // by the time cleanup runs.
-            if (!server.HasExited)
-            {
-                server.Kill(entireProcessTree: true);
-            }
-
-            await server.WaitForExitAsync(CancellationToken.None);
+            // by the time cleanup runs. Disposing instead of killing by hand keeps one way of ending a daemon
+            // in the suite - the one that also covers a test host that died before this cleanup ran.
+            server.Dispose();
         }
     }
 

@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
@@ -63,23 +62,13 @@ public class BrowserBoundarySpecs(AikoServerFixture fixture) : IClassFixture<Aik
         var port = ((IPEndPoint)probe.LocalEndpoint).Port;
         probe.Stop();
 
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = "dotnet",
-            Arguments = $"\"{serverDll}\"",
-            WorkingDirectory = root,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true
-        };
-        AikoServerFixture.ClearInheritedAikoVariables(startInfo);
-        startInfo.EnvironmentVariables["AIKO_DATABASE"] = Path.Combine(root, "data", "aiko.db");
-        startInfo.EnvironmentVariables["AIKO_PORT"] = port.ToString(CultureInfo.InvariantCulture);
-        startInfo.EnvironmentVariables["AIKO_TOKEN"] = "boundary-token-123";
-        startInfo.EnvironmentVariables["AIKO_PAIR_CODE"] = "boundary-pair";
-
-        using var server = Process.Start(startInfo) ?? throw new InvalidOperationException("The daemon did not start.");
+        using var server = SpecDaemon.Start(
+            serverDll,
+            root,
+            ("AIKO_DATABASE", Path.Combine(root, "data", "aiko.db")),
+            ("AIKO_PORT", port.ToString(CultureInfo.InvariantCulture)),
+            ("AIKO_TOKEN", "boundary-token-123"),
+            ("AIKO_PAIR_CODE", "boundary-pair"));
         try
         {
             using var http = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{port}") };
@@ -129,10 +118,10 @@ public class BrowserBoundarySpecs(AikoServerFixture fixture) : IClassFixture<Aik
         }
         finally
         {
-            if (!server.HasExited)
+            if (!server.Process.HasExited)
             {
-                server.Kill(entireProcessTree: true);
-                await server.WaitForExitAsync();
+                server.Process.Kill(entireProcessTree: true);
+                await server.Process.WaitForExitAsync();
             }
 
             try

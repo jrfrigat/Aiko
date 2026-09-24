@@ -97,7 +97,20 @@ public sealed class CliInitSpecs
         using var process = Process.Start(startInfo)!;
         var output = process.StandardOutput.ReadToEndAsync();
         var error = process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync().WaitAsync(TimeSpan.FromMinutes(1));
+        try
+        {
+            await process.WaitForExitAsync().WaitAsync(TimeSpan.FromMinutes(1));
+        }
+        catch (TimeoutException)
+        {
+            // The CLI is this spec's own process: if it hangs, nothing else will end it, and `using` only
+            // releases the handle. A run that overran must not leave the process behind for the rest of the
+            // session - it would hold the files under src/Aiko.Cli/bin, as the daemons of the MCP suite hold
+            // the ones under src/Aiko.Server/bin.
+            process.Kill(entireProcessTree: true);
+            throw;
+        }
+
         return (process.ExitCode, await output + await error);
     }
 

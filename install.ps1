@@ -28,9 +28,25 @@ $repo = $PSScriptRoot
 $bin = Join-Path $env:LOCALAPPDATA "Aiko\bin"
 
 Write-Host "Publishing Aiko (framework-dependent, Release)..."
-dotnet publish (Join-Path $repo "src\Aiko.Server") -c Release -o $bin -p:PublishAot=false --nologo | Out-Host
-dotnet publish (Join-Path $repo "src\Aiko.Cli") -c Release -o $bin -p:PublishAot=false --nologo | Out-Host
-dotnet publish (Join-Path $repo "src\Aiko.StdioProxy") -c Release -o $bin -p:PublishAot=false --nologo | Out-Host
+# A failed publish must not be invisible. $ErrorActionPreference = "Stop" does not cover a native
+# command, so the script used to carry on to "Aiko installed." with a half-written directory when a
+# publish failed - which is how a build that never happened was announced as an installation. Each
+# exit code is checked, and the first failure ends the script. Asking a child process what it
+# returned is what scripts/install.ps1 already does after 'autostart enable' and 'agent install'.
+foreach ($project in "Aiko.Server", "Aiko.Cli", "Aiko.StdioProxy") {
+    dotnet publish (Join-Path $repo "src\$project") -c Release -o $bin -p:PublishAot=false --nologo | Out-Host
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host ""
+        Write-Host "Publishing $project failed (dotnet publish exited with $LASTEXITCODE); nothing was installed." -ForegroundColor Red
+        # Almost always an older build of this tree still running: it holds the files under
+        # src\<project>\bin, so MSBuild cannot replace them. Name the process rather than killing it -
+        # the one running may be the daemon the person is working with, or somebody's own tooling.
+        Write-Host "  Something is most likely holding src\$project\bin - find it with:" -ForegroundColor DarkGray
+        Write-Host "    Get-CimInstance Win32_Process -Filter `"Name='dotnet.exe'`" | Where-Object { `$_.CommandLine -like '*Aiko.Server.dll*' }" -ForegroundColor DarkGray
+        Write-Host "  Stop it ('aiko serve stop' for the daemon) and run the installer again." -ForegroundColor DarkGray
+        exit 1
+    }
+}
 
 $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
 if ($userPath -notlike "*$bin*") {

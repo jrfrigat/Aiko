@@ -18,7 +18,7 @@ public sealed class AikoServerFixture : IAsyncLifetime
         Path.GetTempPath(),
         "Aiko.Mcp.Specs",
         Guid.NewGuid().ToString("N"));
-    private Process? _server;
+    private SpecDaemon? _server;
 
     /// <summary>
     /// Base URL of the running daemon, for example http://127.0.0.1:18123.
@@ -50,24 +50,39 @@ public sealed class AikoServerFixture : IAsyncLifetime
         BaseUrl = new Uri($"http://127.0.0.1:{port}");
         McpEndpoint = new Uri($"{BaseUrl}mcp/projects/{{0}}");
 
-        _server = StartServer(serverDll, port);
-        await WaitForHealthAsync();
-        ProjectId = await InitializeProjectAsync();
-        McpEndpoint = new Uri($"{BaseUrl}mcp/projects/{ProjectId}");
+        try
+        {
+            _server = StartServer(serverDll, port);
+            await WaitForHealthAsync();
+            ProjectId = await InitializeProjectAsync();
+            McpEndpoint = new Uri($"{BaseUrl}mcp/projects/{ProjectId}");
+        }
+        catch
+        {
+            // A daemon that started and then failed its health check or its project init must not be left
+            // running for the rest of the run: xUnit does not promise to dispose a fixture whose init threw.
+            DisposeServer();
+            throw;
+        }
     }
 
     public async Task DisposeAsync()
     {
-        if (_server is { } server)
-        {
-            server.Kill(entireProcessTree: true);
-            await server.WaitForExitAsync(CancellationToken.None);
-            server.Dispose();
-        }
+        DisposeServer();
 
         // Give the killed server a moment to release its SQLite files.
         await Task.Delay(500);
         DeleteRootSafely();
+    }
+
+    /// <summary>
+    /// Ends the daemon this fixture started, if any. Idempotent: initialization that failed after the start
+    /// calls it too, and a second end of the same daemon must be harmless.
+    /// </summary>
+    private void DisposeServer()
+    {
+        _server?.Dispose();
+        _server = null;
     }
 
     /// <summary>
@@ -94,34 +109,24 @@ public sealed class AikoServerFixture : IAsyncLifetime
         }
     }
 
-    private Process StartServer(string serverDll, int port)
+    private SpecDaemon StartServer(string serverDll, int port)
     {
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = "dotnet",
-            Arguments = $"\"{serverDll}\"",
-            WorkingDirectory = _root,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true
-        };
-        ClearInheritedAikoVariables(startInfo);
-        startInfo.EnvironmentVariables["AIKO_DATABASE"] =
-            Path.Combine(_root, "data", "aiko.db");
-        startInfo.EnvironmentVariables["AIKO_PORT"] = port.ToString(CultureInfo.InvariantCulture);
         // The MCP spec suite exercises the protocol, not the local authentication layer.
-        startInfo.EnvironmentVariables["AIKO_INSECURE"] = "1";
         // User-scope agent files (the /aiko-* skills and commands) land under the home directory, so the
         // daemon under test gets a throwaway one: a spec must not write into the machine running it.
-        startInfo.EnvironmentVariables["AIKO_USER_HOME"] = Path.Combine(_root, "home");
+        var server = SpecDaemon.Start(
+            serverDll,
+            _root,
+            ("AIKO_DATABASE", Path.Combine(_root, "data", "aiko.db")),
+            ("AIKO_PORT", port.ToString(CultureInfo.InvariantCulture)),
+            ("AIKO_INSECURE", "1"),
+            ("AIKO_USER_HOME", Path.Combine(_root, "home")));
 
-        var server = Process.Start(startInfo)
-            ?? throw new InvalidOperationException("Failed to start the Aiko server process.");
-        server.OutputDataReceived += (_, eventArgs) => Console.WriteLine($"[server] {eventArgs.Data}");
-        server.ErrorDataReceived += (_, eventArgs) => Console.Error.WriteLine($"[server] {eventArgs.Data}");
-        server.BeginOutputReadLine();
-        server.BeginErrorReadLine();
+        // The daemon's own log lines belong on the console of the run that started it.
+        server.Process.OutputDataReceived += (_, eventArgs) => Console.WriteLine($"[server] {eventArgs.Data}");
+        server.Process.ErrorDataReceived += (_, eventArgs) => Console.Error.WriteLine($"[server] {eventArgs.Data}");
+        server.Process.BeginOutputReadLine();
+        server.Process.BeginErrorReadLine();
         return server;
     }
 
@@ -130,10 +135,10 @@ public sealed class AikoServerFixture : IAsyncLifetime
         using var httpClient = new HttpClient { BaseAddress = BaseUrl };
         for (var attempt = 0; attempt < 120; attempt++)
         {
-            if (_server is { HasExited: true })
+            if (_server is { Process.HasExited: true } exited)
             {
                 throw new InvalidOperationException(
-                    $"The Aiko server exited early with code {_server.ExitCode}.");
+                    $"The Aiko server exited early with code {exited.Process.ExitCode}.");
             }
 
             try
