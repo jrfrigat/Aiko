@@ -28,7 +28,14 @@ builder.Services.AddFlare(options =>
     options.DefaultMode = ThemeMode.Auto;
     options.RegisterAllBuiltInThemes = false;
 });
-builder.Services.AddScoped(_ => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+// X-Aiko-Request says a write comes from the daemon's own page: the daemon refuses a write its session
+// cookie authenticates without it, because a form on another local page could send one.
+builder.Services.AddScoped(_ =>
+{
+    var client = new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) };
+    client.DefaultRequestHeaders.Add("X-Aiko-Request", "1");
+    return client;
+});
 // The cockpit's shared workspace: one snapshot of projects, board and live events per browser session,
 // read by the shell and by every page.
 builder.Services.AddScoped<WorkspaceState>();

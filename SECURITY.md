@@ -15,8 +15,11 @@ Aiko runs on your machine and is built to stay there. What that means in practic
 
 - The daemon binds to **loopback only**. Any request whose `Host` header is not loopback is rejected
   with `400`.
-- Browser origins are checked: a page served from a non-loopback origin gets `403`, so a website you
-  happen to have open cannot read your board.
+- Browser origins are checked: only the daemon's own page (its scheme and port on loopback) gets through;
+  any other origin, including another program's page on another local port, gets `403`, as does a request
+  the browser marks `same-site` or `cross-site`. No page may frame the board.
+- The browser's session cookie opens the board's REST API only: MCP takes the token in
+  `Authorization: Bearer` alone, and a write the cookie authenticates must carry `X-Aiko-Request`.
 - Clients authenticate with an **access token**; a browser is paired once with a one-time code
   (`aiko ui`). `AIKO_INSECURE=1` disables authentication and is for local debugging only.
 - The MCP endpoint requires the same token, so `aiko agent install` writes it into the agent's MCP

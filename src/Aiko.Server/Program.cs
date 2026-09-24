@@ -262,15 +262,30 @@ app.Use(async (context, next) =>
         return;
     }
 
+    // Only the daemon's own page: another program on this machine is another origin, whatever its host says,
+    // and a loopback origin on any port used to pass.
     var origin = context.Request.Headers.Origin.ToString();
-    if (!string.IsNullOrWhiteSpace(origin) &&
-        (!Uri.TryCreate(origin, UriKind.Absolute, out var originUri) ||
-         !originUri.IsLoopback))
+    if (!string.IsNullOrWhiteSpace(origin) && !IsOwnOrigin(origin, serverBaseUri))
     {
         context.Response.StatusCode = StatusCodes.Status403Forbidden;
-        await context.Response.WriteAsync("Remote browser origins are not allowed.");
+        await context.Response.WriteAsync("Only the daemon's own page may call it.");
         return;
     }
+
+    // What the browser says about where a request comes from. Another port of localhost is "same-site" to it,
+    // which is exactly the neighbour this boundary keeps out; a request without the header is not a browser's.
+    var fetchSite = context.Request.Headers["Sec-Fetch-Site"].ToString();
+    if (StringComparer.OrdinalIgnoreCase.Equals(fetchSite, "cross-site") ||
+        StringComparer.OrdinalIgnoreCase.Equals(fetchSite, "same-site"))
+    {
+        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        await context.Response.WriteAsync("Requests from other sites are not allowed.");
+        return;
+    }
+
+    // No page may frame the board: a framed page is one a click can be tricked into.
+    context.Response.Headers.ContentSecurityPolicy = "frame-ancestors 'none'";
+    context.Response.Headers.XFrameOptions = "DENY";
 
     await next(context);
 });
@@ -337,6 +352,13 @@ app.Lifetime.ApplicationStopping.Register(() =>
     telemetry.StopAsync(CancellationToken.None).AsTask().GetAwaiter().GetResult());
 
 await app.RunAsync();
+
+// The daemon's own origin: its scheme and port, on any spelling of loopback the browser may use for it.
+static bool IsOwnOrigin(string origin, Uri serverBaseUri) =>
+    Uri.TryCreate(origin, UriKind.Absolute, out var originUri) &&
+    originUri.IsLoopback &&
+    StringComparer.OrdinalIgnoreCase.Equals(originUri.Scheme, serverBaseUri.Scheme) &&
+    originUri.Port == serverBaseUri.Port;
 
 static bool IsLoopbackHost(string host) =>
     StringComparer.OrdinalIgnoreCase.Equals(host, "localhost") ||

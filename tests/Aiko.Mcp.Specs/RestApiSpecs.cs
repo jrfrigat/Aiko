@@ -106,9 +106,10 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
         using var originResponse = await http.SendAsync(remoteOrigin);
         Assert.Equal(HttpStatusCode.Forbidden, originResponse.StatusCode);
 
-        // The PWA itself is served from loopback, and stays allowed.
+        // The PWA itself is served by the daemon, so its own origin stays allowed - and only that one
+        // (BrowserBoundarySpecs covers another loopback port).
         using var localOrigin = new HttpRequestMessage(HttpMethod.Get, "/health");
-        localOrigin.Headers.Add("Origin", "http://127.0.0.1:5000");
+        localOrigin.Headers.Add("Origin", fixture.BaseUrl.GetLeftPart(UriPartial.Authority));
         using var localResponse = await http.SendAsync(localOrigin);
         Assert.Equal(HttpStatusCode.OK, localResponse.StatusCode);
     }

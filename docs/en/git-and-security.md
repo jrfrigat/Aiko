@@ -8,8 +8,13 @@ repository's [`SECURITY.md`](../../SECURITY.md), which stays the normative polic
 
 - The daemon binds to **loopback only**. A request whose `Host` header is not loopback is refused with
   `400`, so a proxy or a tunnel in front of the daemon fails loudly instead of quietly.
-- Browser origins are checked: a page served from a non-loopback origin gets `403`, so a website you have
-  open in another tab cannot read your board.
+- Browser origins are checked: only the daemon's own page - its scheme and port, on `127.0.0.1` or
+  `localhost` - gets through. Any other origin, another program's page on another local port included, gets
+  `403`, and so does a request the browser marks as `Sec-Fetch-Site: same-site` or `cross-site`. No page may
+  frame the board (`Content-Security-Policy: frame-ancestors 'none'`).
+- The browser's session cookie opens the board's REST API only: the MCP endpoint takes the token in
+  `Authorization: Bearer` and nothing else, and a write the cookie authenticates must carry the
+  `X-Aiko-Request` header, which the board sends and a form on another page cannot.
 - Clients authenticate with an **access token**. A browser is paired once with a one-time code.
 - `AIKO_INSECURE=1` disables authentication. It exists for local debugging only and should never be left
   on.

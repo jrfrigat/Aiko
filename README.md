@@ -63,7 +63,7 @@ rate limit) hands off to another agent without losing history.
   indexes. `reindex` rebuilds the indexes from `.aiko`, but the run history and the journal exist only in the
   database, so keep it
 - **Security by default** - loopback bind only, `Host`/`Origin` validation against DNS rebinding
-  and remote-browser origins, no wildcard CORS
+  and any origin but the daemon's own page, bearer-only MCP, no framing, no wildcard CORS
 - **Git, read through your own client** - the branch, the changes, the log and the diff of a card's files,
   read by running the `git` executable; a machine without it says "Git client unavailable" instead of
   failing. Aiko only reads the repository - the one file it edits is `.gitignore`, when a project is
