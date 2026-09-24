@@ -761,7 +761,13 @@
                             }
                             @RunStateCaption
                         </span>
-                        <span class="aiko-tag aiko-tag--quiet">@StageCaption</span>
+                        <span class="aiko-tag aiko-tag--quiet" style="@StageAppearance.TagStyle(Stage)">
+                            @if (StageAppearance.Icon(Stage) is { } stageIcon)
+                            {
+                                <FlareIconView Value="stageIcon" Size="1em" />
+                            }
+                            @StageCaption
+                        </span>
                     </FlareStack>
                 </FlareStack>
 
@@ -1422,9 +1428,7 @@
     /// The stage the card sits in, from its own workflow: what it expects to be produced (the artifacts) and
     /// how the result is verified. What it asks the agent for is edited on the Workflow page, not here.
     /// </summary>
-    private StageDefinition? Stage => Board.Workflows
-        .FirstOrDefault(workflow => StringComparer.Ordinal.Equals(workflow.Id, Card.WorkflowId))
-        ?.Stages.FirstOrDefault(stage => StringComparer.Ordinal.Equals(stage.Id, Card.StageId));
+    private StageDefinition? Stage => StageAppearance.Find(Board.Workflows, Card.WorkflowId, Card.StageId);
 
     /// <summary>The most recent execution, which is the run whose outcomes the card reports.</summary>
     /// <summary>Where the card's current stage got to, from the runs the runs tab already loaded.</summary>
@@ -1633,7 +1637,7 @@
         : 0;
 
     /// <summary>The stage's display title, or its id when the workflow is not loaded.</summary>
-    private string StageCaption => Stage?.Title ?? Card.StageId;
+    private string StageCaption => StageAppearance.Caption(Stage, Card.StageId);
 
     /// <summary>A decimal as the cockpit prints it: two places at most, in the reader's culture.</summary>
     private static string Number(decimal value) =>

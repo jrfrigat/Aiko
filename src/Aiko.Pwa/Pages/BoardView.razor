@@ -167,8 +167,16 @@ else
                                 <ChildContent>@row.Title</ChildContent>
                             </FlareButton>
                             <FlareBadge Standalone="true" Text="@row.State" Color="FlareColor.Tertiary" />
+                            @* The stage as the card page names and draws it: its title, its icon and its colour. *@
+                            <span class="aiko-tag aiko-tag--quiet" style="@StageAppearance.TagStyle(row.Stage)">
+                                @if (StageAppearance.Icon(row.Stage) is { } runStageIcon)
+                                {
+                                    <FlareIconView Value="runStageIcon" Size="1em" />
+                                }
+                                @StageAppearance.Caption(row.Stage, row.StageId)
+                            </span>
                             <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                                @($"{row.StageId} · {row.Agent} · {row.UpdatedAt:yyyy-MM-dd HH:mm}")
+                                @($"{row.Agent} · {row.UpdatedAt:yyyy-MM-dd HH:mm}")
                             </FlareText>
                         </FlareStack>
                     }
@@ -510,6 +518,7 @@ else
         string CardId,
         string Title,
         string StageId,
+        StageDefinition? Stage,
         string State,
         string Agent,
         DateTimeOffset UpdatedAt);
@@ -553,11 +562,13 @@ else
                     continue;
                 }
 
+                var card = board.Cards.FirstOrDefault(item =>
+                    StringComparer.Ordinal.Equals(item.Reference.CardId, run.CardId));
                 rows.Add(new ActiveRun(
                     run.CardId,
-                    board.Cards.FirstOrDefault(card =>
-                        StringComparer.Ordinal.Equals(card.Reference.CardId, run.CardId))?.Title ?? run.CardId,
+                    card?.Title ?? run.CardId,
                     run.StageId,
+                    StageAppearance.Find(board.Workflows, card?.WorkflowId, run.StageId),
                     execution.State.ToString(),
                     execution.Attempts.LastOrDefault()?.AgentAdapterId ?? Loc.Get("ActiveRunsNoAgent"),
                     execution.UpdatedAt));

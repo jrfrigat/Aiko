@@ -127,7 +127,9 @@ colour - are written by **Save type**; clicking a stage opens it in a drawer whe
 are chosen too. The icon comes from a
 set of ten and the colour from Flare's palette; "Default" means there is no icon, and the column title keeps
 the theme's own colour. The two are connected - the colour tints the icon and the title - so it is visible
-together with a chosen icon. **+** opens a draft type as a tab of its own, which the same fields then fill
+together with a chosen icon. The same icon and colour mark the stage wherever it is named - the stage tag on the
+card page, the workflow status in its execution panel and the rows of *Running now*, which name the stage by its
+title. **+** opens a draft type as a tab of its own, which the same fields then fill
 in: give it an id (for example `bug`), a name and a description ("a
 card type for defects found in the field") and pick an icon and a colour - the type appears at once in
 the create-card picker and as a board section, and its pipeline starts with `backlog`, "In progress" and

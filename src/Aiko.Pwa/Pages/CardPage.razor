@@ -82,8 +82,13 @@ else
                         <FlareText Element="h1" Typo="TypographyScale.HeadlineLarge">@Card.Title</FlareText>
                     </FlareStack>
                     <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small" Wrap="true">
-                        <span class="aiko-tag aiko-tag--live">
-                            <span class="aiko-dot aiko-dot--pulse"></span>@StageCaption
+                        <span class="aiko-tag aiko-tag--live" style="@StageAppearance.TagStyle(CurrentStage)">
+                            <span class="aiko-dot aiko-dot--pulse"></span>
+                            @if (StageAppearance.Icon(CurrentStage) is { } bannerStageIcon)
+                            {
+                                <FlareIconView Value="bannerStageIcon" Size="1em" />
+                            }
+                            @StageCaption
                         </span>
                         <span class="aiko-tag aiko-tag--quiet">@Card.Kind · @Card.WorkflowId</span>
                         @if (Card.Size is { Length: > 0 } bannerSize)
@@ -205,19 +210,12 @@ else
     private Card? Card => State.Board?.Cards.FirstOrDefault(card =>
         StringComparer.Ordinal.Equals(card.Reference.CardId, CardId));
 
+    /// <summary>The card's stage, from its own workflow: what the banner names and how it draws it.</summary>
+    private StageDefinition? CurrentStage =>
+        StageAppearance.Find(State.Board?.Workflows, Card?.WorkflowId, Card?.StageId);
+
     /// <summary>The card's stage, named as the pipeline does, so the banner reads as a workflow position.</summary>
-    private string StageCaption
-    {
-        get
-        {
-            var stage = State.Board?.Workflows
-                .FirstOrDefault(workflow => Card is not null &&
-                    StringComparer.Ordinal.Equals(workflow.Id, Card.WorkflowId))
-                ?.Stages.FirstOrDefault(item => Card is not null &&
-                    StringComparer.Ordinal.Equals(item.Id, Card.StageId));
-            return stage is null ? Card?.StageId ?? string.Empty : stage.Title;
-        }
-    }
+    private string StageCaption => StageAppearance.Caption(CurrentStage, Card?.StageId ?? string.Empty);
 
     /// <summary>
     /// The agent the stage starts with. It is what the pipeline says about who works this card, not who is
