@@ -112,7 +112,7 @@ catch {
 # The directory is the installer's to replace only when it is empty or already holds an installation. Anything
 # else - -InstallDir pointed at a folder of other tools, or at the data directory - holds someone else's files,
 # and replacing its contents would delete them. Checked before the download, while refusing costs nothing.
-function Assert-InstallDirIsOurs([string] $dir) {
+function Assert-InstallDirIsAiko([string] $dir) {
     if (-not (Test-Path $dir)) { return }
     if (@(Get-ChildItem -Path $dir -Force).Count -eq 0) { return }
     if ((Test-Path (Join-Path $dir "$command.exe")) -or (Test-Path (Join-Path $dir 'install.json'))) { return }
@@ -122,8 +122,14 @@ function Assert-InstallDirIsOurs([string] $dir) {
 
 # A running daemon and the agents' aiko-stdio proxies hold their executables open, and a replacement under them
 # fails half-way. The daemon is asked to stop; whatever still runs from the directory is stopped with it - an
-# agent starts its proxy again on its next call.
-function Stop-InstalledAiko([string] $dir) {
+# agent starts its proxy again on its next call. It supports -WhatIf like any function that stops something; at
+# the default confirm impact an install is not asked, so the daemon is still stopped without a prompt.
+function Stop-InstalledAiko {
+    [CmdletBinding(SupportsShouldProcess)]
+    param([string] $dir)
+
+    if (-not $PSCmdlet.ShouldProcess($dir, 'Stop the running Aiko daemon and its proxies')) { return }
+
     $cli = Join-Path $dir "$command.exe"
     if (Test-Path $cli) {
         try {
@@ -140,7 +146,7 @@ function Stop-InstalledAiko([string] $dir) {
         Stop-Process -Force -ErrorAction SilentlyContinue
 }
 
-Assert-InstallDirIsOurs $InstallDir
+Assert-InstallDirIsAiko $InstallDir
 
 $headers = @{ 'User-Agent' = 'aiko-installer' }
 $tag = $Version

@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace Aiko.Infrastructure.Specs;
@@ -15,11 +16,11 @@ public sealed class InstallScriptSpecs
     {
         var script = Script();
 
-        Assert.Contains("function Assert-InstallDirIsOurs", script, StringComparison.Ordinal);
+        Assert.Contains("function Assert-InstallDirIsAiko", script, StringComparison.Ordinal);
         Assert.Contains("holds no Aiko installation", script, StringComparison.Ordinal);
         // The check runs before the download: refusing costs nothing yet.
         Assert.True(
-            script.IndexOf("Assert-InstallDirIsOurs $InstallDir", StringComparison.Ordinal) <
+            script.IndexOf("Assert-InstallDirIsAiko $InstallDir", StringComparison.Ordinal) <
             script.IndexOf("Invoke-WebRequest", StringComparison.Ordinal),
             "the directory check should run before the download");
     }
@@ -39,6 +40,53 @@ public sealed class InstallScriptSpecs
         Assert.Contains("serve stop", script, StringComparison.Ordinal);
         Assert.Contains(".previous-", script, StringComparison.Ordinal);
         Assert.Contains("the previous installation was put back", script, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("scripts", "install.ps1")]
+    [InlineData("install.ps1")]
+    public void The_functions_pass_the_two_analyzer_rules_the_ci_lint_gate_enforces(params string[] path)
+    {
+        // CI lints the installers with PSScriptAnalyzer at Warning severity, and nothing in dotnet test did, so
+        // two warnings reached main unnoticed. These are the same two rules, read from the text, so they fail here
+        // first: a noun is singular, and a function that changes state supports -WhatIf and -Confirm.
+        var script = File.ReadAllText(Path.Combine([FindRepositoryRoot(), .. path]));
+        var offenders = new List<string>();
+        foreach (Match function in FunctionHeader.Matches(script))
+        {
+            var verb = function.Groups["verb"].Value;
+            var noun = function.Groups["noun"].Value;
+            if (noun.EndsWith('s') && !SingularNounsEndingInS.Contains(noun))
+            {
+                offenders.Add($"{verb}-{noun}: plural noun");
+            }
+
+            if (StateChangingVerbs.Contains(verb) &&
+                !Body(script, function.Index).Contains("SupportsShouldProcess", StringComparison.Ordinal))
+            {
+                offenders.Add($"{verb}-{noun}: changes state without SupportsShouldProcess");
+            }
+        }
+
+        Assert.Empty(offenders);
+    }
+
+    private static readonly Regex FunctionHeader =
+        new(@"^\s*function\s+(?<verb>[A-Za-z]+)-(?<noun>[A-Za-z]+)", RegexOptions.Multiline | RegexOptions.Compiled);
+
+    /// <summary>The verbs PSUseShouldProcessForStateChangingFunctions treats as changing state.</summary>
+    private static readonly HashSet<string> StateChangingVerbs =
+        new(StringComparer.OrdinalIgnoreCase) { "New", "Set", "Remove", "Start", "Stop", "Restart", "Reset", "Update" };
+
+    /// <summary>Nouns that end in "s" without being plural; one goes here only when it truly is singular.</summary>
+    private static readonly HashSet<string> SingularNounsEndingInS =
+        new(StringComparer.OrdinalIgnoreCase) { "Status", "Alias" };
+
+    /// <summary>The text of a function up to the next function header, where its CmdletBinding would be.</summary>
+    private static string Body(string script, int start)
+    {
+        var next = FunctionHeader.Match(script, start + 1);
+        return next.Success ? script[start..next.Index] : script[start..];
     }
 
     private static string Script() =>
