@@ -83,6 +83,16 @@ public interface IAgentAdapter
         CancellationToken cancellationToken);
 
     /// <summary>
+    /// Whether the agent is connected at the user scope: any of its user-scope files still carries Aiko's entry.
+    /// </summary>
+    /// <remarks>
+    /// Asked by a repair before it rewrites the user-scope configuration, for the same reason the project check
+    /// is asked: a connection someone removed must not come back because the agent is still installed.
+    /// </remarks>
+    /// <param name="cancellationToken">Cancellation token for the operation.</param>
+    ValueTask<bool> IsUserConfiguredAsync(CancellationToken cancellationToken);
+
+    /// <summary>
     /// Builds a plan for removing the Aiko configuration from the project without touching files.
     /// </summary>
     /// <remarks>

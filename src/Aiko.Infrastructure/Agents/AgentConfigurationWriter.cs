@@ -55,6 +55,33 @@ internal static class AgentConfigurationWriter
     }
 
     /// <summary>
+    /// Whether the file carries what Aiko writes into it - the whole owned file, the MCP entry or the managed
+    /// block - so that removing it would change something.
+    /// </summary>
+    public static bool IsPresent(AgentFileDefinition definition)
+    {
+        if (!File.Exists(definition.Path))
+        {
+            return false;
+        }
+
+        var current = File.ReadAllText(definition.Path);
+        return definition.Kind switch
+        {
+            AgentFileKind.OwnedText => current.Contains(definition.OwnedMarker, StringComparison.Ordinal),
+            AgentFileKind.JsonMcp => !string.Equals(
+                current, RemoveMcpJson(current, nested: false, definition.ServerKey), StringComparison.Ordinal),
+            AgentFileKind.NestedJsonMcp => !string.Equals(
+                current, RemoveMcpJson(current, nested: true, definition.ServerKey), StringComparison.Ordinal),
+            AgentFileKind.ManagedBlock => !string.Equals(
+                current,
+                RemoveManagedBlock(current, Path.GetExtension(definition.Path), definition.BlockMarkerName),
+                StringComparison.Ordinal),
+            _ => true
+        };
+    }
+
+    /// <summary>
     /// Removes the Aiko-managed content from a file: the whole file for OwnedText
     /// (only when the ownership marker is present) or just the Aiko part otherwise.
     /// </summary>

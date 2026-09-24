@@ -1918,14 +1918,12 @@ static async Task<int> RepairAsync(string[] args)
             .ToArray();
     }
 
+    // A repair puts back what is there; connecting an agent is `aiko agent install`. --agent narrows the repair
+    // to those agents, it does not connect them.
     var requestedAdapters = (ReadOption(args, "--agent") ?? string.Empty)
         .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-    var installedAdapters = requestedAdapters.Length > 0
-        ? requestedAdapters
-        : (await installer.DiscoverAsync(CancellationToken.None))
-            .Where(adapter => adapter.Installations.Count > 0)
-            .Select(adapter => adapter.Id)
-            .ToArray();
+    bool Wanted(string adapterId) =>
+        requestedAdapters.Length == 0 || requestedAdapters.Contains(adapterId, StringComparer.OrdinalIgnoreCase);
 
     Console.WriteLine();
     foreach (var project in registered)
@@ -1952,7 +1950,18 @@ static async Task<int> RepairAsync(string[] args)
             $"Reindexed {project.Name}: {reindexed.Cards} cards, {reindexed.Relations} relations, " +
             $"{reindexed.MemoryDocuments} memory documents.");
 
-        if (settings is null || installedAdapters.Length == 0)
+        if (settings is null)
+        {
+            continue;
+        }
+
+        // Only the agents this project is already connected to: an agent merely present on the machine is not
+        // a request to write its files into every repository.
+        var connectedAdapters = (await installer.ReadProjectConnectionsAsync(project.Id, CancellationToken.None))
+            .Where(connection => connection.Connected && Wanted(connection.AdapterId))
+            .Select(connection => connection.AdapterId)
+            .ToArray();
+        if (connectedAdapters.Length == 0)
         {
             continue;
         }
@@ -1962,7 +1971,7 @@ static async Task<int> RepairAsync(string[] args)
             project.Id,
             endpoint,
             accessToken,
-            installedAdapters,
+            connectedAdapters,
             CancellationToken.None);
         foreach (var item in applied.AdapterResults)
         {
@@ -1979,7 +1988,9 @@ static async Task<int> RepairAsync(string[] args)
     {
         foreach (var adapter in CreateAdapters())
         {
-            if ((await adapter.DetectInstallationsAsync(CancellationToken.None)).Count == 0)
+            // Only an agent connected at the user scope already: one removed with `agent uninstall --scope user`
+            // stays removed.
+            if (!Wanted(adapter.Id) || !await adapter.IsUserConfiguredAsync(CancellationToken.None))
             {
                 continue;
             }

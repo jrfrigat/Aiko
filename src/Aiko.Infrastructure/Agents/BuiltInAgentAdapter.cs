@@ -115,6 +115,13 @@ public abstract class BuiltInAgentAdapter : IAgentAdapter
     }
 
     /// <inheritdoc />
+    public ValueTask<bool> IsUserConfiguredAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return ValueTask.FromResult(CreateUserFiles().Any(AgentConfigurationWriter.IsPresent));
+    }
+
+    /// <inheritdoc />
     public async ValueTask<AgentInstallationResult> ApplyProjectInstallAsync(
         string projectRoot,
         string projectHandle,

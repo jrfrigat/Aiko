@@ -117,6 +117,8 @@ public sealed class AgentSelectionSpecs
             string projectRoot,
             CancellationToken cancellationToken) => throw Unexpected();
 
+        public ValueTask<bool> IsUserConfiguredAsync(CancellationToken cancellationToken) => throw Unexpected();
+
         public ValueTask<InstallationPlan> PlanProjectUninstallAsync(
             string projectRoot,
             string projectHandle,

@@ -31,9 +31,10 @@ Re-run the connection once and the stale files are swept:
 aiko repair --fix
 ```
 
-`repair --fix` reindexes and re-applies the whole project configuration for every detected agent, so the
-old skills are removed, the new ones are written and `CLAUDE.md` appears. `aiko agent install --project
-<id>` does the same for one project. A file without Aiko's ownership marker is never touched.
+`repair --fix` reindexes and re-applies the whole project configuration for every agent the project is
+already connected to, so the old skills are removed, the new ones are written and `CLAUDE.md` appears. It
+refreshes a user-scope connection only where one exists, and it never connects an agent that is merely
+installed: `aiko agent install --project <id>` does that for one project. A file without Aiko's ownership marker is never touched.
 
 ## The port is busy
 

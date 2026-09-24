@@ -68,7 +68,7 @@ public sealed class CliInitSpecs
         Assert.Contains("agent uninstall [--project <id>]", help, StringComparison.Ordinal);
     }
 
-    private static async Task<(int ExitCode, string Output)> RunCliAsync(
+    internal static async Task<(int ExitCode, string Output)> RunCliAsync(
         string databasePath,
         string userHome,
         params string[] arguments)
@@ -110,7 +110,7 @@ public sealed class CliInitSpecs
         return File.Exists(cli) ? cli : throw new FileNotFoundException("Build Aiko.Cli first.", cli);
     }
 
-    private static string FindRepositoryRoot()
+    internal static string FindRepositoryRoot()
     {
         var directory = new DirectoryInfo(Path.GetDirectoryName(typeof(CliInitSpecs).Assembly.Location)!);
         while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Aiko.slnx")))
