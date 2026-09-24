@@ -15,6 +15,10 @@ repository's [`SECURITY.md`](../../SECURITY.md), which stays the normative polic
 - The browser's session cookie opens the board's REST API only: the MCP endpoint takes the token in
   `Authorization: Bearer` and nothing else, and a write the cookie authenticates must carry the
   `X-Aiko-Request` header, which the board sends and a form on another page cannot.
+- A repository is data, not a trusted input: identifiers read from `.aiko` (card kinds, workflow and stage
+  ids) must be plain file names, and a document that breaks the rule is refused with its file named. Every
+  path Aiko builds from them - card directories, memory, workflows, agent files inside the project - has to
+  stay inside the project and may not cross a junction or symbolic link below its root.
 - Clients authenticate with an **access token**. A browser is paired once with a one-time code.
 - `AIKO_INSECURE=1` disables authentication. It exists for local debugging only and should never be left
   on.
