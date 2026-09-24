@@ -1087,6 +1087,24 @@ public sealed class RazorMarkupSpecs
         Metadata: new Dictionary<string, string>(StringComparer.Ordinal));
 
     [Fact]
+    public void A_discussion_note_is_rendered_as_sanitized_markdown_that_scrolls_inside_the_note()
+    {
+        var root = FindRepositoryRoot();
+        var inspector = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "CardInspector.razor"));
+        var css = File.ReadAllText(Path.Combine(root, "src", "Aiko.Pwa", "wwwroot", "css", "app.css"));
+
+        // Agents write their notes in markdown; the body is no longer printed as it was typed.
+        Assert.DoesNotContain("@note.Body</span>", inspector, StringComparison.Ordinal);
+        Assert.Contains("<FlareMarkdown Value=\"@note.Body\"", inspector, StringComparison.Ordinal);
+        // Notes come from outside, so the sanitizer is never switched off.
+        Assert.DoesNotContain("SanitizeHtml=\"false\"", inspector, StringComparison.Ordinal);
+        // The note may shrink below a wide table or code block, so those scroll inside it, not the page.
+        Assert.Contains("aiko-note", inspector, StringComparison.Ordinal);
+        Assert.Matches(@"\.aiko-note\s*\{[^}]*min-width:\s*0", css);
+    }
+
+    [Fact]
     public void The_board_filters_types_by_a_group_of_switches_and_asks_about_the_answer_beside_them()
     {
         var root = FindRepositoryRoot();

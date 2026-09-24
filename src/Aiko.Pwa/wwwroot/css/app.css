@@ -544,6 +544,27 @@ html.flare-mode-dark .splash-mark i {
     background: var(--flare-color-background);
 }
 
+/* A discussion note rendered as markdown. It may shrink below its widest table or code block, so those
+   scroll inside their own frames rather than the page. A long path in prose breaks instead of pushing the
+   column; a table cell does not, so a wide table scrolls rather than squeezing its words letter by letter.
+   The outer block margins go, so a one-line note is the same tile it was as plain text. */
+.aiko-note {
+    min-width: 0;
+}
+
+.aiko-note p,
+.aiko-note li {
+    overflow-wrap: anywhere;
+}
+
+.aiko-note .flare-markdown > :first-child {
+    margin-top: 0;
+}
+
+.aiko-note .flare-markdown > :last-child {
+    margin-bottom: 0;
+}
+
 /* A value read from the daemon: monospaced, like every other identifier in the cockpit. */
 .aiko-value {
     font-family: var(--aiko-font-mono, monospace);

@@ -448,7 +448,11 @@
                                                     @RelativeTime(note.CreatedAtUtc)
                                                 </FlareText>
                                             </FlareStack>
-                                            <span class="aiko-tile">@note.Body</span>
+                                            @* Agents write their notes in markdown. Flare's renderer encodes raw HTML and its
+                                               sanitizer stays on: a note comes from outside. *@
+                                            <div class="aiko-tile aiko-note">
+                                                <FlareMarkdown Value="@note.Body" />
+                                            </div>
                                         </FlareStack>
                                     </FlarePaper>
                                 }
