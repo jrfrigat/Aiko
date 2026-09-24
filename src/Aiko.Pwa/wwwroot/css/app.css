@@ -818,6 +818,12 @@ html.flare-mode-dark .splash-mark i {
     background: var(--flare-color-surface-container-lowest);
 }
 
+/* A relation row: the link takes the width, the button that removes it sits at its end. */
+.aiko-card__link-row > .aiko-card__row {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
 /* The link's own content area: it takes the row's remaining width, so the chevron sits at its end. */
 .aiko-card__row-body {
     flex: 1 1 auto;

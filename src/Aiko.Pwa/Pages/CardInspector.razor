@@ -1079,6 +1079,12 @@
                     </FlareText>
                     <span class="aiko-tag aiko-tag--quiet">@DisplayFormat.Number(Relations.Count)</span>
                 </FlareStack>
+                @if (_relationMessage is { Length: > 0 } relationMessage)
+                {
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.Error">
+                        @relationMessage
+                    </FlareText>
+                }
                 @if (Relations.Count == 0)
                 {
                     <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
@@ -1100,6 +1106,10 @@
                             @foreach (var relation in bucket.Relations)
                             {
                                 var link = relation;
+                                @* The link and the way to take it back, side by side: a button cannot sit inside
+                                   the link, and a mistaken "blocks" used to be removable only by editing a file. *@
+                                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall"
+                                            Class="aiko-card__link-row">
                                 <FlareNavLink Href="@CardHref(OtherCardId(link))" Class="aiko-card__row">
                                     <IconContent>
                                         <FlareIconView Value="@bucket.Icon" Color="@bucket.Color" />
@@ -1145,6 +1155,12 @@
                                         </FlareStack>
                                     </ChildContent>
                                 </FlareNavLink>
+                                <FlareIconButton Variant="ButtonVariant.Text"
+                                                 Icon="@MaterialDesign3Icons.Regular.LinkOff"
+                                                 AriaLabel="@Loc.Get("RemoveLink")"
+                                                 Disabled="@_unlinking"
+                                                 OnClick="@(() => UnlinkAsync(link))" />
+                                </FlareStack>
                             }
                         </FlareStack>
                     }
@@ -1343,6 +1359,42 @@
     /// <summary>True while a life-cycle action is in flight, so a button cannot be pressed twice.</summary>
     private bool _acting;
     private string? _executionMessage;
+    private string? _relationMessage;
+    private bool _unlinking;
+
+    /// <summary>
+    /// Takes a link back, after asking: the board is read again afterwards, so the link leaves the panel and the
+    /// card it held back is free on the board at once. A link someone else already removed is not an error.
+    /// </summary>
+    private async Task UnlinkAsync(CardRelation relation)
+    {
+        if (_unlinking || !await Js.InvokeAsync<bool>("confirm", Loc.Format("UnlinkConfirm", OtherCardId(relation))))
+        {
+            return;
+        }
+
+        _unlinking = true;
+        _relationMessage = null;
+        try
+        {
+            using var response = await Http.DeleteAsync(
+                $"api/v1/projects/{Uri.EscapeDataString(Card.Reference.ProjectId)}/relations/{Uri.EscapeDataString(relation.Id)}");
+            if (response.StatusCode != System.Net.HttpStatusCode.NotFound)
+            {
+                response.EnsureSuccessStatusCode();
+            }
+
+            await State.LoadBoardAsync();
+        }
+        catch (Exception exception)
+        {
+            _relationMessage = Loc.Format("UnlinkFailed", FailureText.Describe(exception));
+        }
+        finally
+        {
+            _unlinking = false;
+        }
+    }
     private bool _executionError;
 
     /// <summary>The commands the console offers: the ones this product's agents answer to.</summary>

@@ -36,8 +36,9 @@ aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<handle>
   узнаёт, что говорит проект; открывать ради этого файл под `.aiko` — нарушение (исключение — карточка,
   предмет которой сам формат `.aiko`, и она это говорит).
 - **Карточки** - `aiko_list_cards`, `aiko_get_card`, `aiko_create_card`, `aiko_update_card`,
-  `aiko_estimate_card`, `aiko_move_card`, `aiko_take_card`, `aiko_link_cards`, `aiko_add_comment`,
-  `aiko_list_comments`.
+  `aiko_estimate_card`, `aiko_move_card`, `aiko_take_card`, `aiko_link_cards`, `aiko_unlink_cards`,
+  `aiko_add_comment`, `aiko_list_comments`. Повторная связь уже связанных карточек возвращает существующую;
+  `aiko_unlink_cards` убирает связь по её id или по концам и типу.
 - **Артефакты карточки** - `aiko_get_card_artifact`, `aiko_save_card_artifact`: Markdown рядом с карточкой
   (`issue.md`, `analysis.md`, `implementation.md`, ...). `aiko_get_card` уже несёт список путей и текст
   `issue.md`, поэтому обычное чтение — один вызов.

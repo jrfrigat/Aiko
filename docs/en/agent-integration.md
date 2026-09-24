@@ -35,8 +35,9 @@ aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<handle>
   how an agent finds out what the project says; opening a file under `.aiko` to learn it is a violation (a
   card whose subject *is* the `.aiko` format is the exception, and says so).
 - **Cards** - `aiko_list_cards`, `aiko_get_card`, `aiko_create_card`, `aiko_update_card`,
-  `aiko_estimate_card`, `aiko_move_card`, `aiko_take_card`, `aiko_link_cards`, `aiko_add_comment`,
-  `aiko_list_comments`.
+  `aiko_estimate_card`, `aiko_move_card`, `aiko_take_card`, `aiko_link_cards`, `aiko_unlink_cards`,
+  `aiko_add_comment`, `aiko_list_comments`. Linking cards that already have the edge returns the existing link;
+  `aiko_unlink_cards` takes a link back by its id or by its ends and type.
 - **Card artifacts** - `aiko_get_card_artifact`, `aiko_save_card_artifact`: the Markdown beside a card
   (`issue.md`, `analysis.md`, `implementation.md`, ...). `aiko_get_card` already carries the list of paths and
   the text of `issue.md`, so the common read is one call.

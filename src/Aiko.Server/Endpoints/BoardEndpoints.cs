@@ -51,5 +51,31 @@ internal static class BoardEndpoints
                     await executions.ReadStageRunsAsync(projectId, cancellationToken),
                     [.. projectCards.Where(card => card.IsArchived)]));
             });
+
+        // A link can be taken back from the card page: a mistaken "blocks" used to hold a card back until someone
+        // edited relations.json by hand.
+        app.MapDelete(
+            "/api/v1/projects/{projectId}/relations/{relationId}",
+            async (
+                string projectId,
+                string relationId,
+                IProjectCatalog catalog,
+                IRelationStore relations,
+                CancellationToken cancellationToken) =>
+            {
+                if (await catalog.FindAsync(projectId, cancellationToken) is null)
+                {
+                    return Results.NotFound();
+                }
+
+                var stored = await relations.ListAsync(projectId, cancellationToken);
+                if (!stored.Any(relation => StringComparer.Ordinal.Equals(relation.Id, relationId)))
+                {
+                    return Results.NotFound();
+                }
+
+                await relations.RemoveAsync(projectId, relationId, cancellationToken);
+                return Results.NoContent();
+            });
     }
 }

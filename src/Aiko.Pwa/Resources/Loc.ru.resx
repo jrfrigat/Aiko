@@ -106,6 +106,9 @@
   <data name="SaveCard" xml:space="preserve"><value>Сохранить карточку</value></data>
   <data name="FilesTitle" xml:space="preserve"><value>Файлы</value></data>
   <data name="NoRelations" xml:space="preserve"><value>Связей пока нет.</value></data>
+  <data name="RemoveLink" xml:space="preserve"><value>Убрать связь</value></data>
+  <data name="UnlinkConfirm" xml:space="preserve"><value>Убрать связь с {0}?</value></data>
+  <data name="UnlinkFailed" xml:space="preserve"><value>Связь не удалось убрать: {0}</value></data>
   <data name="LoadingHistory" xml:space="preserve"><value>Загрузка истории...</value></data>
   <data name="NoExecutions" xml:space="preserve"><value>Запусков пока нет.</value></data>
   <data name="ArtifactsLabel" xml:space="preserve"><value>Артефакты: {0}</value></data>

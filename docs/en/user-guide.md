@@ -102,7 +102,8 @@ A card can wait for another one: a `blocks` relation (the blocking card is the s
 from being started. `aiko_start_stage` refuses it and names the blocking card and its stage, and the agent
 reports that to you instead of working a card whose turn has not come. The block lifts when the blocking card
 finishes its own pipeline - it sits in the last stage, read from that card's workflow so pipelines may differ,
-and that stage's latest run completed - or when the relation is removed.
+and that stage's latest run completed - or when the relation is removed: every link on the card page has a
+button that takes it back, and an agent does the same with `aiko_unlink_cards`.
 
 ## Workflows
 

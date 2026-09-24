@@ -450,7 +450,9 @@ internal sealed class CardTools(
 
     [McpServerTool(Name = "aiko_link_cards", Title = "Link Aiko cards")]
     [Description(
-        "Creates a directed implements, parent-child or blocks edge, or a symmetric relates-to edge.")]
+        "Creates a directed implements, parent-child or blocks edge, or a symmetric relates-to edge. Linking "
+        + "cards that already have that edge returns the existing one instead of storing it twice. "
+        + "aiko_unlink_cards takes a link back.")]
     public async Task<string> LinkCardsAsync(
         [Description("Source card id.")]
         string sourceCardId,
@@ -463,6 +465,17 @@ internal sealed class CardTools(
         // The relation is built from the project's own id, not from the route value: an agent connects through
         // the readable handle, and a handle written into relations.json is a reference nothing else resolves.
         var project = await GetProjectAsync(cancellationToken);
+        if (FindEdge(
+                await relations.ListAsync(project.Id, cancellationToken),
+                sourceCardId,
+                targetCardId,
+                relationType) is { } existing)
+        {
+            // A retry, or a second agent saying the same thing: the edge is there once, and saying it again
+            // changes nothing.
+            return JsonSerializer.Serialize(existing, ServerJsonContext.Default.CardRelation);
+        }
+
         var relation = new CardRelation(
             Guid.CreateVersion7().ToString("N"),
             new CardReference(project.Id, sourceCardId),
@@ -472,6 +485,68 @@ internal sealed class CardTools(
         await relations.SaveAsync(relation, cancellationToken);
         return JsonSerializer.Serialize(relation, ServerJsonContext.Default.CardRelation);
     }
+
+    [McpServerTool(Name = "aiko_unlink_cards", Title = "Unlink Aiko cards")]
+    [Description(
+        "Removes a link between two cards: by its id (from aiko_link_cards or the board), or by its source, "
+        + "target and type. A relates-to link can be named from either end. Removing a blocks link lets the "
+        + "card it held back be started. Returns the removed link; naming a link that is not there is refused.")]
+    public async Task<string> UnlinkCardsAsync(
+        [Description("Id of the link to remove. Leave it out to name the link by its ends and type instead.")]
+        [Optional] string? relationId,
+        [Description("Source card id, when the link is named by its ends.")]
+        [Optional] string? sourceCardId,
+        [Description("Target card id, when the link is named by its ends.")]
+        [Optional] string? targetCardId,
+        [Description("Relation type, when the link is named by its ends: implements, parent-child, blocks or relates-to.")]
+        [Optional] string? relationType,
+        CancellationToken cancellationToken)
+    {
+        var project = await GetProjectAsync(cancellationToken);
+        var stored = await relations.ListAsync(project.Id, cancellationToken);
+        CardRelation? link;
+        if (!string.IsNullOrWhiteSpace(relationId))
+        {
+            link = stored.FirstOrDefault(relation => StringComparer.Ordinal.Equals(relation.Id, relationId));
+        }
+        else if (!string.IsNullOrWhiteSpace(sourceCardId) &&
+                 !string.IsNullOrWhiteSpace(targetCardId) &&
+                 !string.IsNullOrWhiteSpace(relationType))
+        {
+            link = FindEdge(stored, sourceCardId, targetCardId, relationType);
+        }
+        else
+        {
+            throw new ArgumentException(
+                "Name the link: its relationId, or its sourceCardId, targetCardId and relationType.");
+        }
+
+        if (link is null)
+        {
+            throw new KeyNotFoundException(
+                "There is no such link. aiko_list_board lists the links the project has, with their ids.");
+        }
+
+        await relations.RemoveAsync(project.Id, link.Id, cancellationToken);
+        return JsonSerializer.Serialize(link, ServerJsonContext.Default.CardRelation);
+    }
+
+    /// <summary>
+    /// The stored edge between two cards of one type, if there is one. A relates-to edge has no direction, so
+    /// it is found from either end.
+    /// </summary>
+    private static CardRelation? FindEdge(
+        IReadOnlyList<CardRelation> stored,
+        string sourceCardId,
+        string targetCardId,
+        string relationType) =>
+        stored.FirstOrDefault(relation =>
+            StringComparer.Ordinal.Equals(relation.Type, relationType) &&
+            ((StringComparer.Ordinal.Equals(relation.Source.CardId, sourceCardId) &&
+              StringComparer.Ordinal.Equals(relation.Target.CardId, targetCardId)) ||
+             (StringComparer.Ordinal.Equals(relationType, RelationTypes.RelatesTo) &&
+              StringComparer.Ordinal.Equals(relation.Source.CardId, targetCardId) &&
+              StringComparer.Ordinal.Equals(relation.Target.CardId, sourceCardId))));
 
     [McpServerTool(Name = "aiko_take_card", Title = "Take Aiko card")]
     [Description(

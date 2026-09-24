@@ -115,6 +115,9 @@
   <data name="SaveCard" xml:space="preserve"><value>Save card</value></data>
   <data name="FilesTitle" xml:space="preserve"><value>Files</value></data>
   <data name="NoRelations" xml:space="preserve"><value>No relations yet.</value></data>
+  <data name="RemoveLink" xml:space="preserve"><value>Remove link</value></data>
+  <data name="UnlinkConfirm" xml:space="preserve"><value>Remove the link to {0}?</value></data>
+  <data name="UnlinkFailed" xml:space="preserve"><value>The link could not be removed: {0}</value></data>
   <data name="LoadingHistory" xml:space="preserve"><value>Loading history...</value></data>
   <data name="NoExecutions" xml:space="preserve"><value>No runs yet.</value></data>
   <data name="ArtifactsLabel" xml:space="preserve"><value>Artifacts: {0}</value></data>
