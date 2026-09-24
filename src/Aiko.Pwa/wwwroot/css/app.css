@@ -58,8 +58,8 @@ html.flare-mode-dark #flare-splash {
     display: block;
     width: 4px;
     height: 32px;
-    /* The accent bar. The light scheme's primary, because the dark palette's pale periwinkle reads as
-       an empty slot on a light plane - the same fallback rule as the splash around it. */
+    /* The accent bar. The light scheme's primary, because a dark scheme's pale primary reads as an empty
+       slot on a light plane - the same fallback rule as the splash around it. */
     background: var(--flare-color-primary, #4a4bc4);
 }
 
@@ -300,8 +300,32 @@ html.flare-mode-dark .splash-mark i {
 /* The metric strip under the top bar. */
 .aiko-metrics {
     padding: 0.25rem 0.375rem;
-    border-radius: var(--flare-shape-extra-small);
-    background: var(--flare-color-surface-container);
+    /* v3: a flat strip whose numbers are separated by hairlines rather than by a tonal panel. */
+    border-radius: 0;
+    background: var(--flare-color-surface-container-low);
+    border: 1px solid var(--flare-color-outline-variant);
+}
+
+/* Every tile after the first is closed off from its neighbour by a hairline, as the design divides them. */
+.aiko-metrics > * + * {
+    border-left: 1px solid var(--flare-color-outline-variant);
+    padding-left: 0.5rem;
+}
+
+/* A type filter's name and its count, kept on one line: the design reads it as one label. */
+.aiko-filter__count {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+/* The board's tool row - the size filter, the order and the find field. One flat strip, as the metric
+   strip above it, so the two read as the same kind of chrome. */
+.aiko-toolbar {
+    padding: 0.25rem 0.375rem;
+    border-radius: 0;
+    background: var(--flare-color-surface-container-low);
+    border: 1px solid var(--flare-color-outline-variant);
 }
 
 /* The board: columns scroll sideways, each column scrolls its own cards.
@@ -331,15 +355,18 @@ html.flare-mode-dark .splash-mark i {
     flex-direction: column;
     flex: 0 0 auto;
     width: 20rem;
-    border-radius: var(--flare-shape-large);
-    background: var(--flare-color-background);
-    box-shadow: var(--flare-elevation-1);
+    /* v3 geometry: no rounding and no elevation - a column is a flat panel held by a hairline. */
+    border-radius: 0;
+    background: var(--flare-color-surface-container-low);
+    border: 1px solid var(--flare-color-outline-variant);
 }
 
+/* The stage banner: its own plane nested inside the column and closed by a hairline, as v3 draws it. */
 .aiko-col__head {
     padding: 0.375rem;
-    border-radius: var(--flare-shape-large) var(--flare-shape-large) 0 0;
-    background: var(--flare-color-surface-container-low);
+    border-radius: 0;
+    background: var(--flare-color-surface-container-high);
+    border-bottom: 1px solid var(--flare-color-outline-variant);
 }
 
 .aiko-col__body {
@@ -350,8 +377,8 @@ html.flare-mode-dark .splash-mark i {
 
 .aiko-col__drop {
     padding: 0.375rem;
-    border-radius: var(--flare-shape-large);
-    background: color-mix(in srgb, var(--flare-color-background) 60%, transparent);
+    border-radius: 0;
+    background: color-mix(in srgb, var(--flare-color-surface) 60%, transparent);
 }
 
 /* A card, and the drag wrapper the board puts around it. */
@@ -361,6 +388,16 @@ html.flare-mode-dark .splash-mark i {
 
 .aiko-card {
     padding: 0.375rem 0.5rem;
+    /* v3: a card is a flat panel too; its hairline is quiet until the pointer is over it, when it takes
+       the accent. FlareCard paints its own radius, so the reset has to be explicit here. */
+    border-radius: 0;
+    border: 1px solid var(--flare-color-outline-variant);
+    transition: border-color var(--flare-motion-duration-short2) var(--flare-motion-easing-standard);
+}
+
+.aiko-card:hover,
+.aiko-card:focus-within {
+    border-color: var(--flare-color-primary);
 }
 
 /* The card's number, and the only link a board card has: it opens the card's own page, so the middle
@@ -416,14 +453,28 @@ html.flare-mode-dark .splash-mark i {
 
 .aiko-card__meta {
     padding: 0.125rem 0.25rem;
-    border-radius: var(--flare-shape-extra-small);
-    background: var(--flare-color-background);
+    border-radius: 0;
+    border-top: 1px solid var(--flare-color-outline-variant);
+}
+
+/* A card's live panel: the state of the stage being worked, the agent on it and the way to the card. It
+   sits between the body and the footer on the next plane up, with the accent as its leading edge, the way
+   the design marks the one card that is moving. */
+.aiko-card__run {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+    padding: 0.125rem 0.25rem;
+    border-radius: 0;
+    background: var(--flare-color-surface-container-high);
+    border-left: 2px solid var(--flare-color-primary);
 }
 
 .aiko-card__dod {
     padding: 0.125rem 0.25rem;
-    border-radius: var(--flare-shape-extra-small);
-    background: color-mix(in srgb, var(--flare-color-surface-container) 40%, transparent);
+    border-radius: 0;
+    border-top: 1px solid var(--flare-color-outline-variant);
 }
 
 /* The dashboard's activity calendar. A plain CSS grid: seven rows (Monday first) and one column per

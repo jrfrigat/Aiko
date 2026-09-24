@@ -86,6 +86,9 @@
   <data name="CreateCardFailed" xml:space="preserve"><value>Не удалось создать карточку: {0}</value></data>
   <data name="MoveFailed" xml:space="preserve"><value>Переход {0} не сохранён: {1}</value></data>
   <data name="BoardCaption" xml:space="preserve"><value>Доска проекта</value></data>
+  <data name="BoardFilterSize" xml:space="preserve"><value>Размер</value></data>
+  <data name="BoardFilterText" xml:space="preserve"><value>Найти карточку</value></data>
+  <data name="BoardFilterTextHint" xml:space="preserve"><value>По номеру или заголовку</value></data>
   <data name="LoadingContext" xml:space="preserve"><value>Собираем проектный контекст...</value></data>
   <data name="BoardUpdateFailed" xml:space="preserve"><value>Не удалось обновить доску</value></data>
   <data name="Cards" xml:space="preserve"><value>Карточки</value></data>
@@ -746,6 +749,9 @@
   <data name="ReleaseCardLine" xml:space="preserve"><value>ушла в выпуск {0}</value></data>
 
   <data name="BoardModeFilter" xml:space="preserve"><value>Вид</value></data>
+  <data name="BoardSort" xml:space="preserve"><value>Порядок</value></data>
+  <data name="BoardSortAscending" xml:space="preserve"><value>Сначала низкий приоритет</value></data>
+  <data name="BoardSortDescending" xml:space="preserve"><value>Сначала высокий приоритет</value></data>
   <data name="BoardModeBoard" xml:space="preserve"><value>Доска</value></data>
   <data name="BoardModeArchive" xml:space="preserve"><value>Архив</value></data>
   <data name="ArchiveTitle" xml:space="preserve"><value>Архив</value></data>

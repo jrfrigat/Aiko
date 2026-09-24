@@ -118,6 +118,26 @@
                                                 </span>
                                             }
 
+                                            @* A card whose stage is being worked says so in its own panel: the state in the words the
+                                               rest of the cockpit uses, the agent on that stage, and the way to the card. It sits
+                                               between the body and the footer, so the footer stays the card's last strip.
+                                               No timer, no progress bar and no log: a board run carries its state and nothing
+                                               more, and a figure nothing backs would be worse than no figure at all. *@
+                                            @if (IsWorking(StageStateOf(card)))
+                                            {
+                                                <span class="aiko-card__run">
+                                                    <span class="aiko-tag @StageStateView.TagClass(StageStateOf(card))">
+                                                        @Loc.Get(StageStateView.LabelKey(StageStateOf(card)))
+                                                    </span>
+                                                    <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant2">@Agents(stage)</FlareText>
+                                                    <FlareNavLink Href="@CardHref(card)">
+                                                        <ChildContent>
+                                                            <FlareText Element="span" Mono="true" Color="FlareColor.Primary">#@card.Reference.CardId</FlareText>
+                                                        </ChildContent>
+                                                    </FlareNavLink>
+                                                </span>
+                                            }
+
                                             <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XXSmall" Class="aiko-card__dod">
                                                 <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
                                                     <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant2">@DodLine(card)</FlareText>
@@ -173,6 +193,12 @@
     /// </remarks>
     [Parameter] public IReadOnlyList<SizeDefinition> SizeGrid { get; set; } = [];
 
+    /// <summary>
+    /// Whether the cards inside a column run lowest priority first. The board's toolbar owns the choice; how
+    /// the cards are ranked is this section's rule either way.
+    /// </summary>
+    [Parameter] public bool SortAscending { get; set; }
+
     /// <summary>Raised when a card lands in another stage; the page turns it into one request.</summary>
     [Parameter] public EventCallback<BoardCardMove> OnCardMoved { get; set; }
 
@@ -205,14 +231,17 @@
         _workflow = Board.Workflows.FirstOrDefault(workflow =>
             StringComparer.Ordinal.Equals(workflow.Id, workflowId));
         _stages = _workflow?.Stages.OrderBy(stage => stage.Order).ToArray() ?? [];
-        _cards = Board.Cards
+        var visible = Board.Cards
             .Where(card => StringComparer.OrdinalIgnoreCase.Equals(card.Kind, Kind))
             .Where(card => VisibleCardIds is null || VisibleCardIds.Contains(card.Reference.CardId))
             // Ranked by the priority the formula computes, not by the manual field: with criteria configured
             // the score is the weighted criterion values times the size coefficient, and the manual value is
             // only what a project without criteria ranks by. The projector falls back that way itself, so the
-            // board and the card page finally show the same number.
-            .OrderByDescending(EffectivePriority)
+            // board and the card page finally show the same number. Only the direction comes from the toolbar.
+            .ToList();
+        _cards = (SortAscending
+                ? visible.OrderBy(EffectivePriority)
+                : visible.OrderByDescending(EffectivePriority))
             .ToArray();
     }
 
@@ -314,6 +343,14 @@
     /// </remarks>
     private StageState StageStateOf(Card card) =>
         StageStateView.Of(Board.StageRuns, card.Reference.CardId, card.StageId);
+
+    /// <summary>
+    /// Whether a card's current stage is being worked, which is what the card's live panel speaks to: an agent
+    /// is on it, it was stopped mid-way, it waits for an answer, or its last run ended badly. A stage that is
+    /// finished or not started has nothing in flight to report.
+    /// </summary>
+    private static bool IsWorking(StageState state) =>
+        state is StageState.Running or StageState.Paused or StageState.WaitingForUser or StageState.Blocked;
 
     private static string MetaLine(Card card) =>
         $"rev={card.Revision} · files={card.ActualChangedFiles.Count}/{card.DeclaredScopeFiles.Count}";

@@ -30,7 +30,14 @@ else
                     <FlareToggleButton Toggled="@IsPicked(option)"
                                        ToggledChanged="@(toggled => SetKindAsync(option, toggled))"
                                        AriaLabel="@option.Title">
-                        <ChildContent>@option.Title</ChildContent>
+                        @* The count sits beside the name as v3 draws it, in the design's mono chip. It is not
+                           part of the accessible name: the button still announces the type alone. *@
+                        <ChildContent>
+                            <span class="aiko-filter__count">
+                                @option.Title
+                                <span class="aiko-tag aiko-tag--quiet">@CountFor(option)</span>
+                            </span>
+                        </ChildContent>
                     </FlareToggleButton>
                 }
             </FlareButtonGroup>
@@ -101,6 +108,36 @@ else
                     }
                 </FlareStack>
             }
+        </FlareStack>
+
+        @* The design's tool row: the size the board is narrowed to, the order the cards inside a column run
+           in, and one field that finds a card by its number or its title. All three work on the same set the
+           metric strip counts, so no two numbers on this screen can disagree. *@
+        <FlareStack Row="true" Align="FlareAlignItems.End" Gap="FlareSpacing.Small" Wrap="true" Class="aiko-toolbar">
+            <AikoSelectField Label="@Loc.Get("BoardFilterSize")"
+                             Value="@_sizeFilter"
+                             ValueChanged="@(size => _sizeFilter = size)"
+                             Items="@SizeChoices"
+                             NullOption="@Loc.Get("BoardWaitingFilterAll")" />
+            <FlareButtonGroup Connected="true"
+                              Size="ButtonSize.Sm"
+                              Variant="ButtonVariant.Tonal"
+                              AdditionalAttributes="@SortFilterAttributes">
+                <FlareToggleButton Toggled="@(!_sortAscending)"
+                                   ToggledChanged="@(_ => _sortAscending = false)"
+                                   AriaLabel="@Loc.Get("BoardSortDescending")">
+                    <ChildContent>@Loc.Get("BoardSortDescending")</ChildContent>
+                </FlareToggleButton>
+                <FlareToggleButton Toggled="@_sortAscending"
+                                   ToggledChanged="@(_ => _sortAscending = true)"
+                                   AriaLabel="@Loc.Get("BoardSortAscending")">
+                    <ChildContent>@Loc.Get("BoardSortAscending")</ChildContent>
+                </FlareToggleButton>
+            </FlareButtonGroup>
+            <AikoField Label="@Loc.Get("BoardFilterText")"
+                       Placeholder="@Loc.Get("BoardFilterTextHint")"
+                       Value="@_textFilter"
+                       ValueChanged="@(text => _textFilter = text)" />
         </FlareStack>
 
         <FlareStack Row="true" Gap="FlareSpacing.XSmall">
@@ -203,6 +240,7 @@ else
                           Board="board"
                           VisibleCardIds="@VisibleCardIds"
                           SizeGrid="@(State.SettingsView?.EffectivePriority.Grid ?? [])"
+                          SortAscending="@_sortAscending"
                           OnCardMoved="move => MoveCardAsync(current.CardType, move)" />
         }
 
@@ -355,6 +393,26 @@ else
     /// <summary>Whether the board shows only the cards that wait for an answer from the person.</summary>
     private bool WaitingOnly { get; set; }
 
+    /// <summary>The size the tool row is narrowed to, or null for every size.</summary>
+    private string? _sizeFilter;
+
+    /// <summary>What the tool row's find field holds, or null when it is empty.</summary>
+    private string? _textFilter;
+
+    /// <summary>Whether the tool row asks for the lowest priority first.</summary>
+    private bool _sortAscending;
+
+    /// <summary>
+    /// The size codes the tool row offers: the project's own grid, so a project that reshapes its ladder gets
+    /// the new steps without the board learning their names.
+    /// </summary>
+    private IReadOnlyList<string> SizeChoices =>
+        (State.SettingsView?.EffectivePriority.Grid ?? [])
+            .Select(step => step.Id)
+            .OfType<string>()
+            .Where(id => id.Length > 0)
+            .ToArray();
+
     /// <summary>
     /// The cards the answer filter leaves: the ones whose latest run waits for a user and whose feed's last
     /// word is an agent's. Rebuilt from the runs and feeds the board reads, never guessed.
@@ -412,6 +470,10 @@ else
     /// <summary>The mode group's accessible name.</summary>
     private IReadOnlyDictionary<string, object> ModeFilterAttributes =>
         new Dictionary<string, object>(StringComparer.Ordinal) { ["aria-label"] = Loc.Get("BoardModeFilter") };
+
+    /// <summary>The order group's accessible name.</summary>
+    private IReadOnlyDictionary<string, object> SortFilterAttributes =>
+        new Dictionary<string, object>(StringComparer.Ordinal) { ["aria-label"] = Loc.Get("BoardSort") };
 
     /// <summary>Whether the board is showing the archive instead of the work.</summary>
     private bool ArchiveOnly { get; set; }
@@ -665,8 +727,23 @@ else
     /// </summary>
     private IReadOnlyList<Card> VisibleCards => State.Board?.Cards
         .Where(card => (!IsFiltered || _pickedKinds.Contains(card.Kind)) &&
-                       (!WaitingOnly || _waitingCards.Contains(card.Reference.CardId)))
+                       (!WaitingOnly || _waitingCards.Contains(card.Reference.CardId)) &&
+                       (_sizeFilter is null ||
+                        StringComparer.OrdinalIgnoreCase.Equals(card.Size, _sizeFilter)) &&
+                       MatchesText(card))
         .ToArray() ?? [];
+
+    /// <summary>
+    /// Whether a card survives the tool row's find field: its number or its title contains what was typed,
+    /// with case ignored. An empty field asks nothing, so every card passes.
+    /// </summary>
+    private bool MatchesText(Card card)
+    {
+        var needle = _textFilter?.Trim();
+        return string.IsNullOrEmpty(needle) ||
+               card.Reference.CardId.Contains(needle, StringComparison.OrdinalIgnoreCase) ||
+               card.Title.Contains(needle, StringComparison.OrdinalIgnoreCase);
+    }
 
     /// <summary>
     /// The cards the sections may draw, or null when nothing is filtered: a section reads the board itself, so
@@ -676,6 +753,18 @@ else
         IsFiltered || WaitingOnly
             ? VisibleCards.Select(card => card.Reference.CardId).ToHashSet(StringComparer.Ordinal)
             : null;
+
+    /// <summary>
+    /// How much of one type the board is showing - the number v3 draws beside a type's name.
+    /// </summary>
+    /// <remarks>
+    /// Counted over <see cref="VisibleCards"/>, the same set the metric strip counts, so a counter can never
+    /// contradict the total beside it. A type the filter left out therefore reads as zero, which is the honest
+    /// answer to "how much of this type is on the board now"; counting the unfiltered board instead would put a
+    /// number on a filter that shows none of it.
+    /// </remarks>
+    private int CountFor(WorkflowDefinition type) =>
+        VisibleCards.Count(card => StringComparer.OrdinalIgnoreCase.Equals(card.Kind, type.Id));
 
     /// <summary>
     /// The four board metrics, as the design's mono summary line. A tile carries at most one slice of its

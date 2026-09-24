@@ -95,6 +95,9 @@
   <data name="CreateCardFailed" xml:space="preserve"><value>Could not create the card: {0}</value></data>
   <data name="MoveFailed" xml:space="preserve"><value>Move {0} was not saved: {1}</value></data>
   <data name="BoardCaption" xml:space="preserve"><value>Project board</value></data>
+  <data name="BoardFilterSize" xml:space="preserve"><value>Size</value></data>
+  <data name="BoardFilterText" xml:space="preserve"><value>Find a card</value></data>
+  <data name="BoardFilterTextHint" xml:space="preserve"><value>By number or title</value></data>
   <data name="LoadingContext" xml:space="preserve"><value>Assembling the project context...</value></data>
   <data name="BoardUpdateFailed" xml:space="preserve"><value>Could not update the board</value></data>
   <data name="Cards" xml:space="preserve"><value>Cards</value></data>
@@ -746,6 +749,9 @@
   <data name="ReleaseCardLine" xml:space="preserve"><value>went into release {0}</value></data>
 
   <data name="BoardModeFilter" xml:space="preserve"><value>View</value></data>
+  <data name="BoardSort" xml:space="preserve"><value>Order</value></data>
+  <data name="BoardSortAscending" xml:space="preserve"><value>Lowest priority first</value></data>
+  <data name="BoardSortDescending" xml:space="preserve"><value>Highest priority first</value></data>
   <data name="BoardModeBoard" xml:space="preserve"><value>Board</value></data>
   <data name="BoardModeArchive" xml:space="preserve"><value>Archive</value></data>
   <data name="ArchiveTitle" xml:space="preserve"><value>Archive</value></data>
