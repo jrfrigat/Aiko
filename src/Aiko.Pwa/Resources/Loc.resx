@@ -324,6 +324,7 @@
   <data name="RelatedLinks" xml:space="preserve"><value>Linked</value></data>
   <data name="RelationBlocks" xml:space="preserve"><value>blocks this</value></data>
   <data name="RelationBlockedBy" xml:space="preserve"><value>blocked by this</value></data>
+  <data name="BlockedByCard" xml:space="preserve"><value>blocked by {0}</value></data>
   <data name="RelationImplements" xml:space="preserve"><value>implements this</value></data>
   <data name="RelationImplementedBy" xml:space="preserve"><value>implemented by this</value></data>
   <data name="RelationRelatesTo" xml:space="preserve"><value>related</value></data>

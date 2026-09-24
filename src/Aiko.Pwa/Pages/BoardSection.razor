@@ -94,6 +94,20 @@
                                                 <FlareText Element="span" Mono="true">@MetaLine(card)</FlareText>
                                             </span>
 
+                                            @* What holds the card back, named and in the warning colour: a block is not one
+                                               more link, and it is never cut off by the cap on the links below. *@
+                                            @if (Blockers(card) is { Count: > 0 } blockers)
+                                            {
+                                                <span class="aiko-card__tags">
+                                                    @foreach (var blocker in blockers)
+                                                    {
+                                                        <span class="aiko-tag aiko-tag--warn" title="@blocker.Title">
+                                                            @Loc.Format("BlockedByCard", blocker.CardId)
+                                                        </span>
+                                                    }
+                                                </span>
+                                            }
+
                                             @if (RelatedTags(card) is { Count: > 0 } tags)
                                             {
                                                 <span class="aiko-card__tags">
@@ -336,9 +350,17 @@
     /// The cards this one is linked to - a task's stories, a story's related items - drawn as the
     /// design's mono tags. Capped, so a hub card cannot push everything else off its own card.
     /// </summary>
+    /// <summary>
+    /// The cards that hold this one back, read with the start gate's own rule so the board and an agent agree.
+    /// </summary>
+    private IReadOnlyList<CardBlocker> Blockers(Card card) =>
+        BoardRelations.BlockedBy(card, Board.Relations, Board.Cards, Board.Workflows, Board.StageRuns ?? []);
+
     private IReadOnlyList<string> RelatedTags(Card card)
     {
         var id = card.Reference.CardId;
+        // A blocker already has its own tag above; it is not repeated among the plain links.
+        var blockers = Blockers(card).Select(blocker => blocker.CardId).ToHashSet(StringComparer.Ordinal);
 
         // Only a card the snapshot carries gets a tag. A relation of an archived card still points at a card
         // somebody can open - that is what "nothing is lost" means - while a tag pointing at a card the board
@@ -355,7 +377,7 @@
             .Select(relation => StringComparer.Ordinal.Equals(relation.Source.CardId, id)
                 ? relation.Target.CardId
                 : relation.Source.CardId)
-            .Where(related => known.Contains(related))
+            .Where(related => known.Contains(related) && !blockers.Contains(related))
             .Distinct(StringComparer.Ordinal)
             .Take(3)
             .ToArray();

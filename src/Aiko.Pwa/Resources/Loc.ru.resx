@@ -324,6 +324,7 @@
   <data name="RelatedLinks" xml:space="preserve"><value>Связанные</value></data>
   <data name="RelationBlocks" xml:space="preserve"><value>блокирует эту</value></data>
   <data name="RelationBlockedBy" xml:space="preserve"><value>заблокирована этой</value></data>
+  <data name="BlockedByCard" xml:space="preserve"><value>ждёт {0}</value></data>
   <data name="RelationImplements" xml:space="preserve"><value>реализует эту</value></data>
   <data name="RelationImplementedBy" xml:space="preserve"><value>реализована этой</value></data>
   <data name="RelationRelatesTo" xml:space="preserve"><value>связана</value></data>
