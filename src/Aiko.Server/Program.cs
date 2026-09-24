@@ -198,6 +198,28 @@ foreach (var project in await app.Services
             project.Name,
             collection);
     }
+
+    // The board is a projection of the project's files, and the files change while the daemon is away - a git
+    // pull, a checkout, a save cut short. Rebuilding it here is what keeps the board from starting on revisions
+    // that are no longer there. A project that cannot be read is reported and left alone: one broken project
+    // must not keep the daemon from starting for the others.
+    try
+    {
+        await app.Services
+            .GetRequiredService<IProjectReindexer>()
+            .ReindexAsync(project.Id, CancellationToken.None);
+    }
+    catch (Exception exception) when (exception is IOException or UnauthorizedAccessException
+                                         or System.Text.Json.JsonException or ArgumentException
+                                         or InvalidOperationException or KeyNotFoundException)
+    {
+        app.Logger.LogWarning(
+            exception,
+            "Aiko: {Project}: the board could not be rebuilt from the project's files at start; it shows what " +
+            "it had. Run `aiko reindex {ProjectId}` once the files are readable.",
+            project.Name,
+            project.Id);
+    }
 }
 var configuredUrl = builder.Configuration["AIKO_URL"];
 var serverBaseUri = !string.IsNullOrWhiteSpace(configuredUrl)

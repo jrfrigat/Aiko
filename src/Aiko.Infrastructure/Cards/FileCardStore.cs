@@ -110,11 +110,20 @@ public sealed class FileCardStore(
         using (await locks.LockAsync(lockKey, cancellationToken))
         {
             var existingPath = GetCardPath(project.RootPath, card.Reference.CardId, null);
-            var actualRevision = existingPath is null
-                ? 0
-                : (await ReadCardAsync(existingPath, cancellationToken)).Revision;
+            var stored = existingPath is null ? null : await ReadCardAsync(existingPath, cancellationToken);
+            var actualRevision = stored?.Revision ?? 0;
             if (actualRevision != expectedRevision)
             {
+                // The caller read its revision from the board, and the board is a projection of the files: a
+                // file changed outside the daemon - a git pull, a checkout, an interrupted save - leaves it
+                // behind, and every save it makes is refused until someone reindexes. The conflict is the moment
+                // the gap shows, so the board is brought up to the file here and told, and the next attempt
+                // names the revision that is really there.
+                if (stored is not null)
+                {
+                    await HealProjectionAsync(stored with { Reference = card.Reference });
+                }
+
                 throw new RevisionConflictException(
                     $"{project.Id}/{card.Reference.CardId}",
                     expectedRevision,
@@ -131,15 +140,48 @@ public sealed class FileCardStore(
             Directory.CreateDirectory(cardDirectory);
             var cardPath = Path.Combine(cardDirectory, "card.json");
             await WriteCardAtomicallyAsync(cardPath, card, cancellationToken);
-            await UpsertProjectionAsync(card, cancellationToken);
-            if (events is not null)
+
+            // Once the file is in place the card has changed, whatever happens to the request: the board's copy
+            // and the event follow it without the caller's token, so a cancellation cannot leave the board on
+            // the old revision with every later save refused.
+            await UpsertProjectionAsync(card, CancellationToken.None);
+            await PublishUpdatedAsync(card);
+        }
+    }
+
+    /// <summary>
+    /// Brings the board's copy of a card up to its file when the two differ, and tells the screens.
+    /// </summary>
+    private async ValueTask HealProjectionAsync(Card stored)
+    {
+        await using (var connection = database.CreateConnection())
+        {
+            await connection.OpenAsync(CancellationToken.None);
+            await using var command = connection.CreateCommand();
+            command.CommandText =
+                "SELECT revision FROM cards WHERE project_id = $projectId AND card_id = $cardId";
+            command.Parameters.AddWithValue("$projectId", stored.Reference.ProjectId);
+            command.Parameters.AddWithValue("$cardId", stored.Reference.CardId);
+            if (await command.ExecuteScalarAsync(CancellationToken.None) is long projected &&
+                projected == stored.Revision)
             {
-                await events.PublishAsync(
-                    card.Reference.ProjectId,
-                    AikoEventTypes.CardUpdated,
-                    JsonSerializer.Serialize(card, AikoJson.Project),
-                    cancellationToken);
+                return;
             }
+        }
+
+        await UpsertProjectionAsync(stored, CancellationToken.None);
+        await PublishUpdatedAsync(stored);
+    }
+
+    private async ValueTask PublishUpdatedAsync(Card card)
+    {
+        if (events is not null)
+        {
+            await events.PublishAsync(
+                card.Reference.ProjectId,
+                AikoEventTypes.CardUpdated,
+                JsonSerializer.Serialize(card, AikoJson.Project),
+                CancellationToken.None);
         }
     }
 

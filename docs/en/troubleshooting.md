@@ -127,7 +127,9 @@ Cards and workflows use optimistic revisions. If two clients edit the same item,
 
 ## Stale board or projections
 
-The board reads from SQLite projections built from `.aiko`. If you edited files by hand, rebuild:
+The board reads from SQLite projections built from `.aiko`. The daemon rebuilds them when it starts, and a
+save refused with `409` after the card's file changed (a git pull, a checkout) brings that card up to date,
+so retrying the save works. If you edited files by hand while the daemon was running, restart it or rebuild:
 
 ```powershell
 aiko reindex <projectId>

@@ -1345,6 +1345,82 @@ public class InfrastructureSpecs
     }
 
     [Fact]
+    public async Task A_card_file_changed_outside_the_daemon_heals_the_board_on_the_conflict_it_causes()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            var card = CreateCard(context.Project.Id, "TASK-PULLED", 1);
+            await context.Cards.SaveAsync(card, 0, CancellationToken.None);
+
+            // A git pull brings revision 5 of the card while the board still reads revision 1: every save the
+            // board makes names revision 1 and is refused, and it used to stay refused until someone reindexed.
+            var path = Directory
+                .EnumerateFiles(context.StitchRoot, "card.json", SearchOption.AllDirectories)
+                .Single(file => file.Contains("TASK-PULLED", StringComparison.Ordinal));
+            await File.WriteAllTextAsync(
+                path,
+                JsonSerializer.Serialize(card with { Title = "Pulled", Revision = 5 }, AikoJson.Project));
+
+            await Assert.ThrowsAsync<RevisionConflictException>(async () =>
+                await context.Cards.SaveAsync(card with { Revision = 2 }, 1, CancellationToken.None));
+
+            // The refusal brought the board up to the file, so the next attempt names the revision that is there.
+            var healed = (await context.Cards.ListAsync(context.Project.Id, CancellationToken.None))
+                .Single(candidate => candidate.Reference.CardId == "TASK-PULLED");
+            Assert.Equal(5, healed.Revision);
+            Assert.Equal("Pulled", healed.Title);
+        });
+    }
+
+    [Fact]
+    public async Task A_save_cancelled_after_its_file_is_written_still_reaches_the_board()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            // The request is cancelled in the one moment that used to split the card: the file is written and
+            // the board's copy is not yet. The file is the card, so the board has to follow it.
+            using var cancellation = new CancellationTokenSource();
+            var store = new FileCardStore(
+                context.Catalog,
+                context.Database,
+                analytics: new CancelOnRecord(cancellation));
+
+            try
+            {
+                await store.SaveAsync(CreateCard(context.Project.Id, "TASK-CUT", 1), 0, cancellation.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                // Whether the caller hears of the cancellation is beside the point; what the board shows is.
+            }
+
+            var projected = (await context.Cards.ListAsync(context.Project.Id, CancellationToken.None))
+                .SingleOrDefault(candidate => candidate.Reference.CardId == "TASK-CUT");
+            Assert.NotNull(projected);
+            Assert.Equal(1, projected.Revision);
+        });
+    }
+
+    /// <summary>Cancels the caller's request the moment the store records a stage - between file and board.</summary>
+    private sealed class CancelOnRecord(CancellationTokenSource cancellation) : IProjectAnalytics
+    {
+        public ValueTask<ProjectAnalytics> ReadAsync(string projectId, int weeks, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public ValueTask RecordStageAsync(
+            string projectId,
+            string cardId,
+            string? fromStageId,
+            string toStageId,
+            string kind,
+            CancellationToken cancellationToken)
+        {
+            cancellation.Cancel();
+            return ValueTask.CompletedTask;
+        }
+    }
+
+    [Fact]
     public async Task Memory_stored_through_the_handle_is_found_by_either_name_and_once_after_a_reindex()
     {
         await WithInitializedProjectAsync(async context =>

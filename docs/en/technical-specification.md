@@ -225,9 +225,14 @@ in memory over the `relations` projection, not with a recursive CTE.
 - Writes go through a temporary file and atomic replace.
 - The SQLite projection is rebuilt from `.aiko` by `aiko reindex` (or
   `POST /api/v1/projects/{projectId}/reindex`).
+- The daemon rebuilds every project's projection when it starts, so edits made while it was away (a git
+  pull, a checkout) are on the board from the first request. A save refused because the card's file moved
+  on brings that card's projection up to the file and publishes `card.updated`, so the retry names the
+  revision that is there. Once a card's file is written, its projection and event follow without the
+  request's cancellation token.
 - Reacting to external JSON edits immediately (FileSystemWatcher as a signal plus optimistic
-  reconciliation) is not implemented: the projection is refreshed by `reindex`. That is post-MVP
-  (see §29).
+  reconciliation) is not implemented: between starts the projection is refreshed by those conflicts and by
+  `reindex`. That is post-MVP (see §29).
 
 ## 8. Card model
 
