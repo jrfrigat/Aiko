@@ -27,6 +27,9 @@ public static class StitchFlowPalettes
     /// <summary>Stable palette id of the cool amber sibling.</summary>
     public const string OperatorId = "stitchflow-operator";
 
+    /// <summary>Stable palette id of the editor-workstation sibling.</summary>
+    public const string StudioModernId = "stitchflow-studio-modern";
+
     /// <summary>Where these palettes come from, for palette pickers.</summary>
     public const string SourceName = "Aiko";
 
@@ -414,6 +417,150 @@ public static class StitchFlowPalettes
         Dark = OperatorDark,
     };
 
+    // The fourth sibling is the editor-workstation design the files 4 and 4dark carry, and each file
+    // designs one scheme of it, so the roles it names are taken value for value:
+    //   .claude/design/Palettes/4.md      -> Studio Modern light
+    //   .claude/design/Palettes/4dark.md  -> Studio Modern dark
+    // That design speaks of three accents - a blue primary, a teal-green secondary and a warm brown
+    // tertiary - plus error, and names no success, warning, info or third on-surface tone of its own.
+    // The roles it leaves out are filled the way the amber siblings fill theirs: by lending an accent's
+    // whole quadruple rather than inventing a hue.
+    //   Success borrows the teal-green secondary and Warning the warm tertiary - the same move the amber
+    //     palettes make, where their one warm accent carries the warning.
+    //   Info borrows the primary blue, because this design does have a blue. That is the one place it
+    //     parts company with the amber family, whose Info had to be a shared colour because none of its
+    //     four schemes named a blue at all.
+    //   OnSurfaceVariant2 is the third, fainter tone the two-tone on-surface ramp lacks. On the dark
+    //     scheme it is the design's own outline grey; on the light one that grey reads 4.26 against the
+    //     surface - under the 4.5 a text tone owes - so it is darkened just far enough to clear it.
+    // The design's roles that no ColorScheme role names - surface-dim, surface-bright, surface-tint and
+    // the *-fixed ladders - are not carried across: ColorScheme has no seat for them.
+    // Every text/background pair here was measured before it was written down: the design's own container
+    // pairs sit at 4.54-4.57 (AA exactly), and nothing falls below 4.5 for text or 3.0 for outlines and
+    // accents-on-surface. The values are not a starting point to tweak by eye.
+
+    /// <summary>The editor-workstation scheme in daylight, as the design draws it.</summary>
+    private static readonly ColorScheme StudioModernLight = new()
+    {
+        Primary = "#004b79",
+        OnPrimary = "#ffffff",
+        PrimaryContainer = "#0e639c",
+        OnPrimaryContainer = "#beddff",
+        Secondary = "#006b5b",
+        OnSecondary = "#ffffff",
+        SecondaryContainer = "#7df4d9",
+        OnSecondaryContainer = "#00705f",
+        Tertiary = "#693b27",
+        OnTertiary = "#ffffff",
+        TertiaryContainer = "#85523d",
+        OnTertiaryContainer = "#ffcfbc",
+        Error = "#ba1a1a",
+        OnError = "#ffffff",
+        ErrorContainer = "#ffdad6",
+        OnErrorContainer = "#93000a",
+        // Success and Warning lend the whole secondary and tertiary quadruples, Info the primary one.
+        Success = "#006b5b",
+        OnSuccess = "#ffffff",
+        SuccessContainer = "#7df4d9",
+        OnSuccessContainer = "#00705f",
+        Warning = "#693b27",
+        OnWarning = "#ffffff",
+        WarningContainer = "#85523d",
+        OnWarningContainer = "#ffcfbc",
+        Info = "#004b79",
+        OnInfo = "#ffffff",
+        InfoContainer = "#0e639c",
+        OnInfoContainer = "#beddff",
+        Surface = "#fcf9f8",
+        OnSurface = "#1b1b1c",
+        SurfaceVariant = "#e5e2e1",
+        OnSurfaceVariant = "#414750",
+        // The design's outline grey #717881 reads 4.26 on this surface, under the 4.5 a text tone owes;
+        // the third tone is that grey darkened just far enough, and stays fainter than OnSurfaceVariant.
+        OnSurfaceVariant2 = "#6b7280",
+        SurfaceContainerLowest = "#ffffff",
+        SurfaceContainer = "#f0eded",
+        SurfaceContainerLow = "#f6f3f2",
+        SurfaceContainerHigh = "#eae7e7",
+        SurfaceContainerHighest = "#e5e2e1",
+        Background = "#fcf9f8",
+        OnBackground = "#1b1b1c",
+        Outline = "#717881",
+        OutlineVariant = "#c1c7d1",
+        InverseSurface = "#303030",
+        InverseOnSurface = "#f3f0ef",
+        InversePrimary = "#99cbff",
+        Scrim = "#000000",
+        Shadow = "#000000",
+        ShadowUmbra = "rgba(0, 0, 0, 0.3)",
+        ShadowPenumbra = "rgba(0, 0, 0, 0.15)",
+    };
+
+    /// <summary>The same workstation read at night, as the design draws it.</summary>
+    private static readonly ColorScheme StudioModernDark = new()
+    {
+        Primary = "#99cbff",
+        OnPrimary = "#003355",
+        PrimaryContainer = "#0e639c",
+        OnPrimaryContainer = "#beddff",
+        Secondary = "#61dac1",
+        OnSecondary = "#00382e",
+        SecondaryContainer = "#13a38b",
+        OnSecondaryContainer = "#003028",
+        Tertiary = "#fab79d",
+        OnTertiary = "#4e2513",
+        TertiaryContainer = "#85523d",
+        OnTertiaryContainer = "#ffcfbc",
+        Error = "#ffb4ab",
+        OnError = "#690005",
+        ErrorContainer = "#93000a",
+        OnErrorContainer = "#ffdad6",
+        Success = "#61dac1",
+        OnSuccess = "#00382e",
+        SuccessContainer = "#13a38b",
+        OnSuccessContainer = "#003028",
+        Warning = "#fab79d",
+        OnWarning = "#4e2513",
+        WarningContainer = "#85523d",
+        OnWarningContainer = "#ffcfbc",
+        Info = "#99cbff",
+        OnInfo = "#003355",
+        InfoContainer = "#0e639c",
+        OnInfoContainer = "#beddff",
+        Surface = "#131313",
+        OnSurface = "#e5e2e1",
+        SurfaceVariant = "#353535",
+        OnSurfaceVariant = "#c1c7d1",
+        // This scheme's third tone is the design's own outline grey: above 4.5, below OnSurfaceVariant.
+        OnSurfaceVariant2 = "#8b919b",
+        SurfaceContainerLowest = "#0e0e0e",
+        SurfaceContainer = "#202020",
+        SurfaceContainerLow = "#1b1b1c",
+        SurfaceContainerHigh = "#2a2a2a",
+        SurfaceContainerHighest = "#353535",
+        Background = "#131313",
+        OnBackground = "#e5e2e1",
+        Outline = "#8b919b",
+        OutlineVariant = "#414750",
+        InverseSurface = "#e5e2e1",
+        InverseOnSurface = "#303030",
+        InversePrimary = "#0c629b",
+        Scrim = "#000000",
+        Shadow = "#000000",
+        ShadowUmbra = "rgba(0, 0, 0, 0.6)",
+        ShadowPenumbra = "rgba(0, 0, 0, 0.3)",
+    };
+
+    /// <summary>The editor-workstation sibling: the Studio Modern design's blue on neutral chrome.</summary>
+    public static readonly Palette StudioModern = new()
+    {
+        Id = StudioModernId,
+        Name = "Studio Modern",
+        Source = SourceName,
+        Light = StudioModernLight,
+        Dark = StudioModernDark,
+    };
+
     /// <summary>Every palette this theme ships.</summary>
-    public static IReadOnlyList<Palette> All => [Kinetic, Parchment, Operator];
+    public static IReadOnlyList<Palette> All => [Kinetic, Parchment, Operator, StudioModern];
 }
