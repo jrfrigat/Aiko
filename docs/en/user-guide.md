@@ -352,7 +352,9 @@ Every card has a feed: notes from people and reports from agents. A note is auth
 with the card, in its own folder: `.aiko/workflows/<stories|tasks>/<cardId>/discussion.json`, next to `card.json`. The
 **Discussion & commands** tab shows the feed (who, when, what) and a box for a new note; the `/benchmark` and
 `/leak-check` chips add a command to the text. Nothing is launched from here: the daemon records work, you run
-the agent - a command in the text is addressed to whoever opens the stage.
+the agent - a command in the text is addressed to whoever opens the stage. A note is shown as markdown -
+headings, lists, bold, code and tables - with raw HTML and script links stripped; a wide table or code block
+scrolls inside its note.
 
 The feed is the notebook between stages, not a chat: an agent reads it before it works a stage and writes its
 outcome there before completing it - including what the next stage or agent will need - and signs the note with
