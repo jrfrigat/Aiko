@@ -441,34 +441,13 @@ html.flare-mode-dark .splash-mark i {
     opacity: 1;
 }
 
-/* The card's metadata line and footer: recessed mono strips. */
-.aiko-card__meta,
+/* The card's tag row and footer: recessed mono strips. */
 .aiko-card__tags,
 .aiko-card__dod {
     display: flex;
     align-items: center;
     gap: 0.25rem;
     flex-wrap: wrap;
-}
-
-.aiko-card__meta {
-    padding: 0.125rem 0.25rem;
-    border-radius: 0;
-    border-top: 1px solid var(--flare-color-outline-variant);
-}
-
-/* A card's live panel: the state of the stage being worked, the agent on it and the way to the card. It
-   sits between the body and the footer on the next plane up, with the accent as its leading edge, the way
-   the design marks the one card that is moving. */
-.aiko-card__run {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    flex-wrap: wrap;
-    padding: 0.125rem 0.25rem;
-    border-radius: 0;
-    background: var(--flare-color-surface-container-high);
-    border-left: 2px solid var(--flare-color-primary);
 }
 
 .aiko-card__dod {

@@ -90,10 +90,6 @@
                                                 @card.Title
                                             </FlareText>
 
-                                            <span class="aiko-card__meta">
-                                                <FlareText Element="span" Mono="true">@MetaLine(card)</FlareText>
-                                            </span>
-
                                             @* What holds the card back, named and in the warning colour: a block is not one
                                                more link, and it is never cut off by the cap on the links below. *@
                                             @if (Blockers(card) is { Count: > 0 } blockers)
@@ -115,26 +111,6 @@
                                                     {
                                                         <span class="aiko-tag aiko-tag--accent">@tag</span>
                                                     }
-                                                </span>
-                                            }
-
-                                            @* A card whose stage is being worked says so in its own panel: the state in the words the
-                                               rest of the cockpit uses, the agent on that stage, and the way to the card. It sits
-                                               between the body and the footer, so the footer stays the card's last strip.
-                                               No timer, no progress bar and no log: a board run carries its state and nothing
-                                               more, and a figure nothing backs would be worse than no figure at all. *@
-                                            @if (IsWorking(StageStateOf(card)))
-                                            {
-                                                <span class="aiko-card__run">
-                                                    <span class="aiko-tag @StageStateView.TagClass(StageStateOf(card))">
-                                                        @Loc.Get(StageStateView.LabelKey(StageStateOf(card)))
-                                                    </span>
-                                                    <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant2">@Agents(stage)</FlareText>
-                                                    <FlareNavLink Href="@CardHref(card)">
-                                                        <ChildContent>
-                                                            <FlareText Element="span" Mono="true" Color="FlareColor.Primary">#@card.Reference.CardId</FlareText>
-                                                        </ChildContent>
-                                                    </FlareNavLink>
                                                 </span>
                                             }
 
@@ -343,17 +319,6 @@
     /// </remarks>
     private StageState StageStateOf(Card card) =>
         StageStateView.Of(Board.StageRuns, card.Reference.CardId, card.StageId);
-
-    /// <summary>
-    /// Whether a card's current stage is being worked, which is what the card's live panel speaks to: an agent
-    /// is on it, it was stopped mid-way, it waits for an answer, or its last run ended badly. A stage that is
-    /// finished or not started has nothing in flight to report.
-    /// </summary>
-    private static bool IsWorking(StageState state) =>
-        state is StageState.Running or StageState.Paused or StageState.WaitingForUser or StageState.Blocked;
-
-    private static string MetaLine(Card card) =>
-        $"rev={card.Revision} · files={card.ActualChangedFiles.Count}/{card.DeclaredScopeFiles.Count}";
 
     private static string DodLine(Card card)
     {

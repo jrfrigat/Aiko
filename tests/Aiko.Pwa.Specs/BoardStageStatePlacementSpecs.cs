@@ -21,8 +21,9 @@ public sealed class BoardStageStatePlacementSpecs
         var footer = text[text.IndexOf("aiko-card__dod", StringComparison.Ordinal)..];
         Assert.Contains("StageStateView.TagClass(StageStateOf(card))", footer, StringComparison.Ordinal);
 
-        // ... and the top row no longer mentions it at all.
-        var topRow = text[..text.IndexOf("aiko-card__meta", StringComparison.Ordinal)];
+        // ... and nothing above the card's title mentions it at all. The title is where the card's header
+        // row ends now that the card has no metadata strip of its own (TASK-250).
+        var topRow = text[..text.IndexOf("Element=\"h3\"", StringComparison.Ordinal)];
         Assert.DoesNotContain("StageStateView", topRow, StringComparison.Ordinal);
     }
 
@@ -58,7 +59,7 @@ public sealed class BoardStageStatePlacementSpecs
     {
         var css = File.ReadAllText(Path.Combine(
             FindRepositoryRoot(), "src", "Aiko.Pwa", "wwwroot", "css", "app.css"));
-        var start = css.IndexOf(".aiko-card__meta,", StringComparison.Ordinal);
+        var start = css.IndexOf(".aiko-card__tags,", StringComparison.Ordinal);
         Assert.True(start >= 0, "The card footer should keep the shared strip rule.");
         var block = css[start..css.IndexOf('}', start)];
         Assert.Contains(".aiko-card__dod", block, StringComparison.Ordinal);

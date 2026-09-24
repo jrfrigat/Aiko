@@ -25,7 +25,10 @@ public sealed class BoardCardSizeSpecs
             text,
             StringComparison.Ordinal);
 
-        var topRow = text[..text.IndexOf("aiko-card__meta", StringComparison.Ordinal)];
+        // Everything above the card's title is its header row: the slice has to stop where a reader would
+        // say the top of the card ends, and the title is that line - the card has no metadata strip of its
+        // own any more (TASK-250).
+        var topRow = text[..text.IndexOf("Element=\"h3\"", StringComparison.Ordinal)];
         Assert.Contains("card.Size", topRow, StringComparison.Ordinal);
 
         // ... and the footer no longer states it: that row reads DoD on the left and the agents with the
@@ -100,11 +103,11 @@ public sealed class BoardCardSizeSpecs
     [Fact]
     public void The_card_footer_wraps_so_a_size_cannot_stretch_a_narrow_column()
     {
-        // The footer is the shared mono strip with the metadata line; it must keep wrapping, or the size tag
+        // The footer is the mono strip it shares with the tag row; it must keep wrapping, or the size tag
         // would push the agents out of a narrow column instead of folding onto the next line.
         var css = File.ReadAllText(Path.Combine(
             FindRepositoryRoot(), "src", "Aiko.Pwa", "wwwroot", "css", "app.css"));
-        var start = css.IndexOf(".aiko-card__meta,", StringComparison.Ordinal);
+        var start = css.IndexOf(".aiko-card__tags,", StringComparison.Ordinal);
         Assert.True(start >= 0, "The card footer should keep the shared strip rule.");
         var block = css[start..css.IndexOf('}', start)];
         Assert.Contains(".aiko-card__dod", block, StringComparison.Ordinal);
