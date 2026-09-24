@@ -377,12 +377,6 @@ html.flare-mode-dark .splash-mark i {
 .aiko-sort__value .flare-icon {
     font-size: 0.875rem;
 }
-.aiko-toolbar {
-    padding: 0.25rem 0.375rem;
-    border-radius: 0;
-    background: var(--flare-color-surface-container-low);
-    border: 1px solid var(--flare-color-outline-variant);
-}
 
 /* The board: columns scroll sideways, each column scrolls its own cards.
    The shell must not grow with the board: every link from the layout's content track down to the
@@ -452,9 +446,10 @@ html.flare-mode-dark .splash-mark i {
 }
 
 .aiko-card {
-    /* v3: a card is a flat panel too; its hairline is quiet until the pointer is over it, when it takes
-       the accent. FlareCard paints its own radius, so the reset has to be explicit here. */
-    border-radius: 0;
+    /* v3: a card is a flat panel too, with the design's own corner on it - 2px, the extra-small step - and a
+       hairline that is quiet until the pointer is over it, when it takes the accent. FlareCard paints its own
+       radius, so the value has to be stated here. */
+    border-radius: var(--flare-shape-extra-small);
     border: 1px solid var(--flare-color-outline-variant);
     transition: border-color var(--flare-motion-duration-short2) var(--flare-motion-easing-standard);
 }

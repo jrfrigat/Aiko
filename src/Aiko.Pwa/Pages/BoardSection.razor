@@ -43,7 +43,7 @@
                                     {
                                         <FlareIconView Value="stageIcon" Color="@accent" />
                                     }
-                                    <FlareText Element="span" Typo="TypographyScale.HeadlineMedium" Color="FlareColor.Default">@stage.Title</FlareText>
+                                    <FlareText Element="span" Typo="TypographyScale.HeadlineMedium" Color="@accent">@stage.Title</FlareText>
                                 </FlareStack>
                                 @* The column's own count is the stage's work in progress: the card sitting in the
                                    stage is the card being worked, so the banner states it once, as the design does. *@
@@ -300,9 +300,10 @@
     private FlareIcon? StageIcon(StageDefinition stage) => CardAppearance.Icon(stage.Icon);
 
     /// <summary>
-    /// The stage's accent - on the stage's icon, while the column's name stays at the reading colour, as the
-    /// design draws it. <see cref="FlareColor.Default"/> when the project chose none: the icon then keeps the
-    /// theme's own colour instead of an accent invented by position.
+    /// The stage's accent, or <see cref="FlareColor.Default"/> when the project chose none: the stage's icon and
+    /// the column's name both carry it. TASK-246 had left the name at the reading colour; the person who works
+    /// with the board asked for the colour back, and a column whose name is painted is how this screen says which
+    /// stage it is.
     /// </summary>
     private FlareColor StageAccent(StageDefinition stage) =>
         CardAppearance.Color(stage.Color) ?? FlareColor.Default;

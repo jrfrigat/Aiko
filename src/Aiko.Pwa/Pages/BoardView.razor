@@ -80,6 +80,37 @@ else
                     <ChildContent>@Loc.Get("BoardModeArchive")</ChildContent>
                 </FlareToggleButton>
             </FlareButtonGroup>
+            @* The size the board is narrowed to, as the design's own segment of mono pills: one press per step, the
+               first one meaning every size. It stands beside the view it narrows. *@
+            <FlareButtonGroup Size="ButtonSize.Sm"
+                              Variant="ButtonVariant.Text"
+                              Collapsible="true"
+                              Class="aiko-segment"
+                              AdditionalAttributes="@SizeFilterAttributes">
+                <FlareToggleButton Toggled="@(_sizeFilter is null)"
+                                   ToggledChanged="@(toggled => OnAllSizes(toggled))"
+                                   AriaLabel="@Loc.Get("BoardWaitingFilterAll")">
+                    <ChildContent>@Loc.Get("BoardWaitingFilterAll")</ChildContent>
+                </FlareToggleButton>
+                @foreach (var size in SizeChoices)
+                {
+                    var choice = size;
+                    <FlareToggleButton Toggled="@IsSizePicked(choice)"
+                                       ToggledChanged="@(toggled => OnSizePicked(choice, toggled))"
+                                       AriaLabel="@choice">
+                        <ChildContent>@choice</ChildContent>
+                    </FlareToggleButton>
+                }
+            </FlareButtonGroup>
+            @* The order the cards inside a column run in: one dropdown that names the order it holds and takes it
+               from the same state the columns are drawn with. *@
+            <AikoSelectField Class="aiko-sort"
+                             Value="@SortChoice"
+                             ValueChanged="@(choice => _sortAscending = string.Equals(choice, SortAscendingChoice, StringComparison.Ordinal))"
+                             Items="@SortChoices"
+                             ItemLabel="@SortOptionLabel"
+                             SelectedTemplate="@SortSelected"
+                             AriaLabel="@Loc.Get("BoardSort")" />
         </FlareStack>
 
         @* Everything below this line describes the work: the numbers, the request to run the board, the runs in
@@ -111,40 +142,6 @@ else
                     }
                 </FlareStack>
             }
-        </FlareStack>
-
-        @* The design's tool row: the size the board is narrowed to, as the design's own segment of mono pills,
-           and the order the cards inside a column run in, as one dropdown that names the order it holds. Both
-           work on the same set the metric strip counts, so no two numbers on this screen can disagree.
-           Finding a card is the app bar's job (Ctrl+K), so this row keeps no second field for it. *@
-        <FlareStack Row="true" Align="FlareAlignItems.End" Gap="FlareSpacing.Small" Wrap="true" Class="aiko-toolbar">
-            <FlareButtonGroup Size="ButtonSize.Sm"
-                              Variant="ButtonVariant.Text"
-                              Collapsible="true"
-                              Class="aiko-segment"
-                              AdditionalAttributes="@SizeFilterAttributes">
-                <FlareToggleButton Toggled="@(_sizeFilter is null)"
-                                   ToggledChanged="@(_ => _sizeFilter = null)"
-                                   AriaLabel="@Loc.Get("BoardWaitingFilterAll")">
-                    <ChildContent>@Loc.Get("BoardWaitingFilterAll")</ChildContent>
-                </FlareToggleButton>
-                @foreach (var size in SizeChoices)
-                {
-                    var choice = size;
-                    <FlareToggleButton Toggled="@IsSizePicked(choice)"
-                                       ToggledChanged="@(toggled => _sizeFilter = toggled ? choice : null)"
-                                       AriaLabel="@choice">
-                        <ChildContent>@choice</ChildContent>
-                    </FlareToggleButton>
-                }
-            </FlareButtonGroup>
-            <AikoSelectField Class="aiko-sort"
-                             Value="@SortChoice"
-                             ValueChanged="@(choice => _sortAscending = string.Equals(choice, SortAscendingChoice, StringComparison.Ordinal))"
-                             Items="@SortChoices"
-                             ItemLabel="@SortOptionLabel"
-                             SelectedTemplate="@SortSelected"
-                             AriaLabel="@Loc.Get("BoardSort")" />
         </FlareStack>
 
         <FlareStack Row="true" Gap="FlareSpacing.XSmall" Class="aiko-actions">
@@ -400,7 +397,7 @@ else
     /// <summary>Whether the board shows only the cards that wait for an answer from the person.</summary>
     private bool WaitingOnly { get; set; }
 
-    /// <summary>The size the tool row is narrowed to, or null for every size.</summary>
+    /// <summary>The size the board is narrowed to, or null for every size.</summary>
     private string? _sizeFilter;
 
     /// <summary>Whether the tool row asks for the lowest priority first.</summary>
@@ -427,6 +424,35 @@ else
     /// <summary>Whether the size segment currently holds this step.</summary>
     private bool IsSizePicked(string size) =>
         StringComparer.OrdinalIgnoreCase.Equals(_sizeFilter, size);
+
+    /// <summary>
+    /// Picks a size. A collapsible group reports the clearing of the previous choice and the taking of the new one
+    /// as two calls, and their order is not ours to decide - so a step clears the filter only when that filter is
+    /// its own, and never clears a choice another step has just made.
+    /// </summary>
+    private void OnSizePicked(string size, bool toggled)
+    {
+        if (toggled)
+        {
+            _sizeFilter = size;
+        }
+        else if (IsSizePicked(size))
+        {
+            _sizeFilter = null;
+        }
+    }
+
+    /// <summary>
+    /// Whether every size is shown again. Only taking this choice means it: its clearing is another step taking
+    /// the segment, not a reason to widen the board back.
+    /// </summary>
+    private void OnAllSizes(bool toggled)
+    {
+        if (toggled)
+        {
+            _sizeFilter = null;
+        }
+    }
 
     /// <summary>
     /// What the closed dropdown draws: the design's sort sign and the order it holds, so the reader sees the
@@ -757,8 +783,8 @@ else
         .ToArray();
 
     /// <summary>
-    /// The cards the board is showing: the types the filter picked, and - when the answer filter is on - only
-    /// those that wait for the person.
+    /// The cards the board is showing: the types the filter picked, the size it is narrowed to, and - when the
+    /// answer filter is on - only those that wait for the person.
     /// </summary>
     private IReadOnlyList<Card> VisibleCards => State.Board?.Cards
         .Where(card => (!IsFiltered || _pickedKinds.Contains(card.Kind)) &&
@@ -769,10 +795,11 @@ else
 
     /// <summary>
     /// The cards the sections may draw, or null when nothing is filtered: a section reads the board itself, so
-    /// it has to be told which of its cards the board is showing.
+    /// it has to be told which of its cards the board is showing. Every filter that narrows the columns counts
+    /// here - the size one included, or the columns would draw cards the rest of the screen has left out.
     /// </summary>
     private IReadOnlySet<string>? VisibleCardIds =>
-        IsFiltered || WaitingOnly
+        IsFiltered || WaitingOnly || _sizeFilter is not null
             ? VisibleCards.Select(card => card.Reference.CardId).ToHashSet(StringComparer.Ordinal)
             : null;
 
