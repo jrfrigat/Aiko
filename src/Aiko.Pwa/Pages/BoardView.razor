@@ -162,18 +162,20 @@ else
                     @foreach (var run in _activeRuns)
                     {
                         var row = run;
+                        // Resolved on every render, so a stage whose icon or colour was just edited shows it at once.
+                        var rowStage = StageAppearance.Find(State.Board?.Workflows, row.WorkflowId, row.StageId);
                         <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
                             <FlareButton Variant="ButtonVariant.Text" OnClick="() => OpenCard(row.CardId)">
                                 <ChildContent>@row.Title</ChildContent>
                             </FlareButton>
                             <FlareBadge Standalone="true" Text="@row.State" Color="FlareColor.Tertiary" />
                             @* The stage as the card page names and draws it: its title, its icon and its colour. *@
-                            <span class="aiko-tag aiko-tag--quiet" style="@StageAppearance.TagStyle(row.Stage)">
-                                @if (StageAppearance.Icon(row.Stage) is { } runStageIcon)
+                            <span class="aiko-tag aiko-tag--quiet" style="@StageAppearance.TagStyle(rowStage)">
+                                @if (StageAppearance.Icon(rowStage) is { } runStageIcon)
                                 {
                                     <FlareIconView Value="runStageIcon" Size="1em" />
                                 }
-                                @StageAppearance.Caption(row.Stage, row.StageId)
+                                @StageAppearance.Caption(rowStage, row.StageId)
                             </span>
                             <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
                                 @($"{row.Agent} · {row.UpdatedAt:yyyy-MM-dd HH:mm}")
@@ -518,7 +520,7 @@ else
         string CardId,
         string Title,
         string StageId,
-        StageDefinition? Stage,
+        string? WorkflowId,
         string State,
         string Agent,
         DateTimeOffset UpdatedAt);
@@ -568,7 +570,7 @@ else
                     run.CardId,
                     card?.Title ?? run.CardId,
                     run.StageId,
-                    StageAppearance.Find(board.Workflows, card?.WorkflowId, run.StageId),
+                    card?.WorkflowId,
                     execution.State.ToString(),
                     execution.Attempts.LastOrDefault()?.AgentAdapterId ?? Loc.Get("ActiveRunsNoAgent"),
                     execution.UpdatedAt));
