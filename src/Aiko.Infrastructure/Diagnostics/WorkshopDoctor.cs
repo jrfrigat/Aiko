@@ -27,7 +27,8 @@ public sealed class WorkshopDoctor(
     AccessTokenStore tokens,
     ICardStore cards,
     IProjectDefinitionStore definitions,
-    IExecutionCoordinator executions) : IWorkshopDiagnostics
+    IExecutionCoordinator executions,
+    Func<string, string?>? readEnvironment = null) : IWorkshopDiagnostics
 {
     /// <inheritdoc />
     public async ValueTask<WorkshopDiagnostics> InspectAsync(
@@ -44,13 +45,9 @@ public sealed class WorkshopDoctor(
                 : "No database yet: run `aiko init <path>` or start the daemon once.",
             paths.DatabasePath));
 
-        findings.Add(new DiagnosticFinding(
-            "token",
-            File.Exists(paths.AccessTokenPath) ? DiagnosticSeverity.Ok : DiagnosticSeverity.Error,
-            File.Exists(paths.AccessTokenPath)
-                ? "Access token present."
-                : "Access token missing: run `aiko serve` once to create it.",
-            paths.AccessTokenPath));
+        findings.Add(TokenFinding(
+            paths,
+            (readEnvironment ?? Environment.GetEnvironmentVariable)("AIKO_TOKEN")));
 
         var settings = await endpoint.TryReadAsync(cancellationToken);
         findings.Add(settings is null
@@ -352,6 +349,33 @@ public sealed class WorkshopDoctor(
     {
         var shown = string.Join(", ", items.Take(5));
         return items.Count > 5 ? $"{shown} and {items.Count - 5} more" : shown;
+    }
+
+    /// <summary>
+    /// Where the daemon's token comes from. A daemon started with AIKO_TOKEN uses the variable and never writes
+    /// the token file, so the file alone is not the question: either source means authentication works. The
+    /// value itself is never reported.
+    /// </summary>
+    /// <param name="paths">The installation's data paths.</param>
+    /// <param name="environmentToken">The value of AIKO_TOKEN, or null when it is not set.</param>
+    internal static DiagnosticFinding TokenFinding(AikoDataPaths paths, string? environmentToken)
+    {
+        if (!string.IsNullOrWhiteSpace(environmentToken))
+        {
+            return new DiagnosticFinding(
+                "token",
+                DiagnosticSeverity.Ok,
+                "Access token set by the AIKO_TOKEN environment variable.",
+                paths.AccessTokenPath);
+        }
+
+        return File.Exists(paths.AccessTokenPath)
+            ? new DiagnosticFinding("token", DiagnosticSeverity.Ok, "Access token present.", paths.AccessTokenPath)
+            : new DiagnosticFinding(
+                "token",
+                DiagnosticSeverity.Error,
+                "Access token missing: run `aiko serve` once to create it, or set AIKO_TOKEN.",
+                paths.AccessTokenPath);
     }
 
     /// <summary>

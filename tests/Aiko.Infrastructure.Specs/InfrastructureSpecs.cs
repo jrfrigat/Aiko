@@ -464,7 +464,10 @@ public class InfrastructureSpecs
                 new AccessTokenStore(dataPaths),
                 context.Cards,
                 new FileProjectDefinitionStore(context.Catalog),
-                context.Executions);
+                context.Executions,
+                // An installed Aiko on the machine sets AIKO_TOKEN, which would answer the token question for
+                // this spec; the installation it inspects has neither the variable nor the file.
+                readEnvironment: _ => null);
 
             var report = await doctor.InspectAsync(context.Project.Id, CancellationToken.None);
 

@@ -89,6 +89,9 @@ If you hit 401:
 - Open the UI with `aiko ui` (it pairs the browser).
 - For scripts/agents, send `Authorization: Bearer <token>`; get the token with `aiko token show`.
 
+A daemon started with `AIKO_TOKEN` uses that value and does not write a token file; `aiko doctor` reports the
+token as set by the variable rather than missing.
+
 `AIKO_INSECURE=1` disables authentication for local debugging only.
 
 ## 403 / 400 on browser requests
