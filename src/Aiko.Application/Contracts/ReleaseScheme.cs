@@ -52,19 +52,16 @@ public static class ReleaseSchemes
         "Git release",
         "An ordinary release: the tag carries the version, and the release becomes the latest one.",
         """
-        1. Make sure the tree is green: `dotnet build Aiko.slnx -c Release` with no warnings, and
-           `dotnet test Aiko.slnx -c Release` - every suite passes.
+        1. Make sure the tree is green: the application builds with no warnings and every test suite passes.
         2. Choose the version and explain the choice to the person: a patch for fixes only, a minor for a new
            capability, a major only when the person decides it.
-        3. Give the person the tag command. The version is a tag of the shape `v<major>.<minor>.<patch>`,
-           so the command is `git tag v0.1.3`. Do not push it yourself.
-        4. Wait for the person to push the tag and for the release workflow to build the archive.
-        5. Tell the person to install the release: `scripts/install.ps1 -Version v0.1.3`, or without
-           `-Version` once this release is the latest one.
-        6. Reconnect the agents: `aiko agent install --project <id>`.
-        7. Record the release: `aiko_record_release(version, schemeId: "git-release", cards)`.
+        3. Form the tag. The version is a tag of the shape `v<major>.<minor>.<patch>`, so the command that
+           sets it is `git tag v0.1.3`. Hand it to the person and say plainly that the tag has to be pushed:
+           setting and pushing the tag are the person's steps, and you do not push it yourself.
+        4. Wait for the person to push the tag and for the release workflow to publish the release.
+        5. Record the release: `aiko_record_release(version, schemeId: "git-release", cards)`.
 
-        The result: this release becomes the latest one, so an install without a version gives exactly it.
+        The result: this release becomes the latest one.
         """);
 
     /// <summary>
@@ -74,20 +71,17 @@ public static class ReleaseSchemes
     public static ReleaseScheme GitPreRelease() => new(
         GitPreReleaseId,
         "Git pre-release",
-        "A preliminary release: the tag carries -pre, and only an explicit install gets it.",
+        "A preliminary release: the tag carries -pre, and it does not become the latest release.",
         """
-        1. Make sure the tree is green, exactly as for an ordinary release: the build with no warnings and
-           every test suite passing.
+        1. Make sure the tree is green, exactly as for an ordinary release: the application builds with no
+           warnings and every test suite passes.
         2. Choose the version and explain the choice to the person. A preliminary release is still a version,
            so the same rule applies: a patch for fixes, a minor for a capability.
-        3. Give the person the tag command, with the suffix: the version is a tag of the shape
-           `v<major>.<minor>.<patch>-pre`, so the command is `git tag v0.1.3-pre`. Do not push it yourself.
-        4. Wait for the person to push the tag and for the release workflow to build the archive. The
-           workflow recognises the `-pre` suffix and publishes the release as a preliminary one, so it does
-           not become the latest release - a plain install keeps giving the previous ordinary release.
-        5. Tell the person to install it by naming the version: `scripts/install.ps1 -Version v0.1.3-pre`.
-           Without `-Version` this release is never installed, which is the point of it.
-        6. Reconnect the agents: `aiko agent install --project <id>`.
-        7. Record the release: `aiko_record_release(version, schemeId: "git-pre-release", cards)`.
+        3. Form the tag. The version is a tag of the shape `v<major>.<minor>.<patch>-pre`, so the command that
+           sets it is `git tag v0.1.3-pre`. Hand it to the person and say plainly that the tag has to be
+           pushed: setting and pushing the tag are the person's steps, and you do not push it yourself.
+        4. Wait for the person to push the tag and for the release workflow to publish the release. The `-pre`
+           suffix marks it as a preliminary one, so it does not become the latest release.
+        5. Record the release: `aiko_record_release(version, schemeId: "git-pre-release", cards)`.
         """);
 }
