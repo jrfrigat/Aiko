@@ -96,8 +96,6 @@
   <data name="MoveFailed" xml:space="preserve"><value>Move {0} was not saved: {1}</value></data>
   <data name="BoardCaption" xml:space="preserve"><value>Project board</value></data>
   <data name="BoardFilterSize" xml:space="preserve"><value>Size</value></data>
-  <data name="BoardFilterText" xml:space="preserve"><value>Find a card</value></data>
-  <data name="BoardFilterTextHint" xml:space="preserve"><value>By number or title</value></data>
   <data name="LoadingContext" xml:space="preserve"><value>Assembling the project context...</value></data>
   <data name="BoardUpdateFailed" xml:space="preserve"><value>Could not update the board</value></data>
   <data name="Cards" xml:space="preserve"><value>Cards</value></data>
@@ -327,7 +325,8 @@
   <data name="RelatedLinks" xml:space="preserve"><value>Linked</value></data>
   <data name="RelationBlocks" xml:space="preserve"><value>blocks this</value></data>
   <data name="RelationBlockedBy" xml:space="preserve"><value>blocked by this</value></data>
-  <data name="BlockedByCard" xml:space="preserve"><value>blocked by {0}</value></data>
+      <data name="BoardSubTasks" xml:space="preserve"><value>{0} sub-tasks</value></data>
+<data name="BlockedByCard" xml:space="preserve"><value>blocked by {0}</value></data>
   <data name="RelationImplements" xml:space="preserve"><value>implements this</value></data>
   <data name="RelationImplementedBy" xml:space="preserve"><value>implemented by this</value></data>
   <data name="RelationRelatesTo" xml:space="preserve"><value>related</value></data>

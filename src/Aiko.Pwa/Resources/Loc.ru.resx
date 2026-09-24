@@ -87,8 +87,6 @@
   <data name="MoveFailed" xml:space="preserve"><value>Переход {0} не сохранён: {1}</value></data>
   <data name="BoardCaption" xml:space="preserve"><value>Доска проекта</value></data>
   <data name="BoardFilterSize" xml:space="preserve"><value>Размер</value></data>
-  <data name="BoardFilterText" xml:space="preserve"><value>Найти карточку</value></data>
-  <data name="BoardFilterTextHint" xml:space="preserve"><value>По номеру или заголовку</value></data>
   <data name="LoadingContext" xml:space="preserve"><value>Собираем проектный контекст...</value></data>
   <data name="BoardUpdateFailed" xml:space="preserve"><value>Не удалось обновить доску</value></data>
   <data name="Cards" xml:space="preserve"><value>Карточки</value></data>
@@ -327,7 +325,8 @@
   <data name="RelatedLinks" xml:space="preserve"><value>Связанные</value></data>
   <data name="RelationBlocks" xml:space="preserve"><value>блокирует эту</value></data>
   <data name="RelationBlockedBy" xml:space="preserve"><value>заблокирована этой</value></data>
-  <data name="BlockedByCard" xml:space="preserve"><value>ждёт {0}</value></data>
+      <data name="BoardSubTasks" xml:space="preserve"><value>{0} подзадач</value></data>
+<data name="BlockedByCard" xml:space="preserve"><value>ждёт {0}</value></data>
   <data name="RelationImplements" xml:space="preserve"><value>реализует эту</value></data>
   <data name="RelationImplementedBy" xml:space="preserve"><value>реализована этой</value></data>
   <data name="RelationRelatesTo" xml:space="preserve"><value>связана</value></data>

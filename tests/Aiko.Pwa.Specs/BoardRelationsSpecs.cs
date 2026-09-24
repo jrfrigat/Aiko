@@ -66,13 +66,23 @@ public sealed class BoardRelationsSpecs
     }
 
     [Fact]
-    public void The_board_row_names_its_blockers_apart_from_the_other_links()
+    public void The_board_row_names_its_blockers_and_the_tree_a_card_stands_in()
     {
         var section = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "src", "Aiko.Pwa", "Pages", "BoardSection.razor"));
 
         Assert.Contains("BoardRelations.BlockedBy(", section, StringComparison.Ordinal);
         Assert.Contains("aiko-tag--warn", section, StringComparison.Ordinal);
         Assert.Contains("Loc.Format(\"BlockedByCard\"", section, StringComparison.Ordinal);
+
+        // The card's own tree is the row under them: the number of the card it belongs to, and the count of
+        // the cards that belong to it as something to press. Children are counted and never listed, so the
+        // plain-link chips the row used to carry are gone.
+        Assert.Contains("aiko-card__hierarchy", section, StringComparison.Ordinal);
+        Assert.Contains("ParentOf(card)", section, StringComparison.Ordinal);
+        Assert.Contains("ChildrenOf(card)", section, StringComparison.Ordinal);
+        Assert.Contains("RelationTypes.ParentChild", section, StringComparison.Ordinal);
+        Assert.Contains("class=\"aiko-card__subtasks\"", section, StringComparison.Ordinal);
+        Assert.DoesNotContain("RelatedTags", section, StringComparison.Ordinal);
     }
 
     private static Card CardAt(string cardId, string stageId) =>

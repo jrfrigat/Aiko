@@ -321,6 +321,62 @@ html.flare-mode-dark .splash-mark i {
 
 /* The board's tool row - the size filter, the order and the find field. One flat strip, as the metric
    strip above it, so the two read as the same kind of chrome. */
+/* The tool row's size filter, as the design draws it: a hairline segment of mono pills on the panel's
+   plane, the picked one the reading surface at full contrast and the rest quiet. */
+.aiko-segment {
+    padding: 0.125rem;
+    border-radius: 0;
+    border: 1px solid var(--flare-color-outline-variant);
+    background: var(--flare-color-surface-container-low);
+}
+
+/* A chosen item is a surface swap with a hairline, never a fill of the accent: in the design the accent stays
+   thin, and a control that carries it would be the loudest thing on the screen. */
+.aiko-segment .flare-btn.flare-btn--selected,
+.aiko-segment .flare-btn.flare-btn--selected:active,
+.aiko-segment .flare-btn[aria-pressed="true"] {
+    background: var(--flare-color-surface-container-high);
+    color: var(--flare-color-on-surface);
+    border: 1px solid var(--flare-color-outline);
+}
+.aiko-segment .flare-btn {
+    min-height: 1.25rem;
+    padding-block: 0.0625rem;
+    font-family: var(--aiko-font-mono, monospace);
+    font-size: 0.625rem;
+}
+/* The order dropdown: one control whose closed state names the order it holds, with the design's sort sign. */
+.aiko-sort .flare-select__control {
+    min-height: 1.5rem;
+    padding: 0.125rem 0.5rem;
+    border-radius: 0;
+    border: 1px solid var(--flare-color-outline-variant);
+    background: var(--flare-color-surface-container-low);
+}
+
+.aiko-sort__value {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-family: var(--aiko-font-mono, monospace);
+    font-size: 0.6875rem;
+}
+
+/* The row's buttons: the design reads every control label in the mono face, at the small step. */
+/* A secondary control of the row is a neutral box with a hairline, as the design draws it - the filled
+   button beside it stays the screen's one accented control. */
+.aiko-actions .flare-btn--text {
+    border: 1px solid var(--flare-color-outline-variant);
+    background: var(--flare-color-surface-container-low);
+    color: var(--flare-color-on-surface);
+}
+.aiko-actions .flare-btn {
+    font-family: var(--aiko-font-mono, monospace);
+    font-size: 0.6875rem;
+}
+.aiko-sort__value .flare-icon {
+    font-size: 0.875rem;
+}
 .aiko-toolbar {
     padding: 0.25rem 0.375rem;
     border-radius: 0;
@@ -369,6 +425,15 @@ html.flare-mode-dark .splash-mark i {
     border-bottom: 1px solid var(--flare-color-outline-variant);
 }
 
+/* The one counter a column's banner carries, the design's "WIP: n" opposite the stage name: a
+   hairline chip on the panel's own plane, quieter than the pill it replaced. */
+.aiko-col__wip {
+    padding: 0.125rem 0.375rem;
+    border-radius: var(--flare-shape-full);
+    background: var(--flare-color-surface-container-low);
+    border: 1px solid var(--flare-color-outline-variant);
+}
+
 .aiko-col__body {
     padding: 0.375rem;
     max-height: calc(100dvh - 20rem);
@@ -387,12 +452,23 @@ html.flare-mode-dark .splash-mark i {
 }
 
 .aiko-card {
-    padding: 0.375rem 0.5rem;
     /* v3: a card is a flat panel too; its hairline is quiet until the pointer is over it, when it takes
        the accent. FlareCard paints its own radius, so the reset has to be explicit here. */
     border-radius: 0;
     border: 1px solid var(--flare-color-outline-variant);
     transition: border-color var(--flare-motion-duration-short2) var(--flare-motion-easing-standard);
+}
+
+/* The card's inset belongs to the app, and this rule is what makes it so: FlareCard paints its
+   padding through --flare-card-padding-* from .flare-card:not(:has(...)), a rule of the same weight
+   that comes earlier in the cascade, so a bare .aiko-card could never set it. Both are written here,
+   the design's p-2.5 - 10px - and the card is that size whichever rule the cascade picks. */
+.aiko-drag .aiko-card {
+    --flare-card-padding-top: 0.625rem;
+    --flare-card-padding-right: 0.625rem;
+    --flare-card-padding-bottom: 0.625rem;
+    --flare-card-padding-left: 0.625rem;
+    padding: 0.625rem;
 }
 
 .aiko-card:hover,
@@ -429,6 +505,9 @@ html.flare-mode-dark .splash-mark i {
    card body free for the click that opens it. */
 .aiko-card__handle {
     opacity: 0.55;
+    /* Flare's icon defaults to the title-large typescale (22px) and would hold the header row
+       that tall; the design reads this line at 10-11px mono, so the handle is 14px. */
+    font-size: 0.875rem;
     cursor: grab;
     transition: opacity var(--flare-motion-duration-short2) var(--flare-motion-easing-standard);
 }
@@ -439,6 +518,40 @@ html.flare-mode-dark .splash-mark i {
 
 .aiko-card:hover .aiko-card__handle {
     opacity: 1;
+}
+
+/* The card's place in its tree: the card it belongs to, and the cards that belong to it. The design reads
+   this line at the smallest mono step and makes the count something to press. */
+.aiko-card__hierarchy {
+    font-size: 0.6875rem;
+    color: var(--flare-color-on-surface-variant);
+}
+
+.aiko-card__hierarchy .flare-icon {
+    font-size: 0.875rem;
+}
+
+.aiko-card__parent,
+.aiko-card__subtasks {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.125rem;
+    font-family: var(--aiko-font-mono, monospace);
+}
+
+/* A button carrying nothing but a count: no chrome of its own, the accent arriving on hover and focus the
+   way it does for the card's own number. */
+.aiko-card__subtasks {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+}
+
+.aiko-card__subtasks:hover,
+.aiko-card__subtasks:focus-visible {
+    color: var(--flare-color-primary);
 }
 
 /* The card's tag row and footer: recessed mono strips. */

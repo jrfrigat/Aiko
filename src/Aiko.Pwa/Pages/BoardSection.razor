@@ -1,6 +1,7 @@
 @* One board projection, drawn in the cockpit language: a column per workflow stage with the design's
-   three-row header (stage + WIP, agents, DoD) and cards carrying the design's anatomy (mono id, kind
-   and priority tags, title, mono metadata line, related-card tags, DoD/assignee footer).
+   banner (the stage's name with its WIP chip opposite, then one mono line carrying agents and the
+   definition of done) and cards carrying the design's anatomy (mono id, kind and priority tags, title,
+   related-card tags, DoD/assignee footer).
 
    The board is composed from Flare's drag primitives - FlareDragContext, FlareDropZone, FlareDraggable
    - rather than from FlareKanban itself, whose KanbanColumn/KanbanCard records carry four fields and
@@ -12,7 +13,7 @@
         {
             <FlareIconView Value="kindIcon" Color="@KindAccent" />
         }
-        <FlareText Element="h2" Typo="TypographyScale.HeadlineMedium" Color="@KindAccent">@Title</FlareText>
+        <FlareText Element="h2" Typo="TypographyScale.HeadlineMedium" Color="FlareColor.Default">@Title</FlareText>
         <span class="aiko-tag aiko-tag--pill">@_cards.Count</span>
         <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant">@SummaryLine</FlareText>
     </FlareStack>
@@ -42,16 +43,22 @@
                                     {
                                         <FlareIconView Value="stageIcon" Color="@accent" />
                                     }
-                                    <FlareText Element="span" Typo="TypographyScale.HeadlineMedium" Color="@accent">@stage.Title</FlareText>
+                                    <FlareText Element="span" Typo="TypographyScale.HeadlineMedium" Color="FlareColor.Default">@stage.Title</FlareText>
                                 </FlareStack>
-                                <span class="aiko-tag aiko-tag--pill">@stageCards.Count</span>
+                                @* The column's own count is the stage's work in progress: the card sitting in the
+                                   stage is the card being worked, so the banner states it once, as the design does. *@
+                                <span class="aiko-tag aiko-col__wip">WIP: @stageCards.Count</span>
                             </FlareStack>
-                            <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant">
-                                Agents: @Agents(stage) · WIP: @stageCards.Count
-                            </FlareText>
-                            <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant2">
-                                DoD: @Dod(stage)
-                            </FlareText>
+                            @* The banner's second line, as the design draws it: who works the stage on the left and
+                               what its definition of done is on the right, in the smallest mono step the theme has. *@
+                            <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XXSmall">
+                                <FlareText Element="span" Mono="true" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant">
+                                    Agents: @Agents(stage)
+                                </FlareText>
+                                <FlareText Element="span" Mono="true" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                    DoD: @Dod(stage)
+                                </FlareText>
+                            </FlareStack>
                         </FlareStack>
 
                         <FlareStack Class="aiko-col__body" Gap="FlareSpacing.XXSmall">
@@ -72,7 +79,7 @@
                                                     <FlareIconView Value="@FlareIcons.DragIndicator" Class="aiko-card__handle" />
                                                     <FlareNavLink Href="@CardHref(card)" Class="aiko-card__id">
                                                         <ChildContent>
-                                                            <FlareText Element="span" Mono="true" Color="FlareColor.Secondary" Weight="FontWeight.SemiBold">
+                                                            <FlareText Element="span" Mono="true" Typo="TypographyScale.LabelSmall" Color="FlareColor.Secondary" Weight="FontWeight.SemiBold">
                                                                 #@card.Reference.CardId
                                                             </FlareText>
                                                         </ChildContent>
@@ -104,22 +111,40 @@
                                                 </span>
                                             }
 
-                                            @if (RelatedTags(card) is { Count: > 0 } tags)
+                                            @* Where the card stands in its tree: the number of the card it belongs to,
+                                               and, for a card others belong to, how many of them there are. The count
+                                               is something to press - looking through them is the design's next step -
+                                               and a card that is neither a parent nor a child draws no row at all. *@
+                                            @{
+                                                var parent = ParentOf(card);
+                                                var children = ChildrenOf(card);
+                                            }
+                                            @if (parent is not null || children.Count > 0)
                                             {
-                                                <span class="aiko-card__tags">
-                                                    @foreach (var tag in tags)
+                                                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall" Class="aiko-card__hierarchy">
+                                                    @if (parent is not null)
                                                     {
-                                                        <span class="aiko-tag aiko-tag--accent">@tag</span>
+                                                        <span class="aiko-card__parent" title="@parent.Title">
+                                                            <FlareIconView Value="@MaterialDesign3Icons.Regular.AccountTree" />
+                                                            @parent.Reference.CardId
+                                                        </span>
                                                     }
-                                                </span>
+                                                    @if (children.Count > 0)
+                                                    {
+                                                        <button type="button" class="aiko-card__subtasks">
+                                                            <FlareIconView Value="@MaterialDesign3Icons.Regular.GridView" />
+                                                            @Loc.Format("BoardSubTasks", children.Count)
+                                                        </button>
+                                                    }
+                                                </FlareStack>
                                             }
 
                                             <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XXSmall" Class="aiko-card__dod">
                                                 <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
-                                                    <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant2">@DodLine(card)</FlareText>
+                                                    <FlareText Element="span" Mono="true" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">@DodLine(card)</FlareText>
                                                 </FlareStack>
                                                 <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
-                                                    <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant">@Agents(stage)</FlareText>
+                                                    <FlareText Element="span" Mono="true" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant">@Agents(stage)</FlareText>
                                                     <FlareSpacer />
                                                     <span class="aiko-tag @StageStateView.TagClass(StageStateOf(card))"
                                                             title="@Loc.Get(StageStateView.LabelKey(StageStateOf(card)))">
@@ -192,8 +217,9 @@
     private FlareIcon? KindIcon => CardAppearance.Icon(_workflow?.Icon);
 
     /// <summary>
-    /// The type's accent, or <see cref="FlareColor.Default"/> when the project chose none - which is the
-    /// theme's own colour, not an accent Aiko invented.
+    /// The type's accent - on the icon, not on the name: the design keeps a name at the reading colour and
+    /// spends the accent on a thin mark. <see cref="FlareColor.Default"/> when the project chose none, which
+    /// is the theme's own colour, not an accent Aiko invented.
     /// </summary>
     private FlareColor KindAccent => CardAppearance.Color(_workflow?.Color) ?? FlareColor.Default;
 
@@ -274,8 +300,9 @@
     private FlareIcon? StageIcon(StageDefinition stage) => CardAppearance.Icon(stage.Icon);
 
     /// <summary>
-    /// The stage's accent, or <see cref="FlareColor.Default"/> when the project chose none: the column title
-    /// and the icon then keep the theme's own colour instead of an accent invented by position.
+    /// The stage's accent - on the stage's icon, while the column's name stays at the reading colour, as the
+    /// design draws it. <see cref="FlareColor.Default"/> when the project chose none: the icon then keeps the
+    /// theme's own colour instead of an accent invented by position.
     /// </summary>
     private FlareColor StageAccent(StageDefinition stage) =>
         CardAppearance.Color(stage.Color) ?? FlareColor.Default;
@@ -349,39 +376,48 @@
     }
 
     /// <summary>
-    /// The cards this one is linked to - a task's stories, a story's related items - drawn as the
-    /// design's mono tags. Capped, so a hub card cannot push everything else off its own card.
-    /// </summary>
-    /// <summary>
     /// The cards that hold this one back, read with the start gate's own rule so the board and an agent agree.
     /// </summary>
     private IReadOnlyList<CardBlocker> Blockers(Card card) =>
         BoardRelations.BlockedBy(card, Board.Relations, Board.Cards, Board.Workflows, Board.StageRuns ?? []);
 
-    private IReadOnlyList<string> RelatedTags(Card card)
+    /// <summary>
+    /// The card this one belongs to, or null when it belongs to nobody - or when the snapshot does not carry
+    /// the parent, in which case a number pointing at a card the board cannot show is worse than no number.
+    /// </summary>
+    private Card? ParentOf(Card card)
     {
         var id = card.Reference.CardId;
-        // A blocker already has its own tag above; it is not repeated among the plain links.
-        var blockers = Blockers(card).Select(blocker => blocker.CardId).ToHashSet(StringComparer.Ordinal);
-
-        // Only a card the snapshot carries gets a tag. A relation of an archived card still points at a card
-        // somebody can open - that is what "nothing is lost" means - while a tag pointing at a card the board
-        // does not carry would be a link to a screen with nothing to say. Both lists are the snapshot's, so the
-        // set is the same one the sections and the archive are drawn from.
-        var known = Board.Cards
-            .Select(candidate => candidate.Reference.CardId)
-            .Concat((Board.ArchivedCards ?? []).Select(candidate => candidate.Reference.CardId))
-            .ToHashSet(StringComparer.Ordinal);
-
-        return Board.Relations
-            .Where(relation => StringComparer.Ordinal.Equals(relation.Source.CardId, id) ||
+        var parentId = Board.Relations
+            .Where(relation => StringComparer.Ordinal.Equals(relation.Type, RelationTypes.ParentChild) &&
                                StringComparer.Ordinal.Equals(relation.Target.CardId, id))
-            .Select(relation => StringComparer.Ordinal.Equals(relation.Source.CardId, id)
-                ? relation.Target.CardId
-                : relation.Source.CardId)
-            .Where(related => known.Contains(related) && !blockers.Contains(related))
-            .Distinct(StringComparer.Ordinal)
-            .Take(3)
+            .Select(relation => relation.Source.CardId)
+            .FirstOrDefault();
+
+        return parentId is null ? null : CardById(parentId);
+    }
+
+    /// <summary>
+    /// The cards that belong to this one. The design counts them rather than listing them, so the board asks
+    /// for the whole set and shows its size.
+    /// </summary>
+    private IReadOnlyList<Card> ChildrenOf(Card card)
+    {
+        var id = card.Reference.CardId;
+        return Board.Relations
+            .Where(relation => StringComparer.Ordinal.Equals(relation.Type, RelationTypes.ParentChild) &&
+                               StringComparer.Ordinal.Equals(relation.Source.CardId, id))
+            .Select(relation => CardById(relation.Target.CardId))
+            .OfType<Card>()
             .ToArray();
     }
+
+    /// <summary>
+    /// The snapshot's own card, live or archived: an archived card is still a card somebody can open, and the
+    /// board carries it for exactly that reason.
+    /// </summary>
+    private Card? CardById(string cardId) =>
+        Board.Cards
+            .Concat(Board.ArchivedCards ?? [])
+            .FirstOrDefault(candidate => StringComparer.Ordinal.Equals(candidate.Reference.CardId, cardId));
 }

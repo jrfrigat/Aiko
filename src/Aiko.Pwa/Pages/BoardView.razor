@@ -21,8 +21,9 @@ else
            group's accessible name rides on the group's element. *@
         <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small" Wrap="true">
             <FlareButtonGroup Size="ButtonSize.Sm"
-                              Variant="ButtonVariant.Tonal"
+                              Variant="ButtonVariant.Text"
                               Collapsible="true"
+                              Class="aiko-segment"
                               AdditionalAttributes="@TypeFilterAttributes">
                 @foreach (var workflow in TypeChoices)
                 {
@@ -48,7 +49,8 @@ else
             {
                 <FlareButtonGroup Connected="true"
                                   Size="ButtonSize.Sm"
-                                  Variant="ButtonVariant.Tonal"
+                                  Variant="ButtonVariant.Text"
+                                  Class="aiko-segment"
                                   AdditionalAttributes="@WaitingFilterAttributes">
                     <FlareToggleButton Toggled="@(!WaitingOnly)"
                                        ToggledChanged="@(_ => SelectWaitingAsync(waitingOnly: false))"
@@ -64,7 +66,8 @@ else
             }
             <FlareButtonGroup Connected="true"
                               Size="ButtonSize.Sm"
-                              Variant="ButtonVariant.Tonal"
+                              Variant="ButtonVariant.Text"
+                              Class="aiko-segment"
                               AdditionalAttributes="@ModeFilterAttributes">
                 <FlareToggleButton Toggled="@(!ArchiveOnly)"
                                    ToggledChanged="@(_ => SelectArchiveAsync(archiveOnly: false))"
@@ -110,37 +113,41 @@ else
             }
         </FlareStack>
 
-        @* The design's tool row: the size the board is narrowed to, the order the cards inside a column run
-           in, and one field that finds a card by its number or its title. All three work on the same set the
-           metric strip counts, so no two numbers on this screen can disagree. *@
+        @* The design's tool row: the size the board is narrowed to, as the design's own segment of mono pills,
+           and the order the cards inside a column run in, as one dropdown that names the order it holds. Both
+           work on the same set the metric strip counts, so no two numbers on this screen can disagree.
+           Finding a card is the app bar's job (Ctrl+K), so this row keeps no second field for it. *@
         <FlareStack Row="true" Align="FlareAlignItems.End" Gap="FlareSpacing.Small" Wrap="true" Class="aiko-toolbar">
-            <AikoSelectField Label="@Loc.Get("BoardFilterSize")"
-                             Value="@_sizeFilter"
-                             ValueChanged="@(size => _sizeFilter = size)"
-                             Items="@SizeChoices"
-                             NullOption="@Loc.Get("BoardWaitingFilterAll")" />
-            <FlareButtonGroup Connected="true"
-                              Size="ButtonSize.Sm"
-                              Variant="ButtonVariant.Tonal"
-                              AdditionalAttributes="@SortFilterAttributes">
-                <FlareToggleButton Toggled="@(!_sortAscending)"
-                                   ToggledChanged="@(_ => _sortAscending = false)"
-                                   AriaLabel="@Loc.Get("BoardSortDescending")">
-                    <ChildContent>@Loc.Get("BoardSortDescending")</ChildContent>
+            <FlareButtonGroup Size="ButtonSize.Sm"
+                              Variant="ButtonVariant.Text"
+                              Collapsible="true"
+                              Class="aiko-segment"
+                              AdditionalAttributes="@SizeFilterAttributes">
+                <FlareToggleButton Toggled="@(_sizeFilter is null)"
+                                   ToggledChanged="@(_ => _sizeFilter = null)"
+                                   AriaLabel="@Loc.Get("BoardWaitingFilterAll")">
+                    <ChildContent>@Loc.Get("BoardWaitingFilterAll")</ChildContent>
                 </FlareToggleButton>
-                <FlareToggleButton Toggled="@_sortAscending"
-                                   ToggledChanged="@(_ => _sortAscending = true)"
-                                   AriaLabel="@Loc.Get("BoardSortAscending")">
-                    <ChildContent>@Loc.Get("BoardSortAscending")</ChildContent>
-                </FlareToggleButton>
+                @foreach (var size in SizeChoices)
+                {
+                    var choice = size;
+                    <FlareToggleButton Toggled="@IsSizePicked(choice)"
+                                       ToggledChanged="@(toggled => _sizeFilter = toggled ? choice : null)"
+                                       AriaLabel="@choice">
+                        <ChildContent>@choice</ChildContent>
+                    </FlareToggleButton>
+                }
             </FlareButtonGroup>
-            <AikoField Label="@Loc.Get("BoardFilterText")"
-                       Placeholder="@Loc.Get("BoardFilterTextHint")"
-                       Value="@_textFilter"
-                       ValueChanged="@(text => _textFilter = text)" />
+            <AikoSelectField Class="aiko-sort"
+                             Value="@SortChoice"
+                             ValueChanged="@(choice => _sortAscending = string.Equals(choice, SortAscendingChoice, StringComparison.Ordinal))"
+                             Items="@SortChoices"
+                             ItemLabel="@SortOptionLabel"
+                             SelectedTemplate="@SortSelected"
+                             AriaLabel="@Loc.Get("BoardSort")" />
         </FlareStack>
 
-        <FlareStack Row="true" Gap="FlareSpacing.XSmall">
+        <FlareStack Row="true" Gap="FlareSpacing.XSmall" Class="aiko-actions">
             <FlareButton Variant="ButtonVariant.Filled" Size="ButtonSize.Sm" OnClick="OpenNewCard">
                 <LeadingIcon><FlareIconView Value="@FlareIcons.Add" /></LeadingIcon>
                 <ChildContent>@Loc.Get("CreateCard")</ChildContent>
@@ -148,7 +155,7 @@ else
             @* The board's own button: Aiko cannot start an agent, so this places the request in the project's
                command queue and the state below says what became of it. An agent that runs takes it and walks
                the board by the /aiko-run-all procedure. *@
-            <FlareButton Variant="ButtonVariant.Tonal"
+            <FlareButton Variant="ButtonVariant.Text"
                          Size="ButtonSize.Sm"
                          Disabled="@(BoardCommand is not null || _placingBoardRun)"
                          Loading="@_placingBoardRun"
@@ -396,11 +403,39 @@ else
     /// <summary>The size the tool row is narrowed to, or null for every size.</summary>
     private string? _sizeFilter;
 
-    /// <summary>What the tool row's find field holds, or null when it is empty.</summary>
-    private string? _textFilter;
-
     /// <summary>Whether the tool row asks for the lowest priority first.</summary>
     private bool _sortAscending;
+
+    /// <summary>The direction the sort dropdown holds when it asks for the lowest priority first.</summary>
+    private const string SortAscendingChoice = "asc";
+
+    /// <summary>The other direction, which is what an untouched board asks for.</summary>
+    private const string SortDescendingChoice = "desc";
+
+    /// <summary>The two directions the dropdown offers, in the order it draws them.</summary>
+    private IReadOnlyList<string> SortChoices => [SortDescendingChoice, SortAscendingChoice];
+
+    /// <summary>The direction the control shows, mirrored from the one the columns are drawn with.</summary>
+    private string SortChoice => _sortAscending ? SortAscendingChoice : SortDescendingChoice;
+
+    /// <summary>How one direction reads, in the list and in the closed control.</summary>
+    private string SortOptionLabel(string choice) =>
+        Loc.Get(StringComparer.Ordinal.Equals(choice, SortAscendingChoice)
+            ? "BoardSortAscending"
+            : "BoardSortDescending");
+
+    /// <summary>Whether the size segment currently holds this step.</summary>
+    private bool IsSizePicked(string size) =>
+        StringComparer.OrdinalIgnoreCase.Equals(_sizeFilter, size);
+
+    /// <summary>
+    /// What the closed dropdown draws: the design's sort sign and the order it holds, so the reader sees the
+    /// axis and its direction without opening anything.
+    /// </summary>
+    private RenderFragment<string> SortSelected => choice => @<span class="aiko-sort__value">
+        <FlareIconView Value="@MaterialDesign3Icons.Regular.Sort" />
+        @Loc.Get("BoardSort"): @SortOptionLabel(choice)
+    </span>;
 
     /// <summary>
     /// The size codes the tool row offers: the project's own grid, so a project that reshapes its ladder gets
@@ -471,9 +506,9 @@ else
     private IReadOnlyDictionary<string, object> ModeFilterAttributes =>
         new Dictionary<string, object>(StringComparer.Ordinal) { ["aria-label"] = Loc.Get("BoardModeFilter") };
 
-    /// <summary>The order group's accessible name.</summary>
-    private IReadOnlyDictionary<string, object> SortFilterAttributes =>
-        new Dictionary<string, object>(StringComparer.Ordinal) { ["aria-label"] = Loc.Get("BoardSort") };
+    /// <summary>The size segment's accessible name, on the group's own element.</summary>
+    private IReadOnlyDictionary<string, object> SizeFilterAttributes =>
+        new Dictionary<string, object>(StringComparer.Ordinal) { ["aria-label"] = Loc.Get("BoardFilterSize") };
 
     /// <summary>Whether the board is showing the archive instead of the work.</summary>
     private bool ArchiveOnly { get; set; }
@@ -729,21 +764,8 @@ else
         .Where(card => (!IsFiltered || _pickedKinds.Contains(card.Kind)) &&
                        (!WaitingOnly || _waitingCards.Contains(card.Reference.CardId)) &&
                        (_sizeFilter is null ||
-                        StringComparer.OrdinalIgnoreCase.Equals(card.Size, _sizeFilter)) &&
-                       MatchesText(card))
+                        StringComparer.OrdinalIgnoreCase.Equals(card.Size, _sizeFilter)))
         .ToArray() ?? [];
-
-    /// <summary>
-    /// Whether a card survives the tool row's find field: its number or its title contains what was typed,
-    /// with case ignored. An empty field asks nothing, so every card passes.
-    /// </summary>
-    private bool MatchesText(Card card)
-    {
-        var needle = _textFilter?.Trim();
-        return string.IsNullOrEmpty(needle) ||
-               card.Reference.CardId.Contains(needle, StringComparison.OrdinalIgnoreCase) ||
-               card.Title.Contains(needle, StringComparison.OrdinalIgnoreCase);
-    }
 
     /// <summary>
     /// The cards the sections may draw, or null when nothing is filtered: a section reads the board itself, so
