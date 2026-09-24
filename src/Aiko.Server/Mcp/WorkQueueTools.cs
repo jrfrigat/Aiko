@@ -108,7 +108,15 @@ internal sealed class WorkQueueTools(
                 effectivePriorities.TryGetValue(card.Reference.CardId, out var effective)
                     ? effective
                     : card.OwnPriority,
-                CardBlocking.Unfinished(card.Reference, boardRelations, boardCards, definition.Workflows),
+                CardBlocking.Unfinished(
+                    card.Reference,
+                    boardRelations,
+                    boardCards,
+                    definition.Workflows,
+                    blocker => runsByCard.TryGetValue(blocker.Reference.CardId, out var blockerRuns)
+                        ? blockerRuns.FirstOrDefault(run =>
+                            StringComparer.Ordinal.Equals(run.StageId, blocker.StageId))?.StateValue
+                        : null),
                 currentRun?.State ?? "Pending",
                 finished));
         }

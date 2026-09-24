@@ -101,8 +101,8 @@ to the workflow, not to the card, so it is edited on the **Workflow** page rathe
 A card can wait for another one: a `blocks` relation (the blocking card is the source) keeps the blocked card
 from being started. `aiko_start_stage` refuses it and names the blocking card and its stage, and the agent
 reports that to you instead of working a card whose turn has not come. The block lifts when the blocking card
-reaches the last stage of its own pipeline - read from that card's workflow, so pipelines may differ - or when
-the relation is removed.
+finishes its own pipeline - it sits in the last stage, read from that card's workflow so pipelines may differ,
+and that stage's latest run completed - or when the relation is removed.
 
 ## Workflows
 
@@ -133,7 +133,8 @@ the create-card picker and as a board section, and its pipeline starts with `bac
 and their board section are named after it.
 
 A project owns its own copy of the pipelines, so a change there never reaches another project - or a project
-created later from the template. Removing a stage that still contains cards is rejected, removing a card type
+created later from the template. Removing a stage that still contains cards, or an open run of a card pulled back out of it, is rejected,
+removing a card type
 that still contains cards is rejected too, and the `backlog` column is protected twice over: it is not removed
 and it stays first, because a card enters its pipeline there - no other status can be placed before it.
 

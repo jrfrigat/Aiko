@@ -65,8 +65,10 @@ public static class CardProgress
         var stageRuns = runs
             .Where(run => StringComparer.Ordinal.Equals(run.StageId, currentStageId))
             .ToArray();
-        if (stageRuns.Any(run => run.State == StageExecutionState.Completed))
+        if (stageRuns.Length > 0 && stageRuns[^1].State == StageExecutionState.Completed)
         {
+            // The latest run decides, the same way it does for the queue, the archive and the blocking gate: a
+            // stage opened again for rework is not finished because it once was.
             return null;
         }
 

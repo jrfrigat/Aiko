@@ -23,7 +23,8 @@ public sealed class SqliteExecutionCoordinator(
     ICardStore cards,
     AikoDatabase database,
     IAppSettingsService? settings = null,
-    IAikoEventPublisher? events = null) : IExecutionCoordinator
+    IAikoEventPublisher? events = null,
+    IProjectDefinitionStore? definitions = null) : IExecutionCoordinator
 {
     /// <summary>
     /// Reference-counted per-card and per-execution locks bound to this instance's
@@ -146,6 +147,16 @@ public sealed class SqliteExecutionCoordinator(
             var project = await FindProjectAsync(card.ProjectId, cancellationToken);
             var sourceCard = await cards.FindAsync(card, cancellationToken)
                 ?? throw new KeyNotFoundException($"Unknown card: {card.ProjectId}/{card.CardId}");
+
+            // A card in the archive is off the board: work on it begins only after it is returned. The gate is
+            // here rather than in a tool so the interface's start and the agent's start are the same start.
+            if (CardArchiving.RefuseWork(sourceCard) is { } archived)
+            {
+                throw new InvalidOperationException(archived);
+            }
+
+            var stages = await ReadStagesAsync(sourceCard, cancellationToken);
+            RefuseStage(sourceCard, stageId, agentAdapterId, stages);
             var existing = await ListAsync(card, cancellationToken);
             var unfinished = existing.FirstOrDefault(execution => !IsTerminal(execution.State));
             if (unfinished is not null)
@@ -167,6 +178,20 @@ public sealed class SqliteExecutionCoordinator(
                     stageId,
                     agentAdapterId,
                     cancellationToken);
+            }
+
+            // A start moves the card, so it is held to the rule a move is: the stage the card is in or the next
+            // one, and out of a stage only once that stage finished. Without it, starting 'done' stepped over
+            // the whole pipeline and released every card the skipped one blocked.
+            if (stages is not null &&
+                CardProgress.RefuseForwardMove(
+                    card.CardId,
+                    sourceCard.StageId,
+                    stageId,
+                    stages,
+                    [.. existing.Select(execution => new StageRun(execution.StageId, execution.State))]) is { } skipped)
+            {
+                throw new InvalidOperationException(skipped);
             }
 
             var effectiveSettings = settings is null
@@ -250,6 +275,69 @@ public sealed class SqliteExecutionCoordinator(
                 now);
             await SaveAsync(execution, true, cancellationToken);
             return execution;
+        }
+    }
+
+    /// <summary>
+    /// The stages of the card's own pipeline, in order, or null when this coordinator was built without the
+    /// project definitions and so cannot judge a stage (the CLI's offline use).
+    /// </summary>
+    private async ValueTask<IReadOnlyList<StageDefinition>?> ReadStagesAsync(
+        Card card,
+        CancellationToken cancellationToken)
+    {
+        if (definitions is null)
+        {
+            return null;
+        }
+
+        var definition = await definitions.ReadAsync(card.Reference.ProjectId, cancellationToken);
+        var workflow = definition.Workflows.FirstOrDefault(item =>
+            StringComparer.Ordinal.Equals(item.Id, card.WorkflowId));
+        return workflow is null ? [] : [.. workflow.Stages.OrderBy(stage => stage.Order)];
+    }
+
+    /// <summary>
+    /// Refuses a stage the card cannot be started in: one its pipeline does not have - a typo used to take the
+    /// card off the board - one that does not take its kind, or one whose agents do not include the caller.
+    /// </summary>
+    private static void RefuseStage(
+        Card card,
+        string stageId,
+        string agentAdapterId,
+        IReadOnlyList<StageDefinition>? stages)
+    {
+        if (stages is null)
+        {
+            return;
+        }
+
+        var stage = stages.FirstOrDefault(candidate => StringComparer.Ordinal.Equals(candidate.Id, stageId));
+        if (stage is null)
+        {
+            throw new ArgumentException(stages.Count == 0
+                ? $"card '{card.Reference.CardId}' follows the pipeline '{card.WorkflowId}', which this project "
+                    + "does not define, so no stage of it can be started."
+                : $"'{stageId}' is not a stage of the '{card.WorkflowId}' pipeline card "
+                    + $"'{card.Reference.CardId}' follows. Its stages are: "
+                    + string.Join(", ", stages.Select(candidate => candidate.Id)) + ".");
+        }
+
+        if (!stage.AllowedCardKinds.Contains(card.Kind))
+        {
+            throw new ArgumentException(
+                $"stage '{stageId}' does not take cards of kind '{card.Kind}'.");
+        }
+
+        if (!stage.Allows(agentAdapterId))
+        {
+            var allowed = stage.AllowedAgents
+                .Prepend(stage.DefaultAgentAdapterId)
+                .Where(agent => !string.IsNullOrWhiteSpace(agent))
+                .Distinct(StringComparer.Ordinal);
+            throw new InvalidOperationException(
+                $"stage '{stageId}' is run by {string.Join(", ", allowed)} only, so '{agentAdapterId}' cannot "
+                + "start it. Hand the card to one of them, or change the stage's agents in the workflow.");
         }
     }
 

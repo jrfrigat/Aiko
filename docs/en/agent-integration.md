@@ -60,7 +60,10 @@ a stage execution, and a stage that ran is what leaves an execution, its artifac
 So the order is: create the card, start the stage you are working in with `aiko_start_stage` (the start moves
 the card into that stage), do what that stage's instruction asks for, produce the artifacts it requires,
 complete it with `aiko_complete_stage`, then move on. `aiko_move_card` advances a card one stage at a time
-and refuses to leave a stage that was never run, so a card cannot be declared finished by moving it. A person
+and refuses to leave a stage that was never run, so a card cannot be declared finished by moving it.
+`aiko_start_stage` - and the board's own start - is held to the same rule, since a start moves the card: it
+names a stage of the card's own pipeline that takes the card's kind and admits the agent, the stage the card
+is in or the next one, and never a card in the archive. A person
 dragging a card on the board is deliberately not held to that rule: the board is how a person corrects their
 own board, and `aiko doctor` reports the cards that were pushed past a stage anyway.
 

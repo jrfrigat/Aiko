@@ -1,5 +1,6 @@
 using Aiko.Application.Agents;
 using Aiko.Application.Contracts;
+using Aiko.Domain.Execution;
 using Aiko.Domain.Workflow;
 using Aiko.Server.Contracts;
 using Aiko.Server.Security;
@@ -72,6 +73,7 @@ internal static class WorkflowEndpoints
                 UpdateWorkflowRequest request,
                 IProjectDefinitionStore definitions,
                 ICardStore cards,
+                IExecutionCoordinator executions,
                 IUnifiedAgentInstaller agents,
                 IProjectCatalog catalog,
                 DaemonAccessToken accessToken,
@@ -98,12 +100,29 @@ internal static class WorkflowEndpoints
                 }
 
                 var stageIds = request.Stages.Select(stage => stage.Id).ToHashSet(StringComparer.Ordinal);
-                var orphanedCard = (await cards.ListAsync(projectId, cancellationToken)).FirstOrDefault(card =>
-                    StringComparer.Ordinal.Equals(card.WorkflowId, workflowId) && !stageIds.Contains(card.StageId));
+                var workflowCards = (await cards.ListAsync(projectId, cancellationToken))
+                    .Where(card => StringComparer.Ordinal.Equals(card.WorkflowId, workflowId))
+                    .ToArray();
+                var orphanedCard = workflowCards.FirstOrDefault(card => !stageIds.Contains(card.StageId));
                 if (orphanedCard is not null)
                 {
                     return Results.BadRequest(new ErrorResponse(
                         $"Stage {orphanedCard.StageId} still contains card {orphanedCard.Reference.CardId}."));
+                }
+
+                // A card pulled back out of a stage can leave that stage's run open. Removing the stage would
+                // strand the run where nothing can continue or complete it - and the card could start nothing
+                // else while it is open.
+                var workflowCardIds = workflowCards.Select(card => card.Reference.CardId).ToHashSet(StringComparer.Ordinal);
+                var openRun = (await executions.ReadStageRunsAsync(projectId, cancellationToken)).FirstOrDefault(run =>
+                    !stageIds.Contains(run.StageId) &&
+                    workflowCardIds.Contains(run.CardId) &&
+                    run.StateValue is not (StageExecutionState.Completed or StageExecutionState.Cancelled));
+                if (openRun is not null)
+                {
+                    return Results.BadRequest(new ErrorResponse(
+                        $"Stage {openRun.StageId} still has an open run of card {openRun.CardId} ({openRun.State}): "
+                        + "complete or cancel it before removing the stage."));
                 }
 
                 var updated = new WorkflowDefinition(

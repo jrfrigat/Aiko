@@ -666,7 +666,9 @@ Tool descriptions and project rules require fetching the context first. Work bel
 an agent starts the stage it works in (`aiko_start_stage`, which moves the card into that stage) before it
 changes any file, produces the artifacts the stage requires and completes it. `aiko_move_card` advances a
 card one stage at a time and refuses to leave a stage that has no execution behind it, so a card cannot be
-declared finished by moving it. The board's own move endpoint is deliberately not held to that rule - the
+declared finished by moving it. A start is held to the same rule by the execution coordinator, for MCP and
+REST alike: the stage exists in the card's pipeline and takes its kind, admits the agent, is the card's
+current stage or the next one, and the card is not archived. The board's own move endpoint is deliberately not held to that rule - the
 board is how a person corrects their own board - and `aiko doctor` reports the cards pushed past a stage
 anyway, as its `card-progress` finding. MCP does not guarantee that every model will call a tool
 automatically; the adapter reinforces the behavior with skills,

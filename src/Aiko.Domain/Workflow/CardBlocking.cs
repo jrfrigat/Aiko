@@ -1,4 +1,5 @@
 using Aiko.Domain.Cards;
+using Aiko.Domain.Execution;
 
 namespace Aiko.Domain.Workflow;
 
@@ -20,7 +21,8 @@ public readonly record struct CardBlocker(string CardId, string Title, string St
 /// rule is here rather than inside a tool for the same reason <see cref="CardProgress"/> is - it is about the
 /// pipeline, not about one caller - and whether a caller applies it stays that caller's decision.
 ///
-/// A blocker counts as finished when it reached the last stage of its own pipeline. The pipelines differ per
+/// A blocker counts as finished by the one rule every screen asks, <see cref="CardCompletion.IsFinished"/>: it
+/// sits in the last stage of its own pipeline and the latest run there completed. The pipelines differ per
 /// card type, so the last stage is read from the card's workflow instead of being assumed to be called
 /// <c>done</c>. An edge that points at a card the project does not have is not a blocker: the reindexer already
 /// reports that defect, and a gate waiting for a card nobody can finish would stop the work for good.
@@ -34,15 +36,20 @@ public static class CardBlocking
     /// <param name="relations">All relations of the project, from which the incoming <c>blocks</c> edges come.</param>
     /// <param name="cards">All cards of the project, so a blocker can be named.</param>
     /// <param name="workflows">All workflows of the project, so the end of a pipeline can be read.</param>
+    /// <param name="latestRunState">
+    /// The state of the latest run of the stage a card sits in, or null when nothing is known about it.
+    /// </param>
     public static IReadOnlyList<CardBlocker> Unfinished(
         CardReference card,
         IReadOnlyList<CardRelation> relations,
         IReadOnlyList<Card> cards,
-        IReadOnlyList<WorkflowDefinition> workflows)
+        IReadOnlyList<WorkflowDefinition> workflows,
+        Func<Card, StageExecutionState?> latestRunState)
     {
         ArgumentNullException.ThrowIfNull(relations);
         ArgumentNullException.ThrowIfNull(cards);
         ArgumentNullException.ThrowIfNull(workflows);
+        ArgumentNullException.ThrowIfNull(latestRunState);
 
         var blockers = new List<CardBlocker>();
         foreach (var relation in relations)
@@ -71,11 +78,11 @@ public static class CardBlocking
 
             var stage = workflow.Stages.FirstOrDefault(candidate =>
                 StringComparer.Ordinal.Equals(candidate.Id, blocker.StageId));
-            if (stage is null || WorkflowDefinition.IsLastStage(workflow, stage))
+            if (stage is null || CardCompletion.IsFinished(workflow, stage.Id, latestRunState(blocker)))
             {
-                // The blocker is at the end of its pipeline, or in a stage this workflow does not have - in
-                // the second case the card is not where its type says it can be, and guessing there would be
-                // worse than not blocking.
+                // The blocker finished its pipeline, or sits in a stage this workflow does not have - in the
+                // second case the card is not where its type says it can be, and guessing there would be worse
+                // than not blocking.
                 continue;
             }
 

@@ -15,7 +15,6 @@ internal sealed class ExecutionTools(
     IHttpContextAccessor httpContextAccessor,
     IProjectCatalog projects,
     ICardBlockers blockers,
-    ICardStore cards,
     IExecutionCoordinator executions) : ProjectToolBase(httpContextAccessor, projects)
 {
     [McpServerTool(Name = "aiko_start_stage", Title = "Start Aiko stage")]
@@ -23,7 +22,9 @@ internal sealed class ExecutionTools(
         "Starts a stage execution in the shared project workspace and records the responsible agent. Starting "
         + "the stage the card is already working in continues that execution - run the card again and the same "
         + "stage picks up where it stopped. Starting another stage while one is unfinished is refused: finish it "
-        + "with aiko_complete_stage first. A card another card blocks is refused too: name the blocking card to "
+        + "with aiko_complete_stage first. The stage must be one of the card's own pipeline, admit the agent, and be "
+        + "the stage the card is in or the next one - a start moves the card, one stage at a time, and only out of a "
+        + "finished stage. A card another card blocks is refused too: name the blocking card to "
         + "the user and offer that card instead of working this one.")]
     public async Task<string> StartStageAsync(
         [Description("Card id.")]
@@ -34,21 +35,14 @@ internal sealed class ExecutionTools(
         string agentAdapterId,
         CancellationToken cancellationToken)
     {
-        // A card in the archive is off the board and out of its pipeline: work on it begins only after it is
-        // returned. Without this gate an agent could start a stage on a card nobody can see, and the run would
-        // happen where the person looking at the board has no way to notice it.
-        var reference = new CardReference(GetProjectId(), cardId);
-        if (await cards.FindAsync(reference, cancellationToken) is { } stored &&
-            CardArchiving.RefuseWork(stored) is { } archivedRefusal)
-        {
-            throw new InvalidOperationException(archivedRefusal);
-        }
+        // The archive, the stage, the agent and the one-step rule are the coordinator's to judge, so the board's
+        // start and this one cannot differ (TASK-165).
 
         // Work waits for the cards that block it. `blocks` is the user's own order, and until this gate existed
         // it lived only in relations.json: a blocked card started exactly like a free one, which is how a card
         // was worked while the card it waited for sat in the backlog. The refusal names the blocker, because the
         // agent's next move is to say so to the user and offer that card - not to retry.
-        var card = reference;
+        var card = new CardReference(GetProjectId(), cardId);
         var blockedBy = await blockers.UnfinishedAsync(card, cancellationToken);
         if (CardBlocking.RefuseStart(cardId, blockedBy) is { } refusal)
         {

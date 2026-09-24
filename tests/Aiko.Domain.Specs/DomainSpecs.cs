@@ -330,6 +330,12 @@ public class DomainSpecs
             "TASK-1", "analysis", "implementation", stages,
             [new StageRun("analysis", StageExecutionState.Completed)]));
 
+        // It is the latest run that says so: a stage that completed once and was opened again for rework is
+        // not finished until that run completes too.
+        Assert.NotNull(CardProgress.RefuseForwardMove(
+            "TASK-1", "analysis", "implementation", stages,
+            [new StageRun("analysis", StageExecutionState.Completed), new StageRun("analysis", StageExecutionState.Running)]));
+
         // Backwards, in place, or a stage this pipeline cannot place is not this rule's business.
         Assert.Null(CardProgress.RefuseForwardMove("TASK-1", "review", "implementation", stages, []));
         Assert.Null(CardProgress.RefuseForwardMove("TASK-1", "implementation", "implementation", stages, []));
@@ -463,7 +469,8 @@ public class DomainSpecs
 
         // The blocker is in its pipeline, so the card waits: the rule names the card, its title and where it is,
         // because that is what a person has to be told next.
-        var unfinished = CardBlocking.Unfinished(blocked.Reference, [blocks], [blocked, blocker], workflows);
+        var unfinished = CardBlocking.Unfinished(
+            blocked.Reference, [blocks], [blocked, blocker], workflows, _ => StageExecutionState.Completed);
         var waiting = Assert.Single(unfinished);
         Assert.Equal("TASK-1", waiting.CardId);
         Assert.Equal("Title of TASK-1", waiting.Title);
@@ -479,7 +486,8 @@ public class DomainSpecs
         // The same blocker at the end of its own pipeline no longer holds anything back, and the message says
         // nothing: the last stage is read from the workflow, so a type whose end is not called 'done' works too.
         var finished = Card("TASK-1", "done");
-        Assert.Empty(CardBlocking.Unfinished(blocked.Reference, [blocks], [blocked, finished], workflows));
+        Assert.Empty(CardBlocking.Unfinished(
+            blocked.Reference, [blocks], [blocked, finished], workflows, _ => StageExecutionState.Completed));
         Assert.Null(CardBlocking.RefuseStart(blocked.Reference.CardId, []));
 
         // An edge of another type is not a block, and neither is an edge whose source card is not there: the
@@ -488,8 +496,10 @@ public class DomainSpecs
             blocked.Reference,
             [Edge(blocker.Reference, blocked.Reference, RelationTypes.RelatesTo)],
             [blocked, blocker],
-            workflows));
-        Assert.Empty(CardBlocking.Unfinished(blocked.Reference, [blocks], [blocked], workflows));
+            workflows,
+            _ => StageExecutionState.Completed));
+        Assert.Empty(CardBlocking.Unfinished(
+            blocked.Reference, [blocks], [blocked], workflows, _ => StageExecutionState.Completed));
 
         // The direction matters: the card that blocks is the source, so the edge the other way round says
         // nothing about this card.
@@ -497,7 +507,8 @@ public class DomainSpecs
             blocker.Reference,
             [blocks],
             [blocked, blocker],
-            workflows));
+            workflows,
+            _ => StageExecutionState.Completed));
     }
 
     private static Card TextCard(string stageId) => new(
@@ -763,7 +774,16 @@ public class DomainSpecs
             RelationTypes.Blocks,
             DateTimeOffset.UnixEpoch);
 
-        Assert.Empty(CardBlocking.Unfinished(waiting.Reference, [relation], [blocker, waiting], [pipeline]));
+        Assert.Empty(CardBlocking.Unfinished(
+            waiting.Reference, [relation], [blocker, waiting], [pipeline], _ => StageExecutionState.Completed));
+
+        // Finished is one rule, read the same way by the queue, the archive and the gate: the last stage and a
+        // latest run there that completed. A blocker that reached the end but whose closing run is still open,
+        // or was never run, still holds the work back - it is exactly what the archive would refuse.
+        Assert.Single(CardBlocking.Unfinished(
+            waiting.Reference, [relation], [blocker, waiting], [pipeline], _ => StageExecutionState.Running));
+        Assert.Single(CardBlocking.Unfinished(
+            waiting.Reference, [relation], [blocker, waiting], [pipeline], _ => null));
         Assert.Null(CardArchiving.Refuse(
             blocker,
             pipeline,

@@ -1046,7 +1046,7 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
             new Dictionary<string, object?>
             {
                 ["cardId"] = "TASK-MCP-ACTIVITY",
-                ["stageId"] = "implementation",
+                ["stageId"] = "analysis",
                 ["agentAdapterId"] = "claude-code"
             },
             cancellationToken: CancellationToken.None);
@@ -1129,10 +1129,11 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
             new Dictionary<string, object?>
             {
                 ["cardId"] = "TASK-MCP-HANDOFF",
-                ["stageId"] = "implementation",
+                ["stageId"] = "analysis",
                 ["agentAdapterId"] = "claude-code"
             },
             cancellationToken: CancellationToken.None);
+        Assert.False(start.IsError == true, FirstText(start));
         using var startJson = JsonDocument.Parse(FirstText(start)!);
         var executionId = startJson.RootElement.GetProperty("id").GetString()
             ?? throw new InvalidOperationException("Started execution has no id.");
@@ -1355,14 +1356,14 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
             },
             cancellationToken: CancellationToken.None);
 
-        var first = await StartStageAsync(client, cardId, "implementation", "claude-code");
+        var first = await StartStageAsync(client, cardId, "analysis", "claude-code");
         Assert.NotEqual(true, first.IsError);
         using var firstJson = JsonDocument.Parse(FirstText(first) ?? "{}");
         var executionId = firstJson.RootElement.GetProperty("id").GetString();
 
         // The same stage started again is the same run: the agent picked the card back up, and the project's run
         // slot is not consumed twice.
-        var again = await StartStageAsync(client, cardId, "implementation", "codex");
+        var again = await StartStageAsync(client, cardId, "analysis", "codex");
         Assert.NotEqual(true, again.IsError);
         using var againJson = JsonDocument.Parse(FirstText(again) ?? "{}");
         Assert.Equal(executionId, againJson.RootElement.GetProperty("id").GetString());
@@ -1416,7 +1417,7 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
             },
             cancellationToken: CancellationToken.None);
 
-        var started = await StartStageAsync(client, cardId, "implementation", "claude-code");
+        var started = await StartStageAsync(client, cardId, "analysis", "claude-code");
         Assert.NotEqual(true, started.IsError);
         using var startedJson = JsonDocument.Parse(FirstText(started) ?? "{}");
         var executionId = startedJson.RootElement.GetProperty("id").GetString();
@@ -1468,8 +1469,19 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         var workflowId = $"waiting{suffix}";
         var kind = $"Waiting{suffix}";
         using var http = new HttpClient { BaseAddress = fixture.BaseUrl };
+
+        // A project of its own: the blocker's closing stage has to run, and the shared project keeps its one run
+        // slot taken on purpose.
+        var root = Path.Combine(fixture.ProjectRoot, $"blocked-{suffix}");
+        Directory.CreateDirectory(root);
+        using var initialized = await http.PostAsJsonAsync(
+            "/api/v1/projects/initialize",
+            new { rootPath = root, name = $"blocked-{suffix}" });
+        initialized.EnsureSuccessStatusCode();
+        var projectId = (await initialized.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString()!;
+
         using var created = await http.PostAsJsonAsync(
-            $"api/v1/projects/{fixture.ProjectId}/workflows",
+            $"api/v1/projects/{projectId}/workflows",
             new
             {
                 id = workflowId,
@@ -1492,7 +1504,13 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
             });
         Assert.Equal(HttpStatusCode.Created, created.StatusCode);
 
-        await using var client = await ConnectAsync();
+        await using var client = await McpClient.CreateAsync(
+            new HttpClientTransport(new HttpClientTransportOptions
+            {
+                Endpoint = new Uri($"{fixture.BaseUrl}mcp/projects/{projectId}"),
+                TransportMode = HttpTransportMode.StreamableHttp
+            }),
+            cancellationToken: CancellationToken.None);
         var blockerId = $"WAITING-{suffix}";
         var blockedId = $"TASK-BLOCKED-{suffix}";
         await client.CallToolAsync(
@@ -1547,24 +1565,33 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         Assert.Contains("backlog", refusal, StringComparison.Ordinal);
         Assert.Contains("offer", refusal, StringComparison.Ordinal);
 
-        // The blocker reaches the end of its own pipeline - one step out of the backlog - and the same start goes
-        // through: a finished blocker holds nothing back.
-        var blockerDocument = await client.CallToolAsync(
-            "aiko_get_card",
-            new Dictionary<string, object?> { ["cardId"] = blockerId },
-            cancellationToken: CancellationToken.None);
-        using var blockerJson = JsonDocument.Parse(FirstText(blockerDocument) ?? "{}");
-        var blockerRevision = blockerJson.RootElement.GetProperty("revision").GetInt64();
-        var moved = await client.CallToolAsync(
-            "aiko_move_card",
+        // The blocker finishes its own pipeline - one step out of the backlog, run and completed - and the same
+        // start goes through: a finished blocker holds nothing back. Reaching the last stage is not enough on its
+        // own: finished is the one rule the queue and the archive read, the last stage with its run completed.
+        var closing = await StartStageAsync(client, blockerId, "done", "claude-code");
+        Assert.False(closing.IsError == true, FirstText(closing));
+        using var closingJson = JsonDocument.Parse(FirstText(closing) ?? "{}");
+        var closingId = closingJson.RootElement.GetProperty("id").GetString();
+        var estimated = await client.CallToolAsync(
+            "aiko_estimate_card",
             new Dictionary<string, object?>
             {
                 ["cardId"] = blockerId,
-                ["stageId"] = "done",
-                ["expectedRevision"] = blockerRevision
+                ["expectedRevision"] = await RevisionAsync(client, blockerId),
+                ["criterionValues"] = new[] { "complete=10" }
             },
             cancellationToken: CancellationToken.None);
-        Assert.NotEqual(true, moved.IsError);
+        Assert.NotEqual(true, estimated.IsError);
+        var closed = await client.CallToolAsync(
+            "aiko_complete_stage",
+            new Dictionary<string, object?>
+            {
+                ["executionId"] = closingId,
+                ["actualChangedFiles"] = Array.Empty<string>(),
+                ["artifacts"] = Array.Empty<string>()
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.NotEqual(true, closed.IsError);
 
         // ... and the same start is no longer refused by the block: the gate reads the rule, and the domain
         // spec covers the rule itself. Whether the start goes through can still depend on runs the shared
@@ -2413,7 +2440,7 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
             new Dictionary<string, object?>
             {
                 ["cardId"] = cardId,
-                ["stageId"] = "implementation",
+                ["stageId"] = "analysis",
                 ["agentAdapterId"] = "claude-code"
             },
             cancellationToken: CancellationToken.None);

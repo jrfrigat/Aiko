@@ -12,7 +12,8 @@ public sealed class CardBlockerReader(
     IProjectCatalog catalog,
     ICardStore cards,
     IRelationStore relations,
-    IProjectDefinitionStore definitions) : ICardBlockers
+    IProjectDefinitionStore definitions,
+    IExecutionCoordinator executions) : ICardBlockers
 {
     /// <inheritdoc />
     public async ValueTask<IReadOnlyList<CardBlocker>> UnfinishedAsync(
@@ -40,6 +41,14 @@ public sealed class CardBlockerReader(
 
         var projectCards = await cards.ListAsync(reference.ProjectId, cancellationToken);
         var definition = await definitions.ReadAsync(reference.ProjectId, cancellationToken);
-        return CardBlocking.Unfinished(reference, projectRelations, projectCards, definition.Workflows);
+        var runs = await executions.ReadStageRunsAsync(reference.ProjectId, cancellationToken);
+        return CardBlocking.Unfinished(
+            reference,
+            projectRelations,
+            projectCards,
+            definition.Workflows,
+            blocker => runs.FirstOrDefault(run =>
+                StringComparer.Ordinal.Equals(run.CardId, blocker.Reference.CardId) &&
+                StringComparer.Ordinal.Equals(run.StageId, blocker.StageId))?.StateValue);
     }
 }
