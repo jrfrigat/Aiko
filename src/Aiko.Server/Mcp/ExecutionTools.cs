@@ -1,7 +1,9 @@
 using System.ComponentModel;
+using System.Text.Json.Nodes;
 using ModelContextProtocol.Server;
 using Aiko.Application.Contracts;
 using Aiko.Domain.Cards;
+using Aiko.Domain.Execution;
 using Aiko.Domain.Workflow;
 
 namespace Aiko.Server.Mcp;
@@ -15,6 +17,7 @@ internal sealed class ExecutionTools(
     IHttpContextAccessor httpContextAccessor,
     IProjectCatalog projects,
     ICardBlockers blockers,
+    ICardStore cards,
     IExecutionCoordinator executions) : ProjectToolBase(httpContextAccessor, projects)
 {
     [McpServerTool(Name = "aiko_start_stage", Title = "Start Aiko stage")]
@@ -54,7 +57,7 @@ internal sealed class ExecutionTools(
             stageId,
             agentAdapterId,
             cancellationToken);
-        return SerializeExecution(execution);
+        return await AnswerAsync(execution, cancellationToken);
     }
 
     [McpServerTool(Name = "aiko_report_progress", Title = "Report Aiko progress")]
@@ -80,7 +83,7 @@ internal sealed class ExecutionTools(
             remainingSteps,
             actualChangedFiles,
             cancellationToken);
-        return SerializeExecution(execution);
+        return await AnswerAsync(execution, cancellationToken);
     }
 
     [McpServerTool(
@@ -105,12 +108,15 @@ internal sealed class ExecutionTools(
             requestedScopeFiles,
             reason,
             cancellationToken);
-        return SerializeExecution(execution);
+        return await AnswerAsync(execution, cancellationToken);
     }
 
     [McpServerTool(Name = "aiko_complete_stage", Title = "Complete Aiko stage")]
     [Description(
-        "Completes the current stage attempt and records actual files and produced artifacts.")]
+        "Completes the current stage attempt and records actual files and produced artifacts. The card stays in "
+        + "its stage - start the next stage with aiko_start_stage, or move it with aiko_move_card - and its revision "
+        + "changes: the answer carries cardRevision for the next call. Refused while the card was not re-estimated "
+        + "during this run: call aiko_estimate_card with the readiness criterion first.")]
     public async Task<string> CompleteStageAsync(
         [Description("Stage execution id.")]
         string executionId,
@@ -125,7 +131,7 @@ internal sealed class ExecutionTools(
             actualChangedFiles,
             artifacts,
             cancellationToken);
-        return SerializeExecution(execution);
+        return await AnswerAsync(execution, cancellationToken);
     }
 
     [McpServerTool(Name = "aiko_pause_execution", Title = "Pause Aiko execution")]
@@ -141,7 +147,7 @@ internal sealed class ExecutionTools(
             executionId,
             reason,
             cancellationToken);
-        return SerializeExecution(execution);
+        return await AnswerAsync(execution, cancellationToken);
     }
 
     [McpServerTool(Name = "aiko_handoff_execution", Title = "Handoff Aiko execution")]
@@ -158,7 +164,7 @@ internal sealed class ExecutionTools(
             executionId,
             targetAgentAdapterId,
             cancellationToken);
-        return SerializeExecution(execution);
+        return await AnswerAsync(execution, cancellationToken);
     }
 
     [McpServerTool(Name = "aiko_resume_execution", Title = "Resume Aiko execution")]
@@ -175,7 +181,7 @@ internal sealed class ExecutionTools(
             executionId,
             agentAdapterId,
             cancellationToken);
-        return SerializeExecution(execution);
+        return await AnswerAsync(execution, cancellationToken);
     }
 
     [McpServerTool(Name = "aiko_report_agent_state", Title = "Report Aiko agent state")]
@@ -196,7 +202,7 @@ internal sealed class ExecutionTools(
             ParseAgentState(state),
             exitReason,
             cancellationToken);
-        return SerializeExecution(execution);
+        return await AnswerAsync(execution, cancellationToken);
     }
 
     [McpServerTool(Name = "aiko_report_commit", Title = "Report Aiko commit")]
@@ -219,7 +225,7 @@ internal sealed class ExecutionTools(
             message,
             files,
             cancellationToken);
-        return SerializeExecution(execution);
+        return await AnswerAsync(execution, cancellationToken);
     }
 
     [McpServerTool(Name = "aiko_approve_commit", Title = "Approve Aiko commit")]
@@ -233,6 +239,23 @@ internal sealed class ExecutionTools(
         CancellationToken cancellationToken)
     {
         var execution = await executions.ApproveCommitAsync(executionId, approved, cancellationToken);
-        return SerializeExecution(execution);
+        return await AnswerAsync(execution, cancellationToken);
+    }
+
+    /// <summary>
+    /// The execution, and the card as it is after it. Starting, completing and scope requests change the card's
+    /// revision, and an agent that only got the execution back named the old one in its next estimate or move -
+    /// so the answer carries the revision and the stage the card has now.
+    /// </summary>
+    private async Task<string> AnswerAsync(StageExecution execution, CancellationToken cancellationToken)
+    {
+        var answer = JsonNode.Parse(SerializeExecution(execution))!.AsObject();
+        if (await cards.FindAsync(execution.Card, cancellationToken) is { } card)
+        {
+            answer["cardRevision"] = card.Revision;
+            answer["cardStageId"] = card.StageId;
+        }
+
+        return answer.ToJsonString();
     }
 }

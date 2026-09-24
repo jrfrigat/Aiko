@@ -67,6 +67,11 @@ is in or the next one, and never a card in the archive. A person
 dragging a card on the board is deliberately not held to that rule: the board is how a person corrects their
 own board, and `aiko doctor` reports the cards that were pushed past a stage anyway.
 
+Every write moves the card's revision, starting and completing a stage included, and the execution tools
+answer with `cardRevision` and `cardStageId` beside the execution, so the next estimate or move names the
+revision the card has now. A stale revision is refused with the current one and the way back to it (read the
+card again with `aiko_get_card`); an artifact conflict names both versions.
+
 **One run is one stage.** A request in the chat is not a run: it creates a card in the backlog
 (`aiko_create_card`, or `/aiko-create`) and stops there - the work begins when the user asks for it ("выполни",
 `/aiko-run <cardId>`). An order is still a request: «поправь X» earns a card, not a run. That run performs

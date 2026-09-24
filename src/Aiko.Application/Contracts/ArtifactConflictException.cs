@@ -7,7 +7,10 @@ public sealed class ArtifactConflictException(
     string path,
     string? expectedVersion,
     string? actualVersion)
-    : InvalidOperationException($"Artifact conflict for {path}.")
+    : InvalidOperationException(
+        $"Artifact conflict for {path}: expected version {expectedVersion ?? "none (a new document)"}, actual "
+        + $"{actualVersion ?? "none (the document does not exist)"}. Read it with aiko_get_card_artifact and save "
+        + "again with the version it returns.")
 {
     /// <summary>
     /// Version expected by the caller; null means creating a new file.

@@ -166,6 +166,14 @@ internal sealed class CardTools(
         var resolvedId = string.IsNullOrWhiteSpace(cardId)
             ? await CardIdGenerator.NextAsync(cards, project.Id, canonicalKind, cancellationToken)
             : cardId.Trim();
+        if (await cards.FindAsync(new CardReference(project.Id, resolvedId), cancellationToken) is not null)
+        {
+            // A taken id used to surface as "revision conflict, expected 0", which reads like a race rather than
+            // what it is.
+            throw new InvalidOperationException(
+                $"Card '{resolvedId}' already exists. Leave cardId out to get the next free id, or work that card: "
+                + "read it with aiko_get_card.");
+        }
         IReadOnlyDictionary<string, string> metadata = new Dictionary<string, string>(StringComparer.Ordinal);
         metadata = Card.WithText(metadata, Card.RequirementsMetadataKey, requirements);
         metadata = Card.WithText(metadata, Card.RequestMetadataKey, request);
@@ -380,7 +388,9 @@ internal sealed class CardTools(
     [McpServerTool(Name = "aiko_move_card", Title = "Move Aiko card")]
     [Description(
         "Moves a card one stage forward in its workflow, or anywhere backwards, validating the stage against "
-        + "the card kind. A forward move is refused while the stage the card is leaving has no execution: the "
+        + "the card kind; the card's revision goes up by one. Refused when the target is more than one stage ahead, "
+        + "when the stage being left has an unfinished run (complete or continue it first), and when that stage "
+        + "has no execution: the "
         + "card moves on because the stage is done, so run it with aiko_start_stage first.")]
     public async Task<string> MoveCardAsync(
         [Description("Card id.")]

@@ -8,7 +8,9 @@ public sealed class RevisionConflictException(
     long expectedRevision,
     long actualRevision)
     : InvalidOperationException(
-        $"Revision conflict for {entity}: expected {expectedRevision}, actual {actualRevision}.")
+        $"Revision conflict for {entity}: expected {expectedRevision}, actual {actualRevision}. It changed after "
+        + $"it was read - a start, a completion or another writer moves the revision. Read it again (aiko_get_card "
+        + $"for a card) and retry with revision {actualRevision}.")
 {
     /// <summary>
     /// Revision expected by the caller.
