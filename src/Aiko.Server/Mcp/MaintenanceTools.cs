@@ -6,6 +6,7 @@ using System.Text.Json;
 using ModelContextProtocol.Server;
 using Aiko.Application.Agents;
 using Aiko.Application.Contracts;
+using Aiko.Domain.Execution;
 using Aiko.Infrastructure.Settings;
 using Aiko.Infrastructure.Storage;
 using Aiko.Server.Contracts;
@@ -117,7 +118,8 @@ internal sealed class MaintenanceTools(
         "took its copy. `settings` is the AppSettings document as JSON; a section it leaves out falls back to " +
         "the built-in default, and a section it states is written as it stands, so send the fields you mean. " +
         "A project answers with its effective settings and the source of each value, a template with itself " +
-        "and its new version.")]
+        "and its new version. The execution policies (scope overlap, commits, pushes, scope expansion) are the " +
+        "user's to set on the Settings screen: a document that changes one is refused.")]
     public async Task<string> UpdateSettingsAsync(
         [Description("Project whose own settings are written; omit when writing a template.")]
         [Optional] string? projectId,
@@ -161,6 +163,8 @@ internal sealed class MaintenanceTools(
                 throw new KeyNotFoundException($"Unknown settings template: {templateId}");
             }
 
+            RefusePolicyChange(template.Settings?.Execution ?? ExecutionSettings.SafeDefault, document.Execution);
+
             // One version for the whole document, exactly as the REST write does it: the settings are part of
             // the template's content, and a project records which version of it it was created from.
             await templates.WriteAsync(
@@ -171,6 +175,9 @@ internal sealed class MaintenanceTools(
                 ServerJsonContext.Default.ProjectTemplate);
         }
 
+        RefusePolicyChange(
+            await appSettings.GetEffectiveExecutionAsync(projectId!, cancellationToken),
+            document.Execution);
         await appSettings.SaveProjectAsync(projectId!, document, cancellationToken);
 
         // The answer is the effective view rather than the document that was sent: it is the same shape
@@ -178,5 +185,42 @@ internal sealed class MaintenanceTools(
         return JsonSerializer.Serialize(
             await appSettings.LoadAsync(projectId, cancellationToken),
             ServerJsonContext.Default.AppSettingsView);
+    }
+
+    /// <summary>
+    /// Refuses a document that would change an execution policy. The policies say which decisions the user keeps
+    /// - an agent that could set them to "allow" would make every "ask" an "allow". A section left out falls
+    /// back to the built-in default, so that is compared too.
+    /// </summary>
+    private static void RefusePolicyChange(ExecutionSettings current, ExecutionSettings? requested)
+    {
+        var next = requested ?? ExecutionSettings.SafeDefault;
+        var changed = new List<string>();
+        if (next.ScopeOverlapPolicy != current.ScopeOverlapPolicy)
+        {
+            changed.Add("scopeOverlapPolicy");
+        }
+
+        if (next.SharedCheckoutCommitPolicy != current.SharedCheckoutCommitPolicy)
+        {
+            changed.Add("sharedCheckoutCommitPolicy");
+        }
+
+        if (next.SharedCheckoutPushPolicy != current.SharedCheckoutPushPolicy)
+        {
+            changed.Add("sharedCheckoutPushPolicy");
+        }
+
+        if (next.ScopeExpansionPolicy != current.ScopeExpansionPolicy)
+        {
+            changed.Add("scopeExpansionPolicy");
+        }
+
+        if (changed.Count > 0)
+        {
+            throw new InvalidOperationException(
+                $"The execution policies are the user's decision, so an agent cannot change them ({string.Join(", ", changed)}). "
+                + "Ask the user to change them on the Settings screen, and send the current values when writing other settings.");
+        }
     }
 }

@@ -377,7 +377,7 @@ The project's commit policy controls who commits:
 
 - `deny` (default) - you commit; the agent does not.
 - `ask` - the agent reports a commit and waits for your approval (the execution becomes
-  `waiting-for-user`; approve with `aiko_approve_commit` or in the UI).
+  `waiting-for-user`; you approve it on the board - the agent cannot approve its own commit).
 - `allow` - the agent commits and reports the SHA.
 
 The project's push policy answers the same question for pushing from the shared checkout, with the same three

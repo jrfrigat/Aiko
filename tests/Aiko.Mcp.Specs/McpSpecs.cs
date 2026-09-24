@@ -38,7 +38,6 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         "aiko_resume_execution",
         "aiko_report_agent_state",
         "aiko_report_commit",
-        "aiko_approve_commit",
         "aiko_search_memory",
         "aiko_store_memory",
         "aiko_open_ui",

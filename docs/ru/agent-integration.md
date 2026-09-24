@@ -46,7 +46,10 @@ aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<handle>
   экран поставил агенту. Не путать с `aiko_list_work_queue` — это очередь карточек к работе.
 - **Execution** - `aiko_start_stage`, `aiko_report_progress`, `aiko_request_scope_expansion`,
   `aiko_complete_stage`, `aiko_pause_execution`, `aiko_handoff_execution`,
-  `aiko_resume_execution`, `aiko_report_agent_state`, `aiko_report_commit`, `aiko_approve_commit`.
+  `aiko_resume_execution`, `aiko_report_agent_state`, `aiko_report_commit`. Что проект оставляет
+  пользователю, остаётся за пользователем: инструмента одобрения коммита нет, запуск, ждущий решения
+  пользователя о коммите или scope, агент не возобновляет и не завершает, а `aiko_update_settings` отказывает в
+  смене политик исполнения.
 - **Память** - `aiko_search_memory`, `aiko_store_memory`.
 - **Daemon (глобальные)** - `aiko_init_project`, `aiko_list_projects`, `aiko_list_templates`,
   `aiko_create_card_in_project`, `aiko_link_project`, `aiko_unlink_project`, `aiko_doctor`, `aiko_reindex`, `aiko_get_settings`, `aiko_token`,

@@ -45,7 +45,10 @@ aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<handle>
   for an agent, not to be confused with `aiko_list_work_queue`, which is the cards to work.
 - **Execution** - `aiko_start_stage`, `aiko_report_progress`, `aiko_request_scope_expansion`,
   `aiko_complete_stage`, `aiko_pause_execution`, `aiko_handoff_execution`,
-  `aiko_resume_execution`, `aiko_report_agent_state`, `aiko_report_commit`, `aiko_approve_commit`.
+  `aiko_resume_execution`, `aiko_report_agent_state`, `aiko_report_commit`. What the project leaves to the
+  user stays with the user: there is no tool to approve a commit, a run that waits for the user's decision on
+  a commit or on scope is neither resumed nor completed by the agent, and `aiko_update_settings` refuses to
+  change the execution policies.
 - **Memory** - `aiko_search_memory`, `aiko_store_memory`.
 - **Daemon (global)** - `aiko_init_project`, `aiko_list_projects`, `aiko_list_templates`,
   `aiko_create_card_in_project`, `aiko_link_project`, `aiko_unlink_project`, `aiko_doctor`,

@@ -169,7 +169,9 @@ internal sealed class ExecutionTools(
 
     [McpServerTool(Name = "aiko_resume_execution", Title = "Resume Aiko execution")]
     [Description(
-        "Resumes a paused, waiting or needs-attention execution with a new AgentAttempt.")]
+        "Resumes a paused, waiting or needs-attention execution with a new AgentAttempt. A run that waits for "
+        + "the user's decision - a commit to approve, or scope to grant - is refused: the user answers it on the "
+        + "board, and the agent tells the user and stops.")]
     public async Task<string> ResumeExecutionAsync(
         [Description("Stage execution id.")]
         string executionId,
@@ -177,6 +179,14 @@ internal sealed class ExecutionTools(
         string agentAdapterId,
         CancellationToken cancellationToken)
     {
+        if (await executions.FindAsync(executionId, cancellationToken) is { } waiting &&
+            PendingUserDecision(waiting) is { } decision)
+        {
+            throw new InvalidOperationException(
+                $"Run {executionId} is waiting for the user to decide on {decision}. The user answers on the "
+                + "board; tell the user and stop here - an agent cannot answer for them.");
+        }
+
         var execution = await executions.ResumeAsync(
             executionId,
             agentAdapterId,
@@ -228,18 +238,27 @@ internal sealed class ExecutionTools(
         return await AnswerAsync(execution, cancellationToken);
     }
 
-    [McpServerTool(Name = "aiko_approve_commit", Title = "Approve Aiko commit")]
-    [Description(
-        "Approves or rejects the pending commit request of the current execution and resumes it.")]
-    public async Task<string> ApproveCommitAsync(
-        [Description("Stage execution id.")]
-        string executionId,
-        [Description("True to approve, false to reject the pending commit.")]
-        bool approved,
-        CancellationToken cancellationToken)
+    /// <summary>
+    /// What a run waits for the user to decide, or null when it waits for nothing the user owns. A commit the
+    /// project asks the user to approve, and scope the project asks the user to grant, are the user's answers:
+    /// an agent that could give them itself would turn "ask" into "allow". There is no approve tool for the same
+    /// reason - the board's REST surface is where the user answers.
+    /// </summary>
+    private static string? PendingUserDecision(StageExecution execution)
     {
-        var execution = await executions.ApproveCommitAsync(executionId, approved, cancellationToken);
-        return await AnswerAsync(execution, cancellationToken);
+        if (execution.State != StageExecutionState.WaitingForUser)
+        {
+            return null;
+        }
+
+        if (execution.Commits.Any(commit => commit.State == CommitState.PendingApproval))
+        {
+            return "a commit";
+        }
+
+        return execution.RequestedScopeFiles.Except(execution.DeclaredScopeFiles, StringComparer.Ordinal).Any()
+            ? "a scope request"
+            : null;
     }
 
     /// <summary>

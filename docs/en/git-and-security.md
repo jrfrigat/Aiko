@@ -91,7 +91,7 @@ The project's **commit policy** answers who commits during a stage execution:
 
 - `deny` (the default) - you commit; the agent does not;
 - `ask` - the agent reports a commit and waits for your approval (the execution becomes
-  `waiting-for-user`; approve with `aiko_approve_commit` or in the UI);
+  `waiting-for-user`; you approve it on the board - the agent cannot approve its own commit);
 - `allow` - the agent makes the commit and reports the SHA.
 
 Aiko itself never creates a commit: it only records what the agent reports. It does run `git`, read-only -

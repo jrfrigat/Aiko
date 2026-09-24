@@ -571,6 +571,15 @@ public sealed class SqliteExecutionCoordinator(
             async execution =>
             {
                 EnsureNotTerminal(execution);
+                if (execution.State == StageExecutionState.WaitingForUser)
+                {
+                    // A run that waits for the user was stopped for the user: completing it would step over the
+                    // question. It is resumed once the user has answered, and completed from there.
+                    throw new InvalidOperationException(
+                        $"Run {execution.Id} is waiting for the user, so it cannot be completed. It is resumed once "
+                        + "the user has answered, and completed from there.");
+                }
+
                 var now = DateTimeOffset.UtcNow;
                 var attempts = CloseCurrentAttempt(
                     execution.Attempts,
