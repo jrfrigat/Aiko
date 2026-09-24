@@ -54,7 +54,7 @@ public static class StitchFlowTheme
         displayName: "StitchFlow Cockpit",
         design: Apply,
         palettes: StitchFlowPalettes.All,
-        defaultPaletteId: StitchFlowPalettes.KineticId,
+        defaultPaletteId: StitchFlowPalettes.StudioModernId,
         // The design's own fonts, plus the rules tokens cannot express (see the stylesheet).
         styleAssets:
         [
