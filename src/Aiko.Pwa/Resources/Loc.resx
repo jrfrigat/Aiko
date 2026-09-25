@@ -1,5 +1,110 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
   </resheader>
@@ -12,757 +117,2242 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="EmptyStateTitle" xml:space="preserve"><value>No projects registered</value></data>
-  <data name="EmptyStateHint" xml:space="preserve"><value>Initialize a project through Aiko and it will appear in this panel.</value></data>
-  <data name="AddProject" xml:space="preserve"><value>Add project</value></data>
-  <data name="AddProjectHint" xml:space="preserve"><value>Point at the project folder. Aiko creates the .aiko directory and the default workflows.</value></data>
-  <data name="CreateCard" xml:space="preserve"><value>Card</value></data>
-  <data name="CreateCardTitle" xml:space="preserve"><value>Create card</value></data>
-  <data name="CardIdentityTitle" xml:space="preserve"><value>The card</value></data>
-  <data name="CardIdentityHint" xml:space="preserve"><value>Aiko names the card; you give it the title everyone reads it by</value></data>
-  <data name="Requirements" xml:space="preserve"><value>Requirements</value></data>
-  <data name="ScopeAndRequirementsHint" xml:space="preserve"><value>What the card must do, and the files it may touch</value></data>
-  <data name="RequirementsHelper" xml:space="preserve"><value>What this card must do, in your words</value></data>
-  <data name="Request" xml:space="preserve"><value>Request</value></data>
-  <data name="RequestHelper" xml:space="preserve"><value>What the user asked for, in their own words</value></data>
-  <data name="BacklogStageNote" xml:space="preserve"><value>The card starts in backlog and moves from there.</value></data>
-  <data name="EstimateAfterCreateHint" xml:space="preserve"><value>Left blank, the size and the scores are the agent's estimate - run /aiko-estimate afterwards.</value></data>
-  <data name="EstimateTitle" xml:space="preserve"><value>Estimate</value></data>
-  <data name="EstimateHint" xml:space="preserve"><value>The size and criterion scores you did not set are the agent's judgement.</value></data>
-  <data name="EstimateAgent" xml:space="preserve"><value>Who estimates</value></data>
-  <data name="EstimateCard" xml:space="preserve"><value>Ask to estimate</value></data>
-  <data name="EstimateCommandHint" xml:space="preserve"><value>Run {0} in that agent's terminal.</value></data>
-  <data name="EstimateRequested" xml:space="preserve"><value>Asked {0} to estimate this card.</value></data>
-  <data name="EstimateRequestFailed" xml:space="preserve"><value>The estimate request failed: {0}</value></data>
-  <data name="ExecutionActions" xml:space="preserve"><value>Steering the work</value></data>
-  <data name="StartStage" xml:space="preserve"><value>Start the stage</value></data>
-  <data name="PauseRun" xml:space="preserve"><value>Pause</value></data>
-  <data name="ResumeRun" xml:space="preserve"><value>Resume</value></data>
-  <data name="CancelRun" xml:space="preserve"><value>Cancel</value></data>
-  <data name="CompleteRun" xml:space="preserve"><value>Complete</value></data>
-  <data name="HandoffRun" xml:space="preserve"><value>Hand off</value></data>
-  <data name="ApproveScope" xml:space="preserve"><value>Allow the extra files</value></data>
-  <data name="RefuseScope" xml:space="preserve"><value>Refuse the extra files</value></data>
-  <data name="ApproveCommit" xml:space="preserve"><value>Approve the commit</value></data>
-  <data name="RejectCommit" xml:space="preserve"><value>Reject the commit</value></data>
-  <data name="ExecutionActionFailed" xml:space="preserve"><value>The action failed: {0}</value></data>
-  <data name="ActiveRunsTitle" xml:space="preserve"><value>Running now</value></data>
-  <data name="ActiveRunsNone" xml:space="preserve"><value>Nothing is running in this project.</value></data>
-  <data name="ActiveRunsNoAgent" xml:space="preserve"><value>no agent</value></data>
-  <data name="CardPlaceTitle" xml:space="preserve"><value>Where it starts</value></data>
-  <data name="ScoringHint" xml:space="preserve"><value>The agent may refine these later; the card's own score is computed from them</value></data>
-  <data name="CreateCardHint" xml:space="preserve"><value>The card opens right after it is created - that is where its artifacts and runs collect</value></data>
-  <data name="Add" xml:space="preserve"><value>Add</value></data>
-  <data name="Create" xml:space="preserve"><value>Create</value></data>
-  <data name="Cancel" xml:space="preserve"><value>Cancel</value></data>
-  <data name="Close" xml:space="preserve"><value>Close</value></data>
-  <data name="Refresh" xml:space="preserve"><value>Refresh</value></data>
-  <data name="Workflow" xml:space="preserve"><value>Workflow</value></data>
-  <data name="Settings" xml:space="preserve"><value>Settings</value></data>
-  <data name="Title" xml:space="preserve"><value>Title</value></data>
-  <data name="ProjectPath" xml:space="preserve"><value>Project path</value></data>
-  <data name="ProjectName" xml:space="preserve"><value>Name (optional)</value></data>
-  <data name="Stage" xml:space="preserve"><value>Stage (for example backlog)</value></data>
-  <data name="Priority" xml:space="preserve"><value>Priority (number)</value></data>
-  <data name="Scope" xml:space="preserve"><value>Scope (comma separated)</value></data>
-  <data name="Choose" xml:space="preserve"><value>Choose...</value></data>
-  <data name="GitPolicyLocalOnly" xml:space="preserve"><value>local-only (default)</value></data>
-  <data name="GitPolicy" xml:space="preserve"><value>Git policy</value></data>
-  <data name="CardKind" xml:space="preserve"><value>Card kind</value></data>
-  <data name="CardFilter" xml:space="preserve"><value>Filter</value></data>
-  <data name="WorkspaceFlow" xml:space="preserve"><value>Workspace</value></data>
-  <data name="KanbanBoard" xml:space="preserve"><value>Kanban board</value></data>
-  <data name="Projects" xml:space="preserve"><value>Projects</value></data>
-  <data name="OrchestrationLoad" xml:space="preserve"><value>ORCHESTRATION LOAD</value></data>
-  <data name="ContextEngine" xml:space="preserve"><value>Event stream</value></data>
-  <data name="NativeAot" xml:space="preserve"><value>NATIVE AOT</value></data>
-  <data name="Host" xml:space="preserve"><value>host</value></data>
-  <data name="Unassigned" xml:space="preserve"><value>unassigned</value></data>
-  <data name="DropHere" xml:space="preserve"><value>Drop tasks into</value></data>
-  <data name="RailAriaLabel" xml:space="preserve"><value>Aiko projects</value></data>
-  <data name="InspectorAriaLabel" xml:space="preserve"><value>Aiko inspector</value></data>
-  <data name="StoriesNav" xml:space="preserve"><value>Stories</value></data>
-  <data name="TasksNav" xml:space="preserve"><value>Tasks</value></data>
-  <data name="BoardTypesFilter" xml:space="preserve"><value>Card types</value></data>
-  <data name="BoardWaitingFilter" xml:space="preserve"><value>Answer filter</value></data>
-  <data name="BoardWaitingFilterAll" xml:space="preserve"><value>All</value></data>
-  <data name="BoardWaitingFilterWaiting" xml:space="preserve"><value>Waiting for an answer</value></data>
-  <data name="StoryFlow" xml:space="preserve"><value>Story flow</value></data>
-  <data name="GitPolicyTrackKnowledge" xml:space="preserve"><value>track-project-knowledge</value></data>
-  <data name="GitPolicyCustom" xml:space="preserve"><value>custom</value></data>
-  <data name="PathRequired" xml:space="preserve"><value>Enter the project path.</value></data>
-  <data name="AddProjectFailed" xml:space="preserve"><value>Could not add the project: {0}</value></data>
-  <data name="CreateCardFailed" xml:space="preserve"><value>Could not create the card: {0}</value></data>
-  <data name="MoveFailed" xml:space="preserve"><value>Move {0} was not saved: {1}</value></data>
-  <data name="BoardCaption" xml:space="preserve"><value>Project board</value></data>
-  <data name="BoardFilterSize" xml:space="preserve"><value>Size</value></data>
-  <data name="LoadingContext" xml:space="preserve"><value>Assembling the project context...</value></data>
-  <data name="BoardUpdateFailed" xml:space="preserve"><value>Could not update the board</value></data>
-  <data name="Cards" xml:space="preserve"><value>Cards</value></data>
-  <data name="InProgress" xml:space="preserve"><value>In progress</value></data>
-  <data name="Relations" xml:space="preserve"><value>Relations</value></data>
-  <data name="OutOfScope" xml:space="preserve"><value>Out of scope</value></data>
-  <data name="BacklogSlice" xml:space="preserve"><value>in backlog {0}</value></data>
-  <data name="Implementation" xml:space="preserve"><value>implementation</value></data>
-  <data name="CardsStagesCount" xml:space="preserve"><value>{0} cards - {1} stages</value></data>
-  <data name="WorkflowNotFound" xml:space="preserve"><value>No workflow found for {0}.</value></data>
-  <data name="ScopeNotSet" xml:space="preserve"><value>scope not set</value></data>
-  <data name="FilesCount" xml:space="preserve"><value>{0}/{1} files</value></data>
-  <data name="OutOfScopeCount" xml:space="preserve"><value>out of scope: {0}</value></data>
-  <data name="Parameters" xml:space="preserve"><value>Parameters</value></data>
-  <data name="ScoringCriteria" xml:space="preserve"><value>Scoring criteria</value></data>
-  <data name="PriorityLabel" xml:space="preserve"><value>Score / priority</value></data>
-  <data name="ScopeHelper" xml:space="preserve"><value>One path or glob per line</value></data>
-  <data name="SaveCard" xml:space="preserve"><value>Save card</value></data>
-  <data name="FilesTitle" xml:space="preserve"><value>Files</value></data>
-  <data name="NoRelations" xml:space="preserve"><value>No relations yet.</value></data>
-  <data name="RemoveLink" xml:space="preserve"><value>Remove link</value></data>
-  <data name="UnlinkConfirm" xml:space="preserve"><value>Remove the link to {0}?</value></data>
-  <data name="UnlinkFailed" xml:space="preserve"><value>The link could not be removed: {0}</value></data>
-  <data name="LoadingHistory" xml:space="preserve"><value>Loading history...</value></data>
-  <data name="NoExecutions" xml:space="preserve"><value>No runs yet.</value></data>
-  <data name="ArtifactsLabel" xml:space="preserve"><value>Artifacts: {0}</value></data>
-  <data name="HistoryUnavailable" xml:space="preserve"><value>Execution history is unavailable: {0}</value></data>
-  <data name="InvalidPriority" xml:space="preserve"><value>Enter a non-negative number.</value></data>
-  <data name="TitleRequired" xml:space="preserve"><value>A card title is required.</value></data>
-  <data name="CardConflict" xml:space="preserve"><value>Another agent changed the card before this save. Your edits are kept - check them against the card and save again.</value></data>
-  <data name="CardChangedWhileEditing" xml:space="preserve"><value>The card changed while you were editing it. Your edits are kept.</value></data>
-  <data name="DiscardMyEdits" xml:space="preserve"><value>Discard my edits</value></data>
-  <data name="LeaveWithUnsavedEdits" xml:space="preserve"><value>You have unsaved edits. Leave and lose them?</value></data>
-  <data name="ArtifactModified" xml:space="preserve"><value>Modified</value></data>
-  <data name="DiscardDocumentEdits" xml:space="preserve"><value>Reload the document and lose your unsaved edits?</value></data>
-  <data name="ChangesSaved" xml:space="preserve"><value>Changes saved.</value></data>
-  <data name="SaveCardFailed" xml:space="preserve"><value>Could not save the card: {0}</value></data>
-  <data name="TaskFlow" xml:space="preserve"><value>Task flow</value></data>
-  <data name="DocumentsTitle" xml:space="preserve"><value>Documents</value></data>
-  <data name="NewMarkdown" xml:space="preserve"><value>New Markdown file</value></data>
-  <data name="AddDocHint" xml:space="preserve"><value>Add a Markdown file for the request, the analysis or the result.</value></data>
-  <data name="NewFile" xml:space="preserve"><value>New file</value></data>
-  <data name="SavedFile" xml:space="preserve"><value>Saved file</value></data>
-  <data name="SaveDocument" xml:space="preserve"><value>Save document</value></data>
-  <data name="ListFailed" xml:space="preserve"><value>Could not load the document list: {0}</value></data>
-  <data name="ServerEmptyDoc" xml:space="preserve"><value>The server returned an empty document.</value></data>
-  <data name="OpenFailed" xml:space="preserve"><value>Could not open the document: {0}</value></data>
-  <data name="InvalidPath" xml:space="preserve"><value>Enter a relative path to a .md file.</value></data>
-  <data name="NewDocPrepared" xml:space="preserve"><value>The new document is ready. Fill it in and save it.</value></data>
-  <data name="FileNotCreatedYet" xml:space="preserve"><value>The file does not exist yet. Saving adds it to the card folder.</value></data>
-  <data name="FileChanged" xml:space="preserve"><value>Another agent or editor changed the file. Refresh the document before saving.</value></data>
-  <data name="ServerRejected" xml:space="preserve"><value>The server rejected the document: {0}.</value></data>
-  <data name="ServerNoDoc" xml:space="preserve"><value>The server did not return the saved document.</value></data>
-  <data name="DocSaved" xml:space="preserve"><value>Document saved.</value></data>
-  <data name="SaveDocFailed" xml:space="preserve"><value>Could not save the document: {0}</value></data>
-  <data name="ArtifactSaved" xml:space="preserve"><value>saved</value></data>
-  <data name="ArtifactRequired" xml:space="preserve"><value>required</value></data>
-  <data name="ArtifactNew" xml:space="preserve"><value>new</value></data>
-  <data name="WorkflowTitle" xml:space="preserve"><value>Workflow title</value></data>
-  <data name="StagesTitle" xml:space="preserve"><value>Stages</value></data>
-  <data name="AddStage" xml:space="preserve"><value>Add stage</value></data>
-  <data name="Remove" xml:space="preserve"><value>Remove</value></data>
-  <data name="SelectedStage" xml:space="preserve"><value>Selected stage</value></data>
-  <data name="StableId" xml:space="preserve"><value>Stable id</value></data>
-  <data name="StableIdHelper" xml:space="preserve"><value>Used by agents and cards</value></data>
-  <data name="Instruction" xml:space="preserve"><value>Agent instruction</value></data>
-  <data name="DefaultAgent" xml:space="preserve"><value>Default agent</value></data>
-  <data name="DefaultAgentHelper" xml:space="preserve"><value>For example: codex; may be left empty</value></data>
-  <data name="RequiredArtifacts" xml:space="preserve"><value>Required artifacts</value></data>
-  <data name="ArtifactsHelper" xml:space="preserve"><value>path | policy | description - one per line</value></data>
-  <data name="MoveUp" xml:space="preserve"><value>Up</value></data>
-  <data name="MoveDown" xml:space="preserve"><value>Down</value></data>
-  <data name="SaveWorkflow" xml:space="preserve"><value>Save workflow</value></data>
-  <data name="WorkflowHint" xml:space="preserve"><value>Changes apply to the board and to the next agent runs.</value></data>
-  <data name="NewStage" xml:space="preserve"><value>New stage</value></data>
-  <data name="NewStageInstruction" xml:space="preserve"><value>Describe what the agent should do at this stage.</value></data>
-  <data name="OneStageRequired" xml:space="preserve"><value>A workflow needs at least one stage.</value></data>
-  <data name="MoveCardFirst" xml:space="preserve"><value>Move card {0} out of this stage first.</value></data>
-  <data name="ArtifactLineInvalid" xml:space="preserve"><value>invalid artifact line "{0}".</value></data>
-  <data name="SaveWorkflowFailed" xml:space="preserve"><value>Could not save the workflow: {0}</value></data>
-  <data name="WorkflowTitleRequired" xml:space="preserve"><value>Enter a workflow title.</value></data>
-  <data name="StageIdTitleRequired" xml:space="preserve"><value>Every stage needs an id and a title.</value></data>
-  <data name="StageIdUnique" xml:space="preserve"><value>Stage id must be unique: {0}.</value></data>
-  <data name="WorkflowConflict" xml:space="preserve"><value>Another agent has already changed the workflow. The board has been refreshed.</value></data>
-  <data name="ServerRejectedChanges" xml:space="preserve"><value>The server rejected the changes: {0}.</value></data>
-  <data name="WorkflowSaved" xml:space="preserve"><value>Workflow saved.</value></data>
-  <data name="SettingsTitle" xml:space="preserve"><value>Settings</value></data>
-  <data name="LoadingSettings" xml:space="preserve"><value>Loading settings...</value></data>
-  <data name="Daemon" xml:space="preserve"><value>Daemon</value></data>
-  <data name="Version" xml:space="preserve"><value>Version</value></data>
-  <data name="Address" xml:space="preserve"><value>Address</value></data>
-  <data name="EffectiveConfig" xml:space="preserve"><value>Effective execution configuration</value></data>
-  <data name="Source" xml:space="preserve"><value>Source</value></data>
-  <data name="Workspace" xml:space="preserve"><value>Workspace</value></data>
-  <data name="MaxRuns" xml:space="preserve"><value>Concurrent runs</value></data>
-  <data name="ScopeOverlap" xml:space="preserve"><value>Scope overlap</value></data>
-  <data name="CommitPolicy" xml:space="preserve"><value>Commits in a shared checkout</value></data>
-  <data name="ParallelSharedOn" xml:space="preserve"><value>Parallel shared mode is on</value></data>
-  <data name="ProjectSettings" xml:space="preserve"><value>Project</value></data>
-  <data name="WorkspaceOption" xml:space="preserve"><value>Shared checkout</value></data>
-  <data name="WorktreeOption" xml:space="preserve"><value>Separate worktree (soon)</value></data>
-  <data name="MaxRunsLabel" xml:space="preserve"><value>Concurrent runs (1 or more)</value></data>
-  <data name="PolicyAsk" xml:space="preserve"><value>Ask</value></data>
-  <data name="PolicyAllow" xml:space="preserve"><value>Allow</value></data>
-  <data name="PolicyDeny" xml:space="preserve"><value>Deny</value></data>
-  <data name="ScopePolicy" xml:space="preserve"><value>Scope overlap policy</value></data>
-  <data name="SaveProjectSettings" xml:space="preserve"><value>Save project settings</value></data>
-    <data name="GlobalHint" xml:space="preserve"><value>Applied to every project that has no settings of its own.</value></data>
-    <data name="SelectProjectForLocalSettings" xml:space="preserve"><value>Project settings become available once a project is selected. The global settings below apply to every project.</value></data>
-  <data name="SourceProject" xml:space="preserve"><value>project</value></data>
-  <data name="SourceGlobal" xml:space="preserve"><value>global</value></data>
-  <data name="SourceDefault" xml:space="preserve"><value>default</value></data>
-  <data name="LoadSettingsFailed" xml:space="preserve"><value>Could not load the settings: {0}</value></data>
-  <data name="SaveSettingsFailed" xml:space="preserve"><value>Saving failed: {0}</value></data>
-  <data name="SettingsSaved" xml:space="preserve"><value>Settings saved.</value></data>
-  <data name="InvalidMaxRuns" xml:space="preserve"><value>Enter a whole number of 1 or more.</value></data>
-  <data name="InvalidSettingValue" xml:space="preserve"><value>Invalid setting value.</value></data>
-  <data name="Overview" xml:space="preserve"><value>Overview</value></data>
-  <data name="OverviewCaption" xml:space="preserve"><value>Local-first orchestrator: one daemon, the board, the agents and durable project memory.</value></data>
-  <data name="Agents" xml:space="preserve"><value>Agents</value></data>
-  <data name="AgentsNotFound" xml:space="preserve"><value>not detected</value></data>
-  <data name="AgentsHint" xml:space="preserve"><value>Connect writes the agent's global /aiko-* skills and commands. The project-scoped MCP entry is added separately: aiko agent install --project &lt;id&gt;</value></data>
-  <data name="QuickStart" xml:space="preserve"><value>Quick start</value></data>
-  <data name="QuickStartStep1" xml:space="preserve"><value>1. Start the daemon: aiko serve</value></data>
-  <data name="QuickStartStep2" xml:space="preserve"><value>2. Add a project below, or run aiko init &lt;path&gt;</value></data>
-  <data name="QuickStartStep3" xml:space="preserve"><value>3. Connect an agent: aiko agent install --project &lt;id&gt; --agent codex</value></data>
-  <data name="QuickStartStep4" xml:space="preserve"><value>4. Work in the agent: every task starts with a card</value></data>
-  <data name="ProjectsRegistered" xml:space="preserve"><value>Registered projects</value></data>
-  <data name="OpenProject" xml:space="preserve"><value>Open</value></data>
-  <data name="PriorityFormula" xml:space="preserve"><value>Priority formula</value></data>
-  <data name="PriorityFormulaHint" xml:space="preserve"><value>Effective priority = own weight × the card's own score + parent weight × the best parent story.</value></data>
-  <data name="OwnWeight" xml:space="preserve"><value>Own score weight</value></data>
-  <data name="ParentWeight" xml:space="preserve"><value>Best parent weight</value></data>
-  <data name="Criteria" xml:space="preserve"><value>Scoring criteria</value></data>
-  <data name="AddCriterion" xml:space="preserve"><value>Add criterion</value></data>
-  <data name="CriterionDescription" xml:space="preserve"><value>Description</value></data>
-  <data name="CriterionWeight" xml:space="preserve"><value>Weight</value></data>
-  <data name="CriterionIdHelper" xml:space="preserve"><value>The id is what cards report their values against, and it does not change when the title does.</value></data>
-  <data name="NoCriteria" xml:space="preserve"><value>No criteria: a card's priority is entered by hand.</value></data>
-  <data name="InvalidWeights" xml:space="preserve"><value>Weights must be zero or greater, and at least one of them above zero.</value></data>
-  <data name="CriterionTitleRequired" xml:space="preserve"><value>Every criterion needs a title.</value></data>
-  <data name="NotPairedHint" xml:space="preserve"><value>This browser is not paired with the daemon yet. Open the board with: aiko ui</value></data>
-  <data name="Dashboard" xml:space="preserve"><value>Dashboard</value></data>
-  <data name="DashboardCaption" xml:space="preserve"><value>Every project, every card, and a year of activity in one place.</value></data>
-  <data name="StatProjects" xml:space="preserve"><value>Projects</value></data>
-  <data name="StatCards" xml:space="preserve"><value>Cards</value></data>
-  <data name="StatTasks" xml:space="preserve"><value>Tasks</value></data>
-  <data name="StatStories" xml:space="preserve"><value>Stories</value></data>
-  <data name="StatInProgress" xml:space="preserve"><value>In progress</value></data>
-  <data name="StatOutOfScope" xml:space="preserve"><value>Out of scope</value></data>
-  <data name="AcrossProjects" xml:space="preserve"><value>across {0} projects</value></data>
-  <data name="TodayDelta" xml:space="preserve"><value>+{0} today</value></data>
-  <data name="StatTasksCaption" xml:space="preserve"><value>task cards in the pipelines</value></data>
-  <data name="StatStoriesCaption" xml:space="preserve"><value>story cards driving them</value></data>
-  <data name="StatInProgressCaption" xml:space="preserve"><value>{0} agents detected on this machine</value></data>
-  <data name="StatOutOfScopeCaption" xml:space="preserve"><value>files outside the declared scope</value></data>
-  <data name="StatLive" xml:space="preserve"><value>Active (live SSE)</value></data>
-  <data name="NoBoardData" xml:space="preserve"><value>No board data</value></data>
-  <data name="TableProject" xml:space="preserve"><value>Project</value></data>
-  <data name="TableStatus" xml:space="preserve"><value>Status</value></data>
-  <data name="TableActions" xml:space="preserve"><value>Actions</value></data>
-  <data name="ActivityTitle" xml:space="preserve"><value>Activity</value></data>
-  <data name="ActivityCaption" xml:space="preserve"><value>runs and events · last year</value></data>
-  <data name="ActivityTotal" xml:space="preserve"><value>{0} recorded in the window</value></data>
-  <data name="ActivityNone" xml:space="preserve"><value>Nothing recorded yet. Start the daemon and run a stage.</value></data>
-  <data name="ActivityLess" xml:space="preserve"><value>less</value></data>
-  <data name="ActivityMore" xml:space="preserve"><value>more</value></data>
-  <data name="BoardUnavailable" xml:space="preserve"><value>The board could not be loaded. Refresh to try again.</value></data>
-  <data name="WorkflowUnavailable" xml:space="preserve"><value>This project has no workflows yet.</value></data>
-  <data name="QuickStartTitle" xml:space="preserve"><value>Quick start</value></data>
-  <data name="Unregister" xml:space="preserve"><value>Unregister</value></data>
-  <data name="UnregisterConfirm" xml:space="preserve"><value>Unregister this project? Its files are kept.</value></data>
-  <data name="UnregisterFailed" xml:space="preserve"><value>Could not unregister the project: {0}</value></data>
-  <data name="Browse" xml:space="preserve"><value>Browse</value></data>
-  <data name="ChooseFolder" xml:space="preserve"><value>Choose a folder</value></data>
-  <data name="Drives" xml:space="preserve"><value>Drives</value></data>
-  <data name="FolderUnreadable" xml:space="preserve"><value>This folder cannot be read.</value></data>
-  <data name="ExistingProject" xml:space="preserve"><value>Aiko project</value></data>
-  <data name="Up" xml:space="preserve"><value>Up</value></data>
-  <data name="Open" xml:space="preserve"><value>Open</value></data>
-  <data name="UseThisFolder" xml:space="preserve"><value>Use this folder</value></data>
-  <data name="BrowseFailed" xml:space="preserve"><value>Could not read the folder list: {0}</value></data>
-  <data name="AgentNotConnected" xml:space="preserve"><value>not connected</value></data>
-  <data name="AgentConnected" xml:space="preserve"><value>connected</value></data>
-  <data name="AgentPartiallyConnected" xml:space="preserve"><value>partly connected ({0}/{1})</value></data>
-  <data name="ConnectAgent" xml:space="preserve"><value>Connect</value></data>
-  <data name="DisconnectAgent" xml:space="preserve"><value>Disconnect</value></data>
-  <data name="AgentConnectFailed" xml:space="preserve"><value>Could not change the {0} connection: {1}</value></data>
-  <data name="CardNotFound" xml:space="preserve"><value>No such card on this project's board.</value></data>
-  <data name="OverviewGroup" xml:space="preserve"><value>Overview</value></data>
-  <data name="CurrentProjectGroup" xml:space="preserve"><value>Project ({0})</value></data>
-  <data name="ProjectOverviewStats" xml:space="preserve"><value>Project overview / stats</value></data>
-  <data name="DaemonMcpBridges" xml:space="preserve"><value>Daemon &amp; MCP bridges</value></data>
-  <data name="LiveTag" xml:space="preserve"><value>live</value></data>
-  <data name="QuickSearchPlaceholder" xml:space="preserve"><value>Quick search cards...</value></data>
-  <data name="QuickSearchAriaLabel" xml:space="preserve"><value>Quick search cards</value></data>
-  <data name="QuickSearchNoMatch" xml:space="preserve"><value>No card matches "{0}".</value></data>
-  <data name="NewTask" xml:space="preserve"><value>New task</value></data>
-  <data name="Online" xml:space="preserve"><value>ONLINE</value></data>
-  <data name="SseLive" xml:space="preserve"><value>SSE LIVE</value></data>
-  <data name="ActiveProjectTag" xml:space="preserve"><value>(active)</value></data>
-  <data name="OpenProjectLabel" xml:space="preserve"><value>Open project</value></data>
-  <data name="DaemonRoundTrip" xml:space="preserve"><value>round-trip</value></data>
-  <data name="UpdateAvailable" xml:space="preserve"><value>new version</value></data>
-  <data name="UpdateAvailableHint" xml:space="preserve"><value>The daemon serves a newer client than this page loaded. Reload to use it.</value></data>
-  <data name="CriterionTitle" xml:space="preserve"><value>Criterion title</value></data>
-  <data name="MinimumLabel" xml:space="preserve"><value>From</value></data>
-  <data name="MaximumLabel" xml:space="preserve"><value>To</value></data>
-  <data name="AiInstructionLabel" xml:space="preserve"><value>Agent instruction</value></data>
-  <data name="AiInstructionHint" xml:space="preserve"><value>What the agent should look at to score this criterion</value></data>
-  <data name="CharactersCount" xml:space="preserve"><value>Characters: {0}</value></data>
-  <data name="TokensEstimate" xml:space="preserve"><value>Tokens ~{0}</value></data>
-  <data name="CloseTask" xml:space="preserve"><value>Close task</value></data>
-  <data name="ExecutionState" xml:space="preserve"><value>Execution state</value></data>
-  <data name="WorkflowStatus" xml:space="preserve"><value>Workflow status</value></data>
-  <data name="ActiveAssignees" xml:space="preserve"><value>Active assignees</value></data>
-  <data name="NoActiveAssignees" xml:space="preserve"><value>This stage names no agent yet.</value></data>
-  <data name="RoleAgent" xml:space="preserve"><value>Agent</value></data>
-  <data name="NotStarted" xml:space="preserve"><value>Not started</value></data>
-  <data name="TriageScore" xml:space="preserve"><value>Triage &amp; score</value></data>
-  <data name="EffectivePriority" xml:space="preserve"><value>Effective priority</value></data>
-  <data name="RankOf" xml:space="preserve"><value>Rank #{0}</value></data>
-  <data name="PriorityOf" xml:space="preserve"><value>own value {0}</value></data>
-  <data name="RelatedCards" xml:space="preserve"><value>Related cards</value></data>
-  <data name="RelatedParents" xml:space="preserve"><value>Parents</value></data>
-  <data name="RelatedChildren" xml:space="preserve"><value>Children</value></data>
-  <data name="RelatedLinks" xml:space="preserve"><value>Linked</value></data>
-  <data name="RelationBlocks" xml:space="preserve"><value>blocks this</value></data>
-  <data name="RelationBlockedBy" xml:space="preserve"><value>blocked by this</value></data>
-      <data name="BoardSubTasks" xml:space="preserve"><value>{0} sub-tasks</value></data>
-<data name="BlockedByCard" xml:space="preserve"><value>blocked by {0}</value></data>
-  <data name="RelationImplements" xml:space="preserve"><value>implements this</value></data>
-  <data name="RelationImplementedBy" xml:space="preserve"><value>implemented by this</value></data>
-  <data name="RelationRelatesTo" xml:space="preserve"><value>related</value></data>
-  <data name="ResolvedOf" xml:space="preserve"><value>{0} / {1} resolved</value></data>
-  <data name="StageSkills" xml:space="preserve"><value>Stage skills</value></data>
-  <data name="CodeChanges" xml:space="preserve"><value>Code changes</value></data>
-  <data name="LoadingCodeChanges" xml:space="preserve"><value>Reading the diff from git...</value></data>
-  <data name="DiffNoChanges" xml:space="preserve"><value>Nothing to show: the card's files and HEAD are the same.</value></data>
-  <data name="DiffBinaryOrEmpty" xml:space="preserve"><value>A binary file, or no line-level change.</value></data>
-  <data name="GitClientUnavailable" xml:space="preserve"><value>Git client unavailable</value></data>
-  <data name="GitNoRepository" xml:space="preserve"><value>not a repository</value></data>
-  <data name="GitBranch" xml:space="preserve"><value>Git branch</value></data>
-  <data name="DiscussionTitle" xml:space="preserve"><value>Discussion &amp; commands</value></data>
-  <data name="LoadingDiscussion" xml:space="preserve"><value>Reading the discussion...</value></data>
-  <data name="DiscussionNone" xml:space="preserve"><value>Nothing has been said about this card yet. Leave the first note below.</value></data>
-  <data name="LeaveTaskNote" xml:space="preserve"><value>Leave a task note</value></data>
-  <data name="TaskNote" xml:space="preserve"><value>Note or command</value></data>
-  <data name="TaskNoteHint" xml:space="preserve"><value>A note is stored with the card, in its own folder; a command waits for the agent that runs this stage</value></data>
-  <data name="Comment" xml:space="preserve"><value>Comment</value></data>
-  <data name="CodeChangesHint" xml:space="preserve"><value>The card's files, with the patch the git client reports</value></data>
-  <data name="CodeChangesPending" xml:space="preserve"><value>The files this card declared or touched appear here, with git's own patch for each.</value></data>
-  <data name="CodeChangesPlan" xml:space="preserve"><value>It needs a git client on PATH and a repository: without either, this block says which of the two is missing instead of showing an empty viewer.</value></data>
-  <data name="ArtifactsTitle" xml:space="preserve"><value>Artifacts</value></data>
-  <data name="ArtifactsHint" xml:space="preserve"><value>The files this card owns, edited as Markdown</value></data>
-  <data name="RunsTitle" xml:space="preserve"><value>Runs</value></data>
-  <data name="RunsHint" xml:space="preserve"><value>Every execution of this card, newest first</value></data>
-  <data name="AttemptsLabel" xml:space="preserve"><value>Agent attempts</value></data>
-  <data name="AssignedTo" xml:space="preserve"><value>assigned to {0}</value></data>
-  <data name="ScopeTitle" xml:space="preserve"><value>Scope &amp; requirements</value></data>
-  <data name="DeclaredScope" xml:space="preserve"><value>Declared scope</value></data>
-  <data name="EditCard" xml:space="preserve"><value>Edit card</value></data>
-  <data name="EditCardHint" xml:space="preserve"><value>What the card is called on the board. Everything else about it sits in the panels around this one.</value></data>
-  <data name="ScopePanelHint" xml:space="preserve"><value>What the card requires and what it declares it will touch</value></data>
-  <data name="ArtifactPresent" xml:space="preserve"><value>present</value></data>
-  <data name="ArtifactMissing" xml:space="preserve"><value>missing</value></data>
-  <data name="FilesDeclared" xml:space="preserve"><value>Declared</value></data>
-  <data name="FilesActual" xml:space="preserve"><value>Actually changed</value></data>
-  <data name="DefinitionOfDone" xml:space="preserve"><value>Definition of done</value></data>
-  <data name="NoRequiredArtifacts" xml:space="preserve"><value>This stage asks for no artifacts.</value></data>
-  <data name="CompletedOutcomes" xml:space="preserve"><value>Completed outcomes &amp; report</value></data>
-  <data name="CompletedOutcomesHint" xml:space="preserve"><value>What the last run reported</value></data>
-  <data name="AgentReport" xml:space="preserve"><value>Agent report</value></data>
-  <data name="NoRunSummary" xml:space="preserve"><value>This run left no summary.</value></data>
-  <data name="ReportedCommits" xml:space="preserve"><value>Reported commits</value></data>
-  <data name="CommitPending" xml:space="preserve"><value>awaiting approval</value></data>
-  <data name="RevisionTag" xml:space="preserve"><value>rev {0}</value></data>
-  <data name="DaemonRuntime" xml:space="preserve"><value>Daemon runtime</value></data>
-  <data name="DaemonRuntimeHint" xml:space="preserve"><value>What is running and where it listens</value></data>
-  <data name="McpEndpoint" xml:space="preserve"><value>MCP endpoint</value></data>
-  <data name="McpEndpointHint" xml:space="preserve"><value>The address an agent connects to for the open project</value></data>
-  <data name="AgentBridges" xml:space="preserve"><value>Agent bridges</value></data>
-  <data name="ConnectBridge" xml:space="preserve"><value>Attach bridge</value></data>
-  <data name="BridgesSummary" xml:space="preserve"><value>{0} attached · {1} incomplete · {2} absent</value></data>
-  <data name="BridgeConnectedHint" xml:space="preserve"><value>Aiko's skills and commands are written for this agent</value></data>
-  <data name="BridgePartialHint" xml:space="preserve"><value>Part of Aiko's configuration is missing - attach again to complete it</value></data>
-  <data name="BridgeInstalledHint" xml:space="preserve"><value>The agent is on this machine and not attached to Aiko yet</value></data>
-  <data name="BridgeNotInstalledHint" xml:space="preserve"><value>Not found on PATH: install the agent, then attach its bridge</value></data>
-  <data name="AgentBridgeChanged" xml:space="preserve"><value>Bridge for {0} updated.</value></data>
-  <data name="AgentBridgesHint" xml:space="preserve"><value>Which agents this machine has, and whether Aiko has connected to them</value></data>
-  <data name="AgentConfigDrift" xml:space="preserve"><value>{0} agent configurations still record an old endpoint</value></data>
-  <data name="AgentConfigDriftHint" xml:space="preserve"><value>The agent is installed and connected, but its configuration points at a port the daemon no longer listens on. Run `aiko repair --fix` to rewrite them.</value></data>
-  <data name="AgentCredentialProblem" xml:space="preserve"><value>An agent has no usable credential</value></data>
-  <data name="AgentCredentialProblemHint" xml:space="preserve"><value>The agent's entry reads its token from an environment variable that is not set, or that holds a different value than the token the daemon checks. Run `aiko token show`, export AIKO_TOKEN with that value in the shell you start the agent from, and restart it.</value></data>
-  <data name="BridgeConnected" xml:space="preserve"><value>connected</value></data>
-  <data name="BridgePartial" xml:space="preserve"><value>partial</value></data>
-  <data name="BridgeInstalled" xml:space="preserve"><value>found, not connected</value></data>
-  <data name="BridgeNotInstalled" xml:space="preserve"><value>not found</value></data>
-  <data name="BridgeNoUserScope" xml:space="preserve"><value>no user-scope config</value></data>
-  <data name="BridgeFiles" xml:space="preserve"><value>{0}/{1} files</value></data>
-  <data name="ProjectStats" xml:space="preserve"><value>Project stats</value></data>
-  <data name="ProjectOverviewNav" xml:space="preserve"><value>Project overview / stats</value></data>
-  <data name="ProjectSettingsNav" xml:space="preserve"><value>Project settings</value></data>
-    <data name="ProjectOverviewHint" xml:space="preserve"><value>What this project is, what it is made of, and how its cards are spread across its pipelines</value></data>
-  <data name="TriageNone" xml:space="preserve"><value>No cards yet: the distribution follows the board.</value></data>
-  <data name="ReindexProject" xml:space="preserve"><value>Re-index project</value></data>
-  <data name="ReindexDone" xml:space="preserve"><value>Project re-indexed.</value></data>
-  <data name="ReindexDoneCounts" xml:space="preserve"><value>Re-indexed: {0} cards, {1} relations, {2} memory documents</value></data>
-  <data name="ReindexFailed" xml:space="preserve"><value>Could not re-index the project: {0}</value></data>
-  <data name="StageLoad" xml:space="preserve"><value>Cards per stage</value></data>
-  <data name="VelocityTitle" xml:space="preserve"><value>Pipeline velocity &amp; throughput</value></data>
-  <data name="VelocityHint" xml:space="preserve"><value>Cards that entered a stage, per week, over the last {0} weeks</value></data>
-  <data name="VelocityTotal" xml:space="preserve"><value>{0} transitions in the window</value></data>
-  <data name="VelocityNone" xml:space="preserve"><value>No transitions recorded yet: they are counted as the board is worked.</value></data>
-  <data name="TriageTitle" xml:space="preserve"><value>Triage distribution</value></data>
-  <data name="TriageHint" xml:space="preserve"><value>What the project's cards are made of</value></data>
-  <data name="UptimeLabel" xml:space="preserve"><value>Uptime</value></data>
-  <data name="RunsAndCrashes" xml:space="preserve"><value>{0} runs · {1} without a clean stop</value></data>
-  <data name="MemoryProfile" xml:space="preserve"><value>Memory profile</value></data>
-  <data name="ManagedHeap" xml:space="preserve"><value>managed heap {0}</value></data>
-  <data name="StageLoadHint" xml:space="preserve"><value>Each bar is a stage's share of the busiest stage of its own pipeline</value></data>
-  <data name="StageStatePending" xml:space="preserve"><value>Waiting</value></data>
-  <data name="StageStateRunning" xml:space="preserve"><value>Running</value></data>
-  <data name="StageStatePaused" xml:space="preserve"><value>Paused</value></data>
-  <data name="StageStateWaiting" xml:space="preserve"><value>Needs a decision</value></data>
-  <data name="StageStateBlocked" xml:space="preserve"><value>Blocked</value></data>
-  <data name="StageStateDone" xml:space="preserve"><value>Stage finished</value></data>
-  <data name="StagesFinishedCount" xml:space="preserve"><value>{0} stages finished</value></data>
-  <data name="GitHubRepository" xml:space="preserve"><value>Aiko on GitHub</value></data>
-  <data name="TemplateScope" xml:space="preserve"><value>Default workflow</value></data>
-  <data name="TemplateSettingsHeading" xml:space="preserve"><value>Default workflow settings</value></data>
-  <data name="TemplateSettingsHint" xml:space="preserve"><value>What a new project is created from: the execution defaults, the scoring model and the pipelines. Existing projects keep their own copy and are not affected.</value></data>
-  <data name="SaveTemplateSettings" xml:space="preserve"><value>Save template</value></data>
-  <data name="SizeGridPickHint" xml:space="preserve"><value>Select a step to edit its name, coefficient and description.</value></data>
-  <data name="SizeGrid" xml:space="preserve"><value>Size grid</value></data>
-  <data name="SizeGridHint" xml:space="preserve"><value>The agent assigns a size from these descriptions; the coefficient multiplies the card's score</value></data>
-  <data name="AddSize" xml:space="preserve"><value>Add step</value></data>
-  <data name="NoSizes" xml:space="preserve"><value>No size steps: every card is scored without a size coefficient.</value></data>
-  <data name="SizeIdLabel" xml:space="preserve"><value>Step</value></data>
-  <data name="SizeCoefficient" xml:space="preserve"><value>Coefficient</value></data>
-  <data name="SizeDescription" xml:space="preserve"><value>Description</value></data>
-  <data name="SizeDescriptionHint" xml:space="preserve"><value>What the agent reads to choose this step</value></data>
-  <data name="SizeIdRequired" xml:space="preserve"><value>Every size step needs an identifier.</value></data>
-  <data name="InvalidSizeCoefficient" xml:space="preserve"><value>A size coefficient must be greater than zero.</value></data>
-  <data name="DuplicateSizeId" xml:space="preserve"><value>The size step "{0}" is listed twice.</value></data>
-  <data name="InvalidCriterionRange" xml:space="preserve"><value>A criterion's upper bound must be greater than its lower bound.</value></data>
-  <data name="SkillsBefore" xml:space="preserve"><value>Skills before the instruction</value></data>
-  <data name="SkillsBeforeHelper" xml:space="preserve"><value>One skill per line. The agent invokes them before reading the instruction - context, search, indexing.</value></data>
-  <data name="SkillsAfter" xml:space="preserve"><value>Skills after the instruction</value></data>
-  <data name="SkillsAfterHelper" xml:space="preserve"><value>One skill per line. The agent invokes them once the instruction is done - reporting, verification, handoff.</value></data>
-  <data name="RemoveStage" xml:space="preserve"><value>Remove this stage</value></data>
-  <data name="ProjectOverrideScope" xml:space="preserve"><value>Project overrides</value></data>
-  <data name="ProjectSettingsHeading" xml:space="preserve"><value>Project settings</value></data>
-  <data name="ProjectSettingsHint" xml:space="preserve"><value>What this project runs with. The values live in .aiko/settings.json and do not move when the installation defaults change.</value></data>
-  <data name="ChangeWorkflow" xml:space="preserve"><value>Change workflow</value></data>
-  <data name="ChangeWorkflowHint" xml:space="preserve"><value>Replaces this project's workflows, board projections and settings with the chosen set. Its cards, runs and memory stay; a set that would leave a card outside its pipeline is refused.</value></data>
-  <data name="ChangeWorkflowApply" xml:space="preserve"><value>Change</value></data>
-  <data name="ChangeWorkflowEmpty" xml:space="preserve"><value>No workflow sets are available to switch to.</value></data>
-  <data name="CreateTemplateFromProject" xml:space="preserve"><value>Create template</value></data>
-  <data name="CreateTemplateFromProjectHint" xml:space="preserve"><value>Saves this project's workflows, projections, settings and memory as a template other projects can be created from.</value></data>
-  <data name="StageRoleInitial" xml:space="preserve"><value>Initial</value></data>
-  <data name="StageRoleTerminal" xml:space="preserve"><value>Terminal</value></data>
-  <data name="AllowedExecutors" xml:space="preserve"><value>Allowed executors</value></data>
-  <data name="AllowedExecutorsHint" xml:space="preserve"><value>Leave every box clear to let any discovered agent run this stage.</value></data>
-  <data name="NoAgentsDiscovered" xml:space="preserve"><value>No agent adapters were discovered on this machine.</value></data>
-  <data name="AnyAgent" xml:space="preserve"><value>Any agent</value></data>
-  <data name="ValidationCommands" xml:space="preserve"><value>Validation commands</value></data>
-  <data name="ValidationCommandsHelper" xml:space="preserve"><value>One command per line. They are recorded as this stage's definition of done and shown to the agent; Aiko does not run them itself.</value></data>
-  <data name="NoSize" xml:space="preserve"><value>No size</value></data>
-  <data name="SizeHintEmpty" xml:space="preserve"><value>No step: the size factor stays neutral (x1.00)</value></data>
-  <data name="Template" xml:space="preserve"><value>Template</value></data>
-  <data name="TemplateHint" xml:space="preserve"><value>Copied into the project at creation: it fixes the stages and their artifacts, the board projections, the starting memory and the default settings. Changing the template later affects only projects created afterwards.</value></data>
-  <data name="TemplatesNav" xml:space="preserve"><value>Workflow</value></data>
-  <data name="TemplatesTitle" xml:space="preserve"><value>Workflow</value></data>
-  <data name="TemplatesHeading" xml:space="preserve"><value>Workflow</value></data>
-  <data name="TemplatesHint" xml:space="preserve"><value>The workflows a new project is created from: the stages and artifacts of its pipelines, the board projections, the starting memory, the default settings and the git policy. Each set is copied into a project at init and never read again, so a project is autonomous - and "apply" is the one action that reaches a project that already exists.</value></data>
-  <data name="TemplatesCount" xml:space="preserve"><value>{0} sets</value></data>
-  <data name="TemplateDefault" xml:space="preserve"><value>default</value></data>
-  <data name="TemplateBuiltIn" xml:space="preserve"><value>built-in</value></data>
-  <data name="CaptureFromProject" xml:space="preserve"><value>Capture from a project</value></data>
-  <data name="CaptureFromProjectHint" xml:space="preserve"><value>Reads a project's settings, pipelines, projections, memory and git policy into a new template</value></data>
-  <data name="CaptureFromProjectMissing" xml:space="preserve"><value>Register a project first: a template is captured from one.</value></data>
-  <data name="TemplateIdLabel" xml:space="preserve"><value>Identifier</value></data>
-  <data name="TemplateIdHelper" xml:space="preserve"><value>Letters, digits, dashes and underscores, for example backend-default</value></data>
-  <data name="TemplateIdRequired" xml:space="preserve"><value>Enter a template identifier.</value></data>
-  <data name="TemplateCaptured" xml:space="preserve"><value>Template captured from the project.</value></data>
-  <data name="TemplateCopied" xml:space="preserve"><value>Template copied.</value></data>
-  <data name="TemplateDeleted" xml:space="preserve"><value>Template deleted.</value></data>
-  <data name="DeleteTemplateConfirm" xml:space="preserve"><value>Delete this template? Projects created from it are not touched.</value></data>
-  <data name="DuplicateTemplate" xml:space="preserve"><value>Duplicate</value></data>
-  <data name="TemplatesUnavailable" xml:space="preserve"><value>The templates are unavailable: {0}</value></data>
-  <data name="ImportTemplate" xml:space="preserve"><value>Import a template</value></data>
-  <data name="ImportTemplateHint" xml:space="preserve"><value>Reads a template document another installation exported</value></data>
-  <data name="ImportTemplateIdHelper" xml:space="preserve"><value>Leave empty to keep the identifier the file carries</value></data>
-  <data name="TemplateImported" xml:space="preserve"><value>Template imported.</value></data>
-  <data name="Import" xml:space="preserve"><value>Import</value></data>
-  <data name="Export" xml:space="preserve"><value>Export</value></data>
-  <data name="TemplateExported" xml:space="preserve"><value>Template written to {0}</value></data>
-  <data name="TemplatePathLabel" xml:space="preserve"><value>File</value></data>
-  <data name="TemplatePathHelper" xml:space="preserve"><value>Absolute path, for example C:\Aiko\templates\backend.json</value></data>
-  <data name="TemplatePathRequired" xml:space="preserve"><value>Enter a file path.</value></data>
-  <data name="ApplyToProject" xml:space="preserve"><value>Apply to a project</value></data>
-  <data name="Apply" xml:space="preserve"><value>Apply</value></data>
-  <data name="ApplyTemplateHint" xml:space="preserve"><value>Replaces the project's pipelines, projections and settings with the template's, writes its memory where the project has none, and adopts its git policy. Cards, runs and memory stay; the action is refused when a card would be left in a stage the template does not have.</value></data>
-  <data name="TemplateApplied" xml:space="preserve"><value>Template applied to {0}.</value></data>
-  <data name="TemplateFirstProjectHint" xml:space="preserve"><value>This installation has no templates yet; the first project is created from the built-in default template, which is written next to the daemon's database.</value></data>
-  <data name="ProjectLabel" xml:space="preserve"><value>Project</value></data>
-  <data name="CoreFallbackConfig" xml:space="preserve"><value>Core fallback config</value></data>
-  <data name="ImmutableSync" xml:space="preserve"><value>Immutable sync</value></data>
-    <data name="ResetToDefaults" xml:space="preserve"><value>Reset to system defaults</value></data>
-  <data name="DaemonHostSecurity" xml:space="preserve"><value>Daemon transport &amp; credentials</value></data>
-  <data name="DaemonHostSecurityHint" xml:space="preserve"><value>The isolated loopback transport of the core and its handshake keys</value></data>
-  <data name="LoopbackSafe" xml:space="preserve"><value>Loopback safe</value></data>
-  <data name="LocalPortLabel" xml:space="preserve"><value>Local port</value></data>
-  <data name="LocalPortHint" xml:space="preserve"><value>Chosen by the installer and saved next to the database</value></data>
-  <data name="ListenAddressLabel" xml:space="preserve"><value>Listen address</value></data>
-  <data name="ListenAddressHint" xml:space="preserve"><value>Loopback only - Aiko never binds an external interface</value></data>
-  <data name="PairingTokenLabel" xml:space="preserve"><value>Pairing token (MCP / CLI auth)</value></data>
-  <data name="PairingTokenHint" xml:space="preserve"><value>The daemon checks this token on every REST and MCP call; this browser holds it in an HttpOnly cookie</value></data>
-  <data name="CreatePairingLink" xml:space="preserve"><value>Create pairing link</value></data>
-  <data name="PairingLinkHint" xml:space="preserve"><value>One-time code: opening the link pairs a browser with this daemon</value></data>
-  <data name="PairingLinkFailed" xml:space="preserve"><value>Could not create a pairing link: {0}</value></data>
-  <data name="DefaultsForNewProjects" xml:space="preserve"><value>Defaults for new projects</value></data>
-  <data name="DefaultsForNewProjectsHint" xml:space="preserve"><value>Applied to a new project; a project that already has its own values keeps them</value></data>
-  <data name="SafeDefaultsTag" xml:space="preserve"><value>Safe defaults</value></data>
-  <data name="ConcurrencyHint" xml:space="preserve"><value>Maximum simultaneous agent runs</value></data>
-  <data name="ConcurrencyRecommended" xml:space="preserve"><value>Recommended: one agent per code base, so two runs cannot collide in one checkout</value></data>
-  <data name="ScopeOverlapHint" xml:space="preserve"><value>What the scheduler does when two runs declare the same files</value></data>
-  <data name="ScopeStrictTitle" xml:space="preserve"><value>Block the run</value></data>
-  <data name="ScopeStrictHint" xml:space="preserve"><value>The overlapping card waits until the conflicting run finishes</value></data>
-  <data name="ScopeAskTitle" xml:space="preserve"><value>Warn and ask</value></data>
-  <data name="ScopeAskHint" xml:space="preserve"><value>The run starts only after you approve it</value></data>
-  <data name="ScopeFreeTitle" xml:space="preserve"><value>Allow</value></data>
-  <data name="ScopeFreeHint" xml:space="preserve"><value>Both runs proceed; overlapping edits land in the same checkout</value></data>
-  <data name="CommitPolicyHint" xml:space="preserve"><value>Who commits in the shared checkout</value></data>
-  <data name="CommitDenyTitle" xml:space="preserve"><value>You commit</value></data>
-  <data name="CommitDenyHint" xml:space="preserve"><value>The agent never commits; it reports what it changed</value></data>
-  <data name="CommitAskTitle" xml:space="preserve"><value>Approve each commit</value></data>
-  <data name="CommitAskHint" xml:space="preserve"><value>The agent asks and waits; the execution pauses until you approve</value></data>
-  <data name="CommitAllowTitle" xml:space="preserve"><value>The agent commits</value></data>
-  <data name="CommitAllowHint" xml:space="preserve"><value>The agent commits and reports the SHA</value></data>
-  <data name="PushPolicy" xml:space="preserve"><value>Push in a shared checkout</value></data>
-  <data name="PushPolicyHint" xml:space="preserve"><value>Who pushes from the shared checkout - a rule the agent reads, because Aiko has no push of its own</value></data>
-  <data name="PushDenyTitle" xml:space="preserve"><value>You push</value></data>
-  <data name="PushDenyHint" xml:space="preserve"><value>The agent does not push</value></data>
-  <data name="PushAskTitle" xml:space="preserve"><value>Approve each push</value></data>
-  <data name="PushAskHint" xml:space="preserve"><value>The agent asks before pushing and waits for your answer</value></data>
-  <data name="PushAllowTitle" xml:space="preserve"><value>The agent pushes</value></data>
-  <data name="PushAllowHint" xml:space="preserve"><value>The agent may push and reports what it pushed</value></data>
-  <data name="ScopeExpansionPolicy" xml:space="preserve"><value>Widening a card's scope</value></data>
-  <data name="ScopeExpansionPolicyHint" xml:space="preserve"><value>What happens when an agent needs a file outside the card's declared scope. Not the same question as the overlap policy above: that one is about two runs declaring the same files</value></data>
-  <data name="ScopeExpansionDenyTitle" xml:space="preserve"><value>Refuse</value></data>
-  <data name="ScopeExpansionDenyHint" xml:space="preserve"><value>The request fails and nothing is written: the agent stops and says which files it needs</value></data>
-  <data name="ScopeExpansionAskTitle" xml:space="preserve"><value>Ask</value></data>
-  <data name="ScopeExpansionAskHint" xml:space="preserve"><value>The run waits until the user answers the request</value></data>
-  <data name="ScopeExpansionAllowTitle" xml:space="preserve"><value>Allow</value></data>
-  <data name="ScopeExpansionAllowHint" xml:space="preserve"><value>The files join the card's declared scope and the run continues without stopping</value></data>
-  <data name="CrossProjectWrite" xml:space="preserve"><value>Writing to other projects</value></data>
-  <data name="CrossProjectPolicyHint" xml:space="preserve"><value>Whether an agent working here may create cards in a neighbouring project, and under what terms.</value></data>
-  <data name="CrossProjectTargets" xml:space="preserve"><value>Projects this one may write to</value></data>
-  <data name="CrossProjectTargetsHint" xml:space="preserve"><value>An empty list allows writing to any project. To narrow it, list ids or handles, one per line.</value></data>
-  <data name="CrossProjectTargetsPlaceholder" xml:space="preserve"><value>One project id or handle per line; empty allows any</value></data>
-  <data name="CrossDenyTitle" xml:space="preserve"><value>Deny</value></data>
-  <data name="CrossDenyHint" xml:space="preserve"><value>Nothing is created from outside: the agent is told to create the card by hand</value></data>
-  <data name="CrossAskTitle" xml:space="preserve"><value>Ask</value></data>
-  <data name="CrossAskHint" xml:space="preserve"><value>Every hand-over is confirmed with you before the card is created</value></data>
-  <data name="CrossAllowTitle" xml:space="preserve"><value>Allow</value></data>
-  <data name="CrossAllowHint" xml:space="preserve"><value>A card from another project is created without asking, and the source is recorded on it</value></data>
-  <data name="LinkedProjects" xml:space="preserve"><value>Linked projects</value></data>
-  <data name="LinkedProjectsHint" xml:space="preserve"><value>Projects this one hands work to. The description says what each of them is for, and an agent reads it before deciding that a request belongs there rather than here.</value></data>
-  <data name="LinkedProjectsNone" xml:space="preserve"><value>No linked projects yet.</value></data>
-  <data name="LinkedProjectsPick" xml:space="preserve"><value>Project</value></data>
-  <data name="LinkedProjectsPickHint" xml:space="preserve"><value>A project registered with this Aiko installation</value></data>
-  <data name="LinkedProjectsPickNone" xml:space="preserve"><value>Choose a project</value></data>
-  <data name="LinkedProjectsDescription" xml:space="preserve"><value>What it is for</value></data>
-  <data name="LinkedProjectsDescriptionPlaceholder" xml:space="preserve"><value>For example: the desktop client - file UI work here</value></data>
-  <data name="LinkedProjectsReference" xml:space="preserve"><value>Where its reference lives</value></data>
-  <data name="LinkedProjectsReferencePlaceholder" xml:space="preserve"><value>A path or an address to its documentation, API index or entry point; may be left empty</value></data>
-  <data name="LinkedProjectsWhenToUse" xml:space="preserve"><value>Work goes there when</value></data>
-  <data name="LinkedProjectsWhenToUsePlaceholder" xml:space="preserve"><value>When a piece of work belongs to that project; may be left empty</value></data>
-  <data name="LinkedProjectsWhenNotToUse" xml:space="preserve"><value>It does not go there when</value></data>
-  <data name="LinkedProjectsWhenNotToUsePlaceholder" xml:space="preserve"><value>When it belongs here instead; may be left empty</value></data>
-  <data name="LinkedProjectsAdd" xml:space="preserve"><value>Link project</value></data>
-  <data name="LinkedProjectsRemove" xml:space="preserve"><value>Remove link</value></data>
-  <data name="LinkedProjectsNav" xml:space="preserve"><value>Linked projects</value></data>
-  <data name="LinkedProjectsMovedHint" xml:space="preserve"><value>Links are edited on a screen of their own, reached from the rail, so this page only points at it.</value></data>
-  <data name="LinkedProjectsOpen" xml:space="preserve"><value>Open linked projects</value></data>
-  <data name="LinkedProjectsEdit" xml:space="preserve"><value>Edit description</value></data>
-  <data name="LinkedProjectsSave" xml:space="preserve"><value>Save</value></data>
-  <data name="LinkedProjectsCancel" xml:space="preserve"><value>Cancel</value></data>
-  <data name="CardOriginTitle" xml:space="preserve"><value>Origin</value></data>
-  <data name="CardOriginTag" xml:space="preserve"><value>Cross-project</value></data>
-  <data name="PriorityFormulaTitle" xml:space="preserve"><value>Priority formula</value></data>
-  <data name="OwnWeightLabel" xml:space="preserve"><value>Own value weight</value></data>
-  <data name="ParentWeightLabel" xml:space="preserve"><value>Parent value weight</value></data>
-  <data name="FormulaVersion" xml:space="preserve"><value>Formula version</value></data>
-  <data name="SelfDiagnostic" xml:space="preserve"><value>Installation &amp; diagnostics</value></data>
-  <data name="SelfDiagnosticHint" xml:space="preserve"><value>What aiko doctor checks: the data directory, the token, the endpoint and the agent configurations</value></data>
-  <data name="DoctorAllNominal" xml:space="preserve"><value>All checks passed</value></data>
-  <data name="DoctorHasProblems" xml:space="preserve"><value>Needs attention</value></data>
-  <data name="RunDoctor" xml:space="preserve"><value>Run doctor</value></data>
-  <data name="DoctorChecklist" xml:space="preserve"><value>Doctor telemetry</value></data>
-  <data name="PriorityFormulaExpression" xml:space="preserve"><value>effective = (own weight x own value + parent weight x highest parent value) / (own weight + parent weight)</value></data>
-  <data name="DiagnosticsFailed" xml:space="preserve"><value>Could not read diagnostics: {0}</value></data>
-  <data name="BacklogNav" xml:space="preserve"><value>Backlog</value></data>
-  <data name="BacklogTitle" xml:space="preserve"><value>Backlog</value></data>
-  <data name="BacklogCaption" xml:space="preserve"><value>Every card that has not been taken into work yet, gathered from the backlog column of each card type.</value></data>
-  <data name="BacklogEmpty" xml:space="preserve"><value>Nothing is waiting in the backlog.</value></data>
-  <data name="BacklogTakeIntoWork" xml:space="preserve"><value>Take into work</value></data>
-  <data name="BacklogTaken" xml:space="preserve"><value>Card {0} was taken into work.</value></data>
-  <data name="CardTypeDescription" xml:space="preserve"><value>Description</value></data>
-  <data name="CardTypeIcon" xml:space="preserve"><value>Icon</value></data>
-  <data name="CardTypeColor" xml:space="preserve"><value>Colour</value></data>
-  <data name="TypeBlendsWithParent" xml:space="preserve"><value>Blends with its parents' score</value></data>
-  <data name="TypeBlendsWithParentHint" xml:space="preserve"><value>A card of this type mixes its own score with the best of its parents'. Leave it off for a type that keeps its own score.</value></data>
-  <data name="StageIcon" xml:space="preserve"><value>Column icon</value></data>
-  <data name="StageColor" xml:space="preserve"><value>Column colour</value></data>
-  <data name="AppearanceDefault" xml:space="preserve"><value>Default</value></data>
-  <data name="RemoveCardType" xml:space="preserve"><value>Remove card type</value></data>
-  <data name="NewCardTypeTitle" xml:space="preserve"><value>New card type</value></data>
-  <data name="CardTypeIdHelper" xml:space="preserve"><value>Type id, for example epic</value></data>
-  <data name="CardTypeIdHint" xml:space="preserve"><value>The id is the type's identity: it names the folder its cards live in and the board section that shows them</value></data>
-  <data name="CardTypeIdFixed" xml:space="preserve"><value>Only a type that has no cards yet can be renamed</value></data>
-  <data name="CardTypeSaved" xml:space="preserve"><value>Card type saved.</value></data>
-  <data name="SaveCardType" xml:space="preserve"><value>Save type</value></data>
-  <data name="CardTypeName" xml:space="preserve"><value>Type name</value></data>
-  <data name="AddCardType" xml:space="preserve"><value>Add card type</value></data>
-  <data name="CardTypeIdInvalid" xml:space="preserve"><value>The type id must be lower-case letters, digits and dashes.</value></data>
-  <data name="CardTypeIdTitleRequired" xml:space="preserve"><value>A type id and a name are required.</value></data>
-  <data name="CardTypeExists" xml:space="preserve"><value>Card type '{0}' already exists.</value></data>
-  <data name="CardTypeCreated" xml:space="preserve"><value>Card type '{0}' was created.</value></data>
-  <data name="BacklogStageFirst" xml:space="preserve"><value>The backlog is always the first status: nothing can be placed before it.</value></data>
-  <data name="BacklogStageReserved" xml:space="preserve"><value>Backlog is a standard column and cannot be removed.</value></data>
-  <data name="StageTitleBacklog" xml:space="preserve"><value>Backlog</value></data>
-  <data name="StageTitleInProgress" xml:space="preserve"><value>In progress</value></data>
-  <data name="StageTitleDone" xml:space="preserve"><value>Done</value></data>
-  <data name="NewTypeBacklogInstruction" xml:space="preserve"><value>Clarify the request, the scope and the links.</value></data>
-  <data name="NewTypeWorkInstruction" xml:space="preserve"><value>Carry out the work and record what actually changed.</value></data>
-  <data name="NewTypeDoneInstruction" xml:space="preserve"><value>Record the outcome.</value></data>
-
-  <data name="Name" xml:space="preserve"><value>Name (optional)</value></data>
-  <data name="Delete" xml:space="preserve"><value>Delete</value></data>
-
-  <data name="DeleteCardTypeConfirm" xml:space="preserve"><value>Remove this card type? Its pipeline goes with it; cards already created are not touched.</value></data>
-  <data name="DeleteCardTypeHasCards" xml:space="preserve"><value>The type still holds cards, so it cannot be removed yet.</value></data>
-
-  <data name="ProjectIdLabel" xml:space="preserve"><value>Project ID</value></data>
-  <data name="ProjectIdInvalid" xml:space="preserve"><value>The id may contain lower-case latin letters, digits and dashes.</value></data>
-  <data name="ProjectIdTaken" xml:space="preserve"><value>Another project already uses this id.</value></data>
-
-  <data name="InitializationTitle" xml:space="preserve"><value>Project initialization</value></data>
-  <data name="InitializationHint" xml:space="preserve"><value>What an agent does right after creating a project from this template - for example the structure the project should have. It is copied into the project as .aiko/initialization.md and stays there.</value></data>
-  <data name="SaveTemplate" xml:space="preserve"><value>Save template</value></data>
-  <data name="TemplateSaved" xml:space="preserve"><value>Template saved.</value></data>
-
-  <data name="CardTypeRevision" xml:space="preserve"><value>Card type · rev {0}</value></data>
-
-  <data name="CommandsTitle" xml:space="preserve"><value>Command for an agent</value></data>
-  <data name="CommandsHint" xml:space="preserve"><value>Aiko does not start agents, so the request waits in the project's queue until an agent runs and takes it - and the outcome the agent reports appears here.</value></data>
-  <data name="CommandExamples" xml:space="preserve"><value>To run it in a terminal yourself</value></data>
-  <data name="CommandAction" xml:space="preserve"><value>What to ask</value></data>
-  <data name="CommandStart" xml:space="preserve"><value>Start the stage</value></data>
-  <data name="CommandPause" xml:space="preserve"><value>Pause the run</value></data>
-  <data name="CommandResume" xml:space="preserve"><value>Resume the run</value></data>
-  <data name="CommandAnswer" xml:space="preserve"><value>Answer the run's question</value></data>
-  <data name="CommandText" xml:space="preserve"><value>What to tell the agent</value></data>
-  <data name="CommandPauseHint" xml:space="preserve"><value>Why to pause - whoever resumes the run reads this.</value></data>
-  <data name="CommandAnswerHint" xml:space="preserve"><value>The answer; it is written into the card's feed and wakes the run.</value></data>
-  <data name="PlaceCommand" xml:space="preserve"><value>Place the command</value></data>
-  <data name="CommandPlaced" xml:space="preserve"><value>Command {0} is waiting for an agent.</value></data>
-  <data name="CommandFailed" xml:space="preserve"><value>The command was not placed.</value></data>
-  <data name="CommandWaiting" xml:space="preserve"><value>waiting</value></data>
-  <data name="CommandTaken" xml:space="preserve"><value>taken</value></data>
-  <data name="CommandDone" xml:space="preserve"><value>done</value></data>
-  <data name="CommandRefused" xml:space="preserve"><value>failed</value></data>
-  <data name="CommandWithdrawn" xml:space="preserve"><value>withdrawn</value></data>
-  <data name="CommandStartHint" xml:space="preserve"><value>An agent will start stage '{0}' of this card.</value></data>
-  <data name="CommandRunHint" xml:space="preserve"><value>An agent will act on run {0}.</value></data>
-  <data name="CommandNoRunHint" xml:space="preserve"><value>This card has no run yet, so only 'start the stage' can be asked for.</value></data>
-  <data name="CommandStartCaption" xml:space="preserve"><value>start stage {0}</value></data>
-  <data name="CommandCaptionPause" xml:space="preserve"><value>pause the run</value></data>
-  <data name="CommandCaptionResume" xml:space="preserve"><value>resume the run</value></data>
-  <data name="CommandCaptionAnswer" xml:space="preserve"><value>answer the run</value></data>
-<data name="CommandCaptionRelease" xml:space="preserve"><value>conduct a release</value></data>
-  <data name="RunBoard" xml:space="preserve"><value>Work the board</value></data>
-  <data name="RunBoardHint" xml:space="preserve"><value>Asks an agent to take every unfinished card of the board, in board order, to the end of its own pipeline.</value></data>
-  <data name="AppearanceNav" xml:space="preserve"><value>Appearance</value></data>
-  <data name="AppearanceTitle" xml:space="preserve"><value>Appearance</value></data>
-  <data name="AppearanceHint" xml:space="preserve"><value>How the interface looks and reads for you. The choice is kept in this browser, not in a project.</value></data>
-  <data name="AppearanceLanguage" xml:space="preserve"><value>Language</value></data>
-  <data name="AppearanceLanguageHint" xml:space="preserve"><value>Your own choice first, then the browser's language, then English.</value></data>
-  <data name="AppearanceReloadHint" xml:space="preserve"><value>Switching the language reloads the page, so the whole interface is redrawn in it.</value></data>
-  <data name="AppearanceMode" xml:space="preserve"><value>Mode</value></data>
-  <data name="AppearanceModeHint" xml:space="preserve"><value>Follow the system setting, or hold one scheme whatever it says.</value></data>
-  <data name="AppearanceModeAuto" xml:space="preserve"><value>Auto</value></data>
-  <data name="AppearanceModeLight" xml:space="preserve"><value>Light</value></data>
-  <data name="AppearanceModeDark" xml:space="preserve"><value>Dark</value></data>
-  <data name="AppearancePalette" xml:space="preserve"><value>Palette</value></data>
-  <data name="AppearancePaletteHint" xml:space="preserve"><value>A whole colour scheme of the one theme. The choice is applied at once and kept in this browser.</value></data>
-  <data name="ReleaseNav" xml:space="preserve"><value>Release</value></data>
-  <data name="ReleaseTitle" xml:space="preserve"><value>Release</value></data>
-  <data name="ReleaseTag" xml:space="preserve"><value>release</value></data>
-  <data name="ReleaseHint" xml:space="preserve"><value>What is out, and where a release is asked for. Aiko runs no agent and writes nothing to the repository: this screen puts a request in the queue, and the agent that takes it releases by the policy the request names.</value></data>
-  <data name="ReleaseRefresh" xml:space="preserve"><value>Read again</value></data>
-  <data name="ReleaseCommandWaiting" xml:space="preserve"><value>Command {0} is waiting for an agent.</value></data>
-  <data name="ReleaseCreateButton" xml:space="preserve"><value>Create a release</value></data>
-  <data name="ReleaseCreateTitle" xml:space="preserve"><value>New release</value></data>
-  <data name="ReleaseCreateHint" xml:space="preserve"><value>Aiko does not run agents, does not push the tag and installs nothing: this puts a command in the queue, and the agent that takes it conducts the release by the policy you pick.</value></data>
-  <data name="ReleasePolicyLabel" xml:space="preserve"><value>Release policy</value></data>
-  <data name="ReleasePolicyHint" xml:space="preserve"><value>Which order the release follows - one of the schemes this project holds.</value></data>
-  <data name="ReleaseAgentLabel" xml:space="preserve"><value>Agent</value></data>
-  <data name="ReleaseAgentAny" xml:space="preserve"><value>Any agent</value></data>
-  <data name="ReleaseAgentHint" xml:space="preserve"><value>Who conducts it. Left open, whichever agent comes next takes the request.</value></data>
-  <data name="ReleaseCreateConfirm" xml:space="preserve"><value>Put the request in the queue</value></data>
-  <data name="ReleaseCreated" xml:space="preserve"><value>Command {0} is in the queue.</value></data>
-  <data name="ReleaseLoadFailed" xml:space="preserve"><value>The release screen could not be read: {0}</value></data>
-  <data name="ReleaseProcedureTitle" xml:space="preserve"><value>How a release is conducted</value></data>
-  <data name="ReleaseProcedureHint" xml:space="preserve"><value>The order a release follows, so nobody has to reconstruct it from the workflow files.</value></data>
-  <data name="ReleaseProcedureOrder" xml:space="preserve"><value>Write the tag, wait for the release workflow to build the archive, install it, and connect the agents again.</value></data>
-  <data name="ReleaseProcedureTouches" xml:space="preserve"><value>Installing writes to %LOCALAPPDATA%\Aiko\bin and adds that directory to your user PATH.</value></data>
-  <data name="ReleaseProcedureKeeps" xml:space="preserve"><value>Your project is not touched: .aiko, aiko.db and the access token stay where they are.</value></data>
-  <data name="ReleaseProcedureOpen" xml:space="preserve"><value>Open the release screen</value></data>
-  <data name="ReleaseSchemes" xml:space="preserve"><value>Release schemes</value></data>
-  <data name="ReleaseSchemesHint" xml:space="preserve"><value>The orders a release of this project can follow. Which one is used is chosen when the release is created.</value></data>
-  <data name="ReleaseSchemesShipped" xml:space="preserve"><value>This level states no schemes of its own, so releases follow the ones Aiko ships:</value></data>
-  <data name="ReleaseSchemeShipped" xml:space="preserve"><value>Aiko</value></data>
-  <data name="ReleaseSchemeId" xml:space="preserve"><value>Identifier</value></data>
-  <data name="ReleaseSchemeIdHelper" xml:space="preserve"><value>What a release names to follow this scheme, for example git-release</value></data>
-  <data name="ReleaseSchemeName" xml:space="preserve"><value>Name</value></data>
-  <data name="ReleaseSchemeDescription" xml:space="preserve"><value>What it is for</value></data>
-  <data name="ReleaseSchemeBody" xml:space="preserve"><value>How a release is conducted</value></data>
-  <data name="ReleaseSchemeBodyPlaceholder" xml:space="preserve"><value>1. Make sure the tree is green: the build with no warnings and every test suite passing.</value></data>
-  <data name="ReleaseSchemeBodyHint" xml:space="preserve"><value>The steps an agent follows. This text is read by an agent, so it is written in English.</value></data>
-  <data name="ReleaseHistoryTitle" xml:space="preserve"><value>Release history</value></data>
-  <data name="ReleaseHistoryHint" xml:space="preserve"><value>What this project released, newest first, with the scheme each release followed.</value></data>
-  <data name="ReleaseHistoryEmpty" xml:space="preserve"><value>Nothing is recorded yet. A release is recorded by an agent once it is published.</value></data>
-  <data name="ReleaseHistoryCards" xml:space="preserve"><value>cards: {0}</value></data>
-  <data name="ReleaseKindPreliminary" xml:space="preserve"><value>preliminary</value></data>
-  <data name="ReleaseKindOrdinary" xml:space="preserve"><value>ordinary</value></data>
-  <data name="ReleaseRecordTag" xml:space="preserve"><value>release record</value></data>
-  <data name="ReleaseRecordHint" xml:space="preserve"><value>What went into this release: the tasks named when it was recorded, the scheme it followed, and the day it was written down.</value></data>
-  <data name="ReleaseRecordBack" xml:space="preserve"><value>Back to the release screen</value></data>
-  <data name="ReleaseRecordScheme" xml:space="preserve"><value>Scheme</value></data>
-  <data name="ReleaseRecordDate" xml:space="preserve"><value>Recorded</value></data>
-  <data name="ReleaseRecordTasks" xml:space="preserve"><value>Tasks</value></data>
-  <data name="ReleaseRecordEmpty" xml:space="preserve"><value>Nothing went into this release: the record names no task, which is what a release of uncarded fixes looks like.</value></data>
-  <data name="ReleaseRecordMissing" xml:space="preserve"><value>not read</value></data>
-  <data name="ReleaseRecordFailed" xml:space="preserve"><value>The release record could not be read: {0}</value></data>
-  <data name="ReleaseCardTag" xml:space="preserve"><value>released</value></data>
-  <data name="ReleaseCardLine" xml:space="preserve"><value>went into release {0}</value></data>
-
-  <data name="BoardModeFilter" xml:space="preserve"><value>View</value></data>
-  <data name="BoardSort" xml:space="preserve"><value>Order</value></data>
-  <data name="BoardSortAscending" xml:space="preserve"><value>Lowest priority first</value></data>
-  <data name="BoardSortDescending" xml:space="preserve"><value>Highest priority first</value></data>
-  <data name="BoardModeBoard" xml:space="preserve"><value>Board</value></data>
-  <data name="BoardModeArchive" xml:space="preserve"><value>Archive</value></data>
-  <data name="ArchiveTitle" xml:space="preserve"><value>Archive</value></data>
-  <data name="ArchiveHint" xml:space="preserve"><value>Finished cards that were put away. Nothing is deleted: the card itself, its feed, its runs, its artifacts and its relations are all still there.</value></data>
-  <data name="ArchiveEmpty" xml:space="preserve"><value>Nothing is in the archive yet.</value></data>
-  <data name="ArchiveRestore" xml:space="preserve"><value>Return to the board</value></data>
-  <data name="ArchiveWhen" xml:space="preserve"><value>put away {0}</value></data>
-  <data name="ArchiveWhenUnknown" xml:space="preserve"><value>put away, moment unknown</value></data>
-  <data name="ArchiveFailed" xml:space="preserve"><value>Card {0} could not be returned to the board: {1}</value></data>
-  <data name="ArchiveCard" xml:space="preserve"><value>Put away</value></data>
-  <data name="ArchiveCardHint" xml:space="preserve"><value>Put this finished card into the archive: it leaves the board, and nothing about it is deleted.</value></data>
-  <data name="RestoreCard" xml:space="preserve"><value>Return to the board</value></data>
-  <data name="RestoreCardHint" xml:space="preserve"><value>Bring this card back from the archive to the stage it was put away in.</value></data>
-  <data name="ArchiveNotFinished" xml:space="preserve"><value>Only a card that reached the end of its pipeline can be put away; this one has work left in it.</value></data>
+  <data name="EmptyStateTitle" xml:space="preserve">
+    <value>No projects registered</value>
+  </data>
+  <data name="EmptyStateHint" xml:space="preserve">
+    <value>Initialize a project through Aiko and it will appear in this panel.</value>
+  </data>
+  <data name="AddProject" xml:space="preserve">
+    <value>Add project</value>
+  </data>
+  <data name="AddProjectHint" xml:space="preserve">
+    <value>Point at the project folder. Aiko creates the .aiko directory and the default workflows.</value>
+  </data>
+  <data name="CreateCard" xml:space="preserve">
+    <value>Card</value>
+  </data>
+  <data name="CreateCardTitle" xml:space="preserve">
+    <value>Create card</value>
+  </data>
+  <data name="CardIdentityTitle" xml:space="preserve">
+    <value>The card</value>
+  </data>
+  <data name="CardIdentityHint" xml:space="preserve">
+    <value>Aiko names the card; you give it the title everyone reads it by</value>
+  </data>
+  <data name="Requirements" xml:space="preserve">
+    <value>Requirements</value>
+  </data>
+  <data name="ScopeAndRequirementsHint" xml:space="preserve">
+    <value>What the card must do, and the files it may touch</value>
+  </data>
+  <data name="RequirementsHelper" xml:space="preserve">
+    <value>What this card must do, in your words</value>
+  </data>
+  <data name="Request" xml:space="preserve">
+    <value>Request</value>
+  </data>
+  <data name="RequestHelper" xml:space="preserve">
+    <value>What the user asked for, in their own words</value>
+  </data>
+  <data name="BacklogStageNote" xml:space="preserve">
+    <value>The card starts in backlog and moves from there.</value>
+  </data>
+  <data name="EstimateAfterCreateHint" xml:space="preserve">
+    <value>Left blank, the size and the scores are the agent's estimate - run /aiko-estimate afterwards.</value>
+  </data>
+  <data name="EstimateTitle" xml:space="preserve">
+    <value>Estimate</value>
+  </data>
+  <data name="EstimateHint" xml:space="preserve">
+    <value>The size and criterion scores you did not set are the agent's judgement.</value>
+  </data>
+  <data name="EstimateAgent" xml:space="preserve">
+    <value>Who estimates</value>
+  </data>
+  <data name="EstimateCard" xml:space="preserve">
+    <value>Ask to estimate</value>
+  </data>
+  <data name="EstimateCommandHint" xml:space="preserve">
+    <value>Run {0} in that agent's terminal.</value>
+  </data>
+  <data name="EstimateRequested" xml:space="preserve">
+    <value>Asked {0} to estimate this card.</value>
+  </data>
+  <data name="EstimateRequestFailed" xml:space="preserve">
+    <value>The estimate request failed: {0}</value>
+  </data>
+  <data name="ExecutionActions" xml:space="preserve">
+    <value>Steering the work</value>
+  </data>
+  <data name="StartStage" xml:space="preserve">
+    <value>Start the stage</value>
+  </data>
+  <data name="PauseRun" xml:space="preserve">
+    <value>Pause</value>
+  </data>
+  <data name="ResumeRun" xml:space="preserve">
+    <value>Resume</value>
+  </data>
+  <data name="CancelRun" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="CompleteRun" xml:space="preserve">
+    <value>Complete</value>
+  </data>
+  <data name="HandoffRun" xml:space="preserve">
+    <value>Hand off</value>
+  </data>
+  <data name="ApproveScope" xml:space="preserve">
+    <value>Allow the extra files</value>
+  </data>
+  <data name="RefuseScope" xml:space="preserve">
+    <value>Refuse the extra files</value>
+  </data>
+  <data name="ApproveCommit" xml:space="preserve">
+    <value>Approve the commit</value>
+  </data>
+  <data name="RejectCommit" xml:space="preserve">
+    <value>Reject the commit</value>
+  </data>
+  <data name="ExecutionActionFailed" xml:space="preserve">
+    <value>The action failed: {0}</value>
+  </data>
+  <data name="ActiveRunsTitle" xml:space="preserve">
+    <value>Running now</value>
+  </data>
+  <data name="ActiveRunsNone" xml:space="preserve">
+    <value>Nothing is running in this project.</value>
+  </data>
+  <data name="ActiveRunsNoAgent" xml:space="preserve">
+    <value>no agent</value>
+  </data>
+  <data name="CardPlaceTitle" xml:space="preserve">
+    <value>Where it starts</value>
+  </data>
+  <data name="ScoringHint" xml:space="preserve">
+    <value>The agent may refine these later; the card's own score is computed from them</value>
+  </data>
+  <data name="CreateCardHint" xml:space="preserve">
+    <value>The card opens right after it is created - that is where its artifacts and runs collect</value>
+  </data>
+  <data name="Add" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="Create" xml:space="preserve">
+    <value>Create</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="Refresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="Workflow" xml:space="preserve">
+    <value>Workflow</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Title" xml:space="preserve">
+    <value>Title</value>
+  </data>
+  <data name="ProjectPath" xml:space="preserve">
+    <value>Project path</value>
+  </data>
+  <data name="ProjectName" xml:space="preserve">
+    <value>Name (optional)</value>
+  </data>
+  <data name="Stage" xml:space="preserve">
+    <value>Stage (for example backlog)</value>
+  </data>
+  <data name="Priority" xml:space="preserve">
+    <value>Priority (number)</value>
+  </data>
+  <data name="Scope" xml:space="preserve">
+    <value>Scope (comma separated)</value>
+  </data>
+  <data name="Choose" xml:space="preserve">
+    <value>Choose...</value>
+  </data>
+  <data name="GitPolicyLocalOnly" xml:space="preserve">
+    <value>local-only (default)</value>
+  </data>
+  <data name="GitPolicy" xml:space="preserve">
+    <value>Git policy</value>
+  </data>
+  <data name="CardKind" xml:space="preserve">
+    <value>Card kind</value>
+  </data>
+  <data name="CardFilter" xml:space="preserve">
+    <value>Filter</value>
+  </data>
+  <data name="WorkspaceFlow" xml:space="preserve">
+    <value>Workspace</value>
+  </data>
+  <data name="KanbanBoard" xml:space="preserve">
+    <value>Kanban board</value>
+  </data>
+  <data name="Projects" xml:space="preserve">
+    <value>Projects</value>
+  </data>
+  <data name="OrchestrationLoad" xml:space="preserve">
+    <value>ORCHESTRATION LOAD</value>
+  </data>
+  <data name="ContextEngine" xml:space="preserve">
+    <value>Event stream</value>
+  </data>
+  <data name="NativeAot" xml:space="preserve">
+    <value>NATIVE AOT</value>
+  </data>
+  <data name="Host" xml:space="preserve">
+    <value>host</value>
+  </data>
+  <data name="Unassigned" xml:space="preserve">
+    <value>unassigned</value>
+  </data>
+  <data name="DropHere" xml:space="preserve">
+    <value>Drop tasks into</value>
+  </data>
+  <data name="RailAriaLabel" xml:space="preserve">
+    <value>Aiko projects</value>
+  </data>
+  <data name="InspectorAriaLabel" xml:space="preserve">
+    <value>Aiko inspector</value>
+  </data>
+  <data name="StoriesNav" xml:space="preserve">
+    <value>Stories</value>
+  </data>
+  <data name="TasksNav" xml:space="preserve">
+    <value>Tasks</value>
+  </data>
+  <data name="BoardTypesFilter" xml:space="preserve">
+    <value>Card types</value>
+  </data>
+  <data name="BoardWaitingFilter" xml:space="preserve">
+    <value>Answer filter</value>
+  </data>
+  <data name="BoardWaitingFilterAll" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="BoardWaitingFilterWaiting" xml:space="preserve">
+    <value>Waiting for an answer</value>
+  </data>
+  <data name="StoryFlow" xml:space="preserve">
+    <value>Story flow</value>
+  </data>
+  <data name="GitPolicyTrackKnowledge" xml:space="preserve">
+    <value>track-project-knowledge</value>
+  </data>
+  <data name="GitPolicyCustom" xml:space="preserve">
+    <value>custom</value>
+  </data>
+  <data name="PathRequired" xml:space="preserve">
+    <value>Enter the project path.</value>
+  </data>
+  <data name="AddProjectFailed" xml:space="preserve">
+    <value>Could not add the project: {0}</value>
+  </data>
+  <data name="CreateCardFailed" xml:space="preserve">
+    <value>Could not create the card: {0}</value>
+  </data>
+  <data name="MoveFailed" xml:space="preserve">
+    <value>Move {0} was not saved: {1}</value>
+  </data>
+  <data name="BoardCaption" xml:space="preserve">
+    <value>Project board</value>
+  </data>
+  <data name="BoardFilterSize" xml:space="preserve">
+    <value>Size</value>
+  </data>
+  <data name="LoadingContext" xml:space="preserve">
+    <value>Assembling the project context...</value>
+  </data>
+  <data name="BoardUpdateFailed" xml:space="preserve">
+    <value>Could not update the board</value>
+  </data>
+  <data name="Cards" xml:space="preserve">
+    <value>Cards</value>
+  </data>
+  <data name="InProgress" xml:space="preserve">
+    <value>In progress</value>
+  </data>
+  <data name="Relations" xml:space="preserve">
+    <value>Relations</value>
+  </data>
+  <data name="OutOfScope" xml:space="preserve">
+    <value>Out of scope</value>
+  </data>
+  <data name="BacklogSlice" xml:space="preserve">
+    <value>In backlog</value>
+  </data>
+  <data name="Implementation" xml:space="preserve">
+    <value>implementation</value>
+  </data>
+  <data name="CardsStagesCount" xml:space="preserve">
+    <value>{0} cards - {1} stages</value>
+  </data>
+  <data name="WorkflowNotFound" xml:space="preserve">
+    <value>No workflow found for {0}.</value>
+  </data>
+  <data name="ScopeNotSet" xml:space="preserve">
+    <value>scope not set</value>
+  </data>
+  <data name="FilesCount" xml:space="preserve">
+    <value>{0}/{1} files</value>
+  </data>
+  <data name="OutOfScopeCount" xml:space="preserve">
+    <value>out of scope: {0}</value>
+  </data>
+  <data name="Parameters" xml:space="preserve">
+    <value>Parameters</value>
+  </data>
+  <data name="ScoringCriteria" xml:space="preserve">
+    <value>Scoring criteria</value>
+  </data>
+  <data name="PriorityLabel" xml:space="preserve">
+    <value>Score / priority</value>
+  </data>
+  <data name="ScopeHelper" xml:space="preserve">
+    <value>One path or glob per line</value>
+  </data>
+  <data name="SaveCard" xml:space="preserve">
+    <value>Save card</value>
+  </data>
+  <data name="FilesTitle" xml:space="preserve">
+    <value>Files</value>
+  </data>
+  <data name="NoRelations" xml:space="preserve">
+    <value>No relations yet.</value>
+  </data>
+  <data name="RemoveLink" xml:space="preserve">
+    <value>Remove link</value>
+  </data>
+  <data name="UnlinkConfirm" xml:space="preserve">
+    <value>Remove the link to {0}?</value>
+  </data>
+  <data name="UnlinkFailed" xml:space="preserve">
+    <value>The link could not be removed: {0}</value>
+  </data>
+  <data name="LoadingHistory" xml:space="preserve">
+    <value>Loading history...</value>
+  </data>
+  <data name="NoExecutions" xml:space="preserve">
+    <value>No runs yet.</value>
+  </data>
+  <data name="ArtifactsLabel" xml:space="preserve">
+    <value>Artifacts: {0}</value>
+  </data>
+  <data name="HistoryUnavailable" xml:space="preserve">
+    <value>Execution history is unavailable: {0}</value>
+  </data>
+  <data name="InvalidPriority" xml:space="preserve">
+    <value>Enter a non-negative number.</value>
+  </data>
+  <data name="TitleRequired" xml:space="preserve">
+    <value>A card title is required.</value>
+  </data>
+  <data name="CardConflict" xml:space="preserve">
+    <value>Another agent changed the card before this save. Your edits are kept - check them against the card and save again.</value>
+  </data>
+  <data name="CardChangedWhileEditing" xml:space="preserve">
+    <value>The card changed while you were editing it. Your edits are kept.</value>
+  </data>
+  <data name="DiscardMyEdits" xml:space="preserve">
+    <value>Discard my edits</value>
+  </data>
+  <data name="LeaveWithUnsavedEdits" xml:space="preserve">
+    <value>You have unsaved edits. Leave and lose them?</value>
+  </data>
+  <data name="ArtifactModified" xml:space="preserve">
+    <value>Modified</value>
+  </data>
+  <data name="DiscardDocumentEdits" xml:space="preserve">
+    <value>Reload the document and lose your unsaved edits?</value>
+  </data>
+  <data name="ChangesSaved" xml:space="preserve">
+    <value>Changes saved.</value>
+  </data>
+  <data name="SaveCardFailed" xml:space="preserve">
+    <value>Could not save the card: {0}</value>
+  </data>
+  <data name="TaskFlow" xml:space="preserve">
+    <value>Task flow</value>
+  </data>
+  <data name="DocumentsTitle" xml:space="preserve">
+    <value>Documents</value>
+  </data>
+  <data name="NewMarkdown" xml:space="preserve">
+    <value>New Markdown file</value>
+  </data>
+  <data name="AddDocHint" xml:space="preserve">
+    <value>Add a Markdown file for the request, the analysis or the result.</value>
+  </data>
+  <data name="NewFile" xml:space="preserve">
+    <value>New file</value>
+  </data>
+  <data name="SavedFile" xml:space="preserve">
+    <value>Saved file</value>
+  </data>
+  <data name="SaveDocument" xml:space="preserve">
+    <value>Save document</value>
+  </data>
+  <data name="ListFailed" xml:space="preserve">
+    <value>Could not load the document list: {0}</value>
+  </data>
+  <data name="ServerEmptyDoc" xml:space="preserve">
+    <value>The server returned an empty document.</value>
+  </data>
+  <data name="OpenFailed" xml:space="preserve">
+    <value>Could not open the document: {0}</value>
+  </data>
+  <data name="InvalidPath" xml:space="preserve">
+    <value>Enter a relative path to a .md file.</value>
+  </data>
+  <data name="NewDocPrepared" xml:space="preserve">
+    <value>The new document is ready. Fill it in and save it.</value>
+  </data>
+  <data name="FileNotCreatedYet" xml:space="preserve">
+    <value>The file does not exist yet. Saving adds it to the card folder.</value>
+  </data>
+  <data name="FileChanged" xml:space="preserve">
+    <value>Another agent or editor changed the file. Refresh the document before saving.</value>
+  </data>
+  <data name="ServerRejected" xml:space="preserve">
+    <value>The server rejected the document: {0}.</value>
+  </data>
+  <data name="ServerNoDoc" xml:space="preserve">
+    <value>The server did not return the saved document.</value>
+  </data>
+  <data name="DocSaved" xml:space="preserve">
+    <value>Document saved.</value>
+  </data>
+  <data name="SaveDocFailed" xml:space="preserve">
+    <value>Could not save the document: {0}</value>
+  </data>
+  <data name="ArtifactSaved" xml:space="preserve">
+    <value>saved</value>
+  </data>
+  <data name="ArtifactRequired" xml:space="preserve">
+    <value>required</value>
+  </data>
+  <data name="ArtifactNew" xml:space="preserve">
+    <value>new</value>
+  </data>
+  <data name="WorkflowTitle" xml:space="preserve">
+    <value>Workflow title</value>
+  </data>
+  <data name="StagesTitle" xml:space="preserve">
+    <value>Stages</value>
+  </data>
+  <data name="AddStage" xml:space="preserve">
+    <value>Add stage</value>
+  </data>
+  <data name="Remove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="SelectedStage" xml:space="preserve">
+    <value>Selected stage</value>
+  </data>
+  <data name="StableId" xml:space="preserve">
+    <value>Stable id</value>
+  </data>
+  <data name="StableIdHelper" xml:space="preserve">
+    <value>Used by agents and cards</value>
+  </data>
+  <data name="Instruction" xml:space="preserve">
+    <value>Agent instruction</value>
+  </data>
+  <data name="DefaultAgent" xml:space="preserve">
+    <value>Default agent</value>
+  </data>
+  <data name="DefaultAgentHelper" xml:space="preserve">
+    <value>For example: codex; may be left empty</value>
+  </data>
+  <data name="RequiredArtifacts" xml:space="preserve">
+    <value>Required artifacts</value>
+  </data>
+  <data name="ArtifactsHelper" xml:space="preserve">
+    <value>path | policy | description - one per line</value>
+  </data>
+  <data name="MoveUp" xml:space="preserve">
+    <value>Up</value>
+  </data>
+  <data name="MoveDown" xml:space="preserve">
+    <value>Down</value>
+  </data>
+  <data name="SaveWorkflow" xml:space="preserve">
+    <value>Save workflow</value>
+  </data>
+  <data name="WorkflowHint" xml:space="preserve">
+    <value>Changes apply to the board and to the next agent runs.</value>
+  </data>
+  <data name="NewStage" xml:space="preserve">
+    <value>New stage</value>
+  </data>
+  <data name="NewStageInstruction" xml:space="preserve">
+    <value>Describe what the agent should do at this stage.</value>
+  </data>
+  <data name="OneStageRequired" xml:space="preserve">
+    <value>A workflow needs at least one stage.</value>
+  </data>
+  <data name="MoveCardFirst" xml:space="preserve">
+    <value>Move card {0} out of this stage first.</value>
+  </data>
+  <data name="ArtifactLineInvalid" xml:space="preserve">
+    <value>invalid artifact line "{0}".</value>
+  </data>
+  <data name="SaveWorkflowFailed" xml:space="preserve">
+    <value>Could not save the workflow: {0}</value>
+  </data>
+  <data name="WorkflowTitleRequired" xml:space="preserve">
+    <value>Enter a workflow title.</value>
+  </data>
+  <data name="StageIdTitleRequired" xml:space="preserve">
+    <value>Every stage needs an id and a title.</value>
+  </data>
+  <data name="StageIdUnique" xml:space="preserve">
+    <value>Stage id must be unique: {0}.</value>
+  </data>
+  <data name="WorkflowConflict" xml:space="preserve">
+    <value>Another agent has already changed the workflow. The board has been refreshed.</value>
+  </data>
+  <data name="ServerRejectedChanges" xml:space="preserve">
+    <value>The server rejected the changes: {0}.</value>
+  </data>
+  <data name="WorkflowSaved" xml:space="preserve">
+    <value>Workflow saved.</value>
+  </data>
+  <data name="SettingsTitle" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="LoadingSettings" xml:space="preserve">
+    <value>Loading settings...</value>
+  </data>
+  <data name="Daemon" xml:space="preserve">
+    <value>Daemon</value>
+  </data>
+  <data name="Version" xml:space="preserve">
+    <value>Version</value>
+  </data>
+  <data name="Address" xml:space="preserve">
+    <value>Address</value>
+  </data>
+  <data name="EffectiveConfig" xml:space="preserve">
+    <value>Effective execution configuration</value>
+  </data>
+  <data name="Source" xml:space="preserve">
+    <value>Source</value>
+  </data>
+  <data name="Workspace" xml:space="preserve">
+    <value>Workspace</value>
+  </data>
+  <data name="MaxRuns" xml:space="preserve">
+    <value>Concurrent runs</value>
+  </data>
+  <data name="ScopeOverlap" xml:space="preserve">
+    <value>Scope overlap</value>
+  </data>
+  <data name="CommitPolicy" xml:space="preserve">
+    <value>Commits in a shared checkout</value>
+  </data>
+  <data name="ParallelSharedOn" xml:space="preserve">
+    <value>Parallel shared mode is on</value>
+  </data>
+  <data name="ProjectSettings" xml:space="preserve">
+    <value>Project</value>
+  </data>
+  <data name="WorkspaceOption" xml:space="preserve">
+    <value>Shared checkout</value>
+  </data>
+  <data name="WorktreeOption" xml:space="preserve">
+    <value>Separate worktree (soon)</value>
+  </data>
+  <data name="MaxRunsLabel" xml:space="preserve">
+    <value>Concurrent runs (1 or more)</value>
+  </data>
+  <data name="PolicyAsk" xml:space="preserve">
+    <value>Ask</value>
+  </data>
+  <data name="PolicyAllow" xml:space="preserve">
+    <value>Allow</value>
+  </data>
+  <data name="PolicyDeny" xml:space="preserve">
+    <value>Deny</value>
+  </data>
+  <data name="ScopePolicy" xml:space="preserve">
+    <value>Scope overlap policy</value>
+  </data>
+  <data name="SaveProjectSettings" xml:space="preserve">
+    <value>Save project settings</value>
+  </data>
+  <data name="GlobalHint" xml:space="preserve">
+    <value>Applied to every project that has no settings of its own.</value>
+  </data>
+  <data name="SelectProjectForLocalSettings" xml:space="preserve">
+    <value>Project settings become available once a project is selected. The global settings below apply to every project.</value>
+  </data>
+  <data name="SourceProject" xml:space="preserve">
+    <value>project</value>
+  </data>
+  <data name="SourceGlobal" xml:space="preserve">
+    <value>global</value>
+  </data>
+  <data name="SourceDefault" xml:space="preserve">
+    <value>default</value>
+  </data>
+  <data name="LoadSettingsFailed" xml:space="preserve">
+    <value>Could not load the settings: {0}</value>
+  </data>
+  <data name="SaveSettingsFailed" xml:space="preserve">
+    <value>Saving failed: {0}</value>
+  </data>
+  <data name="SettingsSaved" xml:space="preserve">
+    <value>Settings saved.</value>
+  </data>
+  <data name="InvalidMaxRuns" xml:space="preserve">
+    <value>Enter a whole number of 1 or more.</value>
+  </data>
+  <data name="InvalidSettingValue" xml:space="preserve">
+    <value>Invalid setting value.</value>
+  </data>
+  <data name="Overview" xml:space="preserve">
+    <value>Overview</value>
+  </data>
+  <data name="OverviewCaption" xml:space="preserve">
+    <value>Local-first orchestrator: one daemon, the board, the agents and durable project memory.</value>
+  </data>
+  <data name="Agents" xml:space="preserve">
+    <value>Agents</value>
+  </data>
+  <data name="AgentsNotFound" xml:space="preserve">
+    <value>not detected</value>
+  </data>
+  <data name="AgentsHint" xml:space="preserve">
+    <value>Connect writes the agent's global /aiko-* skills and commands. The project-scoped MCP entry is added separately: aiko agent install --project &lt;id&gt;</value>
+  </data>
+  <data name="QuickStart" xml:space="preserve">
+    <value>Quick start</value>
+  </data>
+  <data name="QuickStartStep1" xml:space="preserve">
+    <value>1. Start the daemon: aiko serve</value>
+  </data>
+  <data name="QuickStartStep2" xml:space="preserve">
+    <value>2. Add a project below, or run aiko init &lt;path&gt;</value>
+  </data>
+  <data name="QuickStartStep3" xml:space="preserve">
+    <value>3. Connect an agent: aiko agent install --project &lt;id&gt; --agent codex</value>
+  </data>
+  <data name="QuickStartStep4" xml:space="preserve">
+    <value>4. Work in the agent: every task starts with a card</value>
+  </data>
+  <data name="ProjectsRegistered" xml:space="preserve">
+    <value>Registered projects</value>
+  </data>
+  <data name="OpenProject" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="PriorityFormula" xml:space="preserve">
+    <value>Priority formula</value>
+  </data>
+  <data name="PriorityFormulaHint" xml:space="preserve">
+    <value>Effective priority = own weight × the card's own score + parent weight × the best parent story.</value>
+  </data>
+  <data name="OwnWeight" xml:space="preserve">
+    <value>Own score weight</value>
+  </data>
+  <data name="ParentWeight" xml:space="preserve">
+    <value>Best parent weight</value>
+  </data>
+  <data name="Criteria" xml:space="preserve">
+    <value>Scoring criteria</value>
+  </data>
+  <data name="AddCriterion" xml:space="preserve">
+    <value>Add criterion</value>
+  </data>
+  <data name="CriterionDescription" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="CriterionWeight" xml:space="preserve">
+    <value>Weight</value>
+  </data>
+  <data name="CriterionIdHelper" xml:space="preserve">
+    <value>The id is what cards report their values against, and it does not change when the title does.</value>
+  </data>
+  <data name="NoCriteria" xml:space="preserve">
+    <value>No criteria: a card's priority is entered by hand.</value>
+  </data>
+  <data name="InvalidWeights" xml:space="preserve">
+    <value>Weights must be zero or greater, and at least one of them above zero.</value>
+  </data>
+  <data name="CriterionTitleRequired" xml:space="preserve">
+    <value>Every criterion needs a title.</value>
+  </data>
+  <data name="NotPairedHint" xml:space="preserve">
+    <value>This browser is not paired with the daemon yet. Open the board with: aiko ui</value>
+  </data>
+  <data name="Dashboard" xml:space="preserve">
+    <value>Dashboard</value>
+  </data>
+  <data name="DashboardCaption" xml:space="preserve">
+    <value>Every project, every card, and a year of activity in one place.</value>
+  </data>
+  <data name="StatProjects" xml:space="preserve">
+    <value>Projects</value>
+  </data>
+  <data name="StatCards" xml:space="preserve">
+    <value>Cards</value>
+  </data>
+  <data name="StatTasks" xml:space="preserve">
+    <value>Tasks</value>
+  </data>
+  <data name="StatStories" xml:space="preserve">
+    <value>Stories</value>
+  </data>
+  <data name="StatInProgress" xml:space="preserve">
+    <value>In progress</value>
+  </data>
+  <data name="StatOutOfScope" xml:space="preserve">
+    <value>Out of scope</value>
+  </data>
+  <data name="AcrossProjects" xml:space="preserve">
+    <value>across {0} projects</value>
+  </data>
+  <data name="TodayDelta" xml:space="preserve">
+    <value>+{0} today</value>
+  </data>
+  <data name="StatTasksCaption" xml:space="preserve">
+    <value>task cards in the pipelines</value>
+  </data>
+  <data name="StatStoriesCaption" xml:space="preserve">
+    <value>story cards driving them</value>
+  </data>
+  <data name="StatInProgressCaption" xml:space="preserve">
+    <value>{0} agents detected on this machine</value>
+  </data>
+  <data name="StatOutOfScopeCaption" xml:space="preserve">
+    <value>files outside the declared scope</value>
+  </data>
+  <data name="StatLive" xml:space="preserve">
+    <value>Active (live SSE)</value>
+  </data>
+  <data name="NoBoardData" xml:space="preserve">
+    <value>No board data</value>
+  </data>
+  <data name="TableProject" xml:space="preserve">
+    <value>Project</value>
+  </data>
+  <data name="TableStatus" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="TableActions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="ActivityTitle" xml:space="preserve">
+    <value>Activity</value>
+  </data>
+  <data name="ActivityCaption" xml:space="preserve">
+    <value>runs and events · last year</value>
+  </data>
+  <data name="ActivityTotal" xml:space="preserve">
+    <value>{0} recorded in the window</value>
+  </data>
+  <data name="ActivityNone" xml:space="preserve">
+    <value>Nothing recorded yet. Start the daemon and run a stage.</value>
+  </data>
+  <data name="ActivityLess" xml:space="preserve">
+    <value>less</value>
+  </data>
+  <data name="ActivityMore" xml:space="preserve">
+    <value>more</value>
+  </data>
+  <data name="BoardUnavailable" xml:space="preserve">
+    <value>The board could not be loaded. Refresh to try again.</value>
+  </data>
+  <data name="WorkflowUnavailable" xml:space="preserve">
+    <value>This project has no workflows yet.</value>
+  </data>
+  <data name="QuickStartTitle" xml:space="preserve">
+    <value>Quick start</value>
+  </data>
+  <data name="Unregister" xml:space="preserve">
+    <value>Unregister</value>
+  </data>
+  <data name="UnregisterConfirm" xml:space="preserve">
+    <value>Unregister this project? Its files are kept.</value>
+  </data>
+  <data name="UnregisterFailed" xml:space="preserve">
+    <value>Could not unregister the project: {0}</value>
+  </data>
+  <data name="Browse" xml:space="preserve">
+    <value>Browse</value>
+  </data>
+  <data name="ChooseFolder" xml:space="preserve">
+    <value>Choose a folder</value>
+  </data>
+  <data name="Drives" xml:space="preserve">
+    <value>Drives</value>
+  </data>
+  <data name="FolderUnreadable" xml:space="preserve">
+    <value>This folder cannot be read.</value>
+  </data>
+  <data name="ExistingProject" xml:space="preserve">
+    <value>Aiko project</value>
+  </data>
+  <data name="Up" xml:space="preserve">
+    <value>Up</value>
+  </data>
+  <data name="Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="UseThisFolder" xml:space="preserve">
+    <value>Use this folder</value>
+  </data>
+  <data name="BrowseFailed" xml:space="preserve">
+    <value>Could not read the folder list: {0}</value>
+  </data>
+  <data name="AgentNotConnected" xml:space="preserve">
+    <value>not connected</value>
+  </data>
+  <data name="AgentConnected" xml:space="preserve">
+    <value>connected</value>
+  </data>
+  <data name="AgentPartiallyConnected" xml:space="preserve">
+    <value>partly connected ({0}/{1})</value>
+  </data>
+  <data name="ConnectAgent" xml:space="preserve">
+    <value>Connect</value>
+  </data>
+  <data name="DisconnectAgent" xml:space="preserve">
+    <value>Disconnect</value>
+  </data>
+  <data name="AgentConnectFailed" xml:space="preserve">
+    <value>Could not change the {0} connection: {1}</value>
+  </data>
+  <data name="CardNotFound" xml:space="preserve">
+    <value>No such card on this project's board.</value>
+  </data>
+  <data name="OverviewGroup" xml:space="preserve">
+    <value>Overview</value>
+  </data>
+  <data name="CurrentProjectGroup" xml:space="preserve">
+    <value>Project ({0})</value>
+  </data>
+  <data name="ProjectOverviewStats" xml:space="preserve">
+    <value>Project overview / stats</value>
+  </data>
+  <data name="DaemonMcpBridges" xml:space="preserve">
+    <value>Daemon &amp; MCP bridges</value>
+  </data>
+  <data name="LiveTag" xml:space="preserve">
+    <value>live</value>
+  </data>
+  <data name="QuickSearchPlaceholder" xml:space="preserve">
+    <value>Quick search cards...</value>
+  </data>
+  <data name="QuickSearchAriaLabel" xml:space="preserve">
+    <value>Quick search cards</value>
+  </data>
+  <data name="QuickSearchNoMatch" xml:space="preserve">
+    <value>No card matches "{0}".</value>
+  </data>
+  <data name="NewTask" xml:space="preserve">
+    <value>New task</value>
+  </data>
+  <data name="Online" xml:space="preserve">
+    <value>ONLINE</value>
+  </data>
+  <data name="SseLive" xml:space="preserve">
+    <value>SSE LIVE</value>
+  </data>
+  <data name="ActiveProjectTag" xml:space="preserve">
+    <value>(active)</value>
+  </data>
+  <data name="OpenProjectLabel" xml:space="preserve">
+    <value>Open project</value>
+  </data>
+  <data name="DaemonRoundTrip" xml:space="preserve">
+    <value>round-trip</value>
+  </data>
+  <data name="UpdateAvailable" xml:space="preserve">
+    <value>new version</value>
+  </data>
+  <data name="UpdateAvailableHint" xml:space="preserve">
+    <value>The daemon serves a newer client than this page loaded. Reload to use it.</value>
+  </data>
+  <data name="CriterionTitle" xml:space="preserve">
+    <value>Criterion title</value>
+  </data>
+  <data name="MinimumLabel" xml:space="preserve">
+    <value>From</value>
+  </data>
+  <data name="MaximumLabel" xml:space="preserve">
+    <value>To</value>
+  </data>
+  <data name="AiInstructionLabel" xml:space="preserve">
+    <value>Agent instruction</value>
+  </data>
+  <data name="AiInstructionHint" xml:space="preserve">
+    <value>What the agent should look at to score this criterion</value>
+  </data>
+  <data name="CharactersCount" xml:space="preserve">
+    <value>Characters: {0}</value>
+  </data>
+  <data name="TokensEstimate" xml:space="preserve">
+    <value>Tokens ~{0}</value>
+  </data>
+  <data name="CloseTask" xml:space="preserve">
+    <value>Close task</value>
+  </data>
+  <data name="ExecutionState" xml:space="preserve">
+    <value>Execution state</value>
+  </data>
+  <data name="WorkflowStatus" xml:space="preserve">
+    <value>Workflow status</value>
+  </data>
+  <data name="ActiveAssignees" xml:space="preserve">
+    <value>Active assignees</value>
+  </data>
+  <data name="NoActiveAssignees" xml:space="preserve">
+    <value>This stage names no agent yet.</value>
+  </data>
+  <data name="RoleAgent" xml:space="preserve">
+    <value>Agent</value>
+  </data>
+  <data name="NotStarted" xml:space="preserve">
+    <value>Not started</value>
+  </data>
+  <data name="TriageScore" xml:space="preserve">
+    <value>Triage &amp; score</value>
+  </data>
+  <data name="EffectivePriority" xml:space="preserve">
+    <value>Effective priority</value>
+  </data>
+  <data name="RankOf" xml:space="preserve">
+    <value>Rank #{0}</value>
+  </data>
+  <data name="PriorityOf" xml:space="preserve">
+    <value>own value {0}</value>
+  </data>
+  <data name="RelatedCards" xml:space="preserve">
+    <value>Related cards</value>
+  </data>
+  <data name="RelatedParents" xml:space="preserve">
+    <value>Parents</value>
+  </data>
+  <data name="RelatedChildren" xml:space="preserve">
+    <value>Children</value>
+  </data>
+  <data name="RelatedLinks" xml:space="preserve">
+    <value>Linked</value>
+  </data>
+  <data name="RelationBlocks" xml:space="preserve">
+    <value>blocks this</value>
+  </data>
+  <data name="RelationBlockedBy" xml:space="preserve">
+    <value>blocked by this</value>
+  </data>
+  <data name="BoardSubTasks" xml:space="preserve">
+    <value>{0} sub-tasks</value>
+  </data>
+  <data name="BlockedByCard" xml:space="preserve">
+    <value>blocked by {0}</value>
+  </data>
+  <data name="RelationImplements" xml:space="preserve">
+    <value>implements this</value>
+  </data>
+  <data name="RelationImplementedBy" xml:space="preserve">
+    <value>implemented by this</value>
+  </data>
+  <data name="RelationRelatesTo" xml:space="preserve">
+    <value>related</value>
+  </data>
+  <data name="ResolvedOf" xml:space="preserve">
+    <value>{0} / {1} resolved</value>
+  </data>
+  <data name="StageSkills" xml:space="preserve">
+    <value>Stage skills</value>
+  </data>
+  <data name="CodeChanges" xml:space="preserve">
+    <value>Code changes</value>
+  </data>
+  <data name="LoadingCodeChanges" xml:space="preserve">
+    <value>Reading the diff from git...</value>
+  </data>
+  <data name="DiffNoChanges" xml:space="preserve">
+    <value>Nothing to show: the card's files and HEAD are the same.</value>
+  </data>
+  <data name="DiffBinaryOrEmpty" xml:space="preserve">
+    <value>A binary file, or no line-level change.</value>
+  </data>
+  <data name="GitClientUnavailable" xml:space="preserve">
+    <value>Git client unavailable</value>
+  </data>
+  <data name="GitNoRepository" xml:space="preserve">
+    <value>not a repository</value>
+  </data>
+  <data name="GitBranch" xml:space="preserve">
+    <value>Git branch</value>
+  </data>
+  <data name="DiscussionTitle" xml:space="preserve">
+    <value>Discussion &amp; commands</value>
+  </data>
+  <data name="LoadingDiscussion" xml:space="preserve">
+    <value>Reading the discussion...</value>
+  </data>
+  <data name="DiscussionNone" xml:space="preserve">
+    <value>Nothing has been said about this card yet. Leave the first note below.</value>
+  </data>
+  <data name="LeaveTaskNote" xml:space="preserve">
+    <value>Leave a task note</value>
+  </data>
+  <data name="TaskNote" xml:space="preserve">
+    <value>Note or command</value>
+  </data>
+  <data name="TaskNoteHint" xml:space="preserve">
+    <value>A note is stored with the card, in its own folder; a command waits for the agent that runs this stage</value>
+  </data>
+  <data name="Comment" xml:space="preserve">
+    <value>Comment</value>
+  </data>
+  <data name="CodeChangesHint" xml:space="preserve">
+    <value>The card's files, with the patch the git client reports</value>
+  </data>
+  <data name="CodeChangesPending" xml:space="preserve">
+    <value>The files this card declared or touched appear here, with git's own patch for each.</value>
+  </data>
+  <data name="CodeChangesPlan" xml:space="preserve">
+    <value>It needs a git client on PATH and a repository: without either, this block says which of the two is missing instead of showing an empty viewer.</value>
+  </data>
+  <data name="ArtifactsTitle" xml:space="preserve">
+    <value>Artifacts</value>
+  </data>
+  <data name="ArtifactsHint" xml:space="preserve">
+    <value>The files this card owns, edited as Markdown</value>
+  </data>
+  <data name="RunsTitle" xml:space="preserve">
+    <value>Runs</value>
+  </data>
+  <data name="RunsHint" xml:space="preserve">
+    <value>Every execution of this card, newest first</value>
+  </data>
+  <data name="AttemptsLabel" xml:space="preserve">
+    <value>Agent attempts</value>
+  </data>
+  <data name="AssignedTo" xml:space="preserve">
+    <value>assigned to {0}</value>
+  </data>
+  <data name="ScopeTitle" xml:space="preserve">
+    <value>Scope &amp; requirements</value>
+  </data>
+  <data name="DeclaredScope" xml:space="preserve">
+    <value>Declared scope</value>
+  </data>
+  <data name="EditCard" xml:space="preserve">
+    <value>Edit card</value>
+  </data>
+  <data name="EditCardHint" xml:space="preserve">
+    <value>What the card is called on the board. Everything else about it sits in the panels around this one.</value>
+  </data>
+  <data name="ScopePanelHint" xml:space="preserve">
+    <value>What the card requires and what it declares it will touch</value>
+  </data>
+  <data name="ArtifactPresent" xml:space="preserve">
+    <value>present</value>
+  </data>
+  <data name="ArtifactMissing" xml:space="preserve">
+    <value>missing</value>
+  </data>
+  <data name="FilesDeclared" xml:space="preserve">
+    <value>Declared</value>
+  </data>
+  <data name="FilesActual" xml:space="preserve">
+    <value>Actually changed</value>
+  </data>
+  <data name="DefinitionOfDone" xml:space="preserve">
+    <value>Definition of done</value>
+  </data>
+  <data name="NoRequiredArtifacts" xml:space="preserve">
+    <value>This stage asks for no artifacts.</value>
+  </data>
+  <data name="CompletedOutcomes" xml:space="preserve">
+    <value>Completed outcomes &amp; report</value>
+  </data>
+  <data name="CompletedOutcomesHint" xml:space="preserve">
+    <value>What the last run reported</value>
+  </data>
+  <data name="AgentReport" xml:space="preserve">
+    <value>Agent report</value>
+  </data>
+  <data name="NoRunSummary" xml:space="preserve">
+    <value>This run left no summary.</value>
+  </data>
+  <data name="ReportedCommits" xml:space="preserve">
+    <value>Reported commits</value>
+  </data>
+  <data name="CommitPending" xml:space="preserve">
+    <value>awaiting approval</value>
+  </data>
+  <data name="RevisionTag" xml:space="preserve">
+    <value>rev {0}</value>
+  </data>
+  <data name="DaemonRuntime" xml:space="preserve">
+    <value>Daemon runtime</value>
+  </data>
+  <data name="DaemonRuntimeHint" xml:space="preserve">
+    <value>What is running and where it listens</value>
+  </data>
+  <data name="McpEndpoint" xml:space="preserve">
+    <value>MCP endpoint</value>
+  </data>
+  <data name="McpEndpointHint" xml:space="preserve">
+    <value>The address an agent connects to for the open project</value>
+  </data>
+  <data name="AgentBridges" xml:space="preserve">
+    <value>Agent bridges</value>
+  </data>
+  <data name="ConnectBridge" xml:space="preserve">
+    <value>Attach bridge</value>
+  </data>
+  <data name="BridgesSummary" xml:space="preserve">
+    <value>{0} attached · {1} incomplete · {2} absent</value>
+  </data>
+  <data name="BridgeConnectedHint" xml:space="preserve">
+    <value>Aiko's skills and commands are written for this agent</value>
+  </data>
+  <data name="BridgePartialHint" xml:space="preserve">
+    <value>Part of Aiko's configuration is missing - attach again to complete it</value>
+  </data>
+  <data name="BridgeInstalledHint" xml:space="preserve">
+    <value>The agent is on this machine and not attached to Aiko yet</value>
+  </data>
+  <data name="BridgeNotInstalledHint" xml:space="preserve">
+    <value>Not found on PATH: install the agent, then attach its bridge</value>
+  </data>
+  <data name="AgentBridgeChanged" xml:space="preserve">
+    <value>Bridge for {0} updated.</value>
+  </data>
+  <data name="AgentBridgesHint" xml:space="preserve">
+    <value>Which agents this machine has, and whether Aiko has connected to them</value>
+  </data>
+  <data name="AgentConfigDrift" xml:space="preserve">
+    <value>{0} agent configurations still record an old endpoint</value>
+  </data>
+  <data name="AgentConfigDriftHint" xml:space="preserve">
+    <value>The agent is installed and connected, but its configuration points at a port the daemon no longer listens on. Run `aiko repair --fix` to rewrite them.</value>
+  </data>
+  <data name="AgentCredentialProblem" xml:space="preserve">
+    <value>An agent has no usable credential</value>
+  </data>
+  <data name="AgentCredentialProblemHint" xml:space="preserve">
+    <value>The agent's entry reads its token from an environment variable that is not set, or that holds a different value than the token the daemon checks. Run `aiko token show`, export AIKO_TOKEN with that value in the shell you start the agent from, and restart it.</value>
+  </data>
+  <data name="BridgeConnected" xml:space="preserve">
+    <value>connected</value>
+  </data>
+  <data name="BridgePartial" xml:space="preserve">
+    <value>partial</value>
+  </data>
+  <data name="BridgeInstalled" xml:space="preserve">
+    <value>found, not connected</value>
+  </data>
+  <data name="BridgeNotInstalled" xml:space="preserve">
+    <value>not found</value>
+  </data>
+  <data name="BridgeNoUserScope" xml:space="preserve">
+    <value>no user-scope config</value>
+  </data>
+  <data name="BridgeFiles" xml:space="preserve">
+    <value>{0}/{1} files</value>
+  </data>
+  <data name="ProjectStats" xml:space="preserve">
+    <value>Project stats</value>
+  </data>
+  <data name="ProjectOverviewNav" xml:space="preserve">
+    <value>Project overview / stats</value>
+  </data>
+  <data name="ProjectSettingsNav" xml:space="preserve">
+    <value>Project settings</value>
+  </data>
+  <data name="ProjectOverviewHint" xml:space="preserve">
+    <value>What this project is, what it is made of, and how its cards are spread across its pipelines</value>
+  </data>
+  <data name="TriageNone" xml:space="preserve">
+    <value>No cards yet: the distribution follows the board.</value>
+  </data>
+  <data name="ReindexProject" xml:space="preserve">
+    <value>Re-index project</value>
+  </data>
+  <data name="ReindexDone" xml:space="preserve">
+    <value>Project re-indexed.</value>
+  </data>
+  <data name="ReindexDoneCounts" xml:space="preserve">
+    <value>Re-indexed: {0} cards, {1} relations, {2} memory documents</value>
+  </data>
+  <data name="ReindexFailed" xml:space="preserve">
+    <value>Could not re-index the project: {0}</value>
+  </data>
+  <data name="StageLoad" xml:space="preserve">
+    <value>Cards per stage</value>
+  </data>
+  <data name="VelocityTitle" xml:space="preserve">
+    <value>Pipeline velocity &amp; throughput</value>
+  </data>
+  <data name="VelocityHint" xml:space="preserve">
+    <value>Cards that entered a stage, per week, over the last {0} weeks</value>
+  </data>
+  <data name="VelocityTotal" xml:space="preserve">
+    <value>{0} transitions in the window</value>
+  </data>
+  <data name="VelocityNone" xml:space="preserve">
+    <value>No transitions recorded yet: they are counted as the board is worked.</value>
+  </data>
+  <data name="TriageTitle" xml:space="preserve">
+    <value>Triage distribution</value>
+  </data>
+  <data name="TriageHint" xml:space="preserve">
+    <value>What the project's cards are made of</value>
+  </data>
+  <data name="UptimeLabel" xml:space="preserve">
+    <value>Uptime</value>
+  </data>
+  <data name="RunsAndCrashes" xml:space="preserve">
+    <value>{0} runs · {1} without a clean stop</value>
+  </data>
+  <data name="MemoryProfile" xml:space="preserve">
+    <value>Memory profile</value>
+  </data>
+  <data name="ManagedHeap" xml:space="preserve">
+    <value>managed heap {0}</value>
+  </data>
+  <data name="StageLoadHint" xml:space="preserve">
+    <value>Each bar is a stage's share of the busiest stage of its own pipeline</value>
+  </data>
+  <data name="StageStatePending" xml:space="preserve">
+    <value>Waiting</value>
+  </data>
+  <data name="StageStateRunning" xml:space="preserve">
+    <value>Running</value>
+  </data>
+  <data name="StageStatePaused" xml:space="preserve">
+    <value>Paused</value>
+  </data>
+  <data name="StageStateWaiting" xml:space="preserve">
+    <value>Needs a decision</value>
+  </data>
+  <data name="StageStateBlocked" xml:space="preserve">
+    <value>Blocked</value>
+  </data>
+  <data name="StageStateDone" xml:space="preserve">
+    <value>Stage finished</value>
+  </data>
+  <data name="StagesFinishedCount" xml:space="preserve">
+    <value>{0} stages finished</value>
+  </data>
+  <data name="GitHubRepository" xml:space="preserve">
+    <value>Aiko on GitHub</value>
+  </data>
+  <data name="TemplateScope" xml:space="preserve">
+    <value>Default workflow</value>
+  </data>
+  <data name="TemplateSettingsHeading" xml:space="preserve">
+    <value>Default workflow settings</value>
+  </data>
+  <data name="TemplateSettingsHint" xml:space="preserve">
+    <value>What a new project is created from: the execution defaults, the scoring model and the pipelines. Existing projects keep their own copy and are not affected.</value>
+  </data>
+  <data name="SaveTemplateSettings" xml:space="preserve">
+    <value>Save template</value>
+  </data>
+  <data name="SizeGridPickHint" xml:space="preserve">
+    <value>Select a step to edit its name, coefficient and description.</value>
+  </data>
+  <data name="SizeGrid" xml:space="preserve">
+    <value>Size grid</value>
+  </data>
+  <data name="SizeGridHint" xml:space="preserve">
+    <value>The agent assigns a size from these descriptions; the coefficient multiplies the card's score</value>
+  </data>
+  <data name="AddSize" xml:space="preserve">
+    <value>Add step</value>
+  </data>
+  <data name="NoSizes" xml:space="preserve">
+    <value>No size steps: every card is scored without a size coefficient.</value>
+  </data>
+  <data name="SizeIdLabel" xml:space="preserve">
+    <value>Step</value>
+  </data>
+  <data name="SizeCoefficient" xml:space="preserve">
+    <value>Coefficient</value>
+  </data>
+  <data name="SizeDescription" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="SizeDescriptionHint" xml:space="preserve">
+    <value>What the agent reads to choose this step</value>
+  </data>
+  <data name="SizeIdRequired" xml:space="preserve">
+    <value>Every size step needs an identifier.</value>
+  </data>
+  <data name="InvalidSizeCoefficient" xml:space="preserve">
+    <value>A size coefficient must be greater than zero.</value>
+  </data>
+  <data name="DuplicateSizeId" xml:space="preserve">
+    <value>The size step "{0}" is listed twice.</value>
+  </data>
+  <data name="InvalidCriterionRange" xml:space="preserve">
+    <value>A criterion's upper bound must be greater than its lower bound.</value>
+  </data>
+  <data name="SkillsBefore" xml:space="preserve">
+    <value>Skills before the instruction</value>
+  </data>
+  <data name="SkillsBeforeHelper" xml:space="preserve">
+    <value>One skill per line. The agent invokes them before reading the instruction - context, search, indexing.</value>
+  </data>
+  <data name="SkillsAfter" xml:space="preserve">
+    <value>Skills after the instruction</value>
+  </data>
+  <data name="SkillsAfterHelper" xml:space="preserve">
+    <value>One skill per line. The agent invokes them once the instruction is done - reporting, verification, handoff.</value>
+  </data>
+  <data name="RemoveStage" xml:space="preserve">
+    <value>Remove this stage</value>
+  </data>
+  <data name="ProjectOverrideScope" xml:space="preserve">
+    <value>Project overrides</value>
+  </data>
+  <data name="ProjectSettingsHeading" xml:space="preserve">
+    <value>Project settings</value>
+  </data>
+  <data name="ProjectSettingsHint" xml:space="preserve">
+    <value>What this project runs with. The values live in .aiko/settings.json and do not move when the installation defaults change.</value>
+  </data>
+  <data name="ChangeWorkflow" xml:space="preserve">
+    <value>Change workflow</value>
+  </data>
+  <data name="ChangeWorkflowHint" xml:space="preserve">
+    <value>Replaces this project's workflows, board projections and settings with the chosen set. Its cards, runs and memory stay; a set that would leave a card outside its pipeline is refused.</value>
+  </data>
+  <data name="ChangeWorkflowApply" xml:space="preserve">
+    <value>Change</value>
+  </data>
+  <data name="ChangeWorkflowEmpty" xml:space="preserve">
+    <value>No workflow sets are available to switch to.</value>
+  </data>
+  <data name="CreateTemplateFromProject" xml:space="preserve">
+    <value>Create template</value>
+  </data>
+  <data name="CreateTemplateFromProjectHint" xml:space="preserve">
+    <value>Saves this project's workflows, projections, settings and memory as a template other projects can be created from.</value>
+  </data>
+  <data name="StageRoleInitial" xml:space="preserve">
+    <value>Initial</value>
+  </data>
+  <data name="StageRoleTerminal" xml:space="preserve">
+    <value>Terminal</value>
+  </data>
+  <data name="AllowedExecutors" xml:space="preserve">
+    <value>Allowed executors</value>
+  </data>
+  <data name="AllowedExecutorsHint" xml:space="preserve">
+    <value>Leave every box clear to let any discovered agent run this stage.</value>
+  </data>
+  <data name="NoAgentsDiscovered" xml:space="preserve">
+    <value>No agent adapters were discovered on this machine.</value>
+  </data>
+  <data name="AnyAgent" xml:space="preserve">
+    <value>Any agent</value>
+  </data>
+  <data name="ValidationCommands" xml:space="preserve">
+    <value>Validation commands</value>
+  </data>
+  <data name="ValidationCommandsHelper" xml:space="preserve">
+    <value>One command per line. They are recorded as this stage's definition of done and shown to the agent; Aiko does not run them itself.</value>
+  </data>
+  <data name="NoSize" xml:space="preserve">
+    <value>No size</value>
+  </data>
+  <data name="SizeHintEmpty" xml:space="preserve">
+    <value>No step: the size factor stays neutral (x1.00)</value>
+  </data>
+  <data name="Template" xml:space="preserve">
+    <value>Template</value>
+  </data>
+  <data name="TemplateHint" xml:space="preserve">
+    <value>Copied into the project at creation: it fixes the stages and their artifacts, the board projections, the starting memory and the default settings. Changing the template later affects only projects created afterwards.</value>
+  </data>
+  <data name="TemplatesNav" xml:space="preserve">
+    <value>Workflow</value>
+  </data>
+  <data name="TemplatesTitle" xml:space="preserve">
+    <value>Workflow</value>
+  </data>
+  <data name="TemplatesHeading" xml:space="preserve">
+    <value>Workflow</value>
+  </data>
+  <data name="TemplatesHint" xml:space="preserve">
+    <value>The workflows a new project is created from: the stages and artifacts of its pipelines, the board projections, the starting memory, the default settings and the git policy. Each set is copied into a project at init and never read again, so a project is autonomous - and "apply" is the one action that reaches a project that already exists.</value>
+  </data>
+  <data name="TemplatesCount" xml:space="preserve">
+    <value>{0} sets</value>
+  </data>
+  <data name="TemplateDefault" xml:space="preserve">
+    <value>default</value>
+  </data>
+  <data name="TemplateBuiltIn" xml:space="preserve">
+    <value>built-in</value>
+  </data>
+  <data name="CaptureFromProject" xml:space="preserve">
+    <value>Capture from a project</value>
+  </data>
+  <data name="CaptureFromProjectHint" xml:space="preserve">
+    <value>Reads a project's settings, pipelines, projections, memory and git policy into a new template</value>
+  </data>
+  <data name="CaptureFromProjectMissing" xml:space="preserve">
+    <value>Register a project first: a template is captured from one.</value>
+  </data>
+  <data name="TemplateIdLabel" xml:space="preserve">
+    <value>Identifier</value>
+  </data>
+  <data name="TemplateIdHelper" xml:space="preserve">
+    <value>Letters, digits, dashes and underscores, for example backend-default</value>
+  </data>
+  <data name="TemplateIdRequired" xml:space="preserve">
+    <value>Enter a template identifier.</value>
+  </data>
+  <data name="TemplateCaptured" xml:space="preserve">
+    <value>Template captured from the project.</value>
+  </data>
+  <data name="TemplateCopied" xml:space="preserve">
+    <value>Template copied.</value>
+  </data>
+  <data name="TemplateDeleted" xml:space="preserve">
+    <value>Template deleted.</value>
+  </data>
+  <data name="DeleteTemplateConfirm" xml:space="preserve">
+    <value>Delete this template? Projects created from it are not touched.</value>
+  </data>
+  <data name="DuplicateTemplate" xml:space="preserve">
+    <value>Duplicate</value>
+  </data>
+  <data name="TemplatesUnavailable" xml:space="preserve">
+    <value>The templates are unavailable: {0}</value>
+  </data>
+  <data name="ImportTemplate" xml:space="preserve">
+    <value>Import a template</value>
+  </data>
+  <data name="ImportTemplateHint" xml:space="preserve">
+    <value>Reads a template document another installation exported</value>
+  </data>
+  <data name="ImportTemplateIdHelper" xml:space="preserve">
+    <value>Leave empty to keep the identifier the file carries</value>
+  </data>
+  <data name="TemplateImported" xml:space="preserve">
+    <value>Template imported.</value>
+  </data>
+  <data name="Import" xml:space="preserve">
+    <value>Import</value>
+  </data>
+  <data name="Export" xml:space="preserve">
+    <value>Export</value>
+  </data>
+  <data name="TemplateExported" xml:space="preserve">
+    <value>Template written to {0}</value>
+  </data>
+  <data name="TemplatePathLabel" xml:space="preserve">
+    <value>File</value>
+  </data>
+  <data name="TemplatePathHelper" xml:space="preserve">
+    <value>Absolute path, for example C:\Aiko\templates\backend.json</value>
+  </data>
+  <data name="TemplatePathRequired" xml:space="preserve">
+    <value>Enter a file path.</value>
+  </data>
+  <data name="ApplyToProject" xml:space="preserve">
+    <value>Apply to a project</value>
+  </data>
+  <data name="Apply" xml:space="preserve">
+    <value>Apply</value>
+  </data>
+  <data name="ApplyTemplateHint" xml:space="preserve">
+    <value>Replaces the project's pipelines, projections and settings with the template's, writes its memory where the project has none, and adopts its git policy. Cards, runs and memory stay; the action is refused when a card would be left in a stage the template does not have.</value>
+  </data>
+  <data name="TemplateApplied" xml:space="preserve">
+    <value>Template applied to {0}.</value>
+  </data>
+  <data name="TemplateFirstProjectHint" xml:space="preserve">
+    <value>This installation has no templates yet; the first project is created from the built-in default template, which is written next to the daemon's database.</value>
+  </data>
+  <data name="ProjectLabel" xml:space="preserve">
+    <value>Project</value>
+  </data>
+  <data name="CoreFallbackConfig" xml:space="preserve">
+    <value>Core fallback config</value>
+  </data>
+  <data name="ImmutableSync" xml:space="preserve">
+    <value>Immutable sync</value>
+  </data>
+  <data name="ResetToDefaults" xml:space="preserve">
+    <value>Reset to system defaults</value>
+  </data>
+  <data name="DaemonHostSecurity" xml:space="preserve">
+    <value>Daemon transport &amp; credentials</value>
+  </data>
+  <data name="DaemonHostSecurityHint" xml:space="preserve">
+    <value>The isolated loopback transport of the core and its handshake keys</value>
+  </data>
+  <data name="LoopbackSafe" xml:space="preserve">
+    <value>Loopback safe</value>
+  </data>
+  <data name="LocalPortLabel" xml:space="preserve">
+    <value>Local port</value>
+  </data>
+  <data name="LocalPortHint" xml:space="preserve">
+    <value>Chosen by the installer and saved next to the database</value>
+  </data>
+  <data name="ListenAddressLabel" xml:space="preserve">
+    <value>Listen address</value>
+  </data>
+  <data name="ListenAddressHint" xml:space="preserve">
+    <value>Loopback only - Aiko never binds an external interface</value>
+  </data>
+  <data name="PairingTokenLabel" xml:space="preserve">
+    <value>Pairing token (MCP / CLI auth)</value>
+  </data>
+  <data name="PairingTokenHint" xml:space="preserve">
+    <value>The daemon checks this token on every REST and MCP call; this browser holds it in an HttpOnly cookie</value>
+  </data>
+  <data name="CreatePairingLink" xml:space="preserve">
+    <value>Create pairing link</value>
+  </data>
+  <data name="PairingLinkHint" xml:space="preserve">
+    <value>One-time code: opening the link pairs a browser with this daemon</value>
+  </data>
+  <data name="PairingLinkFailed" xml:space="preserve">
+    <value>Could not create a pairing link: {0}</value>
+  </data>
+  <data name="DefaultsForNewProjects" xml:space="preserve">
+    <value>Defaults for new projects</value>
+  </data>
+  <data name="DefaultsForNewProjectsHint" xml:space="preserve">
+    <value>Applied to a new project; a project that already has its own values keeps them</value>
+  </data>
+  <data name="SafeDefaultsTag" xml:space="preserve">
+    <value>Safe defaults</value>
+  </data>
+  <data name="ConcurrencyHint" xml:space="preserve">
+    <value>Maximum simultaneous agent runs</value>
+  </data>
+  <data name="ConcurrencyRecommended" xml:space="preserve">
+    <value>Recommended: one agent per code base, so two runs cannot collide in one checkout</value>
+  </data>
+  <data name="ScopeOverlapHint" xml:space="preserve">
+    <value>What the scheduler does when two runs declare the same files</value>
+  </data>
+  <data name="ScopeStrictTitle" xml:space="preserve">
+    <value>Block the run</value>
+  </data>
+  <data name="ScopeStrictHint" xml:space="preserve">
+    <value>The overlapping card waits until the conflicting run finishes</value>
+  </data>
+  <data name="ScopeAskTitle" xml:space="preserve">
+    <value>Warn and ask</value>
+  </data>
+  <data name="ScopeAskHint" xml:space="preserve">
+    <value>The run starts only after you approve it</value>
+  </data>
+  <data name="ScopeFreeTitle" xml:space="preserve">
+    <value>Allow</value>
+  </data>
+  <data name="ScopeFreeHint" xml:space="preserve">
+    <value>Both runs proceed; overlapping edits land in the same checkout</value>
+  </data>
+  <data name="CommitPolicyHint" xml:space="preserve">
+    <value>Who commits in the shared checkout</value>
+  </data>
+  <data name="CommitDenyTitle" xml:space="preserve">
+    <value>You commit</value>
+  </data>
+  <data name="CommitDenyHint" xml:space="preserve">
+    <value>The agent never commits; it reports what it changed</value>
+  </data>
+  <data name="CommitAskTitle" xml:space="preserve">
+    <value>Approve each commit</value>
+  </data>
+  <data name="CommitAskHint" xml:space="preserve">
+    <value>The agent asks and waits; the execution pauses until you approve</value>
+  </data>
+  <data name="CommitAllowTitle" xml:space="preserve">
+    <value>The agent commits</value>
+  </data>
+  <data name="CommitAllowHint" xml:space="preserve">
+    <value>The agent commits and reports the SHA</value>
+  </data>
+  <data name="PushPolicy" xml:space="preserve">
+    <value>Push in a shared checkout</value>
+  </data>
+  <data name="PushPolicyHint" xml:space="preserve">
+    <value>Who pushes from the shared checkout - a rule the agent reads, because Aiko has no push of its own</value>
+  </data>
+  <data name="PushDenyTitle" xml:space="preserve">
+    <value>You push</value>
+  </data>
+  <data name="PushDenyHint" xml:space="preserve">
+    <value>The agent does not push</value>
+  </data>
+  <data name="PushAskTitle" xml:space="preserve">
+    <value>Approve each push</value>
+  </data>
+  <data name="PushAskHint" xml:space="preserve">
+    <value>The agent asks before pushing and waits for your answer</value>
+  </data>
+  <data name="PushAllowTitle" xml:space="preserve">
+    <value>The agent pushes</value>
+  </data>
+  <data name="PushAllowHint" xml:space="preserve">
+    <value>The agent may push and reports what it pushed</value>
+  </data>
+  <data name="ScopeExpansionPolicy" xml:space="preserve">
+    <value>Widening a card's scope</value>
+  </data>
+  <data name="ScopeExpansionPolicyHint" xml:space="preserve">
+    <value>What happens when an agent needs a file outside the card's declared scope. Not the same question as the overlap policy above: that one is about two runs declaring the same files</value>
+  </data>
+  <data name="ScopeExpansionDenyTitle" xml:space="preserve">
+    <value>Refuse</value>
+  </data>
+  <data name="ScopeExpansionDenyHint" xml:space="preserve">
+    <value>The request fails and nothing is written: the agent stops and says which files it needs</value>
+  </data>
+  <data name="ScopeExpansionAskTitle" xml:space="preserve">
+    <value>Ask</value>
+  </data>
+  <data name="ScopeExpansionAskHint" xml:space="preserve">
+    <value>The run waits until the user answers the request</value>
+  </data>
+  <data name="ScopeExpansionAllowTitle" xml:space="preserve">
+    <value>Allow</value>
+  </data>
+  <data name="ScopeExpansionAllowHint" xml:space="preserve">
+    <value>The files join the card's declared scope and the run continues without stopping</value>
+  </data>
+  <data name="CrossProjectWrite" xml:space="preserve">
+    <value>Writing to other projects</value>
+  </data>
+  <data name="CrossProjectPolicyHint" xml:space="preserve">
+    <value>Whether an agent working here may create cards in a neighbouring project, and under what terms.</value>
+  </data>
+  <data name="CrossProjectTargets" xml:space="preserve">
+    <value>Projects this one may write to</value>
+  </data>
+  <data name="CrossProjectTargetsHint" xml:space="preserve">
+    <value>An empty list allows writing to any project. To narrow it, list ids or handles, one per line.</value>
+  </data>
+  <data name="CrossProjectTargetsPlaceholder" xml:space="preserve">
+    <value>One project id or handle per line; empty allows any</value>
+  </data>
+  <data name="CrossDenyTitle" xml:space="preserve">
+    <value>Deny</value>
+  </data>
+  <data name="CrossDenyHint" xml:space="preserve">
+    <value>Nothing is created from outside: the agent is told to create the card by hand</value>
+  </data>
+  <data name="CrossAskTitle" xml:space="preserve">
+    <value>Ask</value>
+  </data>
+  <data name="CrossAskHint" xml:space="preserve">
+    <value>Every hand-over is confirmed with you before the card is created</value>
+  </data>
+  <data name="CrossAllowTitle" xml:space="preserve">
+    <value>Allow</value>
+  </data>
+  <data name="CrossAllowHint" xml:space="preserve">
+    <value>A card from another project is created without asking, and the source is recorded on it</value>
+  </data>
+  <data name="LinkedProjects" xml:space="preserve">
+    <value>Linked projects</value>
+  </data>
+  <data name="LinkedProjectsHint" xml:space="preserve">
+    <value>Projects this one hands work to. The description says what each of them is for, and an agent reads it before deciding that a request belongs there rather than here.</value>
+  </data>
+  <data name="LinkedProjectsNone" xml:space="preserve">
+    <value>No linked projects yet.</value>
+  </data>
+  <data name="LinkedProjectsPick" xml:space="preserve">
+    <value>Project</value>
+  </data>
+  <data name="LinkedProjectsPickHint" xml:space="preserve">
+    <value>A project registered with this Aiko installation</value>
+  </data>
+  <data name="LinkedProjectsPickNone" xml:space="preserve">
+    <value>Choose a project</value>
+  </data>
+  <data name="LinkedProjectsDescription" xml:space="preserve">
+    <value>What it is for</value>
+  </data>
+  <data name="LinkedProjectsDescriptionPlaceholder" xml:space="preserve">
+    <value>For example: the desktop client - file UI work here</value>
+  </data>
+  <data name="LinkedProjectsReference" xml:space="preserve">
+    <value>Where its reference lives</value>
+  </data>
+  <data name="LinkedProjectsReferencePlaceholder" xml:space="preserve">
+    <value>A path or an address to its documentation, API index or entry point; may be left empty</value>
+  </data>
+  <data name="LinkedProjectsWhenToUse" xml:space="preserve">
+    <value>Work goes there when</value>
+  </data>
+  <data name="LinkedProjectsWhenToUsePlaceholder" xml:space="preserve">
+    <value>When a piece of work belongs to that project; may be left empty</value>
+  </data>
+  <data name="LinkedProjectsWhenNotToUse" xml:space="preserve">
+    <value>It does not go there when</value>
+  </data>
+  <data name="LinkedProjectsWhenNotToUsePlaceholder" xml:space="preserve">
+    <value>When it belongs here instead; may be left empty</value>
+  </data>
+  <data name="LinkedProjectsAdd" xml:space="preserve">
+    <value>Link project</value>
+  </data>
+  <data name="LinkedProjectsRemove" xml:space="preserve">
+    <value>Remove link</value>
+  </data>
+  <data name="LinkedProjectsNav" xml:space="preserve">
+    <value>Linked projects</value>
+  </data>
+  <data name="LinkedProjectsMovedHint" xml:space="preserve">
+    <value>Links are edited on a screen of their own, reached from the rail, so this page only points at it.</value>
+  </data>
+  <data name="LinkedProjectsOpen" xml:space="preserve">
+    <value>Open linked projects</value>
+  </data>
+  <data name="LinkedProjectsEdit" xml:space="preserve">
+    <value>Edit description</value>
+  </data>
+  <data name="LinkedProjectsSave" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="LinkedProjectsCancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="CardOriginTitle" xml:space="preserve">
+    <value>Origin</value>
+  </data>
+  <data name="CardOriginTag" xml:space="preserve">
+    <value>Cross-project</value>
+  </data>
+  <data name="PriorityFormulaTitle" xml:space="preserve">
+    <value>Priority formula</value>
+  </data>
+  <data name="OwnWeightLabel" xml:space="preserve">
+    <value>Own value weight</value>
+  </data>
+  <data name="ParentWeightLabel" xml:space="preserve">
+    <value>Parent value weight</value>
+  </data>
+  <data name="FormulaVersion" xml:space="preserve">
+    <value>Formula version</value>
+  </data>
+  <data name="SelfDiagnostic" xml:space="preserve">
+    <value>Installation &amp; diagnostics</value>
+  </data>
+  <data name="SelfDiagnosticHint" xml:space="preserve">
+    <value>What aiko doctor checks: the data directory, the token, the endpoint and the agent configurations</value>
+  </data>
+  <data name="DoctorAllNominal" xml:space="preserve">
+    <value>All checks passed</value>
+  </data>
+  <data name="DoctorHasProblems" xml:space="preserve">
+    <value>Needs attention</value>
+  </data>
+  <data name="RunDoctor" xml:space="preserve">
+    <value>Run doctor</value>
+  </data>
+  <data name="DoctorChecklist" xml:space="preserve">
+    <value>Doctor telemetry</value>
+  </data>
+  <data name="PriorityFormulaExpression" xml:space="preserve">
+    <value>effective = (own weight x own value + parent weight x highest parent value) / (own weight + parent weight)</value>
+  </data>
+  <data name="DiagnosticsFailed" xml:space="preserve">
+    <value>Could not read diagnostics: {0}</value>
+  </data>
+  <data name="BacklogNav" xml:space="preserve">
+    <value>Backlog</value>
+  </data>
+  <data name="BacklogTitle" xml:space="preserve">
+    <value>Backlog</value>
+  </data>
+  <data name="BacklogCaption" xml:space="preserve">
+    <value>Every card that has not been taken into work yet, gathered from the backlog column of each card type.</value>
+  </data>
+  <data name="BacklogEmpty" xml:space="preserve">
+    <value>Nothing is waiting in the backlog.</value>
+  </data>
+  <data name="BacklogTakeIntoWork" xml:space="preserve">
+    <value>Take into work</value>
+  </data>
+  <data name="BacklogTaken" xml:space="preserve">
+    <value>Card {0} was taken into work.</value>
+  </data>
+  <data name="CardTypeDescription" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="CardTypeIcon" xml:space="preserve">
+    <value>Icon</value>
+  </data>
+  <data name="CardTypeColor" xml:space="preserve">
+    <value>Colour</value>
+  </data>
+  <data name="TypeBlendsWithParent" xml:space="preserve">
+    <value>Blends with its parents' score</value>
+  </data>
+  <data name="TypeBlendsWithParentHint" xml:space="preserve">
+    <value>A card of this type mixes its own score with the best of its parents'. Leave it off for a type that keeps its own score.</value>
+  </data>
+  <data name="StageIcon" xml:space="preserve">
+    <value>Column icon</value>
+  </data>
+  <data name="StageColor" xml:space="preserve">
+    <value>Column colour</value>
+  </data>
+  <data name="AppearanceDefault" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="RemoveCardType" xml:space="preserve">
+    <value>Remove card type</value>
+  </data>
+  <data name="NewCardTypeTitle" xml:space="preserve">
+    <value>New card type</value>
+  </data>
+  <data name="CardTypeIdHelper" xml:space="preserve">
+    <value>Type id, for example epic</value>
+  </data>
+  <data name="CardTypeIdHint" xml:space="preserve">
+    <value>The id is the type's identity: it names the folder its cards live in and the board section that shows them</value>
+  </data>
+  <data name="CardTypeIdFixed" xml:space="preserve">
+    <value>Only a type that has no cards yet can be renamed</value>
+  </data>
+  <data name="CardTypeSaved" xml:space="preserve">
+    <value>Card type saved.</value>
+  </data>
+  <data name="SaveCardType" xml:space="preserve">
+    <value>Save type</value>
+  </data>
+  <data name="CardTypeName" xml:space="preserve">
+    <value>Type name</value>
+  </data>
+  <data name="AddCardType" xml:space="preserve">
+    <value>Add card type</value>
+  </data>
+  <data name="CardTypeIdInvalid" xml:space="preserve">
+    <value>The type id must be lower-case letters, digits and dashes.</value>
+  </data>
+  <data name="CardTypeIdTitleRequired" xml:space="preserve">
+    <value>A type id and a name are required.</value>
+  </data>
+  <data name="CardTypeExists" xml:space="preserve">
+    <value>Card type '{0}' already exists.</value>
+  </data>
+  <data name="CardTypeCreated" xml:space="preserve">
+    <value>Card type '{0}' was created.</value>
+  </data>
+  <data name="BacklogStageFirst" xml:space="preserve">
+    <value>The backlog is always the first status: nothing can be placed before it.</value>
+  </data>
+  <data name="BacklogStageReserved" xml:space="preserve">
+    <value>Backlog is a standard column and cannot be removed.</value>
+  </data>
+  <data name="StageTitleBacklog" xml:space="preserve">
+    <value>Backlog</value>
+  </data>
+  <data name="StageTitleInProgress" xml:space="preserve">
+    <value>In progress</value>
+  </data>
+  <data name="StageTitleDone" xml:space="preserve">
+    <value>Done</value>
+  </data>
+  <data name="NewTypeBacklogInstruction" xml:space="preserve">
+    <value>Clarify the request, the scope and the links.</value>
+  </data>
+  <data name="NewTypeWorkInstruction" xml:space="preserve">
+    <value>Carry out the work and record what actually changed.</value>
+  </data>
+  <data name="NewTypeDoneInstruction" xml:space="preserve">
+    <value>Record the outcome.</value>
+  </data>
+  <data name="Name" xml:space="preserve">
+    <value>Name (optional)</value>
+  </data>
+  <data name="Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="DeleteCardTypeConfirm" xml:space="preserve">
+    <value>Remove this card type? Its pipeline goes with it; cards already created are not touched.</value>
+  </data>
+  <data name="DeleteCardTypeHasCards" xml:space="preserve">
+    <value>The type still holds cards, so it cannot be removed yet.</value>
+  </data>
+  <data name="ProjectIdLabel" xml:space="preserve">
+    <value>Project ID</value>
+  </data>
+  <data name="ProjectIdInvalid" xml:space="preserve">
+    <value>The id may contain lower-case latin letters, digits and dashes.</value>
+  </data>
+  <data name="ProjectIdTaken" xml:space="preserve">
+    <value>Another project already uses this id.</value>
+  </data>
+  <data name="InitializationTitle" xml:space="preserve">
+    <value>Project initialization</value>
+  </data>
+  <data name="InitializationHint" xml:space="preserve">
+    <value>What an agent does right after creating a project from this template - for example the structure the project should have. It is copied into the project as .aiko/initialization.md and stays there.</value>
+  </data>
+  <data name="SaveTemplate" xml:space="preserve">
+    <value>Save template</value>
+  </data>
+  <data name="TemplateSaved" xml:space="preserve">
+    <value>Template saved.</value>
+  </data>
+  <data name="CardTypeRevision" xml:space="preserve">
+    <value>Card type · rev {0}</value>
+  </data>
+  <data name="CommandsTitle" xml:space="preserve">
+    <value>Command for an agent</value>
+  </data>
+  <data name="CommandsHint" xml:space="preserve">
+    <value>Aiko does not start agents, so the request waits in the project's queue until an agent runs and takes it - and the outcome the agent reports appears here.</value>
+  </data>
+  <data name="CommandExamples" xml:space="preserve">
+    <value>To run it in a terminal yourself</value>
+  </data>
+  <data name="CommandAction" xml:space="preserve">
+    <value>What to ask</value>
+  </data>
+  <data name="CommandStart" xml:space="preserve">
+    <value>Start the stage</value>
+  </data>
+  <data name="CommandPause" xml:space="preserve">
+    <value>Pause the run</value>
+  </data>
+  <data name="CommandResume" xml:space="preserve">
+    <value>Resume the run</value>
+  </data>
+  <data name="CommandAnswer" xml:space="preserve">
+    <value>Answer the run's question</value>
+  </data>
+  <data name="CommandText" xml:space="preserve">
+    <value>What to tell the agent</value>
+  </data>
+  <data name="CommandPauseHint" xml:space="preserve">
+    <value>Why to pause - whoever resumes the run reads this.</value>
+  </data>
+  <data name="CommandAnswerHint" xml:space="preserve">
+    <value>The answer; it is written into the card's feed and wakes the run.</value>
+  </data>
+  <data name="PlaceCommand" xml:space="preserve">
+    <value>Place the command</value>
+  </data>
+  <data name="CommandPlaced" xml:space="preserve">
+    <value>Command {0} is waiting for an agent.</value>
+  </data>
+  <data name="CommandFailed" xml:space="preserve">
+    <value>The command was not placed.</value>
+  </data>
+  <data name="CommandWaiting" xml:space="preserve">
+    <value>waiting</value>
+  </data>
+  <data name="CommandTaken" xml:space="preserve">
+    <value>taken</value>
+  </data>
+  <data name="CommandDone" xml:space="preserve">
+    <value>done</value>
+  </data>
+  <data name="CommandRefused" xml:space="preserve">
+    <value>failed</value>
+  </data>
+  <data name="CommandWithdrawn" xml:space="preserve">
+    <value>withdrawn</value>
+  </data>
+  <data name="CommandStartHint" xml:space="preserve">
+    <value>An agent will start stage '{0}' of this card.</value>
+  </data>
+  <data name="CommandRunHint" xml:space="preserve">
+    <value>An agent will act on run {0}.</value>
+  </data>
+  <data name="CommandNoRunHint" xml:space="preserve">
+    <value>This card has no run yet, so only 'start the stage' can be asked for.</value>
+  </data>
+  <data name="CommandStartCaption" xml:space="preserve">
+    <value>start stage {0}</value>
+  </data>
+  <data name="CommandCaptionPause" xml:space="preserve">
+    <value>pause the run</value>
+  </data>
+  <data name="CommandCaptionResume" xml:space="preserve">
+    <value>resume the run</value>
+  </data>
+  <data name="CommandCaptionAnswer" xml:space="preserve">
+    <value>answer the run</value>
+  </data>
+  <data name="CommandCaptionRelease" xml:space="preserve">
+    <value>conduct a release</value>
+  </data>
+  <data name="RunBoard" xml:space="preserve">
+    <value>Work the board</value>
+  </data>
+  <data name="RunBoardHint" xml:space="preserve">
+    <value>Asks an agent to take every unfinished card of the board, in board order, to the end of its own pipeline.</value>
+  </data>
+  <data name="AppearanceNav" xml:space="preserve">
+    <value>Appearance</value>
+  </data>
+  <data name="AppearanceTitle" xml:space="preserve">
+    <value>Appearance</value>
+  </data>
+  <data name="AppearanceHint" xml:space="preserve">
+    <value>How the interface looks and reads for you. The choice is kept in this browser, not in a project.</value>
+  </data>
+  <data name="AppearanceLanguage" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="AppearanceLanguageHint" xml:space="preserve">
+    <value>Your own choice first, then the browser's language, then English.</value>
+  </data>
+  <data name="AppearanceReloadHint" xml:space="preserve">
+    <value>Switching the language reloads the page, so the whole interface is redrawn in it.</value>
+  </data>
+  <data name="AppearanceMode" xml:space="preserve">
+    <value>Mode</value>
+  </data>
+  <data name="AppearanceModeHint" xml:space="preserve">
+    <value>Follow the system setting, or hold one scheme whatever it says.</value>
+  </data>
+  <data name="AppearanceModeAuto" xml:space="preserve">
+    <value>Auto</value>
+  </data>
+  <data name="AppearanceModeLight" xml:space="preserve">
+    <value>Light</value>
+  </data>
+  <data name="AppearanceModeDark" xml:space="preserve">
+    <value>Dark</value>
+  </data>
+  <data name="AppearancePalette" xml:space="preserve">
+    <value>Palette</value>
+  </data>
+  <data name="AppearancePaletteHint" xml:space="preserve">
+    <value>A whole colour scheme of the one theme. The choice is applied at once and kept in this browser.</value>
+  </data>
+  <data name="ReleaseNav" xml:space="preserve">
+    <value>Release</value>
+  </data>
+  <data name="ReleaseTitle" xml:space="preserve">
+    <value>Release</value>
+  </data>
+  <data name="ReleaseTag" xml:space="preserve">
+    <value>release</value>
+  </data>
+  <data name="ReleaseHint" xml:space="preserve">
+    <value>What is out, and where a release is asked for. Aiko runs no agent and writes nothing to the repository: this screen puts a request in the queue, and the agent that takes it releases by the policy the request names.</value>
+  </data>
+  <data name="ReleaseRefresh" xml:space="preserve">
+    <value>Read again</value>
+  </data>
+  <data name="ReleaseCommandWaiting" xml:space="preserve">
+    <value>Command {0} is waiting for an agent.</value>
+  </data>
+  <data name="ReleaseCreateButton" xml:space="preserve">
+    <value>Create a release</value>
+  </data>
+  <data name="ReleaseCreateTitle" xml:space="preserve">
+    <value>New release</value>
+  </data>
+  <data name="ReleaseCreateHint" xml:space="preserve">
+    <value>Aiko does not run agents, does not push the tag and installs nothing: this puts a command in the queue, and the agent that takes it conducts the release by the policy you pick.</value>
+  </data>
+  <data name="ReleasePolicyLabel" xml:space="preserve">
+    <value>Release policy</value>
+  </data>
+  <data name="ReleasePolicyHint" xml:space="preserve">
+    <value>Which order the release follows - one of the schemes this project holds.</value>
+  </data>
+  <data name="ReleaseAgentLabel" xml:space="preserve">
+    <value>Agent</value>
+  </data>
+  <data name="ReleaseAgentAny" xml:space="preserve">
+    <value>Any agent</value>
+  </data>
+  <data name="ReleaseAgentHint" xml:space="preserve">
+    <value>Who conducts it. Left open, whichever agent comes next takes the request.</value>
+  </data>
+  <data name="ReleaseCreateConfirm" xml:space="preserve">
+    <value>Put the request in the queue</value>
+  </data>
+  <data name="ReleaseCreated" xml:space="preserve">
+    <value>Command {0} is in the queue.</value>
+  </data>
+  <data name="ReleaseLoadFailed" xml:space="preserve">
+    <value>The release screen could not be read: {0}</value>
+  </data>
+  <data name="ReleaseProcedureTitle" xml:space="preserve">
+    <value>How a release is conducted</value>
+  </data>
+  <data name="ReleaseProcedureHint" xml:space="preserve">
+    <value>The order a release follows, so nobody has to reconstruct it from the workflow files.</value>
+  </data>
+  <data name="ReleaseProcedureOrder" xml:space="preserve">
+    <value>Write the tag, wait for the release workflow to build the archive, install it, and connect the agents again.</value>
+  </data>
+  <data name="ReleaseProcedureTouches" xml:space="preserve">
+    <value>Installing writes to %LOCALAPPDATA%\Aiko\bin and adds that directory to your user PATH.</value>
+  </data>
+  <data name="ReleaseProcedureKeeps" xml:space="preserve">
+    <value>Your project is not touched: .aiko, aiko.db and the access token stay where they are.</value>
+  </data>
+  <data name="ReleaseProcedureOpen" xml:space="preserve">
+    <value>Open the release screen</value>
+  </data>
+  <data name="ReleaseSchemes" xml:space="preserve">
+    <value>Release schemes</value>
+  </data>
+  <data name="ReleaseSchemesHint" xml:space="preserve">
+    <value>The orders a release of this project can follow. Which one is used is chosen when the release is created.</value>
+  </data>
+  <data name="ReleaseSchemesShipped" xml:space="preserve">
+    <value>This level states no schemes of its own, so releases follow the ones Aiko ships:</value>
+  </data>
+  <data name="ReleaseSchemeShipped" xml:space="preserve">
+    <value>Aiko</value>
+  </data>
+  <data name="ReleaseSchemeId" xml:space="preserve">
+    <value>Identifier</value>
+  </data>
+  <data name="ReleaseSchemeIdHelper" xml:space="preserve">
+    <value>What a release names to follow this scheme, for example git-release</value>
+  </data>
+  <data name="ReleaseSchemeName" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="ReleaseSchemeDescription" xml:space="preserve">
+    <value>What it is for</value>
+  </data>
+  <data name="ReleaseSchemeBody" xml:space="preserve">
+    <value>How a release is conducted</value>
+  </data>
+  <data name="ReleaseSchemeBodyPlaceholder" xml:space="preserve">
+    <value>1. Make sure the tree is green: the build with no warnings and every test suite passing.</value>
+  </data>
+  <data name="ReleaseSchemeBodyHint" xml:space="preserve">
+    <value>The steps an agent follows. This text is read by an agent, so it is written in English.</value>
+  </data>
+  <data name="ReleaseHistoryTitle" xml:space="preserve">
+    <value>Release history</value>
+  </data>
+  <data name="ReleaseHistoryHint" xml:space="preserve">
+    <value>What this project released, newest first, with the scheme each release followed.</value>
+  </data>
+  <data name="ReleaseHistoryEmpty" xml:space="preserve">
+    <value>Nothing is recorded yet. A release is recorded by an agent once it is published.</value>
+  </data>
+  <data name="ReleaseHistoryCards" xml:space="preserve">
+    <value>cards: {0}</value>
+  </data>
+  <data name="ReleaseKindPreliminary" xml:space="preserve">
+    <value>preliminary</value>
+  </data>
+  <data name="ReleaseKindOrdinary" xml:space="preserve">
+    <value>ordinary</value>
+  </data>
+  <data name="ReleaseRecordTag" xml:space="preserve">
+    <value>release record</value>
+  </data>
+  <data name="ReleaseRecordHint" xml:space="preserve">
+    <value>What went into this release: the tasks named when it was recorded, the scheme it followed, and the day it was written down.</value>
+  </data>
+  <data name="ReleaseRecordBack" xml:space="preserve">
+    <value>Back to the release screen</value>
+  </data>
+  <data name="ReleaseRecordScheme" xml:space="preserve">
+    <value>Scheme</value>
+  </data>
+  <data name="ReleaseRecordDate" xml:space="preserve">
+    <value>Recorded</value>
+  </data>
+  <data name="ReleaseRecordTasks" xml:space="preserve">
+    <value>Tasks</value>
+  </data>
+  <data name="ReleaseRecordEmpty" xml:space="preserve">
+    <value>Nothing went into this release: the record names no task, which is what a release of uncarded fixes looks like.</value>
+  </data>
+  <data name="ReleaseRecordMissing" xml:space="preserve">
+    <value>not read</value>
+  </data>
+  <data name="ReleaseRecordFailed" xml:space="preserve">
+    <value>The release record could not be read: {0}</value>
+  </data>
+  <data name="ReleaseCardTag" xml:space="preserve">
+    <value>released</value>
+  </data>
+  <data name="ReleaseCardLine" xml:space="preserve">
+    <value>went into release {0}</value>
+  </data>
+  <data name="BoardModeFilter" xml:space="preserve">
+    <value>View</value>
+  </data>
+  <data name="BoardSort" xml:space="preserve">
+    <value>Order</value>
+  </data>
+  <data name="BoardSortAscending" xml:space="preserve">
+    <value>Lowest priority first</value>
+  </data>
+  <data name="BoardSortDescending" xml:space="preserve">
+    <value>Highest priority first</value>
+  </data>
+  <data name="BoardModeBoard" xml:space="preserve">
+    <value>Board</value>
+  </data>
+  <data name="BoardModeArchive" xml:space="preserve">
+    <value>Archive</value>
+  </data>
+  <data name="ArchiveTitle" xml:space="preserve">
+    <value>Archive</value>
+  </data>
+  <data name="ArchiveHint" xml:space="preserve">
+    <value>Finished cards that were put away. Nothing is deleted: the card itself, its feed, its runs, its artifacts and its relations are all still there.</value>
+  </data>
+  <data name="ArchiveEmpty" xml:space="preserve">
+    <value>Nothing is in the archive yet.</value>
+  </data>
+  <data name="ArchiveRestore" xml:space="preserve">
+    <value>Return to the board</value>
+  </data>
+  <data name="ArchiveWhen" xml:space="preserve">
+    <value>put away {0}</value>
+  </data>
+  <data name="ArchiveWhenUnknown" xml:space="preserve">
+    <value>put away, moment unknown</value>
+  </data>
+  <data name="ArchiveFailed" xml:space="preserve">
+    <value>Card {0} could not be returned to the board: {1}</value>
+  </data>
+  <data name="ArchiveCard" xml:space="preserve">
+    <value>Put away</value>
+  </data>
+  <data name="ArchiveCardHint" xml:space="preserve">
+    <value>Put this finished card into the archive: it leaves the board, and nothing about it is deleted.</value>
+  </data>
+  <data name="RestoreCard" xml:space="preserve">
+    <value>Return to the board</value>
+  </data>
+  <data name="RestoreCardHint" xml:space="preserve">
+    <value>Bring this card back from the archive to the stage it was put away in.</value>
+  </data>
+  <data name="ArchiveNotFinished" xml:space="preserve">
+    <value>Only a card that reached the end of its pipeline can be put away; this one has work left in it.</value>
+  </data>
 </root>

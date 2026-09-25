@@ -201,12 +201,6 @@
                     </FlareText>
                     <FlareNavLink Href="/" Match="NavMatchMode.Exact">
                         <ChildContent>@Loc.Get("Dashboard")</ChildContent>
-                        <BadgeContent>
-                            @if (State.EventsConnected)
-                            {
-                                <span class="aiko-tag aiko-tag--quiet"><span class="aiko-dot aiko-dot--pulse"></span></span>
-                            }
-                        </BadgeContent>
                     </FlareNavLink>
 
                     @* The installation's own screens sit with the dashboard, in the same group: they describe
@@ -214,14 +208,6 @@
                        move between projects. *@
                     <FlareNavLink Href="/daemon">
                         <ChildContent>@Loc.Get("DaemonMcpBridges")</ChildContent>
-                        <BadgeContent>
-                            @if (State.EventsConnected)
-                            {
-                                <span class="aiko-tag aiko-tag--live">
-                                    <span class="aiko-dot aiko-dot--pulse"></span>@Loc.Get("LiveTag")
-                                </span>
-                            }
-                        </BadgeContent>
                     </FlareNavLink>
                     @* How the interface is set up for the person reading it: language, and soon mode and
                        palette. It sits with the daemon because it describes the installation rather than

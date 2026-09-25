@@ -207,7 +207,7 @@ else
                         var rowStage = StageAppearance.Find(State.Board?.Workflows, row.WorkflowId, row.StageId);
                         <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
                             <FlareButton Variant="ButtonVariant.Text" OnClick="() => OpenCard(row.CardId)">
-                                <ChildContent>@row.Title</ChildContent>
+                                <ChildContent>@row.CardId - @row.Title</ChildContent>
                             </FlareButton>
                             <FlareBadge Standalone="true" Text="@row.State" Color="FlareColor.Tertiary" />
                             @* The stage as the card page names and draws it: its title, its icon and its colour. *@
@@ -829,11 +829,11 @@ else
             var visible = VisibleCards;
             return
             [
-                (Loc.Get("Cards"), DisplayFormat.Number(visible.Count), false,
-                    Loc.Format("BacklogSlice", DisplayFormat.Number(BoardMetrics.BacklogCount(visible)))),
+                (Loc.Get("Cards"), DisplayFormat.Number(visible.Count), false, null),
                 (Loc.Get("InProgress"), DisplayFormat.Number(BoardMetrics.InProgressCount(board)), false, null),
                 (Loc.Get("Relations"), DisplayFormat.Number(board?.Relations.Count ?? 0), false, null),
-                (Loc.Get("OutOfScope"), DisplayFormat.Number(outOfScope), outOfScope > 0, null)
+                (Loc.Get("OutOfScope"), DisplayFormat.Number(outOfScope), outOfScope > 0, null),
+                (Loc.Get("BacklogSlice"), DisplayFormat.Number(BoardMetrics.BacklogCount(visible)), false, null),
             ];
         }
     }

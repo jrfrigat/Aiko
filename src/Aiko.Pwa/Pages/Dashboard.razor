@@ -77,59 +77,6 @@
 
     <FlareDivider />
 
-    <FlareGrid Columns="3" Gap="FlareSpacing.XSmall">
-        <FlareCol Span="1">
-            <FlareCard Variant="CardVariant.Filled">
-                <FlareStack Gap="FlareSpacing.XXSmall">
-                    <FlareText Element="h3" Typo="TypographyScale.TitleSmall">@Loc.Get("Daemon")</FlareText>
-                    <FlareList TItem="string" Dense="true">
-                        <FlareListItem Primary="@Loc.Get("Address")">
-                            <Trailing><FlareText Element="span" Mono="true" Typo="TypographyScale.LabelSmall">@(State.System?.BaseUrl ?? "-")</FlareText></Trailing>
-                        </FlareListItem>
-                        <FlareListItem Primary="@Loc.Get("Version")">
-                            <Trailing><FlareText Element="span" Mono="true" Typo="TypographyScale.LabelSmall">@(State.System?.Version ?? "-")</FlareText></Trailing>
-                        </FlareListItem>
-                        <FlareListItem Primary="PID">
-                            <Trailing><FlareText Element="span" Mono="true" Typo="TypographyScale.LabelSmall">@(State.System is null ? "-" : State.System.ProcessId.ToString(CultureInfo.InvariantCulture))</FlareText></Trailing>
-                        </FlareListItem>
-                    </FlareList>
-                </FlareStack>
-            </FlareCard>
-        </FlareCol>
-
-        <FlareCol Span="1">
-            <FlareCard Variant="CardVariant.Filled">
-                <FlareStack Gap="FlareSpacing.XXSmall">
-                    <FlareText Element="h3" Typo="TypographyScale.TitleSmall">@Loc.Get("Agents")</FlareText>
-                    <FlareList TItem="string" Dense="true">
-                        @foreach (var adapter in State.Agents)
-                        {
-                            var item = adapter;
-                            <AgentRow Adapter="item" OnToggle="ToggleAgentAsync" />
-                        }
-                    </FlareList>
-                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                        @Loc.Get("AgentsHint")
-                    </FlareText>
-                </FlareStack>
-            </FlareCard>
-        </FlareCol>
-
-        <FlareCol Span="1">
-            <FlareCard Variant="CardVariant.Filled">
-                <FlareStack Gap="FlareSpacing.XXSmall">
-                    <FlareText Element="h3" Typo="TypographyScale.TitleSmall">@Loc.Get("QuickStartTitle")</FlareText>
-                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant">@Loc.Get("QuickStartStep1")</FlareText>
-                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant">@Loc.Get("QuickStartStep2")</FlareText>
-                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant">@Loc.Get("QuickStartStep3")</FlareText>
-                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant">@Loc.Get("QuickStartStep4")</FlareText>
-                </FlareStack>
-            </FlareCard>
-        </FlareCol>
-    </FlareGrid>
-
-    <FlareDivider />
-
     <FlareStack Gap="FlareSpacing.Small">
         <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XSmall">
             <FlareText Element="h3" Typo="TypographyScale.TitleSmall">

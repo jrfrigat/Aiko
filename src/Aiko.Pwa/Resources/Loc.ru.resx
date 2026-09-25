@@ -1,5 +1,110 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
   </resheader>
@@ -12,757 +117,2242 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="EmptyStateTitle" xml:space="preserve"><value>Нет зарегистрированных проектов</value></data>
-  <data name="EmptyStateHint" xml:space="preserve"><value>Инициализируйте проект через Aiko, и он появится в этой панели.</value></data>
-  <data name="AddProject" xml:space="preserve"><value>Добавить проект</value></data>
-  <data name="AddProjectHint" xml:space="preserve"><value>Укажите путь к папке проекта. Будет создан каталог .aiko и стандартные workflow.</value></data>
-  <data name="CreateCard" xml:space="preserve"><value>Карточка</value></data>
-  <data name="CreateCardTitle" xml:space="preserve"><value>Создать карточку</value></data>
-  <data name="CardIdentityTitle" xml:space="preserve"><value>Карточка</value></data>
-  <data name="CardIdentityHint" xml:space="preserve"><value>Id придумывает Aiko, вы задаёте заголовок, по которому её читают</value></data>
-  <data name="Requirements" xml:space="preserve"><value>Требования</value></data>
-  <data name="ScopeAndRequirementsHint" xml:space="preserve"><value>Что должна сделать карточка и какие файлы она может тронуть</value></data>
-  <data name="RequirementsHelper" xml:space="preserve"><value>Что должна сделать эта карточка, вашими словами</value></data>
-  <data name="Request" xml:space="preserve"><value>Запрос</value></data>
-  <data name="RequestHelper" xml:space="preserve"><value>О чём попросил пользователь, его словами</value></data>
-  <data name="BacklogStageNote" xml:space="preserve"><value>Карточка создаётся в бэклоге и уходит оттуда.</value></data>
-  <data name="EstimateAfterCreateHint" xml:space="preserve"><value>Если оставить пустым, размер и оценки посчитает агент — после создания запустите /aiko-estimate.</value></data>
-  <data name="EstimateTitle" xml:space="preserve"><value>Оценка</value></data>
-  <data name="EstimateHint" xml:space="preserve"><value>Размер и оценки критериев, которые вы не задали, определяет агент.</value></data>
-  <data name="EstimateAgent" xml:space="preserve"><value>Кто оценивает</value></data>
-  <data name="EstimateCard" xml:space="preserve"><value>Попросить оценить</value></data>
-  <data name="EstimateCommandHint" xml:space="preserve"><value>Запустите {0} в терминале этого агента.</value></data>
-  <data name="EstimateRequested" xml:space="preserve"><value>Запрос оценки отправлен агенту {0}.</value></data>
-  <data name="EstimateRequestFailed" xml:space="preserve"><value>Не удалось запросить оценку: {0}</value></data>
-  <data name="ExecutionActions" xml:space="preserve"><value>Управление работой</value></data>
-  <data name="StartStage" xml:space="preserve"><value>Начать этап</value></data>
-  <data name="PauseRun" xml:space="preserve"><value>Пауза</value></data>
-  <data name="ResumeRun" xml:space="preserve"><value>Продолжить</value></data>
-  <data name="CancelRun" xml:space="preserve"><value>Отменить</value></data>
-  <data name="CompleteRun" xml:space="preserve"><value>Завершить</value></data>
-  <data name="HandoffRun" xml:space="preserve"><value>Передать агенту</value></data>
-  <data name="ApproveScope" xml:space="preserve"><value>Разрешить лишние файлы</value></data>
-  <data name="RefuseScope" xml:space="preserve"><value>Отказать в лишних файлах</value></data>
-  <data name="ApproveCommit" xml:space="preserve"><value>Подтвердить коммит</value></data>
-  <data name="RejectCommit" xml:space="preserve"><value>Отклонить коммит</value></data>
-  <data name="ExecutionActionFailed" xml:space="preserve"><value>Действие не удалось: {0}</value></data>
-  <data name="ActiveRunsTitle" xml:space="preserve"><value>Сейчас в работе</value></data>
-  <data name="ActiveRunsNone" xml:space="preserve"><value>В этом проекте ничего не выполняется.</value></data>
-  <data name="ActiveRunsNoAgent" xml:space="preserve"><value>агента нет</value></data>
-  <data name="CardPlaceTitle" xml:space="preserve"><value>Где она начинается</value></data>
-  <data name="ScoringHint" xml:space="preserve"><value>Агент может уточнить их позже; собственный score карточки считается из них</value></data>
-  <data name="CreateCardHint" xml:space="preserve"><value>Карточка откроется сразу после создания — там собираются её артефакты и запуски</value></data>
-  <data name="Add" xml:space="preserve"><value>Добавить</value></data>
-  <data name="Create" xml:space="preserve"><value>Создать</value></data>
-  <data name="Cancel" xml:space="preserve"><value>Отмена</value></data>
-  <data name="Close" xml:space="preserve"><value>Закрыть</value></data>
-  <data name="Refresh" xml:space="preserve"><value>Обновить</value></data>
-  <data name="Workflow" xml:space="preserve"><value>Workflow</value></data>
-  <data name="Settings" xml:space="preserve"><value>Настройки</value></data>
-  <data name="Title" xml:space="preserve"><value>Название</value></data>
-  <data name="ProjectPath" xml:space="preserve"><value>Путь к проекту</value></data>
-  <data name="ProjectName" xml:space="preserve"><value>Имя (необязательно)</value></data>
-  <data name="Stage" xml:space="preserve"><value>Этап (например backlog)</value></data>
-  <data name="Priority" xml:space="preserve"><value>Приоритет (число)</value></data>
-  <data name="Scope" xml:space="preserve"><value>Scope (через запятую)</value></data>
-  <data name="Choose" xml:space="preserve"><value>Выберите...</value></data>
-  <data name="GitPolicyLocalOnly" xml:space="preserve"><value>local-only (по умолчанию)</value></data>
-  <data name="GitPolicy" xml:space="preserve"><value>Git-политика</value></data>
-  <data name="CardKind" xml:space="preserve"><value>Тип карточки</value></data>
-  <data name="CardFilter" xml:space="preserve"><value>Фильтр</value></data>
-  <data name="WorkspaceFlow" xml:space="preserve"><value>Рабочее пространство</value></data>
-  <data name="KanbanBoard" xml:space="preserve"><value>Kanban-доска</value></data>
-  <data name="Projects" xml:space="preserve"><value>Проекты</value></data>
-  <data name="OrchestrationLoad" xml:space="preserve"><value>ЗАГРУЗКА ОРКЕСТРАЦИИ</value></data>
-  <data name="ContextEngine" xml:space="preserve"><value>Поток событий</value></data>
-  <data name="NativeAot" xml:space="preserve"><value>NATIVE AOT</value></data>
-  <data name="Host" xml:space="preserve"><value>host</value></data>
-  <data name="Unassigned" xml:space="preserve"><value>не назначен</value></data>
-  <data name="DropHere" xml:space="preserve"><value>Перетащите задачи в</value></data>
-  <data name="GitPolicyTrackKnowledge" xml:space="preserve"><value>track-project-knowledge</value></data>
-  <data name="GitPolicyCustom" xml:space="preserve"><value>custom</value></data>
-  <data name="PathRequired" xml:space="preserve"><value>Укажите путь к проекту.</value></data>
-  <data name="AddProjectFailed" xml:space="preserve"><value>Не удалось добавить проект: {0}</value></data>
-  <data name="CreateCardFailed" xml:space="preserve"><value>Не удалось создать карточку: {0}</value></data>
-  <data name="MoveFailed" xml:space="preserve"><value>Переход {0} не сохранён: {1}</value></data>
-  <data name="BoardCaption" xml:space="preserve"><value>Доска проекта</value></data>
-  <data name="BoardFilterSize" xml:space="preserve"><value>Размер</value></data>
-  <data name="LoadingContext" xml:space="preserve"><value>Собираем проектный контекст...</value></data>
-  <data name="BoardUpdateFailed" xml:space="preserve"><value>Не удалось обновить доску</value></data>
-  <data name="Cards" xml:space="preserve"><value>Карточки</value></data>
-  <data name="InProgress" xml:space="preserve"><value>В работе</value></data>
-  <data name="Relations" xml:space="preserve"><value>Связи</value></data>
-  <data name="OutOfScope" xml:space="preserve"><value>Вне scope</value></data>
-  <data name="BacklogSlice" xml:space="preserve"><value>в бэклоге {0}</value></data>
-  <data name="Implementation" xml:space="preserve"><value>реализация</value></data>
-  <data name="CardsStagesCount" xml:space="preserve"><value>{0} карточек - {1} этапов</value></data>
-  <data name="WorkflowNotFound" xml:space="preserve"><value>Workflow для {0} не найден.</value></data>
-  <data name="ScopeNotSet" xml:space="preserve"><value>scope не задан</value></data>
-  <data name="FilesCount" xml:space="preserve"><value>{0}/{1} файлов</value></data>
-  <data name="OutOfScopeCount" xml:space="preserve"><value>вне scope: {0}</value></data>
-  <data name="Parameters" xml:space="preserve"><value>Параметры</value></data>
-  <data name="ScoringCriteria" xml:space="preserve"><value>Критерии оценки</value></data>
-  <data name="PriorityLabel" xml:space="preserve"><value>Оценка / приоритет</value></data>
-  <data name="ScopeHelper" xml:space="preserve"><value>Один путь или glob на строку</value></data>
-  <data name="SaveCard" xml:space="preserve"><value>Сохранить карточку</value></data>
-  <data name="FilesTitle" xml:space="preserve"><value>Файлы</value></data>
-  <data name="NoRelations" xml:space="preserve"><value>Связей пока нет.</value></data>
-  <data name="RemoveLink" xml:space="preserve"><value>Убрать связь</value></data>
-  <data name="UnlinkConfirm" xml:space="preserve"><value>Убрать связь с {0}?</value></data>
-  <data name="UnlinkFailed" xml:space="preserve"><value>Связь не удалось убрать: {0}</value></data>
-  <data name="LoadingHistory" xml:space="preserve"><value>Загрузка истории...</value></data>
-  <data name="NoExecutions" xml:space="preserve"><value>Запусков пока нет.</value></data>
-  <data name="ArtifactsLabel" xml:space="preserve"><value>Артефакты: {0}</value></data>
-  <data name="HistoryUnavailable" xml:space="preserve"><value>История executions недоступна: {0}</value></data>
-  <data name="InvalidPriority" xml:space="preserve"><value>Введите неотрицательное число.</value></data>
-  <data name="TitleRequired" xml:space="preserve"><value>Название карточки обязательно.</value></data>
-  <data name="CardConflict" xml:space="preserve"><value>Карточку изменил другой агент раньше этого сохранения. Ваши правки сохранены в форме - сверьте их с карточкой и сохраните снова.</value></data>
-  <data name="CardChangedWhileEditing" xml:space="preserve"><value>Карточка изменилась, пока вы её редактировали. Ваши правки сохранены в форме.</value></data>
-  <data name="DiscardMyEdits" xml:space="preserve"><value>Отменить мои правки</value></data>
-  <data name="LeaveWithUnsavedEdits" xml:space="preserve"><value>Есть несохранённые правки. Уйти и потерять их?</value></data>
-  <data name="ArtifactModified" xml:space="preserve"><value>Изменён</value></data>
-  <data name="DiscardDocumentEdits" xml:space="preserve"><value>Перечитать документ и потерять несохранённые правки?</value></data>
-  <data name="ChangesSaved" xml:space="preserve"><value>Изменения сохранены.</value></data>
-  <data name="SaveCardFailed" xml:space="preserve"><value>Не удалось сохранить карточку: {0}</value></data>
-  <data name="DocumentsTitle" xml:space="preserve"><value>Документы</value></data>
-  <data name="NewMarkdown" xml:space="preserve"><value>Новый Markdown-файл</value></data>
-  <data name="AddDocHint" xml:space="preserve"><value>Добавьте Markdown-файл для запроса, анализа или результата работы.</value></data>
-  <data name="NewFile" xml:space="preserve"><value>Новый файл</value></data>
-  <data name="SavedFile" xml:space="preserve"><value>Сохранённый файл</value></data>
-  <data name="SaveDocument" xml:space="preserve"><value>Сохранить документ</value></data>
-  <data name="ListFailed" xml:space="preserve"><value>Не удалось загрузить список документов: {0}</value></data>
-  <data name="ServerEmptyDoc" xml:space="preserve"><value>Сервер вернул пустой документ.</value></data>
-  <data name="OpenFailed" xml:space="preserve"><value>Не удалось открыть документ: {0}</value></data>
-  <data name="InvalidPath" xml:space="preserve"><value>Введите относительный путь к файлу с расширением .md.</value></data>
-  <data name="NewDocPrepared" xml:space="preserve"><value>Новый документ подготовлен. Заполните его и сохраните.</value></data>
-  <data name="FileChanged" xml:space="preserve"><value>Файл изменён другим агентом или редактором. Обновите документ перед сохранением.</value></data>
-  <data name="ServerRejected" xml:space="preserve"><value>Сервер отклонил документ: {0}.</value></data>
-  <data name="ServerNoDoc" xml:space="preserve"><value>Сервер не вернул сохранённый документ.</value></data>
-  <data name="DocSaved" xml:space="preserve"><value>Документ сохранён.</value></data>
-  <data name="SaveDocFailed" xml:space="preserve"><value>Не удалось сохранить документ: {0}</value></data>
-  <data name="ArtifactSaved" xml:space="preserve"><value>сохранён</value></data>
-  <data name="ArtifactRequired" xml:space="preserve"><value>требуется</value></data>
-  <data name="ArtifactNew" xml:space="preserve"><value>новый</value></data>
-  <data name="WorkflowTitle" xml:space="preserve"><value>Название workflow</value></data>
-  <data name="StagesTitle" xml:space="preserve"><value>Статусы</value></data>
-  <data name="AddStage" xml:space="preserve"><value>Добавить статус</value></data>
-  <data name="Remove" xml:space="preserve"><value>Удалить</value></data>
-  <data name="SelectedStage" xml:space="preserve"><value>Выбранный статус</value></data>
-  <data name="StableId" xml:space="preserve"><value>Стабильный id</value></data>
-  <data name="StableIdHelper" xml:space="preserve"><value>Используется агентами и карточками</value></data>
-  <data name="Instruction" xml:space="preserve"><value>Инструкция агенту</value></data>
-  <data name="DefaultAgent" xml:space="preserve"><value>Агент по умолчанию</value></data>
-  <data name="DefaultAgentHelper" xml:space="preserve"><value>Например: codex; можно оставить пустым</value></data>
-  <data name="RequiredArtifacts" xml:space="preserve"><value>Необходимые артефакты</value></data>
-  <data name="ArtifactsHelper" xml:space="preserve"><value>path | policy | описание - по одному на строку</value></data>
-  <data name="MoveUp" xml:space="preserve"><value>Выше</value></data>
-  <data name="MoveDown" xml:space="preserve"><value>Ниже</value></data>
-  <data name="SaveWorkflow" xml:space="preserve"><value>Сохранить workflow</value></data>
-  <data name="WorkflowHint" xml:space="preserve"><value>Изменения применятся к доске и к следующим запускам агентов.</value></data>
-  <data name="NewStage" xml:space="preserve"><value>Новый статус</value></data>
-  <data name="NewStageInstruction" xml:space="preserve"><value>Опиши, что агент должен сделать на этом этапе.</value></data>
-  <data name="OneStageRequired" xml:space="preserve"><value>Workflow должен содержать хотя бы один статус.</value></data>
-  <data name="MoveCardFirst" xml:space="preserve"><value>Сначала переместите карточку {0} из этого статуса.</value></data>
-  <data name="ArtifactLineInvalid" xml:space="preserve"><value>неверная строка артефакта "{0}".</value></data>
-  <data name="SaveWorkflowFailed" xml:space="preserve"><value>Не удалось сохранить workflow: {0}</value></data>
-  <data name="SettingsTitle" xml:space="preserve"><value>Настройки</value></data>
-  <data name="LoadingSettings" xml:space="preserve"><value>Загрузка настроек...</value></data>
-  <data name="Daemon" xml:space="preserve"><value>Демон</value></data>
-  <data name="Version" xml:space="preserve"><value>Версия</value></data>
-  <data name="Address" xml:space="preserve"><value>Адрес</value></data>
-  <data name="EffectiveConfig" xml:space="preserve"><value>Эффективная конфигурация исполнения</value></data>
-  <data name="Source" xml:space="preserve"><value>Источник</value></data>
-  <data name="Workspace" xml:space="preserve"><value>Рабочая область</value></data>
-  <data name="MaxRuns" xml:space="preserve"><value>Одновременных запусков</value></data>
-  <data name="ScopeOverlap" xml:space="preserve"><value>Пересечение scope</value></data>
-  <data name="CommitPolicy" xml:space="preserve"><value>Коммиты в общий checkout</value></data>
-  <data name="ParallelSharedOn" xml:space="preserve"><value>Параллельный shared-режим включён</value></data>
-  <data name="ProjectSettings" xml:space="preserve"><value>Проект</value></data>
-  <data name="WorkspaceOption" xml:space="preserve"><value>Общий checkout (shared)</value></data>
-  <data name="WorktreeOption" xml:space="preserve"><value>Отдельный worktree (скоро)</value></data>
-  <data name="MaxRunsLabel" xml:space="preserve"><value>Одновременных запусков (1 и больше)</value></data>
-  <data name="PolicyAsk" xml:space="preserve"><value>Спрашивать</value></data>
-  <data name="PolicyAllow" xml:space="preserve"><value>Разрешать</value></data>
-  <data name="PolicyDeny" xml:space="preserve"><value>Запрещать</value></data>
-  <data name="SaveProjectSettings" xml:space="preserve"><value>Сохранить настройки проекта</value></data>
-    <data name="GlobalHint" xml:space="preserve"><value>Применяются ко всем проектам без собственных настроек.</value></data>
-    <data name="SelectProjectForLocalSettings" xml:space="preserve"><value>Настройки проекта станут доступны после выбора проекта. Глобальные настройки ниже применяются ко всем проектам.</value></data>
-  <data name="SourceProject" xml:space="preserve"><value>проект</value></data>
-  <data name="SourceGlobal" xml:space="preserve"><value>глобально</value></data>
-  <data name="SourceDefault" xml:space="preserve"><value>по умолчанию</value></data>
-  <data name="LoadSettingsFailed" xml:space="preserve"><value>Не удалось загрузить настройки: {0}</value></data>
-  <data name="SaveSettingsFailed" xml:space="preserve"><value>Сохранение не удалось: {0}</value></data>
-  <data name="SettingsSaved" xml:space="preserve"><value>Настройки сохранены.</value></data>
-  <data name="InvalidMaxRuns" xml:space="preserve"><value>Введите целое число от 1 и больше.</value></data>
-  <data name="InvalidSettingValue" xml:space="preserve"><value>Недопустимое значение настройки.</value></data>
-  <data name="ScopePolicy" xml:space="preserve"><value>Политика пересечения scope</value></data>
-  <data name="RailAriaLabel" xml:space="preserve"><value>Проекты Aiko</value></data>
-  <data name="InspectorAriaLabel" xml:space="preserve"><value>Инспектор Aiko</value></data>
-  <data name="StoriesNav" xml:space="preserve"><value>Истории</value></data>
-  <data name="TasksNav" xml:space="preserve"><value>Задачи</value></data>
-  <data name="BoardTypesFilter" xml:space="preserve"><value>Типы карточек</value></data>
-  <data name="BoardWaitingFilter" xml:space="preserve"><value>Фильтр по ожиданию ответа</value></data>
-  <data name="BoardWaitingFilterAll" xml:space="preserve"><value>Все</value></data>
-  <data name="BoardWaitingFilterWaiting" xml:space="preserve"><value>Ожидание ответа</value></data>
-  <data name="StoryFlow" xml:space="preserve"><value>Поток историй</value></data>
-  <data name="TaskFlow" xml:space="preserve"><value>Поток задач</value></data>
-  <data name="WorkflowTitleRequired" xml:space="preserve"><value>Введите название workflow.</value></data>
-  <data name="StageIdTitleRequired" xml:space="preserve"><value>У каждого статуса должны быть id и название.</value></data>
-  <data name="StageIdUnique" xml:space="preserve"><value>Id статуса должен быть уникальным: {0}.</value></data>
-  <data name="WorkflowConflict" xml:space="preserve"><value>Workflow уже изменён другим агентом. Данные доски обновлены.</value></data>
-  <data name="ServerRejectedChanges" xml:space="preserve"><value>Сервер отклонил изменения: {0}.</value></data>
-  <data name="WorkflowSaved" xml:space="preserve"><value>Workflow сохранён.</value></data>
-  <data name="FileNotCreatedYet" xml:space="preserve"><value>Файл ещё не создан. Сохранение добавит его в папку карточки.</value></data>
-  <data name="Overview" xml:space="preserve"><value>Обзор</value></data>
-  <data name="OverviewCaption" xml:space="preserve"><value>Локальный оркестратор: один демон, доска, агенты и долговременная память проекта.</value></data>
-  <data name="Agents" xml:space="preserve"><value>Агенты</value></data>
-  <data name="AgentsNotFound" xml:space="preserve"><value>не обнаружен</value></data>
-  <data name="AgentsHint" xml:space="preserve"><value>«Подключить» записывает глобальные скиллы и команды /aiko-* для агента. MCP-запись для проекта добавляется отдельно: aiko agent install --project &lt;id&gt;</value></data>
-  <data name="QuickStart" xml:space="preserve"><value>Быстрый старт</value></data>
-  <data name="QuickStartStep1" xml:space="preserve"><value>1. Запустите демон: aiko serve</value></data>
-  <data name="QuickStartStep2" xml:space="preserve"><value>2. Добавьте проект ниже или выполните aiko init &lt;путь&gt;</value></data>
-  <data name="QuickStartStep3" xml:space="preserve"><value>3. Подключите агента: aiko agent install --project &lt;id&gt; --agent codex</value></data>
-  <data name="QuickStartStep4" xml:space="preserve"><value>4. Работайте в агенте: каждая задача начинается с карточки</value></data>
-  <data name="ProjectsRegistered" xml:space="preserve"><value>Зарегистрированные проекты</value></data>
-  <data name="OpenProject" xml:space="preserve"><value>Открыть</value></data>
-  <data name="PriorityFormula" xml:space="preserve"><value>Формула приоритета</value></data>
-  <data name="PriorityFormulaHint" xml:space="preserve"><value>Итоговый приоритет = вес собственной оценки × оценка карточки + вес родителя × лучшая родительская история.</value></data>
-  <data name="OwnWeight" xml:space="preserve"><value>Вес собственной оценки</value></data>
-  <data name="ParentWeight" xml:space="preserve"><value>Вес лучшего родителя</value></data>
-  <data name="Criteria" xml:space="preserve"><value>Критерии оценки</value></data>
-  <data name="AddCriterion" xml:space="preserve"><value>Добавить критерий</value></data>
-  <data name="CriterionDescription" xml:space="preserve"><value>Описание</value></data>
-  <data name="CriterionWeight" xml:space="preserve"><value>Вес</value></data>
-  <data name="CriterionIdHelper" xml:space="preserve"><value>Id используется карточками для своих значений и не меняется вместе с названием.</value></data>
-  <data name="NoCriteria" xml:space="preserve"><value>Критериев нет: приоритет карточки вводится вручную.</value></data>
-  <data name="InvalidWeights" xml:space="preserve"><value>Веса должны быть неотрицательными, и хотя бы один — больше нуля.</value></data>
-  <data name="CriterionTitleRequired" xml:space="preserve"><value>У каждого критерия должно быть название.</value></data>
-  <data name="NotPairedHint" xml:space="preserve"><value>Браузер ещё не сопряжён с демоном. Откройте доску командой: aiko ui</value></data>
-  <data name="Dashboard" xml:space="preserve"><value>Дашборд</value></data>
-  <data name="DashboardCaption" xml:space="preserve"><value>Все проекты, все карточки и год активности в одном месте.</value></data>
-  <data name="StatProjects" xml:space="preserve"><value>Проекты</value></data>
-  <data name="StatCards" xml:space="preserve"><value>Карточки</value></data>
-  <data name="StatTasks" xml:space="preserve"><value>Задачи</value></data>
-  <data name="StatStories" xml:space="preserve"><value>Истории</value></data>
-  <data name="StatInProgress" xml:space="preserve"><value>В работе</value></data>
-  <data name="StatOutOfScope" xml:space="preserve"><value>Вне scope</value></data>
-  <data name="AcrossProjects" xml:space="preserve"><value>по {0} проектам</value></data>
-  <data name="TodayDelta" xml:space="preserve"><value>+{0} сегодня</value></data>
-  <data name="StatTasksCaption" xml:space="preserve"><value>task-карточек в пайплайнах</value></data>
-  <data name="StatStoriesCaption" xml:space="preserve"><value>story-карточек задают их</value></data>
-  <data name="StatInProgressCaption" xml:space="preserve"><value>агентов на машине: {0}</value></data>
-  <data name="StatOutOfScopeCaption" xml:space="preserve"><value>файлов вне заявленного scope</value></data>
-  <data name="StatLive" xml:space="preserve"><value>Активен (live SSE)</value></data>
-  <data name="NoBoardData" xml:space="preserve"><value>Нет данных доски</value></data>
-  <data name="TableProject" xml:space="preserve"><value>Проект</value></data>
-  <data name="TableStatus" xml:space="preserve"><value>Статус</value></data>
-  <data name="TableActions" xml:space="preserve"><value>Действия</value></data>
-  <data name="ActivityTitle" xml:space="preserve"><value>Активность</value></data>
-  <data name="ActivityCaption" xml:space="preserve"><value>запуски и события · за год</value></data>
-  <data name="ActivityTotal" xml:space="preserve"><value>записано за окно: {0}</value></data>
-  <data name="ActivityNone" xml:space="preserve"><value>Пока ничего не записано. Запустите демон и выполните этап.</value></data>
-  <data name="ActivityLess" xml:space="preserve"><value>меньше</value></data>
-  <data name="ActivityMore" xml:space="preserve"><value>больше</value></data>
-  <data name="BoardUnavailable" xml:space="preserve"><value>Не удалось загрузить доску. Обновите страницу.</value></data>
-  <data name="WorkflowUnavailable" xml:space="preserve"><value>В этом проекте пока нет workflow.</value></data>
-  <data name="QuickStartTitle" xml:space="preserve"><value>Быстрый старт</value></data>
-  <data name="Unregister" xml:space="preserve"><value>Отключить</value></data>
-  <data name="UnregisterConfirm" xml:space="preserve"><value>Отключить проект? Файлы на диске останутся.</value></data>
-  <data name="UnregisterFailed" xml:space="preserve"><value>Не удалось отключить проект: {0}</value></data>
-  <data name="Browse" xml:space="preserve"><value>Обзор</value></data>
-  <data name="ChooseFolder" xml:space="preserve"><value>Выбор папки</value></data>
-  <data name="Drives" xml:space="preserve"><value>Диски</value></data>
-  <data name="FolderUnreadable" xml:space="preserve"><value>Эту папку нельзя прочитать.</value></data>
-  <data name="ExistingProject" xml:space="preserve"><value>Проект Aiko</value></data>
-  <data name="Up" xml:space="preserve"><value>Вверх</value></data>
-  <data name="Open" xml:space="preserve"><value>Открыть</value></data>
-  <data name="UseThisFolder" xml:space="preserve"><value>Выбрать эту папку</value></data>
-  <data name="BrowseFailed" xml:space="preserve"><value>Не удалось прочитать список папок: {0}</value></data>
-  <data name="AgentNotConnected" xml:space="preserve"><value>не подключён</value></data>
-  <data name="AgentConnected" xml:space="preserve"><value>подключён</value></data>
-  <data name="AgentPartiallyConnected" xml:space="preserve"><value>подключён частично ({0}/{1})</value></data>
-  <data name="ConnectAgent" xml:space="preserve"><value>Подключить</value></data>
-  <data name="DisconnectAgent" xml:space="preserve"><value>Отключить</value></data>
-  <data name="AgentConnectFailed" xml:space="preserve"><value>Не удалось изменить подключение {0}: {1}</value></data>
-  <data name="CardNotFound" xml:space="preserve"><value>Такой карточки на доске проекта нет.</value></data>
-  <data name="OverviewGroup" xml:space="preserve"><value>Обзор</value></data>
-  <data name="CurrentProjectGroup" xml:space="preserve"><value>Проект ({0})</value></data>
-  <data name="ProjectOverviewStats" xml:space="preserve"><value>Обзор проекта / статистика</value></data>
-  <data name="DaemonMcpBridges" xml:space="preserve"><value>Демон и мосты MCP</value></data>
-  <data name="LiveTag" xml:space="preserve"><value>live</value></data>
-  <data name="QuickSearchPlaceholder" xml:space="preserve"><value>Быстрый поиск по карточкам...</value></data>
-  <data name="QuickSearchAriaLabel" xml:space="preserve"><value>Быстрый поиск по карточкам</value></data>
-  <data name="QuickSearchNoMatch" xml:space="preserve"><value>Ни одна карточка не подходит под "{0}".</value></data>
-  <data name="NewTask" xml:space="preserve"><value>Новая задача</value></data>
-  <data name="Online" xml:space="preserve"><value>ONLINE</value></data>
-  <data name="SseLive" xml:space="preserve"><value>SSE LIVE</value></data>
-  <data name="ActiveProjectTag" xml:space="preserve"><value>(активный)</value></data>
-  <data name="OpenProjectLabel" xml:space="preserve"><value>Открыть проект</value></data>
-  <data name="DaemonRoundTrip" xml:space="preserve"><value>отклик</value></data>
-  <data name="UpdateAvailable" xml:space="preserve"><value>новая версия</value></data>
-  <data name="UpdateAvailableHint" xml:space="preserve"><value>Демон раздаёт более новый клиент, чем загружен на этой странице. Перезагрузите, чтобы его получить.</value></data>
-  <data name="CriterionTitle" xml:space="preserve"><value>Название критерия</value></data>
-  <data name="MinimumLabel" xml:space="preserve"><value>От</value></data>
-  <data name="MaximumLabel" xml:space="preserve"><value>До</value></data>
-  <data name="AiInstructionLabel" xml:space="preserve"><value>Инструкция агенту</value></data>
-  <data name="AiInstructionHint" xml:space="preserve"><value>На что агенту смотреть, чтобы оценить этот критерий</value></data>
-  <data name="CharactersCount" xml:space="preserve"><value>Символов: {0}</value></data>
-  <data name="TokensEstimate" xml:space="preserve"><value>Токенов ~{0}</value></data>
-  <data name="CloseTask" xml:space="preserve"><value>Закрыть задачу</value></data>
-  <data name="ExecutionState" xml:space="preserve"><value>Состояние выполнения</value></data>
-  <data name="WorkflowStatus" xml:space="preserve"><value>Статус workflow</value></data>
-  <data name="ActiveAssignees" xml:space="preserve"><value>Активные исполнители</value></data>
-  <data name="NoActiveAssignees" xml:space="preserve"><value>У этапа пока нет агента.</value></data>
-  <data name="RoleAgent" xml:space="preserve"><value>Агент</value></data>
-  <data name="NotStarted" xml:space="preserve"><value>Не запускалось</value></data>
-  <data name="TriageScore" xml:space="preserve"><value>Триаж и оценка</value></data>
-  <data name="EffectivePriority" xml:space="preserve"><value>Эффективный приоритет</value></data>
-  <data name="RankOf" xml:space="preserve"><value>Ранг #{0}</value></data>
-  <data name="PriorityOf" xml:space="preserve"><value>своя оценка {0}</value></data>
-  <data name="RelatedCards" xml:space="preserve"><value>Связанные задачи</value></data>
-  <data name="RelatedParents" xml:space="preserve"><value>Родительские</value></data>
-  <data name="RelatedChildren" xml:space="preserve"><value>Дочерние</value></data>
-  <data name="RelatedLinks" xml:space="preserve"><value>Связанные</value></data>
-  <data name="RelationBlocks" xml:space="preserve"><value>блокирует эту</value></data>
-  <data name="RelationBlockedBy" xml:space="preserve"><value>заблокирована этой</value></data>
-      <data name="BoardSubTasks" xml:space="preserve"><value>{0} подзадач</value></data>
-<data name="BlockedByCard" xml:space="preserve"><value>ждёт {0}</value></data>
-  <data name="RelationImplements" xml:space="preserve"><value>реализует эту</value></data>
-  <data name="RelationImplementedBy" xml:space="preserve"><value>реализована этой</value></data>
-  <data name="RelationRelatesTo" xml:space="preserve"><value>связана</value></data>
-  <data name="ResolvedOf" xml:space="preserve"><value>{0} / {1} выполнено</value></data>
-  <data name="StageSkills" xml:space="preserve"><value>Скиллы этапа</value></data>
-  <data name="CodeChanges" xml:space="preserve"><value>Изменения кода</value></data>
-  <data name="LoadingCodeChanges" xml:space="preserve"><value>Читаю дифф из git...</value></data>
-  <data name="DiffNoChanges" xml:space="preserve"><value>Показывать нечего: файлы карточки совпадают с HEAD.</value></data>
-  <data name="DiffBinaryOrEmpty" xml:space="preserve"><value>Бинарный файл или построчных изменений нет.</value></data>
-  <data name="GitClientUnavailable" xml:space="preserve"><value>Git клиент недоступен</value></data>
-  <data name="GitNoRepository" xml:space="preserve"><value>не репозиторий</value></data>
-  <data name="GitBranch" xml:space="preserve"><value>Git-ветка</value></data>
-  <data name="DiscussionTitle" xml:space="preserve"><value>Лента обсуждения и команд</value></data>
-  <data name="LoadingDiscussion" xml:space="preserve"><value>Читаю обсуждение...</value></data>
-  <data name="DiscussionNone" xml:space="preserve"><value>О карточке пока ничего не сказано. Оставьте первую заметку ниже.</value></data>
-  <data name="LeaveTaskNote" xml:space="preserve"><value>Заметка по задаче</value></data>
-  <data name="TaskNote" xml:space="preserve"><value>Заметка или команда</value></data>
-  <data name="TaskNoteHint" xml:space="preserve"><value>Заметка хранится вместе с карточкой, в её папке; команду ждёт агент, который запускает этот этап</value></data>
-  <data name="Comment" xml:space="preserve"><value>Комментировать</value></data>
-  <data name="CodeChangesHint" xml:space="preserve"><value>Файлы карточки и патч, который отдаёт git-клиент</value></data>
-  <data name="CodeChangesPending" xml:space="preserve"><value>Здесь появляются файлы, которые карточка заявила или затронула, и патч из git по каждому.</value></data>
-  <data name="CodeChangesPlan" xml:space="preserve"><value>Нужен git в PATH и репозиторий: без любого из них блок скажет, чего не хватает, вместо пустого просмотрщика.</value></data>
-  <data name="ArtifactsTitle" xml:space="preserve"><value>Артефакты</value></data>
-  <data name="ArtifactsHint" xml:space="preserve"><value>Файлы этой карточки, редактируемые как Markdown</value></data>
-  <data name="RunsTitle" xml:space="preserve"><value>Запуски</value></data>
-  <data name="RunsHint" xml:space="preserve"><value>Все исполнения этой карточки, новые сверху</value></data>
-  <data name="AttemptsLabel" xml:space="preserve"><value>Попыток агентов</value></data>
-  <data name="AssignedTo" xml:space="preserve"><value>исполнитель: {0}</value></data>
-  <data name="ScopeTitle" xml:space="preserve"><value>Scope и требования</value></data>
-  <data name="DeclaredScope" xml:space="preserve"><value>Заявленный scope</value></data>
-  <data name="EditCard" xml:space="preserve"><value>Редактировать карточку</value></data>
-  <data name="EditCardHint" xml:space="preserve"><value>Как карточка называется на доске. Всё остальное о ней — в панелях рядом.</value></data>
-  <data name="ScopePanelHint" xml:space="preserve"><value>Что требует карточка и что она заявляет к изменению</value></data>
-  <data name="ArtifactPresent" xml:space="preserve"><value>на месте</value></data>
-  <data name="ArtifactMissing" xml:space="preserve"><value>отсутствует</value></data>
-  <data name="FilesDeclared" xml:space="preserve"><value>Объявлено</value></data>
-  <data name="FilesActual" xml:space="preserve"><value>Реально изменено</value></data>
-  <data name="DefinitionOfDone" xml:space="preserve"><value>Критерии приёмки</value></data>
-  <data name="NoRequiredArtifacts" xml:space="preserve"><value>Этот этап не требует артефактов.</value></data>
-  <data name="CompletedOutcomes" xml:space="preserve"><value>Что сделано по итогу</value></data>
-  <data name="CompletedOutcomesHint" xml:space="preserve"><value>Что сообщил последний запуск</value></data>
-  <data name="AgentReport" xml:space="preserve"><value>Отчёт агента</value></data>
-  <data name="NoRunSummary" xml:space="preserve"><value>Этот запуск не оставил отчёта.</value></data>
-  <data name="ReportedCommits" xml:space="preserve"><value>Заявленные коммиты</value></data>
-  <data name="CommitPending" xml:space="preserve"><value>ждёт подтверждения</value></data>
-  <data name="RevisionTag" xml:space="preserve"><value>rev {0}</value></data>
-  <data name="DaemonRuntime" xml:space="preserve"><value>Рантайм демона</value></data>
-  <data name="DaemonRuntimeHint" xml:space="preserve"><value>Что запущено и где слушает</value></data>
-  <data name="McpEndpoint" xml:space="preserve"><value>MCP endpoint</value></data>
-  <data name="McpEndpointHint" xml:space="preserve"><value>Адрес, к которому подключается агент для открытого проекта</value></data>
-  <data name="AgentBridges" xml:space="preserve"><value>Мосты к агентам</value></data>
-  <data name="ConnectBridge" xml:space="preserve"><value>Подключить мост</value></data>
-  <data name="BridgesSummary" xml:space="preserve"><value>подключено {0} · неполных {1} · отсутствует {2}</value></data>
-  <data name="BridgeConnectedHint" xml:space="preserve"><value>Скиллы и команды Aiko для этого агента записаны</value></data>
-  <data name="BridgePartialHint" xml:space="preserve"><value>Часть конфигурации Aiko отсутствует — подключите заново, чтобы дополнить</value></data>
-  <data name="BridgeInstalledHint" xml:space="preserve"><value>Агент есть на машине и ещё не подключён к Aiko</value></data>
-  <data name="BridgeNotInstalledHint" xml:space="preserve"><value>Не найден в PATH: установите агента и подключите мост</value></data>
-  <data name="AgentBridgeChanged" xml:space="preserve"><value>Мост для {0} обновлён.</value></data>
-  <data name="AgentBridgesHint" xml:space="preserve"><value>Какие агенты есть на машине и подключён ли к ним Aiko</value></data>
-  <data name="AgentConfigDrift" xml:space="preserve"><value>{0} конфигураций агентов всё ещё записаны на старый адрес</value></data>
-  <data name="AgentConfigDriftHint" xml:space="preserve"><value>Агент установлен и подключён, но его конфигурация указывает на порт, который демон больше не слушает. Перезапишите их командой `aiko repair --fix`.</value></data>
-  <data name="AgentCredentialProblem" xml:space="preserve"><value>Агенту не доступны учётные данные</value></data>
-  <data name="AgentCredentialProblemHint" xml:space="preserve"><value>Запись агента берёт токен из переменной окружения, которой нет или которая не совпадает с токеном демона. Выполните `aiko token show`, экспортируйте AIKO_TOKEN с этим значением в той оболочке, из которой запускаете агента, и перезапустите его.</value></data>
-  <data name="BridgeConnected" xml:space="preserve"><value>подключён</value></data>
-  <data name="BridgePartial" xml:space="preserve"><value>частично</value></data>
-  <data name="BridgeInstalled" xml:space="preserve"><value>найден, не подключён</value></data>
-  <data name="BridgeNotInstalled" xml:space="preserve"><value>не найден</value></data>
-  <data name="BridgeNoUserScope" xml:space="preserve"><value>нет user-scope конфигурации</value></data>
-  <data name="BridgeFiles" xml:space="preserve"><value>{0}/{1} файлов</value></data>
-  <data name="ProjectStats" xml:space="preserve"><value>Статистика проекта</value></data>
-  <data name="ProjectOverviewNav" xml:space="preserve"><value>Обзор и статистика проекта</value></data>
-  <data name="ProjectSettingsNav" xml:space="preserve"><value>Настройки проекта</value></data>
-    <data name="ProjectOverviewHint" xml:space="preserve"><value>Что это за проект, из чего он состоит и как его карточки распределены по пайплайнам</value></data>
-  <data name="TriageNone" xml:space="preserve"><value>Карточек пока нет: распределение считается по доске.</value></data>
-  <data name="ReindexProject" xml:space="preserve"><value>Переиндексировать проект</value></data>
-  <data name="ReindexDone" xml:space="preserve"><value>Проект переиндексирован.</value></data>
-  <data name="ReindexDoneCounts" xml:space="preserve"><value>Переиндексировано: карточек {0}, связей {1}, документов памяти {2}</value></data>
-  <data name="ReindexFailed" xml:space="preserve"><value>Не удалось переиндексировать проект: {0}</value></data>
-  <data name="StageLoad" xml:space="preserve"><value>Карточки по этапам</value></data>
-  <data name="VelocityTitle" xml:space="preserve"><value>Скорость конвейера</value></data>
-  <data name="VelocityHint" xml:space="preserve"><value>Сколько карточек вошло в этап, по неделям, за последние {0} недель</value></data>
-  <data name="VelocityTotal" xml:space="preserve"><value>переходов за окно: {0}</value></data>
-  <data name="VelocityNone" xml:space="preserve"><value>Переходов пока нет: они считаются по мере работы с доской.</value></data>
-  <data name="TriageTitle" xml:space="preserve"><value>Распределение по типам</value></data>
-  <data name="TriageHint" xml:space="preserve"><value>Из чего состоят карточки проекта</value></data>
-  <data name="UptimeLabel" xml:space="preserve"><value>Аптайм</value></data>
-  <data name="RunsAndCrashes" xml:space="preserve"><value>запусков: {0} · без чистого останова: {1}</value></data>
-  <data name="MemoryProfile" xml:space="preserve"><value>Профиль памяти</value></data>
-  <data name="ManagedHeap" xml:space="preserve"><value>managed heap {0}</value></data>
-  <data name="StageLoadHint" xml:space="preserve"><value>Каждая полоса - доля этапа от самого нагруженного этапа его конвейера</value></data>
-  <data name="StageStatePending" xml:space="preserve"><value>Ожидает</value></data>
-  <data name="StageStateRunning" xml:space="preserve"><value>Выполняется</value></data>
-  <data name="StageStatePaused" xml:space="preserve"><value>Приостановлено</value></data>
-  <data name="StageStateWaiting" xml:space="preserve"><value>Ожидание решения</value></data>
-  <data name="StageStateBlocked" xml:space="preserve"><value>Сбой</value></data>
-  <data name="StageStateDone" xml:space="preserve"><value>Этап завершён</value></data>
-  <data name="StagesFinishedCount" xml:space="preserve"><value>этапов завершено: {0}</value></data>
-  <data name="GitHubRepository" xml:space="preserve"><value>Aiko на GitHub</value></data>
-  <data name="TemplateScope" xml:space="preserve"><value>Workflow по умолчанию</value></data>
-  <data name="TemplateSettingsHeading" xml:space="preserve"><value>Настройки workflow по умолчанию</value></data>
-  <data name="TemplateSettingsHint" xml:space="preserve"><value>С чем создаётся новый проект: настройки выполнения, модель оценки и конвейеры. Существующие проекты хранят свою копию и не затрагиваются.</value></data>
-  <data name="SaveTemplateSettings" xml:space="preserve"><value>Сохранить шаблон</value></data>
-  <data name="SizeGridPickHint" xml:space="preserve"><value>Выберите размер, чтобы изменить его название, коэффициент и описание.</value></data>
-  <data name="SizeGrid" xml:space="preserve"><value>Сетка размеров</value></data>
-  <data name="SizeGridHint" xml:space="preserve"><value>Агент выставляет размер по этим описаниям, а коэффициент умножает score карточки</value></data>
-  <data name="AddSize" xml:space="preserve"><value>Добавить размер</value></data>
-  <data name="NoSizes" xml:space="preserve"><value>Размеров нет: карточки считаются без размерного множителя.</value></data>
-  <data name="SizeIdLabel" xml:space="preserve"><value>Размер</value></data>
-  <data name="SizeCoefficient" xml:space="preserve"><value>Коэффициент</value></data>
-  <data name="SizeDescription" xml:space="preserve"><value>Описание</value></data>
-  <data name="SizeDescriptionHint" xml:space="preserve"><value>Что агент читает, чтобы выбрать этот размер</value></data>
-  <data name="SizeIdRequired" xml:space="preserve"><value>У каждого размера должен быть идентификатор.</value></data>
-  <data name="InvalidSizeCoefficient" xml:space="preserve"><value>Коэффициент размера должен быть больше нуля.</value></data>
-  <data name="DuplicateSizeId" xml:space="preserve"><value>Размер "{0}" указан дважды.</value></data>
-  <data name="InvalidCriterionRange" xml:space="preserve"><value>Верхняя граница критерия должна быть больше нижней.</value></data>
-  <data name="SkillsBefore" xml:space="preserve"><value>Скиллы до инструкции</value></data>
-  <data name="SkillsBeforeHelper" xml:space="preserve"><value>По одному скиллу в строке. Агент вызывает их перед чтением инструкции — контекст, поиск, индексация.</value></data>
-  <data name="SkillsAfter" xml:space="preserve"><value>Скиллы после инструкции</value></data>
-  <data name="SkillsAfterHelper" xml:space="preserve"><value>По одному скиллу в строке. Агент вызывает их, когда инструкция выполнена — отчёт, проверка, передача.</value></data>
-  <data name="RemoveStage" xml:space="preserve"><value>Удалить этот этап</value></data>
-  <data name="ProjectOverrideScope" xml:space="preserve"><value>Переопределения проекта</value></data>
-  <data name="ProjectSettingsHeading" xml:space="preserve"><value>Настройки проекта</value></data>
-  <data name="ProjectSettingsHint" xml:space="preserve"><value>С чем работает этот проект. Значения лежат в .aiko/settings.json и не меняются вместе с настройками установки.</value></data>
-  <data name="ChangeWorkflow" xml:space="preserve"><value>Сменить workflow</value></data>
-  <data name="ChangeWorkflowHint" xml:space="preserve"><value>Заменяет workflow, проекции доски и настройки проекта на выбранный набор. Карточки, запуски и память остаются; набор, из-за которого карточка окажется вне своего конвейера, будет отклонён.</value></data>
-  <data name="ChangeWorkflowApply" xml:space="preserve"><value>Сменить</value></data>
-  <data name="ChangeWorkflowEmpty" xml:space="preserve"><value>Нет наборов workflow, на которые можно переключиться.</value></data>
-  <data name="CreateTemplateFromProject" xml:space="preserve"><value>Создать шаблон</value></data>
-  <data name="CreateTemplateFromProjectHint" xml:space="preserve"><value>Сохраняет workflow, проекции, настройки и память проекта как шаблон, из которого можно создавать другие проекты.</value></data>
-  <data name="StageRoleInitial" xml:space="preserve"><value>Начальный</value></data>
-  <data name="StageRoleTerminal" xml:space="preserve"><value>Финальный</value></data>
-  <data name="AllowedExecutors" xml:space="preserve"><value>Разрешённые исполнители</value></data>
-  <data name="AllowedExecutorsHint" xml:space="preserve"><value>Если не выбрано ни одного агента, этап может запускать любой найденный агент.</value></data>
-  <data name="NoAgentsDiscovered" xml:space="preserve"><value>На этой машине не найдено ни одного адаптера агента.</value></data>
-  <data name="AnyAgent" xml:space="preserve"><value>Любой агент</value></data>
-  <data name="ValidationCommands" xml:space="preserve"><value>Команды проверки</value></data>
-  <data name="ValidationCommandsHelper" xml:space="preserve"><value>По одной команде в строке. Они записываются как definition of done этапа и показываются агенту; Aiko их не исполняет.</value></data>
-  <data name="NoSize" xml:space="preserve"><value>Без размера</value></data>
-  <data name="SizeHintEmpty" xml:space="preserve"><value>Без шага: коэффициент размера нейтральный (x1.00)</value></data>
-  <data name="Template" xml:space="preserve"><value>Шаблон</value></data>
-  <data name="TemplatesNav" xml:space="preserve"><value>Workflow</value></data>
-  <data name="TemplatesTitle" xml:space="preserve"><value>Workflow</value></data>
-  <data name="TemplatesHeading" xml:space="preserve"><value>Workflow</value></data>
-  <data name="TemplatesHint" xml:space="preserve"><value>Из чего создаётся новый проект: этапы и артефакты пайплайнов, проекции доски, стартовая память, значения по умолчанию и git-политика. Набор копируется в проект при init и больше не читается, поэтому проект автономен — а «Применить» это единственное действие, которое доходит до уже существующего проекта.</value></data>
-  <data name="TemplatesCount" xml:space="preserve"><value>наборов: {0}</value></data>
-  <data name="TemplateDefault" xml:space="preserve"><value>по умолчанию</value></data>
-  <data name="TemplateBuiltIn" xml:space="preserve"><value>встроенный</value></data>
-  <data name="CaptureFromProject" xml:space="preserve"><value>Снять с проекта</value></data>
-  <data name="CaptureFromProjectHint" xml:space="preserve"><value>Читает настройки проекта, пайплайны, проекции, память и git-политику в новый шаблон</value></data>
-  <data name="CaptureFromProjectMissing" xml:space="preserve"><value>Сначала зарегистрируйте проект: шаблон снимается с него.</value></data>
-  <data name="TemplateIdLabel" xml:space="preserve"><value>Идентификатор</value></data>
-  <data name="TemplateIdHelper" xml:space="preserve"><value>Буквы, цифры, дефисы и подчёркивания, например backend-default</value></data>
-  <data name="TemplateIdRequired" xml:space="preserve"><value>Укажите идентификатор шаблона.</value></data>
-  <data name="TemplateCaptured" xml:space="preserve"><value>Шаблон снят с проекта.</value></data>
-  <data name="TemplateCopied" xml:space="preserve"><value>Шаблон скопирован.</value></data>
-  <data name="TemplateDeleted" xml:space="preserve"><value>Шаблон удалён.</value></data>
-  <data name="DeleteTemplateConfirm" xml:space="preserve"><value>Удалить этот шаблон? Проекты, созданные из него, не затрагиваются.</value></data>
-  <data name="DuplicateTemplate" xml:space="preserve"><value>Дублировать</value></data>
-  <data name="TemplatesUnavailable" xml:space="preserve"><value>Шаблоны недоступны: {0}</value></data>
-  <data name="ImportTemplate" xml:space="preserve"><value>Импортировать шаблон</value></data>
-  <data name="ImportTemplateHint" xml:space="preserve"><value>Читает документ шаблона, экспортированный другой установкой</value></data>
-  <data name="ImportTemplateIdHelper" xml:space="preserve"><value>Оставьте пустым, чтобы сохранить идентификатор из файла</value></data>
-  <data name="TemplateImported" xml:space="preserve"><value>Шаблон импортирован.</value></data>
-  <data name="Import" xml:space="preserve"><value>Импорт</value></data>
-  <data name="Export" xml:space="preserve"><value>Экспорт</value></data>
-  <data name="TemplateExported" xml:space="preserve"><value>Шаблон записан в {0}</value></data>
-  <data name="TemplatePathLabel" xml:space="preserve"><value>Файл</value></data>
-  <data name="TemplatePathHelper" xml:space="preserve"><value>Абсолютный путь, например C:\Aiko\templates\backend.json</value></data>
-  <data name="TemplatePathRequired" xml:space="preserve"><value>Укажите путь к файлу.</value></data>
-  <data name="ApplyToProject" xml:space="preserve"><value>Применить к проекту</value></data>
-  <data name="Apply" xml:space="preserve"><value>Применить</value></data>
-  <data name="ApplyTemplateHint" xml:space="preserve"><value>Заменяет пайплайны, проекции и настройки проекта на шаблонные, дописывает память там, где у проекта её нет, и перенимает git-политику. Карточки, запуски и память остаются; действие отклоняется, если карточка оказалась бы на этапе, которого в шаблоне нет.</value></data>
-  <data name="TemplateApplied" xml:space="preserve"><value>Шаблон применён к {0}.</value></data>
-  <data name="TemplateFirstProjectHint" xml:space="preserve"><value>В этой установке шаблонов пока нет; первый проект создаётся из встроенного шаблона по умолчанию, который записывается рядом с базой демона.</value></data>
-  <data name="ProjectLabel" xml:space="preserve"><value>Проект</value></data>
-  <data name="CoreFallbackConfig" xml:space="preserve"><value>Базовая конфигурация ядра</value></data>
-  <data name="ImmutableSync" xml:space="preserve"><value>Неизменяемый источник</value></data>
-    <data name="ResetToDefaults" xml:space="preserve"><value>Сбросить к системным значениям</value></data>
-  <data name="DaemonHostSecurity" xml:space="preserve"><value>Транспорт и учётные данные демона</value></data>
-  <data name="DaemonHostSecurityHint" xml:space="preserve"><value>Изолированный loopback-транспорт ядра и ключи рукопожатия</value></data>
-  <data name="LoopbackSafe" xml:space="preserve"><value>Только loopback</value></data>
-  <data name="LocalPortLabel" xml:space="preserve"><value>Локальный порт</value></data>
-  <data name="LocalPortHint" xml:space="preserve"><value>Выбирается установщиком и сохраняется рядом с базой</value></data>
-  <data name="ListenAddressLabel" xml:space="preserve"><value>Адрес прослушивания</value></data>
-  <data name="ListenAddressHint" xml:space="preserve"><value>Только loopback - Aiko не открывает внешний интерфейс</value></data>
-  <data name="PairingTokenLabel" xml:space="preserve"><value>Токен спаривания (MCP / CLI)</value></data>
-  <data name="PairingTokenHint" xml:space="preserve"><value>Демон проверяет токен на каждом вызове REST и MCP; этот браузер хранит его в HttpOnly-cookie</value></data>
-  <data name="CreatePairingLink" xml:space="preserve"><value>Создать ссылку сопряжения</value></data>
-  <data name="PairingLinkHint" xml:space="preserve"><value>Одноразовый код: открытие ссылки спаривает браузер с этим демоном</value></data>
-  <data name="PairingLinkFailed" xml:space="preserve"><value>Не удалось создать ссылку сопряжения: {0}</value></data>
-  <data name="DefaultsForNewProjects" xml:space="preserve"><value>Значения по умолчанию для новых проектов</value></data>
-  <data name="DefaultsForNewProjectsHint" xml:space="preserve"><value>Применяются к новому проекту; проект со своими значениями сохраняет их</value></data>
-  <data name="SafeDefaultsTag" xml:space="preserve"><value>Безопасные значения</value></data>
-  <data name="ConcurrencyHint" xml:space="preserve"><value>Максимум одновременных запусков агентов</value></data>
-  <data name="ConcurrencyRecommended" xml:space="preserve"><value>Рекомендуется: один агент на кодовую базу, чтобы запуски не сталкивались в одном checkout</value></data>
-  <data name="ScopeOverlapHint" xml:space="preserve"><value>Что делает планировщик, когда два запуска объявляют одни файлы</value></data>
-  <data name="ScopeStrictTitle" xml:space="preserve"><value>Блокировать запуск</value></data>
-  <data name="ScopeStrictHint" xml:space="preserve"><value>Пересекающаяся карточка ждёт завершения конфликтующего запуска</value></data>
-  <data name="ScopeAskTitle" xml:space="preserve"><value>Предупредить и спросить</value></data>
-  <data name="ScopeAskHint" xml:space="preserve"><value>Запуск начинается только после вашего подтверждения</value></data>
-  <data name="ScopeFreeTitle" xml:space="preserve"><value>Разрешить</value></data>
-  <data name="ScopeFreeHint" xml:space="preserve"><value>Оба запуска идут; пересекающиеся правки попадают в один checkout</value></data>
-  <data name="CommitPolicyHint" xml:space="preserve"><value>Кто коммитит в общем checkout</value></data>
-  <data name="CommitDenyTitle" xml:space="preserve"><value>Коммитите вы</value></data>
-  <data name="CommitDenyHint" xml:space="preserve"><value>Агент не коммитит; он сообщает, что изменил</value></data>
-  <data name="CommitAskTitle" xml:space="preserve"><value>Подтверждать каждый коммит</value></data>
-  <data name="CommitAskHint" xml:space="preserve"><value>Агент спрашивает и ждёт; выполнение приостанавливается до подтверждения</value></data>
-  <data name="CommitAllowTitle" xml:space="preserve"><value>Коммитит агент</value></data>
-  <data name="CommitAllowHint" xml:space="preserve"><value>Агент коммитит и сообщает SHA</value></data>
-  <data name="PushPolicy" xml:space="preserve"><value>Push в общий checkout</value></data>
-  <data name="PushPolicyHint" xml:space="preserve"><value>Кто пушит из общего checkout - правило, которое агент читает: своего push у Aiko нет</value></data>
-  <data name="PushDenyTitle" xml:space="preserve"><value>Пушите вы</value></data>
-  <data name="PushDenyHint" xml:space="preserve"><value>Агент не пушит</value></data>
-  <data name="PushAskTitle" xml:space="preserve"><value>Подтверждать каждый push</value></data>
-  <data name="PushAskHint" xml:space="preserve"><value>Агент спрашивает перед пушем и ждёт вашего ответа</value></data>
-  <data name="PushAllowTitle" xml:space="preserve"><value>Пушит агент</value></data>
-  <data name="PushAllowHint" xml:space="preserve"><value>Агент может пушить и сообщает, что запушил</value></data>
-  <data name="ScopeExpansionPolicy" xml:space="preserve"><value>Расширение объёма карточки</value></data>
-  <data name="ScopeExpansionPolicyHint" xml:space="preserve"><value>Что произойдёт, если агенту понадобится файл вне объявленного объёма карточки. Это не тот же вопрос, что у политики пересечения выше: та — про два запуска с одинаковыми файлами</value></data>
-  <data name="ScopeExpansionDenyTitle" xml:space="preserve"><value>Отказать</value></data>
-  <data name="ScopeExpansionDenyHint" xml:space="preserve"><value>Запрос отклоняется и ничего не пишется: агент останавливается и говорит, какие файлы ему нужны</value></data>
-  <data name="ScopeExpansionAskTitle" xml:space="preserve"><value>Спросить</value></data>
-  <data name="ScopeExpansionAskHint" xml:space="preserve"><value>Запуск ждёт, пока человек ответит на запрос</value></data>
-  <data name="ScopeExpansionAllowTitle" xml:space="preserve"><value>Разрешить</value></data>
-  <data name="ScopeExpansionAllowHint" xml:space="preserve"><value>Файлы дописываются в объём карточки, и запуск продолжается, не останавливаясь</value></data>
-  <data name="CrossProjectWrite" xml:space="preserve"><value>Писать в другие проекты</value></data>
-  <data name="CrossProjectPolicyHint" xml:space="preserve"><value>Может ли агент, работающий здесь, заводить карточки в соседнем проекте и на каких условиях.</value></data>
-  <data name="CrossProjectTargets" xml:space="preserve"><value>Куда этому проекту можно писать</value></data>
-  <data name="CrossProjectTargetsHint" xml:space="preserve"><value>Пустой список — можно писать в любой проект. Чтобы ограничить, перечислите id или handle по одному на строку.</value></data>
-  <data name="CrossProjectTargetsPlaceholder" xml:space="preserve"><value>По одному id или handle на строку; пусто — можно любой</value></data>
-  <data name="CrossDenyTitle" xml:space="preserve"><value>Запрещать</value></data>
-  <data name="CrossDenyHint" xml:space="preserve"><value>Снаружи ничего не создаётся: агенту сообщается, что карточку нужно завести вручную</value></data>
-  <data name="CrossAskTitle" xml:space="preserve"><value>Спрашивать</value></data>
-  <data name="CrossAskHint" xml:space="preserve"><value>Каждая передача подтверждается вами до создания карточки</value></data>
-  <data name="CrossAllowTitle" xml:space="preserve"><value>Разрешать</value></data>
-  <data name="CrossAllowHint" xml:space="preserve"><value>Карточка из другого проекта создаётся без вопросов, а происхождение записывается на ней</value></data>
-  <data name="LinkedProjects" xml:space="preserve"><value>Связанные проекты</value></data>
-  <data name="LinkedProjectsHint" xml:space="preserve"><value>Проекты, которым этот проект передаёт работу. Описание говорит, чем каждый из них занят, и агент читает его прежде, чем решить, что запрос относится туда, а не сюда.</value></data>
-  <data name="LinkedProjectsNone" xml:space="preserve"><value>Связанных проектов пока нет.</value></data>
-  <data name="LinkedProjectsPick" xml:space="preserve"><value>Проект</value></data>
-  <data name="LinkedProjectsPickHint" xml:space="preserve"><value>Проект, зарегистрированный в этой установке Aiko</value></data>
-  <data name="LinkedProjectsPickNone" xml:space="preserve"><value>Выберите проект</value></data>
-  <data name="LinkedProjectsDescription" xml:space="preserve"><value>Чем он занят</value></data>
-  <data name="LinkedProjectsDescriptionPlaceholder" xml:space="preserve"><value>Например: десктопный клиент - работа по UI пишется туда</value></data>
-  <data name="LinkedProjectsReference" xml:space="preserve"><value>Где лежит справочник</value></data>
-  <data name="LinkedProjectsReferencePlaceholder" xml:space="preserve"><value>Путь или адрес к документации, справочнику API или точке входа; можно оставить пустым</value></data>
-  <data name="LinkedProjectsWhenToUse" xml:space="preserve"><value>Работа идёт туда, когда</value></data>
-  <data name="LinkedProjectsWhenToUsePlaceholder" xml:space="preserve"><value>Когда работа принадлежит тому проекту; можно оставить пустым</value></data>
-  <data name="LinkedProjectsWhenNotToUse" xml:space="preserve"><value>Не идёт туда, когда</value></data>
-  <data name="LinkedProjectsWhenNotToUsePlaceholder" xml:space="preserve"><value>Когда она принадлежит этому проекту; можно оставить пустым</value></data>
-  <data name="LinkedProjectsAdd" xml:space="preserve"><value>Связать проект</value></data>
-  <data name="LinkedProjectsRemove" xml:space="preserve"><value>Убрать связь</value></data>
-  <data name="LinkedProjectsNav" xml:space="preserve"><value>Связанные проекты</value></data>
-  <data name="LinkedProjectsMovedHint" xml:space="preserve"><value>Связи редактируются на отдельном экране, который открывается из меню, поэтому здесь только указатель.</value></data>
-  <data name="LinkedProjectsOpen" xml:space="preserve"><value>Открыть связанные проекты</value></data>
-  <data name="LinkedProjectsEdit" xml:space="preserve"><value>Изменить описание</value></data>
-  <data name="LinkedProjectsSave" xml:space="preserve"><value>Сохранить</value></data>
-  <data name="LinkedProjectsCancel" xml:space="preserve"><value>Отмена</value></data>
-  <data name="CardOriginTitle" xml:space="preserve"><value>Откуда карточка</value></data>
-  <data name="CardOriginTag" xml:space="preserve"><value>Кросс-проектная</value></data>
-  <data name="PriorityFormulaTitle" xml:space="preserve"><value>Формула приоритета</value></data>
-  <data name="OwnWeightLabel" xml:space="preserve"><value>Вес собственной оценки</value></data>
-  <data name="ParentWeightLabel" xml:space="preserve"><value>Вес родительской оценки</value></data>
-  <data name="FormulaVersion" xml:space="preserve"><value>Версия формулы</value></data>
-  <data name="SelfDiagnostic" xml:space="preserve"><value>Установка и диагностика</value></data>
-  <data name="SelfDiagnosticHint" xml:space="preserve"><value>Что проверяет aiko doctor: каталог данных, токен, endpoint и конфигурации агентов</value></data>
-  <data name="DoctorAllNominal" xml:space="preserve"><value>Все проверки пройдены</value></data>
-  <data name="DoctorHasProblems" xml:space="preserve"><value>Требует внимания</value></data>
-  <data name="RunDoctor" xml:space="preserve"><value>Запустить Doctor</value></data>
-  <data name="DoctorChecklist" xml:space="preserve"><value>Телеметрия Doctor</value></data>
-  <data name="PriorityFormulaExpression" xml:space="preserve"><value>эффективный = (вес своей оценки x своя оценка + вес родительской x максимальная родительская) / (сумма весов)</value></data>
-  <data name="DiagnosticsFailed" xml:space="preserve"><value>Не удалось получить диагностику: {0}</value></data>
-  <data name="BacklogNav" xml:space="preserve"><value>Бэклог</value></data>
-  <data name="BacklogTitle" xml:space="preserve"><value>Бэклог</value></data>
-  <data name="BacklogCaption" xml:space="preserve"><value>Все карточки, ещё не взятые в работу, собранные из бэклог-колонки каждого типа карточек.</value></data>
-  <data name="BacklogEmpty" xml:space="preserve"><value>В бэклоге ничего не ждёт.</value></data>
-  <data name="BacklogTakeIntoWork" xml:space="preserve"><value>Взять в работу</value></data>
-  <data name="BacklogTaken" xml:space="preserve"><value>Карточка {0} взята в работу.</value></data>
-  <data name="CardTypeDescription" xml:space="preserve"><value>Описание</value></data>
-  <data name="CardTypeIcon" xml:space="preserve"><value>Иконка</value></data>
-  <data name="CardTypeColor" xml:space="preserve"><value>Цвет</value></data>
-  <data name="TypeBlendsWithParent" xml:space="preserve"><value>Смешивает оценку с родителями</value></data>
-  <data name="TypeBlendsWithParentHint" xml:space="preserve"><value>Карточка этого типа смешивает свою оценку с лучшей оценкой родителей. Выключите для типа, который сохраняет свою оценку.</value></data>
-  <data name="StageIcon" xml:space="preserve"><value>Иконка колонки</value></data>
-  <data name="StageColor" xml:space="preserve"><value>Цвет колонки</value></data>
-  <data name="AppearanceDefault" xml:space="preserve"><value>По умолчанию</value></data>
-  <data name="RemoveCardType" xml:space="preserve"><value>Удалить тип карточек</value></data>
-  <data name="NewCardTypeTitle" xml:space="preserve"><value>Новый тип карточек</value></data>
-  <data name="CardTypeIdHelper" xml:space="preserve"><value>ID типа, например epic</value></data>
-  <data name="CardTypeIdHint" xml:space="preserve"><value>Id — это идентичность типа: он задаёт папку, в которой лежат его карточки, и секцию доски, которая их показывает</value></data>
-  <data name="CardTypeIdFixed" xml:space="preserve"><value>Переименовать можно только тип, у которого ещё нет карточек</value></data>
-  <data name="CardTypeSaved" xml:space="preserve"><value>Тип карточек сохранён.</value></data>
-  <data name="SaveCardType" xml:space="preserve"><value>Сохранить тип</value></data>
-  <data name="CardTypeName" xml:space="preserve"><value>Название типа</value></data>
-  <data name="AddCardType" xml:space="preserve"><value>Добавить тип карточек</value></data>
-  <data name="CardTypeIdInvalid" xml:space="preserve"><value>ID типа — строчные латинские буквы, цифры и дефисы.</value></data>
-  <data name="CardTypeIdTitleRequired" xml:space="preserve"><value>Укажите ID и название типа.</value></data>
-  <data name="CardTypeExists" xml:space="preserve"><value>Тип карточек «{0}» уже существует.</value></data>
-  <data name="CardTypeCreated" xml:space="preserve"><value>Тип карточек «{0}» создан.</value></data>
-  <data name="BacklogStageFirst" xml:space="preserve"><value>Бэклог всегда первый статус: поставить что-либо перед ним нельзя.</value></data>
-  <data name="BacklogStageReserved" xml:space="preserve"><value>Бэклог — стандартная колонка, её нельзя удалить.</value></data>
-  <data name="StageTitleBacklog" xml:space="preserve"><value>Бэклог</value></data>
-  <data name="StageTitleInProgress" xml:space="preserve"><value>В работе</value></data>
-  <data name="StageTitleDone" xml:space="preserve"><value>Готово</value></data>
-  <data name="NewTypeBacklogInstruction" xml:space="preserve"><value>Уточните запрос, объём и связи.</value></data>
-  <data name="NewTypeWorkInstruction" xml:space="preserve"><value>Выполните работу и зафиксируйте фактические изменения.</value></data>
-  <data name="NewTypeDoneInstruction" xml:space="preserve"><value>Зафиксируйте результат.</value></data>
-
-  <data name="Name" xml:space="preserve"><value>Имя (необязательно)</value></data>
-  <data name="Delete" xml:space="preserve"><value>Удалить</value></data>
-  <data name="TemplateHint" xml:space="preserve"><value>Копируется в проект при создании: фиксирует этапы и их артефакты, проекции доски, стартовую память и значения по умолчанию. Изменение шаблона позже влияет только на проекты, созданные после этого.</value></data>
-
-  <data name="DeleteCardTypeConfirm" xml:space="preserve"><value>Удалить этот тип карточек? Его конвейер будет удалён; уже созданные карточки не затрагиваются.</value></data>
-  <data name="DeleteCardTypeHasCards" xml:space="preserve"><value>В типе ещё есть карточки, поэтому удалить его пока нельзя.</value></data>
-
-  <data name="ProjectIdLabel" xml:space="preserve"><value>ID проекта</value></data>
-  <data name="ProjectIdInvalid" xml:space="preserve"><value>ID может содержать строчные латинские буквы, цифры и дефисы.</value></data>
-  <data name="ProjectIdTaken" xml:space="preserve"><value>Этот ID уже занят другим проектом.</value></data>
-
-  <data name="InitializationTitle" xml:space="preserve"><value>Инициализация проекта</value></data>
-  <data name="InitializationHint" xml:space="preserve"><value>Что агент делает сразу после создания проекта по этому шаблону - например структура, которая должна быть у проекта. Копируется в проект как .aiko/initialization.md и остаётся там.</value></data>
-  <data name="SaveTemplate" xml:space="preserve"><value>Сохранить шаблон</value></data>
-  <data name="TemplateSaved" xml:space="preserve"><value>Шаблон сохранён.</value></data>
-
-  <data name="CardTypeRevision" xml:space="preserve"><value>Тип карточек · rev {0}</value></data>
-
-  <data name="CommandsTitle" xml:space="preserve"><value>Команда агенту</value></data>
-  <data name="CommandsHint" xml:space="preserve"><value>Aiko не запускает агентов, поэтому просьба ждёт в очереди проекта, пока агент не запустится и не заберёт её, — а его отчёт появляется здесь.</value></data>
-  <data name="CommandExamples" xml:space="preserve"><value>Запустить самому в терминале</value></data>
-  <data name="CommandAction" xml:space="preserve"><value>Что попросить</value></data>
-  <data name="CommandStart" xml:space="preserve"><value>Начать этап</value></data>
-  <data name="CommandPause" xml:space="preserve"><value>Поставить прогон на паузу</value></data>
-  <data name="CommandResume" xml:space="preserve"><value>Продолжить прогон</value></data>
-  <data name="CommandAnswer" xml:space="preserve"><value>Ответить на вопрос прогона</value></data>
-  <data name="CommandText" xml:space="preserve"><value>Что передать агенту</value></data>
-  <data name="CommandPauseHint" xml:space="preserve"><value>Почему пауза — это прочитает тот, кто продолжит прогон.</value></data>
-  <data name="CommandAnswerHint" xml:space="preserve"><value>Ответ; он попадёт в ленту карточки и разбудит прогон.</value></data>
-  <data name="PlaceCommand" xml:space="preserve"><value>Поставить команду</value></data>
-  <data name="CommandPlaced" xml:space="preserve"><value>Команда {0} ждёт агента.</value></data>
-  <data name="CommandFailed" xml:space="preserve"><value>Команду поставить не удалось.</value></data>
-  <data name="CommandWaiting" xml:space="preserve"><value>ждёт</value></data>
-  <data name="CommandTaken" xml:space="preserve"><value>взята</value></data>
-  <data name="CommandDone" xml:space="preserve"><value>выполнена</value></data>
-  <data name="CommandRefused" xml:space="preserve"><value>не удалась</value></data>
-  <data name="CommandWithdrawn" xml:space="preserve"><value>отменена</value></data>
-  <data name="CommandStartHint" xml:space="preserve"><value>Агент начнёт этап «{0}» этой карточки.</value></data>
-  <data name="CommandRunHint" xml:space="preserve"><value>Агент будет действовать с прогоном {0}.</value></data>
-  <data name="CommandNoRunHint" xml:space="preserve"><value>У карточки ещё нет прогонов, поэтому можно попросить только «начать этап».</value></data>
-  <data name="CommandStartCaption" xml:space="preserve"><value>начать этап {0}</value></data>
-  <data name="CommandCaptionPause" xml:space="preserve"><value>поставить прогон на паузу</value></data>
-  <data name="CommandCaptionResume" xml:space="preserve"><value>продолжить прогон</value></data>
-  <data name="CommandCaptionAnswer" xml:space="preserve"><value>ответить на вопрос прогона</value></data>
-<data name="CommandCaptionRelease" xml:space="preserve"><value>провести выпуск</value></data>
-  <data name="RunBoard" xml:space="preserve"><value>Выполнить доску</value></data>
-  <data name="RunBoardHint" xml:space="preserve"><value>Просит агента довести каждую незаконченную карточку доски — в порядке доски — до конца её конвейера.</value></data>
-  <data name="AppearanceNav" xml:space="preserve"><value>Внешний вид</value></data>
-  <data name="AppearanceTitle" xml:space="preserve"><value>Внешний вид</value></data>
-  <data name="AppearanceHint" xml:space="preserve"><value>Как интерфейс выглядит и читается для вас. Выбор хранится в этом браузере, а не в проекте.</value></data>
-  <data name="AppearanceLanguage" xml:space="preserve"><value>Язык</value></data>
-  <data name="AppearanceLanguageHint" xml:space="preserve"><value>Сначала ваш выбор, затем язык браузера, затем английский.</value></data>
-  <data name="AppearanceReloadHint" xml:space="preserve"><value>Смена языка перезагружает страницу, чтобы весь интерфейс был отрисован на нём.</value></data>
-  <data name="AppearanceMode" xml:space="preserve"><value>Режим</value></data>
-  <data name="AppearanceModeHint" xml:space="preserve"><value>Следовать системной настройке или держать одну схему, что бы она ни говорила.</value></data>
-  <data name="AppearanceModeAuto" xml:space="preserve"><value>Авто</value></data>
-  <data name="AppearanceModeLight" xml:space="preserve"><value>Светлая</value></data>
-  <data name="AppearanceModeDark" xml:space="preserve"><value>Тёмная</value></data>
-  <data name="AppearancePalette" xml:space="preserve"><value>Палитра</value></data>
-  <data name="AppearancePaletteHint" xml:space="preserve"><value>Целая цветовая схема одной темы. Выбор применяется сразу и хранится в этом браузере.</value></data>
-  <data name="ReleaseNav" xml:space="preserve"><value>Релиз</value></data>
-  <data name="ReleaseTitle" xml:space="preserve"><value>Релиз</value></data>
-  <data name="ReleaseTag" xml:space="preserve"><value>релиз</value></data>
-  <data name="ReleaseHint" xml:space="preserve"><value>Что уже вышло и откуда релиз заказывают. Aiko не запускает агента и ничего не пишет в репозиторий: экран кладёт просьбу в очередь, а релиз проводит агент, который её возьмёт, — по политике, названной в просьбе.</value></data>
-  <data name="ReleaseRefresh" xml:space="preserve"><value>Прочитать снова</value></data>
-  <data name="ReleaseCommandWaiting" xml:space="preserve"><value>Команда {0} ждёт агента.</value></data>
-  <data name="ReleaseCreateButton" xml:space="preserve"><value>Создать релиз</value></data>
-  <data name="ReleaseCreateTitle" xml:space="preserve"><value>Новый релиз</value></data>
-  <data name="ReleaseCreateHint" xml:space="preserve"><value>Aiko не запускает агентов, не пушит тег и ничего не устанавливает: это кладёт команду в очередь, и агент, который её возьмёт, проведёт релиз по выбранной вами политике.</value></data>
-  <data name="ReleasePolicyLabel" xml:space="preserve"><value>Политика релиза</value></data>
-  <data name="ReleasePolicyHint" xml:space="preserve"><value>По какому порядку идёт релиз — одна из схем, которые держит проект.</value></data>
-  <data name="ReleaseAgentLabel" xml:space="preserve"><value>Агент</value></data>
-  <data name="ReleaseAgentAny" xml:space="preserve"><value>Любой агент</value></data>
-  <data name="ReleaseAgentHint" xml:space="preserve"><value>Кто проводит. Если не выбирать, просьбу возьмёт тот агент, который придёт следующим.</value></data>
-  <data name="ReleaseCreateConfirm" xml:space="preserve"><value>Положить просьбу в очередь</value></data>
-  <data name="ReleaseCreated" xml:space="preserve"><value>Команда {0} в очереди.</value></data>
-  <data name="ReleaseLoadFailed" xml:space="preserve"><value>Не удалось прочитать экран релиза: {0}</value></data>
-  <data name="ReleaseProcedureTitle" xml:space="preserve"><value>Как проводится релиз</value></data>
-  <data name="ReleaseProcedureHint" xml:space="preserve"><value>Порядок выпуска — чтобы его не приходилось собирать из файлов workflow.</value></data>
-  <data name="ReleaseProcedureOrder" xml:space="preserve"><value>Поставить тег, дождаться, пока workflow выпуска соберёт архив, установить его и подключить агентов заново.</value></data>
-  <data name="ReleaseProcedureTouches" xml:space="preserve"><value>Установка пишет в %LOCALAPPDATA%\Aiko\bin и добавляет этот каталог в пользовательский PATH.</value></data>
-  <data name="ReleaseProcedureKeeps" xml:space="preserve"><value>Проект не затрагивается: .aiko, aiko.db и токен доступа остаются на месте.</value></data>
-  <data name="ReleaseProcedureOpen" xml:space="preserve"><value>Открыть экран выпуска</value></data>
-  <data name="ReleaseSchemes" xml:space="preserve"><value>Схемы релиза</value></data>
-  <data name="ReleaseSchemesHint" xml:space="preserve"><value>Порядки, по которым может идти релиз этого проекта. Какой именно — выбирается при создании релиза.</value></data>
-  <data name="ReleaseSchemesShipped" xml:space="preserve"><value>Этот уровень своих схем не завёл, поэтому релиз идёт по схемам Aiko:</value></data>
-  <data name="ReleaseSchemeShipped" xml:space="preserve"><value>Схема Aiko</value></data>
-  <data name="ReleaseSchemeId" xml:space="preserve"><value>Идентификатор</value></data>
-  <data name="ReleaseSchemeIdHelper" xml:space="preserve"><value>Что называет релиз, чтобы идти по этой схеме, например git-release</value></data>
-  <data name="ReleaseSchemeName" xml:space="preserve"><value>Название</value></data>
-  <data name="ReleaseSchemeDescription" xml:space="preserve"><value>Для чего она</value></data>
-  <data name="ReleaseSchemeBody" xml:space="preserve"><value>Как проводится релиз</value></data>
-  <data name="ReleaseSchemeBodyPlaceholder" xml:space="preserve"><value>1. Убедиться, что дерево зелёное: сборка без предупреждений и все наборы тестов проходят.</value></data>
-  <data name="ReleaseSchemeBodyHint" xml:space="preserve"><value>Шаги, по которым идёт агент. Этот текст читает агент, поэтому он написан по-английски.</value></data>
-  <data name="ReleaseHistoryTitle" xml:space="preserve"><value>История выпусков</value></data>
-  <data name="ReleaseHistoryHint" xml:space="preserve"><value>Что проект выпустил, новые первыми, со схемой, по которой прошёл каждый выпуск.</value></data>
-  <data name="ReleaseHistoryEmpty" xml:space="preserve"><value>Пока ничего не записано. Выпуск записывает агент, когда тот опубликован.</value></data>
-  <data name="ReleaseHistoryCards" xml:space="preserve"><value>задач: {0}</value></data>
-  <data name="ReleaseKindPreliminary" xml:space="preserve"><value>предварительный</value></data>
-  <data name="ReleaseKindOrdinary" xml:space="preserve"><value>обычный</value></data>
-  <data name="ReleaseRecordTag" xml:space="preserve"><value>запись выпуска</value></data>
-  <data name="ReleaseRecordHint" xml:space="preserve"><value>Что вошло в этот выпуск: задачи, названные при записи, схема, по которой он проводился, и день, когда он был записан.</value></data>
-  <data name="ReleaseRecordBack" xml:space="preserve"><value>Назад к экрану выпуска</value></data>
-  <data name="ReleaseRecordScheme" xml:space="preserve"><value>Схема</value></data>
-  <data name="ReleaseRecordDate" xml:space="preserve"><value>Записан</value></data>
-  <data name="ReleaseRecordTasks" xml:space="preserve"><value>Задачи</value></data>
-  <data name="ReleaseRecordEmpty" xml:space="preserve"><value>В этот выпуск ничего не вошло: запись не называет ни одной задачи — так выглядит выпуск одних исправлений, не заведённых карточками.</value></data>
-  <data name="ReleaseRecordMissing" xml:space="preserve"><value>не прочитано</value></data>
-  <data name="ReleaseRecordFailed" xml:space="preserve"><value>Запись выпуска не удалось прочитать: {0}</value></data>
-  <data name="ReleaseCardTag" xml:space="preserve"><value>в выпуске</value></data>
-  <data name="ReleaseCardLine" xml:space="preserve"><value>ушла в выпуск {0}</value></data>
-
-  <data name="BoardModeFilter" xml:space="preserve"><value>Вид</value></data>
-  <data name="BoardSort" xml:space="preserve"><value>Порядок</value></data>
-  <data name="BoardSortAscending" xml:space="preserve"><value>Сначала низкий приоритет</value></data>
-  <data name="BoardSortDescending" xml:space="preserve"><value>Сначала высокий приоритет</value></data>
-  <data name="BoardModeBoard" xml:space="preserve"><value>Доска</value></data>
-  <data name="BoardModeArchive" xml:space="preserve"><value>Архив</value></data>
-  <data name="ArchiveTitle" xml:space="preserve"><value>Архив</value></data>
-  <data name="ArchiveHint" xml:space="preserve"><value>Завершённые карточки, убранные с доски. Ничего не удалено: сама карточка, её лента, прогоны, артефакты и связи на месте.</value></data>
-  <data name="ArchiveEmpty" xml:space="preserve"><value>В архиве пока ничего нет.</value></data>
-  <data name="ArchiveRestore" xml:space="preserve"><value>Вернуть на доску</value></data>
-  <data name="ArchiveWhen" xml:space="preserve"><value>убрана {0}</value></data>
-  <data name="ArchiveWhenUnknown" xml:space="preserve"><value>убрана, момент неизвестен</value></data>
-  <data name="ArchiveFailed" xml:space="preserve"><value>Карточку {0} не удалось вернуть на доску: {1}</value></data>
-  <data name="ArchiveCard" xml:space="preserve"><value>Убрать в архив</value></data>
-  <data name="ArchiveCardHint" xml:space="preserve"><value>Убрать завершённую карточку в архив: она уходит с доски, и ничего в ней не удаляется.</value></data>
-  <data name="RestoreCard" xml:space="preserve"><value>Вернуть на доску</value></data>
-  <data name="RestoreCardHint" xml:space="preserve"><value>Вернуть карточку из архива на ту стадию, с которой её убрали.</value></data>
-  <data name="ArchiveNotFinished" xml:space="preserve"><value>Убрать в архив можно только карточку, дошедшую до конца своего конвейера; в этой ещё осталась работа.</value></data>
+  <data name="EmptyStateTitle" xml:space="preserve">
+    <value>Нет зарегистрированных проектов</value>
+  </data>
+  <data name="EmptyStateHint" xml:space="preserve">
+    <value>Инициализируйте проект через Aiko, и он появится в этой панели.</value>
+  </data>
+  <data name="AddProject" xml:space="preserve">
+    <value>Добавить проект</value>
+  </data>
+  <data name="AddProjectHint" xml:space="preserve">
+    <value>Укажите путь к папке проекта. Будет создан каталог .aiko и стандартные workflow.</value>
+  </data>
+  <data name="CreateCard" xml:space="preserve">
+    <value>Карточка</value>
+  </data>
+  <data name="CreateCardTitle" xml:space="preserve">
+    <value>Создать карточку</value>
+  </data>
+  <data name="CardIdentityTitle" xml:space="preserve">
+    <value>Карточка</value>
+  </data>
+  <data name="CardIdentityHint" xml:space="preserve">
+    <value>Id придумывает Aiko, вы задаёте заголовок, по которому её читают</value>
+  </data>
+  <data name="Requirements" xml:space="preserve">
+    <value>Требования</value>
+  </data>
+  <data name="ScopeAndRequirementsHint" xml:space="preserve">
+    <value>Что должна сделать карточка и какие файлы она может тронуть</value>
+  </data>
+  <data name="RequirementsHelper" xml:space="preserve">
+    <value>Что должна сделать эта карточка, вашими словами</value>
+  </data>
+  <data name="Request" xml:space="preserve">
+    <value>Запрос</value>
+  </data>
+  <data name="RequestHelper" xml:space="preserve">
+    <value>О чём попросил пользователь, его словами</value>
+  </data>
+  <data name="BacklogStageNote" xml:space="preserve">
+    <value>Карточка создаётся в бэклоге и уходит оттуда.</value>
+  </data>
+  <data name="EstimateAfterCreateHint" xml:space="preserve">
+    <value>Если оставить пустым, размер и оценки посчитает агент — после создания запустите /aiko-estimate.</value>
+  </data>
+  <data name="EstimateTitle" xml:space="preserve">
+    <value>Оценка</value>
+  </data>
+  <data name="EstimateHint" xml:space="preserve">
+    <value>Размер и оценки критериев, которые вы не задали, определяет агент.</value>
+  </data>
+  <data name="EstimateAgent" xml:space="preserve">
+    <value>Кто оценивает</value>
+  </data>
+  <data name="EstimateCard" xml:space="preserve">
+    <value>Попросить оценить</value>
+  </data>
+  <data name="EstimateCommandHint" xml:space="preserve">
+    <value>Запустите {0} в терминале этого агента.</value>
+  </data>
+  <data name="EstimateRequested" xml:space="preserve">
+    <value>Запрос оценки отправлен агенту {0}.</value>
+  </data>
+  <data name="EstimateRequestFailed" xml:space="preserve">
+    <value>Не удалось запросить оценку: {0}</value>
+  </data>
+  <data name="ExecutionActions" xml:space="preserve">
+    <value>Управление работой</value>
+  </data>
+  <data name="StartStage" xml:space="preserve">
+    <value>Начать этап</value>
+  </data>
+  <data name="PauseRun" xml:space="preserve">
+    <value>Пауза</value>
+  </data>
+  <data name="ResumeRun" xml:space="preserve">
+    <value>Продолжить</value>
+  </data>
+  <data name="CancelRun" xml:space="preserve">
+    <value>Отменить</value>
+  </data>
+  <data name="CompleteRun" xml:space="preserve">
+    <value>Завершить</value>
+  </data>
+  <data name="HandoffRun" xml:space="preserve">
+    <value>Передать агенту</value>
+  </data>
+  <data name="ApproveScope" xml:space="preserve">
+    <value>Разрешить лишние файлы</value>
+  </data>
+  <data name="RefuseScope" xml:space="preserve">
+    <value>Отказать в лишних файлах</value>
+  </data>
+  <data name="ApproveCommit" xml:space="preserve">
+    <value>Подтвердить коммит</value>
+  </data>
+  <data name="RejectCommit" xml:space="preserve">
+    <value>Отклонить коммит</value>
+  </data>
+  <data name="ExecutionActionFailed" xml:space="preserve">
+    <value>Действие не удалось: {0}</value>
+  </data>
+  <data name="ActiveRunsTitle" xml:space="preserve">
+    <value>Сейчас в работе</value>
+  </data>
+  <data name="ActiveRunsNone" xml:space="preserve">
+    <value>В этом проекте ничего не выполняется.</value>
+  </data>
+  <data name="ActiveRunsNoAgent" xml:space="preserve">
+    <value>агента нет</value>
+  </data>
+  <data name="CardPlaceTitle" xml:space="preserve">
+    <value>Где она начинается</value>
+  </data>
+  <data name="ScoringHint" xml:space="preserve">
+    <value>Агент может уточнить их позже; собственный score карточки считается из них</value>
+  </data>
+  <data name="CreateCardHint" xml:space="preserve">
+    <value>Карточка откроется сразу после создания — там собираются её артефакты и запуски</value>
+  </data>
+  <data name="Add" xml:space="preserve">
+    <value>Добавить</value>
+  </data>
+  <data name="Create" xml:space="preserve">
+    <value>Создать</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Отмена</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Закрыть</value>
+  </data>
+  <data name="Refresh" xml:space="preserve">
+    <value>Обновить</value>
+  </data>
+  <data name="Workflow" xml:space="preserve">
+    <value>Workflow</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Настройки</value>
+  </data>
+  <data name="Title" xml:space="preserve">
+    <value>Название</value>
+  </data>
+  <data name="ProjectPath" xml:space="preserve">
+    <value>Путь к проекту</value>
+  </data>
+  <data name="ProjectName" xml:space="preserve">
+    <value>Имя (необязательно)</value>
+  </data>
+  <data name="Stage" xml:space="preserve">
+    <value>Этап (например backlog)</value>
+  </data>
+  <data name="Priority" xml:space="preserve">
+    <value>Приоритет (число)</value>
+  </data>
+  <data name="Scope" xml:space="preserve">
+    <value>Scope (через запятую)</value>
+  </data>
+  <data name="Choose" xml:space="preserve">
+    <value>Выберите...</value>
+  </data>
+  <data name="GitPolicyLocalOnly" xml:space="preserve">
+    <value>local-only (по умолчанию)</value>
+  </data>
+  <data name="GitPolicy" xml:space="preserve">
+    <value>Git-политика</value>
+  </data>
+  <data name="CardKind" xml:space="preserve">
+    <value>Тип карточки</value>
+  </data>
+  <data name="CardFilter" xml:space="preserve">
+    <value>Фильтр</value>
+  </data>
+  <data name="WorkspaceFlow" xml:space="preserve">
+    <value>Рабочее пространство</value>
+  </data>
+  <data name="KanbanBoard" xml:space="preserve">
+    <value>Kanban-доска</value>
+  </data>
+  <data name="Projects" xml:space="preserve">
+    <value>Проекты</value>
+  </data>
+  <data name="OrchestrationLoad" xml:space="preserve">
+    <value>ЗАГРУЗКА ОРКЕСТРАЦИИ</value>
+  </data>
+  <data name="ContextEngine" xml:space="preserve">
+    <value>Поток событий</value>
+  </data>
+  <data name="NativeAot" xml:space="preserve">
+    <value>NATIVE AOT</value>
+  </data>
+  <data name="Host" xml:space="preserve">
+    <value>host</value>
+  </data>
+  <data name="Unassigned" xml:space="preserve">
+    <value>не назначен</value>
+  </data>
+  <data name="DropHere" xml:space="preserve">
+    <value>Перетащите задачи в</value>
+  </data>
+  <data name="RailAriaLabel" xml:space="preserve">
+    <value>Проекты Aiko</value>
+  </data>
+  <data name="InspectorAriaLabel" xml:space="preserve">
+    <value>Инспектор Aiko</value>
+  </data>
+  <data name="StoriesNav" xml:space="preserve">
+    <value>Истории</value>
+  </data>
+  <data name="TasksNav" xml:space="preserve">
+    <value>Задачи</value>
+  </data>
+  <data name="BoardTypesFilter" xml:space="preserve">
+    <value>Типы карточек</value>
+  </data>
+  <data name="BoardWaitingFilter" xml:space="preserve">
+    <value>Фильтр по ожиданию ответа</value>
+  </data>
+  <data name="BoardWaitingFilterAll" xml:space="preserve">
+    <value>Все</value>
+  </data>
+  <data name="BoardWaitingFilterWaiting" xml:space="preserve">
+    <value>Ожидание ответа</value>
+  </data>
+  <data name="StoryFlow" xml:space="preserve">
+    <value>Поток историй</value>
+  </data>
+  <data name="GitPolicyTrackKnowledge" xml:space="preserve">
+    <value>track-project-knowledge</value>
+  </data>
+  <data name="GitPolicyCustom" xml:space="preserve">
+    <value>custom</value>
+  </data>
+  <data name="PathRequired" xml:space="preserve">
+    <value>Укажите путь к проекту.</value>
+  </data>
+  <data name="AddProjectFailed" xml:space="preserve">
+    <value>Не удалось добавить проект: {0}</value>
+  </data>
+  <data name="CreateCardFailed" xml:space="preserve">
+    <value>Не удалось создать карточку: {0}</value>
+  </data>
+  <data name="MoveFailed" xml:space="preserve">
+    <value>Переход {0} не сохранён: {1}</value>
+  </data>
+  <data name="BoardCaption" xml:space="preserve">
+    <value>Доска проекта</value>
+  </data>
+  <data name="BoardFilterSize" xml:space="preserve">
+    <value>Размер</value>
+  </data>
+  <data name="LoadingContext" xml:space="preserve">
+    <value>Собираем проектный контекст...</value>
+  </data>
+  <data name="BoardUpdateFailed" xml:space="preserve">
+    <value>Не удалось обновить доску</value>
+  </data>
+  <data name="Cards" xml:space="preserve">
+    <value>Карточки</value>
+  </data>
+  <data name="InProgress" xml:space="preserve">
+    <value>В работе</value>
+  </data>
+  <data name="Relations" xml:space="preserve">
+    <value>Связи</value>
+  </data>
+  <data name="OutOfScope" xml:space="preserve">
+    <value>Вне scope</value>
+  </data>
+  <data name="BacklogSlice" xml:space="preserve">
+    <value>В бэклоге</value>
+  </data>
+  <data name="Implementation" xml:space="preserve">
+    <value>реализация</value>
+  </data>
+  <data name="CardsStagesCount" xml:space="preserve">
+    <value>{0} карточек - {1} этапов</value>
+  </data>
+  <data name="WorkflowNotFound" xml:space="preserve">
+    <value>Workflow для {0} не найден.</value>
+  </data>
+  <data name="ScopeNotSet" xml:space="preserve">
+    <value>scope не задан</value>
+  </data>
+  <data name="FilesCount" xml:space="preserve">
+    <value>{0}/{1} файлов</value>
+  </data>
+  <data name="OutOfScopeCount" xml:space="preserve">
+    <value>вне scope: {0}</value>
+  </data>
+  <data name="Parameters" xml:space="preserve">
+    <value>Параметры</value>
+  </data>
+  <data name="ScoringCriteria" xml:space="preserve">
+    <value>Критерии оценки</value>
+  </data>
+  <data name="PriorityLabel" xml:space="preserve">
+    <value>Оценка / приоритет</value>
+  </data>
+  <data name="ScopeHelper" xml:space="preserve">
+    <value>Один путь или glob на строку</value>
+  </data>
+  <data name="SaveCard" xml:space="preserve">
+    <value>Сохранить карточку</value>
+  </data>
+  <data name="FilesTitle" xml:space="preserve">
+    <value>Файлы</value>
+  </data>
+  <data name="NoRelations" xml:space="preserve">
+    <value>Связей пока нет.</value>
+  </data>
+  <data name="RemoveLink" xml:space="preserve">
+    <value>Убрать связь</value>
+  </data>
+  <data name="UnlinkConfirm" xml:space="preserve">
+    <value>Убрать связь с {0}?</value>
+  </data>
+  <data name="UnlinkFailed" xml:space="preserve">
+    <value>Связь не удалось убрать: {0}</value>
+  </data>
+  <data name="LoadingHistory" xml:space="preserve">
+    <value>Загрузка истории...</value>
+  </data>
+  <data name="NoExecutions" xml:space="preserve">
+    <value>Запусков пока нет.</value>
+  </data>
+  <data name="ArtifactsLabel" xml:space="preserve">
+    <value>Артефакты: {0}</value>
+  </data>
+  <data name="HistoryUnavailable" xml:space="preserve">
+    <value>История executions недоступна: {0}</value>
+  </data>
+  <data name="InvalidPriority" xml:space="preserve">
+    <value>Введите неотрицательное число.</value>
+  </data>
+  <data name="TitleRequired" xml:space="preserve">
+    <value>Название карточки обязательно.</value>
+  </data>
+  <data name="CardConflict" xml:space="preserve">
+    <value>Карточку изменил другой агент раньше этого сохранения. Ваши правки сохранены в форме - сверьте их с карточкой и сохраните снова.</value>
+  </data>
+  <data name="CardChangedWhileEditing" xml:space="preserve">
+    <value>Карточка изменилась, пока вы её редактировали. Ваши правки сохранены в форме.</value>
+  </data>
+  <data name="DiscardMyEdits" xml:space="preserve">
+    <value>Отменить мои правки</value>
+  </data>
+  <data name="LeaveWithUnsavedEdits" xml:space="preserve">
+    <value>Есть несохранённые правки. Уйти и потерять их?</value>
+  </data>
+  <data name="ArtifactModified" xml:space="preserve">
+    <value>Изменён</value>
+  </data>
+  <data name="DiscardDocumentEdits" xml:space="preserve">
+    <value>Перечитать документ и потерять несохранённые правки?</value>
+  </data>
+  <data name="ChangesSaved" xml:space="preserve">
+    <value>Изменения сохранены.</value>
+  </data>
+  <data name="SaveCardFailed" xml:space="preserve">
+    <value>Не удалось сохранить карточку: {0}</value>
+  </data>
+  <data name="TaskFlow" xml:space="preserve">
+    <value>Поток задач</value>
+  </data>
+  <data name="DocumentsTitle" xml:space="preserve">
+    <value>Документы</value>
+  </data>
+  <data name="NewMarkdown" xml:space="preserve">
+    <value>Новый Markdown-файл</value>
+  </data>
+  <data name="AddDocHint" xml:space="preserve">
+    <value>Добавьте Markdown-файл для запроса, анализа или результата работы.</value>
+  </data>
+  <data name="NewFile" xml:space="preserve">
+    <value>Новый файл</value>
+  </data>
+  <data name="SavedFile" xml:space="preserve">
+    <value>Сохранённый файл</value>
+  </data>
+  <data name="SaveDocument" xml:space="preserve">
+    <value>Сохранить документ</value>
+  </data>
+  <data name="ListFailed" xml:space="preserve">
+    <value>Не удалось загрузить список документов: {0}</value>
+  </data>
+  <data name="ServerEmptyDoc" xml:space="preserve">
+    <value>Сервер вернул пустой документ.</value>
+  </data>
+  <data name="OpenFailed" xml:space="preserve">
+    <value>Не удалось открыть документ: {0}</value>
+  </data>
+  <data name="InvalidPath" xml:space="preserve">
+    <value>Введите относительный путь к файлу с расширением .md.</value>
+  </data>
+  <data name="NewDocPrepared" xml:space="preserve">
+    <value>Новый документ подготовлен. Заполните его и сохраните.</value>
+  </data>
+  <data name="FileNotCreatedYet" xml:space="preserve">
+    <value>Файл ещё не создан. Сохранение добавит его в папку карточки.</value>
+  </data>
+  <data name="FileChanged" xml:space="preserve">
+    <value>Файл изменён другим агентом или редактором. Обновите документ перед сохранением.</value>
+  </data>
+  <data name="ServerRejected" xml:space="preserve">
+    <value>Сервер отклонил документ: {0}.</value>
+  </data>
+  <data name="ServerNoDoc" xml:space="preserve">
+    <value>Сервер не вернул сохранённый документ.</value>
+  </data>
+  <data name="DocSaved" xml:space="preserve">
+    <value>Документ сохранён.</value>
+  </data>
+  <data name="SaveDocFailed" xml:space="preserve">
+    <value>Не удалось сохранить документ: {0}</value>
+  </data>
+  <data name="ArtifactSaved" xml:space="preserve">
+    <value>сохранён</value>
+  </data>
+  <data name="ArtifactRequired" xml:space="preserve">
+    <value>требуется</value>
+  </data>
+  <data name="ArtifactNew" xml:space="preserve">
+    <value>новый</value>
+  </data>
+  <data name="WorkflowTitle" xml:space="preserve">
+    <value>Название workflow</value>
+  </data>
+  <data name="StagesTitle" xml:space="preserve">
+    <value>Статусы</value>
+  </data>
+  <data name="AddStage" xml:space="preserve">
+    <value>Добавить статус</value>
+  </data>
+  <data name="Remove" xml:space="preserve">
+    <value>Удалить</value>
+  </data>
+  <data name="SelectedStage" xml:space="preserve">
+    <value>Выбранный статус</value>
+  </data>
+  <data name="StableId" xml:space="preserve">
+    <value>Стабильный id</value>
+  </data>
+  <data name="StableIdHelper" xml:space="preserve">
+    <value>Используется агентами и карточками</value>
+  </data>
+  <data name="Instruction" xml:space="preserve">
+    <value>Инструкция агенту</value>
+  </data>
+  <data name="DefaultAgent" xml:space="preserve">
+    <value>Агент по умолчанию</value>
+  </data>
+  <data name="DefaultAgentHelper" xml:space="preserve">
+    <value>Например: codex; можно оставить пустым</value>
+  </data>
+  <data name="RequiredArtifacts" xml:space="preserve">
+    <value>Необходимые артефакты</value>
+  </data>
+  <data name="ArtifactsHelper" xml:space="preserve">
+    <value>path | policy | описание - по одному на строку</value>
+  </data>
+  <data name="MoveUp" xml:space="preserve">
+    <value>Выше</value>
+  </data>
+  <data name="MoveDown" xml:space="preserve">
+    <value>Ниже</value>
+  </data>
+  <data name="SaveWorkflow" xml:space="preserve">
+    <value>Сохранить workflow</value>
+  </data>
+  <data name="WorkflowHint" xml:space="preserve">
+    <value>Изменения применятся к доске и к следующим запускам агентов.</value>
+  </data>
+  <data name="NewStage" xml:space="preserve">
+    <value>Новый статус</value>
+  </data>
+  <data name="NewStageInstruction" xml:space="preserve">
+    <value>Опиши, что агент должен сделать на этом этапе.</value>
+  </data>
+  <data name="OneStageRequired" xml:space="preserve">
+    <value>Workflow должен содержать хотя бы один статус.</value>
+  </data>
+  <data name="MoveCardFirst" xml:space="preserve">
+    <value>Сначала переместите карточку {0} из этого статуса.</value>
+  </data>
+  <data name="ArtifactLineInvalid" xml:space="preserve">
+    <value>неверная строка артефакта "{0}".</value>
+  </data>
+  <data name="SaveWorkflowFailed" xml:space="preserve">
+    <value>Не удалось сохранить workflow: {0}</value>
+  </data>
+  <data name="WorkflowTitleRequired" xml:space="preserve">
+    <value>Введите название workflow.</value>
+  </data>
+  <data name="StageIdTitleRequired" xml:space="preserve">
+    <value>У каждого статуса должны быть id и название.</value>
+  </data>
+  <data name="StageIdUnique" xml:space="preserve">
+    <value>Id статуса должен быть уникальным: {0}.</value>
+  </data>
+  <data name="WorkflowConflict" xml:space="preserve">
+    <value>Workflow уже изменён другим агентом. Данные доски обновлены.</value>
+  </data>
+  <data name="ServerRejectedChanges" xml:space="preserve">
+    <value>Сервер отклонил изменения: {0}.</value>
+  </data>
+  <data name="WorkflowSaved" xml:space="preserve">
+    <value>Workflow сохранён.</value>
+  </data>
+  <data name="SettingsTitle" xml:space="preserve">
+    <value>Настройки</value>
+  </data>
+  <data name="LoadingSettings" xml:space="preserve">
+    <value>Загрузка настроек...</value>
+  </data>
+  <data name="Daemon" xml:space="preserve">
+    <value>Демон</value>
+  </data>
+  <data name="Version" xml:space="preserve">
+    <value>Версия</value>
+  </data>
+  <data name="Address" xml:space="preserve">
+    <value>Адрес</value>
+  </data>
+  <data name="EffectiveConfig" xml:space="preserve">
+    <value>Эффективная конфигурация исполнения</value>
+  </data>
+  <data name="Source" xml:space="preserve">
+    <value>Источник</value>
+  </data>
+  <data name="Workspace" xml:space="preserve">
+    <value>Рабочая область</value>
+  </data>
+  <data name="MaxRuns" xml:space="preserve">
+    <value>Одновременных запусков</value>
+  </data>
+  <data name="ScopeOverlap" xml:space="preserve">
+    <value>Пересечение scope</value>
+  </data>
+  <data name="CommitPolicy" xml:space="preserve">
+    <value>Коммиты в общий checkout</value>
+  </data>
+  <data name="ParallelSharedOn" xml:space="preserve">
+    <value>Параллельный shared-режим включён</value>
+  </data>
+  <data name="ProjectSettings" xml:space="preserve">
+    <value>Проект</value>
+  </data>
+  <data name="WorkspaceOption" xml:space="preserve">
+    <value>Общий checkout (shared)</value>
+  </data>
+  <data name="WorktreeOption" xml:space="preserve">
+    <value>Отдельный worktree (скоро)</value>
+  </data>
+  <data name="MaxRunsLabel" xml:space="preserve">
+    <value>Одновременных запусков (1 и больше)</value>
+  </data>
+  <data name="PolicyAsk" xml:space="preserve">
+    <value>Спрашивать</value>
+  </data>
+  <data name="PolicyAllow" xml:space="preserve">
+    <value>Разрешать</value>
+  </data>
+  <data name="PolicyDeny" xml:space="preserve">
+    <value>Запрещать</value>
+  </data>
+  <data name="ScopePolicy" xml:space="preserve">
+    <value>Политика пересечения scope</value>
+  </data>
+  <data name="SaveProjectSettings" xml:space="preserve">
+    <value>Сохранить настройки проекта</value>
+  </data>
+  <data name="GlobalHint" xml:space="preserve">
+    <value>Применяются ко всем проектам без собственных настроек.</value>
+  </data>
+  <data name="SelectProjectForLocalSettings" xml:space="preserve">
+    <value>Настройки проекта станут доступны после выбора проекта. Глобальные настройки ниже применяются ко всем проектам.</value>
+  </data>
+  <data name="SourceProject" xml:space="preserve">
+    <value>проект</value>
+  </data>
+  <data name="SourceGlobal" xml:space="preserve">
+    <value>глобально</value>
+  </data>
+  <data name="SourceDefault" xml:space="preserve">
+    <value>по умолчанию</value>
+  </data>
+  <data name="LoadSettingsFailed" xml:space="preserve">
+    <value>Не удалось загрузить настройки: {0}</value>
+  </data>
+  <data name="SaveSettingsFailed" xml:space="preserve">
+    <value>Сохранение не удалось: {0}</value>
+  </data>
+  <data name="SettingsSaved" xml:space="preserve">
+    <value>Настройки сохранены.</value>
+  </data>
+  <data name="InvalidMaxRuns" xml:space="preserve">
+    <value>Введите целое число от 1 и больше.</value>
+  </data>
+  <data name="InvalidSettingValue" xml:space="preserve">
+    <value>Недопустимое значение настройки.</value>
+  </data>
+  <data name="Overview" xml:space="preserve">
+    <value>Обзор</value>
+  </data>
+  <data name="OverviewCaption" xml:space="preserve">
+    <value>Локальный оркестратор: один демон, доска, агенты и долговременная память проекта.</value>
+  </data>
+  <data name="Agents" xml:space="preserve">
+    <value>Агенты</value>
+  </data>
+  <data name="AgentsNotFound" xml:space="preserve">
+    <value>не обнаружен</value>
+  </data>
+  <data name="AgentsHint" xml:space="preserve">
+    <value>«Подключить» записывает глобальные скиллы и команды /aiko-* для агента. MCP-запись для проекта добавляется отдельно: aiko agent install --project &lt;id&gt;</value>
+  </data>
+  <data name="QuickStart" xml:space="preserve">
+    <value>Быстрый старт</value>
+  </data>
+  <data name="QuickStartStep1" xml:space="preserve">
+    <value>1. Запустите демон: aiko serve</value>
+  </data>
+  <data name="QuickStartStep2" xml:space="preserve">
+    <value>2. Добавьте проект ниже или выполните aiko init &lt;путь&gt;</value>
+  </data>
+  <data name="QuickStartStep3" xml:space="preserve">
+    <value>3. Подключите агента: aiko agent install --project &lt;id&gt; --agent codex</value>
+  </data>
+  <data name="QuickStartStep4" xml:space="preserve">
+    <value>4. Работайте в агенте: каждая задача начинается с карточки</value>
+  </data>
+  <data name="ProjectsRegistered" xml:space="preserve">
+    <value>Зарегистрированные проекты</value>
+  </data>
+  <data name="OpenProject" xml:space="preserve">
+    <value>Открыть</value>
+  </data>
+  <data name="PriorityFormula" xml:space="preserve">
+    <value>Формула приоритета</value>
+  </data>
+  <data name="PriorityFormulaHint" xml:space="preserve">
+    <value>Итоговый приоритет = вес собственной оценки × оценка карточки + вес родителя × лучшая родительская история.</value>
+  </data>
+  <data name="OwnWeight" xml:space="preserve">
+    <value>Вес собственной оценки</value>
+  </data>
+  <data name="ParentWeight" xml:space="preserve">
+    <value>Вес лучшего родителя</value>
+  </data>
+  <data name="Criteria" xml:space="preserve">
+    <value>Критерии оценки</value>
+  </data>
+  <data name="AddCriterion" xml:space="preserve">
+    <value>Добавить критерий</value>
+  </data>
+  <data name="CriterionDescription" xml:space="preserve">
+    <value>Описание</value>
+  </data>
+  <data name="CriterionWeight" xml:space="preserve">
+    <value>Вес</value>
+  </data>
+  <data name="CriterionIdHelper" xml:space="preserve">
+    <value>Id используется карточками для своих значений и не меняется вместе с названием.</value>
+  </data>
+  <data name="NoCriteria" xml:space="preserve">
+    <value>Критериев нет: приоритет карточки вводится вручную.</value>
+  </data>
+  <data name="InvalidWeights" xml:space="preserve">
+    <value>Веса должны быть неотрицательными, и хотя бы один — больше нуля.</value>
+  </data>
+  <data name="CriterionTitleRequired" xml:space="preserve">
+    <value>У каждого критерия должно быть название.</value>
+  </data>
+  <data name="NotPairedHint" xml:space="preserve">
+    <value>Браузер ещё не сопряжён с демоном. Откройте доску командой: aiko ui</value>
+  </data>
+  <data name="Dashboard" xml:space="preserve">
+    <value>Дашборд</value>
+  </data>
+  <data name="DashboardCaption" xml:space="preserve">
+    <value>Все проекты, все карточки и год активности в одном месте.</value>
+  </data>
+  <data name="StatProjects" xml:space="preserve">
+    <value>Проекты</value>
+  </data>
+  <data name="StatCards" xml:space="preserve">
+    <value>Карточки</value>
+  </data>
+  <data name="StatTasks" xml:space="preserve">
+    <value>Задачи</value>
+  </data>
+  <data name="StatStories" xml:space="preserve">
+    <value>Истории</value>
+  </data>
+  <data name="StatInProgress" xml:space="preserve">
+    <value>В работе</value>
+  </data>
+  <data name="StatOutOfScope" xml:space="preserve">
+    <value>Вне scope</value>
+  </data>
+  <data name="AcrossProjects" xml:space="preserve">
+    <value>по {0} проектам</value>
+  </data>
+  <data name="TodayDelta" xml:space="preserve">
+    <value>+{0} сегодня</value>
+  </data>
+  <data name="StatTasksCaption" xml:space="preserve">
+    <value>task-карточек в пайплайнах</value>
+  </data>
+  <data name="StatStoriesCaption" xml:space="preserve">
+    <value>story-карточек задают их</value>
+  </data>
+  <data name="StatInProgressCaption" xml:space="preserve">
+    <value>агентов на машине: {0}</value>
+  </data>
+  <data name="StatOutOfScopeCaption" xml:space="preserve">
+    <value>файлов вне заявленного scope</value>
+  </data>
+  <data name="StatLive" xml:space="preserve">
+    <value>Активен (live SSE)</value>
+  </data>
+  <data name="NoBoardData" xml:space="preserve">
+    <value>Нет данных доски</value>
+  </data>
+  <data name="TableProject" xml:space="preserve">
+    <value>Проект</value>
+  </data>
+  <data name="TableStatus" xml:space="preserve">
+    <value>Статус</value>
+  </data>
+  <data name="TableActions" xml:space="preserve">
+    <value>Действия</value>
+  </data>
+  <data name="ActivityTitle" xml:space="preserve">
+    <value>Активность</value>
+  </data>
+  <data name="ActivityCaption" xml:space="preserve">
+    <value>запуски и события · за год</value>
+  </data>
+  <data name="ActivityTotal" xml:space="preserve">
+    <value>записано за окно: {0}</value>
+  </data>
+  <data name="ActivityNone" xml:space="preserve">
+    <value>Пока ничего не записано. Запустите демон и выполните этап.</value>
+  </data>
+  <data name="ActivityLess" xml:space="preserve">
+    <value>меньше</value>
+  </data>
+  <data name="ActivityMore" xml:space="preserve">
+    <value>больше</value>
+  </data>
+  <data name="BoardUnavailable" xml:space="preserve">
+    <value>Не удалось загрузить доску. Обновите страницу.</value>
+  </data>
+  <data name="WorkflowUnavailable" xml:space="preserve">
+    <value>В этом проекте пока нет workflow.</value>
+  </data>
+  <data name="QuickStartTitle" xml:space="preserve">
+    <value>Быстрый старт</value>
+  </data>
+  <data name="Unregister" xml:space="preserve">
+    <value>Отключить</value>
+  </data>
+  <data name="UnregisterConfirm" xml:space="preserve">
+    <value>Отключить проект? Файлы на диске останутся.</value>
+  </data>
+  <data name="UnregisterFailed" xml:space="preserve">
+    <value>Не удалось отключить проект: {0}</value>
+  </data>
+  <data name="Browse" xml:space="preserve">
+    <value>Обзор</value>
+  </data>
+  <data name="ChooseFolder" xml:space="preserve">
+    <value>Выбор папки</value>
+  </data>
+  <data name="Drives" xml:space="preserve">
+    <value>Диски</value>
+  </data>
+  <data name="FolderUnreadable" xml:space="preserve">
+    <value>Эту папку нельзя прочитать.</value>
+  </data>
+  <data name="ExistingProject" xml:space="preserve">
+    <value>Проект Aiko</value>
+  </data>
+  <data name="Up" xml:space="preserve">
+    <value>Вверх</value>
+  </data>
+  <data name="Open" xml:space="preserve">
+    <value>Открыть</value>
+  </data>
+  <data name="UseThisFolder" xml:space="preserve">
+    <value>Выбрать эту папку</value>
+  </data>
+  <data name="BrowseFailed" xml:space="preserve">
+    <value>Не удалось прочитать список папок: {0}</value>
+  </data>
+  <data name="AgentNotConnected" xml:space="preserve">
+    <value>не подключён</value>
+  </data>
+  <data name="AgentConnected" xml:space="preserve">
+    <value>подключён</value>
+  </data>
+  <data name="AgentPartiallyConnected" xml:space="preserve">
+    <value>подключён частично ({0}/{1})</value>
+  </data>
+  <data name="ConnectAgent" xml:space="preserve">
+    <value>Подключить</value>
+  </data>
+  <data name="DisconnectAgent" xml:space="preserve">
+    <value>Отключить</value>
+  </data>
+  <data name="AgentConnectFailed" xml:space="preserve">
+    <value>Не удалось изменить подключение {0}: {1}</value>
+  </data>
+  <data name="CardNotFound" xml:space="preserve">
+    <value>Такой карточки на доске проекта нет.</value>
+  </data>
+  <data name="OverviewGroup" xml:space="preserve">
+    <value>Обзор</value>
+  </data>
+  <data name="CurrentProjectGroup" xml:space="preserve">
+    <value>Проект ({0})</value>
+  </data>
+  <data name="ProjectOverviewStats" xml:space="preserve">
+    <value>Обзор проекта / статистика</value>
+  </data>
+  <data name="DaemonMcpBridges" xml:space="preserve">
+    <value>Демон и мосты MCP</value>
+  </data>
+  <data name="LiveTag" xml:space="preserve">
+    <value>live</value>
+  </data>
+  <data name="QuickSearchPlaceholder" xml:space="preserve">
+    <value>Быстрый поиск по карточкам...</value>
+  </data>
+  <data name="QuickSearchAriaLabel" xml:space="preserve">
+    <value>Быстрый поиск по карточкам</value>
+  </data>
+  <data name="QuickSearchNoMatch" xml:space="preserve">
+    <value>Ни одна карточка не подходит под "{0}".</value>
+  </data>
+  <data name="NewTask" xml:space="preserve">
+    <value>Новая задача</value>
+  </data>
+  <data name="Online" xml:space="preserve">
+    <value>ONLINE</value>
+  </data>
+  <data name="SseLive" xml:space="preserve">
+    <value>SSE LIVE</value>
+  </data>
+  <data name="ActiveProjectTag" xml:space="preserve">
+    <value>(активный)</value>
+  </data>
+  <data name="OpenProjectLabel" xml:space="preserve">
+    <value>Открыть проект</value>
+  </data>
+  <data name="DaemonRoundTrip" xml:space="preserve">
+    <value>отклик</value>
+  </data>
+  <data name="UpdateAvailable" xml:space="preserve">
+    <value>новая версия</value>
+  </data>
+  <data name="UpdateAvailableHint" xml:space="preserve">
+    <value>Демон раздаёт более новый клиент, чем загружен на этой странице. Перезагрузите, чтобы его получить.</value>
+  </data>
+  <data name="CriterionTitle" xml:space="preserve">
+    <value>Название критерия</value>
+  </data>
+  <data name="MinimumLabel" xml:space="preserve">
+    <value>От</value>
+  </data>
+  <data name="MaximumLabel" xml:space="preserve">
+    <value>До</value>
+  </data>
+  <data name="AiInstructionLabel" xml:space="preserve">
+    <value>Инструкция агенту</value>
+  </data>
+  <data name="AiInstructionHint" xml:space="preserve">
+    <value>На что агенту смотреть, чтобы оценить этот критерий</value>
+  </data>
+  <data name="CharactersCount" xml:space="preserve">
+    <value>Символов: {0}</value>
+  </data>
+  <data name="TokensEstimate" xml:space="preserve">
+    <value>Токенов ~{0}</value>
+  </data>
+  <data name="CloseTask" xml:space="preserve">
+    <value>Закрыть задачу</value>
+  </data>
+  <data name="ExecutionState" xml:space="preserve">
+    <value>Состояние выполнения</value>
+  </data>
+  <data name="WorkflowStatus" xml:space="preserve">
+    <value>Статус workflow</value>
+  </data>
+  <data name="ActiveAssignees" xml:space="preserve">
+    <value>Активные исполнители</value>
+  </data>
+  <data name="NoActiveAssignees" xml:space="preserve">
+    <value>У этапа пока нет агента.</value>
+  </data>
+  <data name="RoleAgent" xml:space="preserve">
+    <value>Агент</value>
+  </data>
+  <data name="NotStarted" xml:space="preserve">
+    <value>Не запускалось</value>
+  </data>
+  <data name="TriageScore" xml:space="preserve">
+    <value>Триаж и оценка</value>
+  </data>
+  <data name="EffectivePriority" xml:space="preserve">
+    <value>Эффективный приоритет</value>
+  </data>
+  <data name="RankOf" xml:space="preserve">
+    <value>Ранг #{0}</value>
+  </data>
+  <data name="PriorityOf" xml:space="preserve">
+    <value>своя оценка {0}</value>
+  </data>
+  <data name="RelatedCards" xml:space="preserve">
+    <value>Связанные задачи</value>
+  </data>
+  <data name="RelatedParents" xml:space="preserve">
+    <value>Родительские</value>
+  </data>
+  <data name="RelatedChildren" xml:space="preserve">
+    <value>Дочерние</value>
+  </data>
+  <data name="RelatedLinks" xml:space="preserve">
+    <value>Связанные</value>
+  </data>
+  <data name="RelationBlocks" xml:space="preserve">
+    <value>блокирует эту</value>
+  </data>
+  <data name="RelationBlockedBy" xml:space="preserve">
+    <value>заблокирована этой</value>
+  </data>
+  <data name="BoardSubTasks" xml:space="preserve">
+    <value>{0} подзадач</value>
+  </data>
+  <data name="BlockedByCard" xml:space="preserve">
+    <value>ждёт {0}</value>
+  </data>
+  <data name="RelationImplements" xml:space="preserve">
+    <value>реализует эту</value>
+  </data>
+  <data name="RelationImplementedBy" xml:space="preserve">
+    <value>реализована этой</value>
+  </data>
+  <data name="RelationRelatesTo" xml:space="preserve">
+    <value>связана</value>
+  </data>
+  <data name="ResolvedOf" xml:space="preserve">
+    <value>{0} / {1} выполнено</value>
+  </data>
+  <data name="StageSkills" xml:space="preserve">
+    <value>Скиллы этапа</value>
+  </data>
+  <data name="CodeChanges" xml:space="preserve">
+    <value>Изменения кода</value>
+  </data>
+  <data name="LoadingCodeChanges" xml:space="preserve">
+    <value>Читаю дифф из git...</value>
+  </data>
+  <data name="DiffNoChanges" xml:space="preserve">
+    <value>Показывать нечего: файлы карточки совпадают с HEAD.</value>
+  </data>
+  <data name="DiffBinaryOrEmpty" xml:space="preserve">
+    <value>Бинарный файл или построчных изменений нет.</value>
+  </data>
+  <data name="GitClientUnavailable" xml:space="preserve">
+    <value>Git клиент недоступен</value>
+  </data>
+  <data name="GitNoRepository" xml:space="preserve">
+    <value>не репозиторий</value>
+  </data>
+  <data name="GitBranch" xml:space="preserve">
+    <value>Git-ветка</value>
+  </data>
+  <data name="DiscussionTitle" xml:space="preserve">
+    <value>Лента обсуждения и команд</value>
+  </data>
+  <data name="LoadingDiscussion" xml:space="preserve">
+    <value>Читаю обсуждение...</value>
+  </data>
+  <data name="DiscussionNone" xml:space="preserve">
+    <value>О карточке пока ничего не сказано. Оставьте первую заметку ниже.</value>
+  </data>
+  <data name="LeaveTaskNote" xml:space="preserve">
+    <value>Заметка по задаче</value>
+  </data>
+  <data name="TaskNote" xml:space="preserve">
+    <value>Заметка или команда</value>
+  </data>
+  <data name="TaskNoteHint" xml:space="preserve">
+    <value>Заметка хранится вместе с карточкой, в её папке; команду ждёт агент, который запускает этот этап</value>
+  </data>
+  <data name="Comment" xml:space="preserve">
+    <value>Комментировать</value>
+  </data>
+  <data name="CodeChangesHint" xml:space="preserve">
+    <value>Файлы карточки и патч, который отдаёт git-клиент</value>
+  </data>
+  <data name="CodeChangesPending" xml:space="preserve">
+    <value>Здесь появляются файлы, которые карточка заявила или затронула, и патч из git по каждому.</value>
+  </data>
+  <data name="CodeChangesPlan" xml:space="preserve">
+    <value>Нужен git в PATH и репозиторий: без любого из них блок скажет, чего не хватает, вместо пустого просмотрщика.</value>
+  </data>
+  <data name="ArtifactsTitle" xml:space="preserve">
+    <value>Артефакты</value>
+  </data>
+  <data name="ArtifactsHint" xml:space="preserve">
+    <value>Файлы этой карточки, редактируемые как Markdown</value>
+  </data>
+  <data name="RunsTitle" xml:space="preserve">
+    <value>Запуски</value>
+  </data>
+  <data name="RunsHint" xml:space="preserve">
+    <value>Все исполнения этой карточки, новые сверху</value>
+  </data>
+  <data name="AttemptsLabel" xml:space="preserve">
+    <value>Попыток агентов</value>
+  </data>
+  <data name="AssignedTo" xml:space="preserve">
+    <value>исполнитель: {0}</value>
+  </data>
+  <data name="ScopeTitle" xml:space="preserve">
+    <value>Scope и требования</value>
+  </data>
+  <data name="DeclaredScope" xml:space="preserve">
+    <value>Заявленный scope</value>
+  </data>
+  <data name="EditCard" xml:space="preserve">
+    <value>Редактировать карточку</value>
+  </data>
+  <data name="EditCardHint" xml:space="preserve">
+    <value>Как карточка называется на доске. Всё остальное о ней — в панелях рядом.</value>
+  </data>
+  <data name="ScopePanelHint" xml:space="preserve">
+    <value>Что требует карточка и что она заявляет к изменению</value>
+  </data>
+  <data name="ArtifactPresent" xml:space="preserve">
+    <value>на месте</value>
+  </data>
+  <data name="ArtifactMissing" xml:space="preserve">
+    <value>отсутствует</value>
+  </data>
+  <data name="FilesDeclared" xml:space="preserve">
+    <value>Объявлено</value>
+  </data>
+  <data name="FilesActual" xml:space="preserve">
+    <value>Реально изменено</value>
+  </data>
+  <data name="DefinitionOfDone" xml:space="preserve">
+    <value>Критерии приёмки</value>
+  </data>
+  <data name="NoRequiredArtifacts" xml:space="preserve">
+    <value>Этот этап не требует артефактов.</value>
+  </data>
+  <data name="CompletedOutcomes" xml:space="preserve">
+    <value>Что сделано по итогу</value>
+  </data>
+  <data name="CompletedOutcomesHint" xml:space="preserve">
+    <value>Что сообщил последний запуск</value>
+  </data>
+  <data name="AgentReport" xml:space="preserve">
+    <value>Отчёт агента</value>
+  </data>
+  <data name="NoRunSummary" xml:space="preserve">
+    <value>Этот запуск не оставил отчёта.</value>
+  </data>
+  <data name="ReportedCommits" xml:space="preserve">
+    <value>Заявленные коммиты</value>
+  </data>
+  <data name="CommitPending" xml:space="preserve">
+    <value>ждёт подтверждения</value>
+  </data>
+  <data name="RevisionTag" xml:space="preserve">
+    <value>rev {0}</value>
+  </data>
+  <data name="DaemonRuntime" xml:space="preserve">
+    <value>Рантайм демона</value>
+  </data>
+  <data name="DaemonRuntimeHint" xml:space="preserve">
+    <value>Что запущено и где слушает</value>
+  </data>
+  <data name="McpEndpoint" xml:space="preserve">
+    <value>MCP endpoint</value>
+  </data>
+  <data name="McpEndpointHint" xml:space="preserve">
+    <value>Адрес, к которому подключается агент для открытого проекта</value>
+  </data>
+  <data name="AgentBridges" xml:space="preserve">
+    <value>Мосты к агентам</value>
+  </data>
+  <data name="ConnectBridge" xml:space="preserve">
+    <value>Подключить мост</value>
+  </data>
+  <data name="BridgesSummary" xml:space="preserve">
+    <value>подключено {0} · неполных {1} · отсутствует {2}</value>
+  </data>
+  <data name="BridgeConnectedHint" xml:space="preserve">
+    <value>Скиллы и команды Aiko для этого агента записаны</value>
+  </data>
+  <data name="BridgePartialHint" xml:space="preserve">
+    <value>Часть конфигурации Aiko отсутствует — подключите заново, чтобы дополнить</value>
+  </data>
+  <data name="BridgeInstalledHint" xml:space="preserve">
+    <value>Агент есть на машине и ещё не подключён к Aiko</value>
+  </data>
+  <data name="BridgeNotInstalledHint" xml:space="preserve">
+    <value>Не найден в PATH: установите агента и подключите мост</value>
+  </data>
+  <data name="AgentBridgeChanged" xml:space="preserve">
+    <value>Мост для {0} обновлён.</value>
+  </data>
+  <data name="AgentBridgesHint" xml:space="preserve">
+    <value>Какие агенты есть на машине и подключён ли к ним Aiko</value>
+  </data>
+  <data name="AgentConfigDrift" xml:space="preserve">
+    <value>{0} конфигураций агентов всё ещё записаны на старый адрес</value>
+  </data>
+  <data name="AgentConfigDriftHint" xml:space="preserve">
+    <value>Агент установлен и подключён, но его конфигурация указывает на порт, который демон больше не слушает. Перезапишите их командой `aiko repair --fix`.</value>
+  </data>
+  <data name="AgentCredentialProblem" xml:space="preserve">
+    <value>Агенту не доступны учётные данные</value>
+  </data>
+  <data name="AgentCredentialProblemHint" xml:space="preserve">
+    <value>Запись агента берёт токен из переменной окружения, которой нет или которая не совпадает с токеном демона. Выполните `aiko token show`, экспортируйте AIKO_TOKEN с этим значением в той оболочке, из которой запускаете агента, и перезапустите его.</value>
+  </data>
+  <data name="BridgeConnected" xml:space="preserve">
+    <value>подключён</value>
+  </data>
+  <data name="BridgePartial" xml:space="preserve">
+    <value>частично</value>
+  </data>
+  <data name="BridgeInstalled" xml:space="preserve">
+    <value>найден, не подключён</value>
+  </data>
+  <data name="BridgeNotInstalled" xml:space="preserve">
+    <value>не найден</value>
+  </data>
+  <data name="BridgeNoUserScope" xml:space="preserve">
+    <value>нет user-scope конфигурации</value>
+  </data>
+  <data name="BridgeFiles" xml:space="preserve">
+    <value>{0}/{1} файлов</value>
+  </data>
+  <data name="ProjectStats" xml:space="preserve">
+    <value>Статистика проекта</value>
+  </data>
+  <data name="ProjectOverviewNav" xml:space="preserve">
+    <value>Обзор и статистика проекта</value>
+  </data>
+  <data name="ProjectSettingsNav" xml:space="preserve">
+    <value>Настройки проекта</value>
+  </data>
+  <data name="ProjectOverviewHint" xml:space="preserve">
+    <value>Что это за проект, из чего он состоит и как его карточки распределены по пайплайнам</value>
+  </data>
+  <data name="TriageNone" xml:space="preserve">
+    <value>Карточек пока нет: распределение считается по доске.</value>
+  </data>
+  <data name="ReindexProject" xml:space="preserve">
+    <value>Переиндексировать проект</value>
+  </data>
+  <data name="ReindexDone" xml:space="preserve">
+    <value>Проект переиндексирован.</value>
+  </data>
+  <data name="ReindexDoneCounts" xml:space="preserve">
+    <value>Переиндексировано: карточек {0}, связей {1}, документов памяти {2}</value>
+  </data>
+  <data name="ReindexFailed" xml:space="preserve">
+    <value>Не удалось переиндексировать проект: {0}</value>
+  </data>
+  <data name="StageLoad" xml:space="preserve">
+    <value>Карточки по этапам</value>
+  </data>
+  <data name="VelocityTitle" xml:space="preserve">
+    <value>Скорость конвейера</value>
+  </data>
+  <data name="VelocityHint" xml:space="preserve">
+    <value>Сколько карточек вошло в этап, по неделям, за последние {0} недель</value>
+  </data>
+  <data name="VelocityTotal" xml:space="preserve">
+    <value>переходов за окно: {0}</value>
+  </data>
+  <data name="VelocityNone" xml:space="preserve">
+    <value>Переходов пока нет: они считаются по мере работы с доской.</value>
+  </data>
+  <data name="TriageTitle" xml:space="preserve">
+    <value>Распределение по типам</value>
+  </data>
+  <data name="TriageHint" xml:space="preserve">
+    <value>Из чего состоят карточки проекта</value>
+  </data>
+  <data name="UptimeLabel" xml:space="preserve">
+    <value>Аптайм</value>
+  </data>
+  <data name="RunsAndCrashes" xml:space="preserve">
+    <value>запусков: {0} · без чистого останова: {1}</value>
+  </data>
+  <data name="MemoryProfile" xml:space="preserve">
+    <value>Профиль памяти</value>
+  </data>
+  <data name="ManagedHeap" xml:space="preserve">
+    <value>managed heap {0}</value>
+  </data>
+  <data name="StageLoadHint" xml:space="preserve">
+    <value>Каждая полоса - доля этапа от самого нагруженного этапа его конвейера</value>
+  </data>
+  <data name="StageStatePending" xml:space="preserve">
+    <value>Ожидает</value>
+  </data>
+  <data name="StageStateRunning" xml:space="preserve">
+    <value>Выполняется</value>
+  </data>
+  <data name="StageStatePaused" xml:space="preserve">
+    <value>Приостановлено</value>
+  </data>
+  <data name="StageStateWaiting" xml:space="preserve">
+    <value>Ожидание решения</value>
+  </data>
+  <data name="StageStateBlocked" xml:space="preserve">
+    <value>Сбой</value>
+  </data>
+  <data name="StageStateDone" xml:space="preserve">
+    <value>Этап завершён</value>
+  </data>
+  <data name="StagesFinishedCount" xml:space="preserve">
+    <value>этапов завершено: {0}</value>
+  </data>
+  <data name="GitHubRepository" xml:space="preserve">
+    <value>Aiko на GitHub</value>
+  </data>
+  <data name="TemplateScope" xml:space="preserve">
+    <value>Workflow по умолчанию</value>
+  </data>
+  <data name="TemplateSettingsHeading" xml:space="preserve">
+    <value>Настройки workflow по умолчанию</value>
+  </data>
+  <data name="TemplateSettingsHint" xml:space="preserve">
+    <value>С чем создаётся новый проект: настройки выполнения, модель оценки и конвейеры. Существующие проекты хранят свою копию и не затрагиваются.</value>
+  </data>
+  <data name="SaveTemplateSettings" xml:space="preserve">
+    <value>Сохранить шаблон</value>
+  </data>
+  <data name="SizeGridPickHint" xml:space="preserve">
+    <value>Выберите размер, чтобы изменить его название, коэффициент и описание.</value>
+  </data>
+  <data name="SizeGrid" xml:space="preserve">
+    <value>Сетка размеров</value>
+  </data>
+  <data name="SizeGridHint" xml:space="preserve">
+    <value>Агент выставляет размер по этим описаниям, а коэффициент умножает score карточки</value>
+  </data>
+  <data name="AddSize" xml:space="preserve">
+    <value>Добавить размер</value>
+  </data>
+  <data name="NoSizes" xml:space="preserve">
+    <value>Размеров нет: карточки считаются без размерного множителя.</value>
+  </data>
+  <data name="SizeIdLabel" xml:space="preserve">
+    <value>Размер</value>
+  </data>
+  <data name="SizeCoefficient" xml:space="preserve">
+    <value>Коэффициент</value>
+  </data>
+  <data name="SizeDescription" xml:space="preserve">
+    <value>Описание</value>
+  </data>
+  <data name="SizeDescriptionHint" xml:space="preserve">
+    <value>Что агент читает, чтобы выбрать этот размер</value>
+  </data>
+  <data name="SizeIdRequired" xml:space="preserve">
+    <value>У каждого размера должен быть идентификатор.</value>
+  </data>
+  <data name="InvalidSizeCoefficient" xml:space="preserve">
+    <value>Коэффициент размера должен быть больше нуля.</value>
+  </data>
+  <data name="DuplicateSizeId" xml:space="preserve">
+    <value>Размер "{0}" указан дважды.</value>
+  </data>
+  <data name="InvalidCriterionRange" xml:space="preserve">
+    <value>Верхняя граница критерия должна быть больше нижней.</value>
+  </data>
+  <data name="SkillsBefore" xml:space="preserve">
+    <value>Скиллы до инструкции</value>
+  </data>
+  <data name="SkillsBeforeHelper" xml:space="preserve">
+    <value>По одному скиллу в строке. Агент вызывает их перед чтением инструкции — контекст, поиск, индексация.</value>
+  </data>
+  <data name="SkillsAfter" xml:space="preserve">
+    <value>Скиллы после инструкции</value>
+  </data>
+  <data name="SkillsAfterHelper" xml:space="preserve">
+    <value>По одному скиллу в строке. Агент вызывает их, когда инструкция выполнена — отчёт, проверка, передача.</value>
+  </data>
+  <data name="RemoveStage" xml:space="preserve">
+    <value>Удалить этот этап</value>
+  </data>
+  <data name="ProjectOverrideScope" xml:space="preserve">
+    <value>Переопределения проекта</value>
+  </data>
+  <data name="ProjectSettingsHeading" xml:space="preserve">
+    <value>Настройки проекта</value>
+  </data>
+  <data name="ProjectSettingsHint" xml:space="preserve">
+    <value>С чем работает этот проект. Значения лежат в .aiko/settings.json и не меняются вместе с настройками установки.</value>
+  </data>
+  <data name="ChangeWorkflow" xml:space="preserve">
+    <value>Сменить workflow</value>
+  </data>
+  <data name="ChangeWorkflowHint" xml:space="preserve">
+    <value>Заменяет workflow, проекции доски и настройки проекта на выбранный набор. Карточки, запуски и память остаются; набор, из-за которого карточка окажется вне своего конвейера, будет отклонён.</value>
+  </data>
+  <data name="ChangeWorkflowApply" xml:space="preserve">
+    <value>Сменить</value>
+  </data>
+  <data name="ChangeWorkflowEmpty" xml:space="preserve">
+    <value>Нет наборов workflow, на которые можно переключиться.</value>
+  </data>
+  <data name="CreateTemplateFromProject" xml:space="preserve">
+    <value>Создать шаблон</value>
+  </data>
+  <data name="CreateTemplateFromProjectHint" xml:space="preserve">
+    <value>Сохраняет workflow, проекции, настройки и память проекта как шаблон, из которого можно создавать другие проекты.</value>
+  </data>
+  <data name="StageRoleInitial" xml:space="preserve">
+    <value>Начальный</value>
+  </data>
+  <data name="StageRoleTerminal" xml:space="preserve">
+    <value>Финальный</value>
+  </data>
+  <data name="AllowedExecutors" xml:space="preserve">
+    <value>Разрешённые исполнители</value>
+  </data>
+  <data name="AllowedExecutorsHint" xml:space="preserve">
+    <value>Если не выбрано ни одного агента, этап может запускать любой найденный агент.</value>
+  </data>
+  <data name="NoAgentsDiscovered" xml:space="preserve">
+    <value>На этой машине не найдено ни одного адаптера агента.</value>
+  </data>
+  <data name="AnyAgent" xml:space="preserve">
+    <value>Любой агент</value>
+  </data>
+  <data name="ValidationCommands" xml:space="preserve">
+    <value>Команды проверки</value>
+  </data>
+  <data name="ValidationCommandsHelper" xml:space="preserve">
+    <value>По одной команде в строке. Они записываются как definition of done этапа и показываются агенту; Aiko их не исполняет.</value>
+  </data>
+  <data name="NoSize" xml:space="preserve">
+    <value>Без размера</value>
+  </data>
+  <data name="SizeHintEmpty" xml:space="preserve">
+    <value>Без шага: коэффициент размера нейтральный (x1.00)</value>
+  </data>
+  <data name="Template" xml:space="preserve">
+    <value>Шаблон</value>
+  </data>
+  <data name="TemplateHint" xml:space="preserve">
+    <value>Копируется в проект при создании: фиксирует этапы и их артефакты, проекции доски, стартовую память и значения по умолчанию. Изменение шаблона позже влияет только на проекты, созданные после этого.</value>
+  </data>
+  <data name="TemplatesNav" xml:space="preserve">
+    <value>Workflow</value>
+  </data>
+  <data name="TemplatesTitle" xml:space="preserve">
+    <value>Workflow</value>
+  </data>
+  <data name="TemplatesHeading" xml:space="preserve">
+    <value>Workflow</value>
+  </data>
+  <data name="TemplatesHint" xml:space="preserve">
+    <value>Из чего создаётся новый проект: этапы и артефакты пайплайнов, проекции доски, стартовая память, значения по умолчанию и git-политика. Набор копируется в проект при init и больше не читается, поэтому проект автономен — а «Применить» это единственное действие, которое доходит до уже существующего проекта.</value>
+  </data>
+  <data name="TemplatesCount" xml:space="preserve">
+    <value>наборов: {0}</value>
+  </data>
+  <data name="TemplateDefault" xml:space="preserve">
+    <value>по умолчанию</value>
+  </data>
+  <data name="TemplateBuiltIn" xml:space="preserve">
+    <value>встроенный</value>
+  </data>
+  <data name="CaptureFromProject" xml:space="preserve">
+    <value>Снять с проекта</value>
+  </data>
+  <data name="CaptureFromProjectHint" xml:space="preserve">
+    <value>Читает настройки проекта, пайплайны, проекции, память и git-политику в новый шаблон</value>
+  </data>
+  <data name="CaptureFromProjectMissing" xml:space="preserve">
+    <value>Сначала зарегистрируйте проект: шаблон снимается с него.</value>
+  </data>
+  <data name="TemplateIdLabel" xml:space="preserve">
+    <value>Идентификатор</value>
+  </data>
+  <data name="TemplateIdHelper" xml:space="preserve">
+    <value>Буквы, цифры, дефисы и подчёркивания, например backend-default</value>
+  </data>
+  <data name="TemplateIdRequired" xml:space="preserve">
+    <value>Укажите идентификатор шаблона.</value>
+  </data>
+  <data name="TemplateCaptured" xml:space="preserve">
+    <value>Шаблон снят с проекта.</value>
+  </data>
+  <data name="TemplateCopied" xml:space="preserve">
+    <value>Шаблон скопирован.</value>
+  </data>
+  <data name="TemplateDeleted" xml:space="preserve">
+    <value>Шаблон удалён.</value>
+  </data>
+  <data name="DeleteTemplateConfirm" xml:space="preserve">
+    <value>Удалить этот шаблон? Проекты, созданные из него, не затрагиваются.</value>
+  </data>
+  <data name="DuplicateTemplate" xml:space="preserve">
+    <value>Дублировать</value>
+  </data>
+  <data name="TemplatesUnavailable" xml:space="preserve">
+    <value>Шаблоны недоступны: {0}</value>
+  </data>
+  <data name="ImportTemplate" xml:space="preserve">
+    <value>Импортировать шаблон</value>
+  </data>
+  <data name="ImportTemplateHint" xml:space="preserve">
+    <value>Читает документ шаблона, экспортированный другой установкой</value>
+  </data>
+  <data name="ImportTemplateIdHelper" xml:space="preserve">
+    <value>Оставьте пустым, чтобы сохранить идентификатор из файла</value>
+  </data>
+  <data name="TemplateImported" xml:space="preserve">
+    <value>Шаблон импортирован.</value>
+  </data>
+  <data name="Import" xml:space="preserve">
+    <value>Импорт</value>
+  </data>
+  <data name="Export" xml:space="preserve">
+    <value>Экспорт</value>
+  </data>
+  <data name="TemplateExported" xml:space="preserve">
+    <value>Шаблон записан в {0}</value>
+  </data>
+  <data name="TemplatePathLabel" xml:space="preserve">
+    <value>Файл</value>
+  </data>
+  <data name="TemplatePathHelper" xml:space="preserve">
+    <value>Абсолютный путь, например C:\Aiko\templates\backend.json</value>
+  </data>
+  <data name="TemplatePathRequired" xml:space="preserve">
+    <value>Укажите путь к файлу.</value>
+  </data>
+  <data name="ApplyToProject" xml:space="preserve">
+    <value>Применить к проекту</value>
+  </data>
+  <data name="Apply" xml:space="preserve">
+    <value>Применить</value>
+  </data>
+  <data name="ApplyTemplateHint" xml:space="preserve">
+    <value>Заменяет пайплайны, проекции и настройки проекта на шаблонные, дописывает память там, где у проекта её нет, и перенимает git-политику. Карточки, запуски и память остаются; действие отклоняется, если карточка оказалась бы на этапе, которого в шаблоне нет.</value>
+  </data>
+  <data name="TemplateApplied" xml:space="preserve">
+    <value>Шаблон применён к {0}.</value>
+  </data>
+  <data name="TemplateFirstProjectHint" xml:space="preserve">
+    <value>В этой установке шаблонов пока нет; первый проект создаётся из встроенного шаблона по умолчанию, который записывается рядом с базой демона.</value>
+  </data>
+  <data name="ProjectLabel" xml:space="preserve">
+    <value>Проект</value>
+  </data>
+  <data name="CoreFallbackConfig" xml:space="preserve">
+    <value>Базовая конфигурация ядра</value>
+  </data>
+  <data name="ImmutableSync" xml:space="preserve">
+    <value>Неизменяемый источник</value>
+  </data>
+  <data name="ResetToDefaults" xml:space="preserve">
+    <value>Сбросить к системным значениям</value>
+  </data>
+  <data name="DaemonHostSecurity" xml:space="preserve">
+    <value>Транспорт и учётные данные демона</value>
+  </data>
+  <data name="DaemonHostSecurityHint" xml:space="preserve">
+    <value>Изолированный loopback-транспорт ядра и ключи рукопожатия</value>
+  </data>
+  <data name="LoopbackSafe" xml:space="preserve">
+    <value>Только loopback</value>
+  </data>
+  <data name="LocalPortLabel" xml:space="preserve">
+    <value>Локальный порт</value>
+  </data>
+  <data name="LocalPortHint" xml:space="preserve">
+    <value>Выбирается установщиком и сохраняется рядом с базой</value>
+  </data>
+  <data name="ListenAddressLabel" xml:space="preserve">
+    <value>Адрес прослушивания</value>
+  </data>
+  <data name="ListenAddressHint" xml:space="preserve">
+    <value>Только loopback - Aiko не открывает внешний интерфейс</value>
+  </data>
+  <data name="PairingTokenLabel" xml:space="preserve">
+    <value>Токен спаривания (MCP / CLI)</value>
+  </data>
+  <data name="PairingTokenHint" xml:space="preserve">
+    <value>Демон проверяет токен на каждом вызове REST и MCP; этот браузер хранит его в HttpOnly-cookie</value>
+  </data>
+  <data name="CreatePairingLink" xml:space="preserve">
+    <value>Создать ссылку сопряжения</value>
+  </data>
+  <data name="PairingLinkHint" xml:space="preserve">
+    <value>Одноразовый код: открытие ссылки спаривает браузер с этим демоном</value>
+  </data>
+  <data name="PairingLinkFailed" xml:space="preserve">
+    <value>Не удалось создать ссылку сопряжения: {0}</value>
+  </data>
+  <data name="DefaultsForNewProjects" xml:space="preserve">
+    <value>Значения по умолчанию для новых проектов</value>
+  </data>
+  <data name="DefaultsForNewProjectsHint" xml:space="preserve">
+    <value>Применяются к новому проекту; проект со своими значениями сохраняет их</value>
+  </data>
+  <data name="SafeDefaultsTag" xml:space="preserve">
+    <value>Безопасные значения</value>
+  </data>
+  <data name="ConcurrencyHint" xml:space="preserve">
+    <value>Максимум одновременных запусков агентов</value>
+  </data>
+  <data name="ConcurrencyRecommended" xml:space="preserve">
+    <value>Рекомендуется: один агент на кодовую базу, чтобы запуски не сталкивались в одном checkout</value>
+  </data>
+  <data name="ScopeOverlapHint" xml:space="preserve">
+    <value>Что делает планировщик, когда два запуска объявляют одни файлы</value>
+  </data>
+  <data name="ScopeStrictTitle" xml:space="preserve">
+    <value>Блокировать запуск</value>
+  </data>
+  <data name="ScopeStrictHint" xml:space="preserve">
+    <value>Пересекающаяся карточка ждёт завершения конфликтующего запуска</value>
+  </data>
+  <data name="ScopeAskTitle" xml:space="preserve">
+    <value>Предупредить и спросить</value>
+  </data>
+  <data name="ScopeAskHint" xml:space="preserve">
+    <value>Запуск начинается только после вашего подтверждения</value>
+  </data>
+  <data name="ScopeFreeTitle" xml:space="preserve">
+    <value>Разрешить</value>
+  </data>
+  <data name="ScopeFreeHint" xml:space="preserve">
+    <value>Оба запуска идут; пересекающиеся правки попадают в один checkout</value>
+  </data>
+  <data name="CommitPolicyHint" xml:space="preserve">
+    <value>Кто коммитит в общем checkout</value>
+  </data>
+  <data name="CommitDenyTitle" xml:space="preserve">
+    <value>Коммитите вы</value>
+  </data>
+  <data name="CommitDenyHint" xml:space="preserve">
+    <value>Агент не коммитит; он сообщает, что изменил</value>
+  </data>
+  <data name="CommitAskTitle" xml:space="preserve">
+    <value>Подтверждать каждый коммит</value>
+  </data>
+  <data name="CommitAskHint" xml:space="preserve">
+    <value>Агент спрашивает и ждёт; выполнение приостанавливается до подтверждения</value>
+  </data>
+  <data name="CommitAllowTitle" xml:space="preserve">
+    <value>Коммитит агент</value>
+  </data>
+  <data name="CommitAllowHint" xml:space="preserve">
+    <value>Агент коммитит и сообщает SHA</value>
+  </data>
+  <data name="PushPolicy" xml:space="preserve">
+    <value>Push в общий checkout</value>
+  </data>
+  <data name="PushPolicyHint" xml:space="preserve">
+    <value>Кто пушит из общего checkout - правило, которое агент читает: своего push у Aiko нет</value>
+  </data>
+  <data name="PushDenyTitle" xml:space="preserve">
+    <value>Пушите вы</value>
+  </data>
+  <data name="PushDenyHint" xml:space="preserve">
+    <value>Агент не пушит</value>
+  </data>
+  <data name="PushAskTitle" xml:space="preserve">
+    <value>Подтверждать каждый push</value>
+  </data>
+  <data name="PushAskHint" xml:space="preserve">
+    <value>Агент спрашивает перед пушем и ждёт вашего ответа</value>
+  </data>
+  <data name="PushAllowTitle" xml:space="preserve">
+    <value>Пушит агент</value>
+  </data>
+  <data name="PushAllowHint" xml:space="preserve">
+    <value>Агент может пушить и сообщает, что запушил</value>
+  </data>
+  <data name="ScopeExpansionPolicy" xml:space="preserve">
+    <value>Расширение объёма карточки</value>
+  </data>
+  <data name="ScopeExpansionPolicyHint" xml:space="preserve">
+    <value>Что произойдёт, если агенту понадобится файл вне объявленного объёма карточки. Это не тот же вопрос, что у политики пересечения выше: та — про два запуска с одинаковыми файлами</value>
+  </data>
+  <data name="ScopeExpansionDenyTitle" xml:space="preserve">
+    <value>Отказать</value>
+  </data>
+  <data name="ScopeExpansionDenyHint" xml:space="preserve">
+    <value>Запрос отклоняется и ничего не пишется: агент останавливается и говорит, какие файлы ему нужны</value>
+  </data>
+  <data name="ScopeExpansionAskTitle" xml:space="preserve">
+    <value>Спросить</value>
+  </data>
+  <data name="ScopeExpansionAskHint" xml:space="preserve">
+    <value>Запуск ждёт, пока человек ответит на запрос</value>
+  </data>
+  <data name="ScopeExpansionAllowTitle" xml:space="preserve">
+    <value>Разрешить</value>
+  </data>
+  <data name="ScopeExpansionAllowHint" xml:space="preserve">
+    <value>Файлы дописываются в объём карточки, и запуск продолжается, не останавливаясь</value>
+  </data>
+  <data name="CrossProjectWrite" xml:space="preserve">
+    <value>Писать в другие проекты</value>
+  </data>
+  <data name="CrossProjectPolicyHint" xml:space="preserve">
+    <value>Может ли агент, работающий здесь, заводить карточки в соседнем проекте и на каких условиях.</value>
+  </data>
+  <data name="CrossProjectTargets" xml:space="preserve">
+    <value>Куда этому проекту можно писать</value>
+  </data>
+  <data name="CrossProjectTargetsHint" xml:space="preserve">
+    <value>Пустой список — можно писать в любой проект. Чтобы ограничить, перечислите id или handle по одному на строку.</value>
+  </data>
+  <data name="CrossProjectTargetsPlaceholder" xml:space="preserve">
+    <value>По одному id или handle на строку; пусто — можно любой</value>
+  </data>
+  <data name="CrossDenyTitle" xml:space="preserve">
+    <value>Запрещать</value>
+  </data>
+  <data name="CrossDenyHint" xml:space="preserve">
+    <value>Снаружи ничего не создаётся: агенту сообщается, что карточку нужно завести вручную</value>
+  </data>
+  <data name="CrossAskTitle" xml:space="preserve">
+    <value>Спрашивать</value>
+  </data>
+  <data name="CrossAskHint" xml:space="preserve">
+    <value>Каждая передача подтверждается вами до создания карточки</value>
+  </data>
+  <data name="CrossAllowTitle" xml:space="preserve">
+    <value>Разрешать</value>
+  </data>
+  <data name="CrossAllowHint" xml:space="preserve">
+    <value>Карточка из другого проекта создаётся без вопросов, а происхождение записывается на ней</value>
+  </data>
+  <data name="LinkedProjects" xml:space="preserve">
+    <value>Связанные проекты</value>
+  </data>
+  <data name="LinkedProjectsHint" xml:space="preserve">
+    <value>Проекты, которым этот проект передаёт работу. Описание говорит, чем каждый из них занят, и агент читает его прежде, чем решить, что запрос относится туда, а не сюда.</value>
+  </data>
+  <data name="LinkedProjectsNone" xml:space="preserve">
+    <value>Связанных проектов пока нет.</value>
+  </data>
+  <data name="LinkedProjectsPick" xml:space="preserve">
+    <value>Проект</value>
+  </data>
+  <data name="LinkedProjectsPickHint" xml:space="preserve">
+    <value>Проект, зарегистрированный в этой установке Aiko</value>
+  </data>
+  <data name="LinkedProjectsPickNone" xml:space="preserve">
+    <value>Выберите проект</value>
+  </data>
+  <data name="LinkedProjectsDescription" xml:space="preserve">
+    <value>Чем он занят</value>
+  </data>
+  <data name="LinkedProjectsDescriptionPlaceholder" xml:space="preserve">
+    <value>Например: десктопный клиент - работа по UI пишется туда</value>
+  </data>
+  <data name="LinkedProjectsReference" xml:space="preserve">
+    <value>Где лежит справочник</value>
+  </data>
+  <data name="LinkedProjectsReferencePlaceholder" xml:space="preserve">
+    <value>Путь или адрес к документации, справочнику API или точке входа; можно оставить пустым</value>
+  </data>
+  <data name="LinkedProjectsWhenToUse" xml:space="preserve">
+    <value>Работа идёт туда, когда</value>
+  </data>
+  <data name="LinkedProjectsWhenToUsePlaceholder" xml:space="preserve">
+    <value>Когда работа принадлежит тому проекту; можно оставить пустым</value>
+  </data>
+  <data name="LinkedProjectsWhenNotToUse" xml:space="preserve">
+    <value>Не идёт туда, когда</value>
+  </data>
+  <data name="LinkedProjectsWhenNotToUsePlaceholder" xml:space="preserve">
+    <value>Когда она принадлежит этому проекту; можно оставить пустым</value>
+  </data>
+  <data name="LinkedProjectsAdd" xml:space="preserve">
+    <value>Связать проект</value>
+  </data>
+  <data name="LinkedProjectsRemove" xml:space="preserve">
+    <value>Убрать связь</value>
+  </data>
+  <data name="LinkedProjectsNav" xml:space="preserve">
+    <value>Связанные проекты</value>
+  </data>
+  <data name="LinkedProjectsMovedHint" xml:space="preserve">
+    <value>Связи редактируются на отдельном экране, который открывается из меню, поэтому здесь только указатель.</value>
+  </data>
+  <data name="LinkedProjectsOpen" xml:space="preserve">
+    <value>Открыть связанные проекты</value>
+  </data>
+  <data name="LinkedProjectsEdit" xml:space="preserve">
+    <value>Изменить описание</value>
+  </data>
+  <data name="LinkedProjectsSave" xml:space="preserve">
+    <value>Сохранить</value>
+  </data>
+  <data name="LinkedProjectsCancel" xml:space="preserve">
+    <value>Отмена</value>
+  </data>
+  <data name="CardOriginTitle" xml:space="preserve">
+    <value>Откуда карточка</value>
+  </data>
+  <data name="CardOriginTag" xml:space="preserve">
+    <value>Кросс-проектная</value>
+  </data>
+  <data name="PriorityFormulaTitle" xml:space="preserve">
+    <value>Формула приоритета</value>
+  </data>
+  <data name="OwnWeightLabel" xml:space="preserve">
+    <value>Вес собственной оценки</value>
+  </data>
+  <data name="ParentWeightLabel" xml:space="preserve">
+    <value>Вес родительской оценки</value>
+  </data>
+  <data name="FormulaVersion" xml:space="preserve">
+    <value>Версия формулы</value>
+  </data>
+  <data name="SelfDiagnostic" xml:space="preserve">
+    <value>Установка и диагностика</value>
+  </data>
+  <data name="SelfDiagnosticHint" xml:space="preserve">
+    <value>Что проверяет aiko doctor: каталог данных, токен, endpoint и конфигурации агентов</value>
+  </data>
+  <data name="DoctorAllNominal" xml:space="preserve">
+    <value>Все проверки пройдены</value>
+  </data>
+  <data name="DoctorHasProblems" xml:space="preserve">
+    <value>Требует внимания</value>
+  </data>
+  <data name="RunDoctor" xml:space="preserve">
+    <value>Запустить Doctor</value>
+  </data>
+  <data name="DoctorChecklist" xml:space="preserve">
+    <value>Телеметрия Doctor</value>
+  </data>
+  <data name="PriorityFormulaExpression" xml:space="preserve">
+    <value>эффективный = (вес своей оценки x своя оценка + вес родительской x максимальная родительская) / (сумма весов)</value>
+  </data>
+  <data name="DiagnosticsFailed" xml:space="preserve">
+    <value>Не удалось получить диагностику: {0}</value>
+  </data>
+  <data name="BacklogNav" xml:space="preserve">
+    <value>Бэклог</value>
+  </data>
+  <data name="BacklogTitle" xml:space="preserve">
+    <value>Бэклог</value>
+  </data>
+  <data name="BacklogCaption" xml:space="preserve">
+    <value>Все карточки, ещё не взятые в работу, собранные из бэклог-колонки каждого типа карточек.</value>
+  </data>
+  <data name="BacklogEmpty" xml:space="preserve">
+    <value>В бэклоге ничего не ждёт.</value>
+  </data>
+  <data name="BacklogTakeIntoWork" xml:space="preserve">
+    <value>Взять в работу</value>
+  </data>
+  <data name="BacklogTaken" xml:space="preserve">
+    <value>Карточка {0} взята в работу.</value>
+  </data>
+  <data name="CardTypeDescription" xml:space="preserve">
+    <value>Описание</value>
+  </data>
+  <data name="CardTypeIcon" xml:space="preserve">
+    <value>Иконка</value>
+  </data>
+  <data name="CardTypeColor" xml:space="preserve">
+    <value>Цвет</value>
+  </data>
+  <data name="TypeBlendsWithParent" xml:space="preserve">
+    <value>Смешивает оценку с родителями</value>
+  </data>
+  <data name="TypeBlendsWithParentHint" xml:space="preserve">
+    <value>Карточка этого типа смешивает свою оценку с лучшей оценкой родителей. Выключите для типа, который сохраняет свою оценку.</value>
+  </data>
+  <data name="StageIcon" xml:space="preserve">
+    <value>Иконка колонки</value>
+  </data>
+  <data name="StageColor" xml:space="preserve">
+    <value>Цвет колонки</value>
+  </data>
+  <data name="AppearanceDefault" xml:space="preserve">
+    <value>По умолчанию</value>
+  </data>
+  <data name="RemoveCardType" xml:space="preserve">
+    <value>Удалить тип карточек</value>
+  </data>
+  <data name="NewCardTypeTitle" xml:space="preserve">
+    <value>Новый тип карточек</value>
+  </data>
+  <data name="CardTypeIdHelper" xml:space="preserve">
+    <value>ID типа, например epic</value>
+  </data>
+  <data name="CardTypeIdHint" xml:space="preserve">
+    <value>Id — это идентичность типа: он задаёт папку, в которой лежат его карточки, и секцию доски, которая их показывает</value>
+  </data>
+  <data name="CardTypeIdFixed" xml:space="preserve">
+    <value>Переименовать можно только тип, у которого ещё нет карточек</value>
+  </data>
+  <data name="CardTypeSaved" xml:space="preserve">
+    <value>Тип карточек сохранён.</value>
+  </data>
+  <data name="SaveCardType" xml:space="preserve">
+    <value>Сохранить тип</value>
+  </data>
+  <data name="CardTypeName" xml:space="preserve">
+    <value>Название типа</value>
+  </data>
+  <data name="AddCardType" xml:space="preserve">
+    <value>Добавить тип карточек</value>
+  </data>
+  <data name="CardTypeIdInvalid" xml:space="preserve">
+    <value>ID типа — строчные латинские буквы, цифры и дефисы.</value>
+  </data>
+  <data name="CardTypeIdTitleRequired" xml:space="preserve">
+    <value>Укажите ID и название типа.</value>
+  </data>
+  <data name="CardTypeExists" xml:space="preserve">
+    <value>Тип карточек «{0}» уже существует.</value>
+  </data>
+  <data name="CardTypeCreated" xml:space="preserve">
+    <value>Тип карточек «{0}» создан.</value>
+  </data>
+  <data name="BacklogStageFirst" xml:space="preserve">
+    <value>Бэклог всегда первый статус: поставить что-либо перед ним нельзя.</value>
+  </data>
+  <data name="BacklogStageReserved" xml:space="preserve">
+    <value>Бэклог — стандартная колонка, её нельзя удалить.</value>
+  </data>
+  <data name="StageTitleBacklog" xml:space="preserve">
+    <value>Бэклог</value>
+  </data>
+  <data name="StageTitleInProgress" xml:space="preserve">
+    <value>В работе</value>
+  </data>
+  <data name="StageTitleDone" xml:space="preserve">
+    <value>Готово</value>
+  </data>
+  <data name="NewTypeBacklogInstruction" xml:space="preserve">
+    <value>Уточните запрос, объём и связи.</value>
+  </data>
+  <data name="NewTypeWorkInstruction" xml:space="preserve">
+    <value>Выполните работу и зафиксируйте фактические изменения.</value>
+  </data>
+  <data name="NewTypeDoneInstruction" xml:space="preserve">
+    <value>Зафиксируйте результат.</value>
+  </data>
+  <data name="Name" xml:space="preserve">
+    <value>Имя (необязательно)</value>
+  </data>
+  <data name="Delete" xml:space="preserve">
+    <value>Удалить</value>
+  </data>
+  <data name="DeleteCardTypeConfirm" xml:space="preserve">
+    <value>Удалить этот тип карточек? Его конвейер будет удалён; уже созданные карточки не затрагиваются.</value>
+  </data>
+  <data name="DeleteCardTypeHasCards" xml:space="preserve">
+    <value>В типе ещё есть карточки, поэтому удалить его пока нельзя.</value>
+  </data>
+  <data name="ProjectIdLabel" xml:space="preserve">
+    <value>ID проекта</value>
+  </data>
+  <data name="ProjectIdInvalid" xml:space="preserve">
+    <value>ID может содержать строчные латинские буквы, цифры и дефисы.</value>
+  </data>
+  <data name="ProjectIdTaken" xml:space="preserve">
+    <value>Этот ID уже занят другим проектом.</value>
+  </data>
+  <data name="InitializationTitle" xml:space="preserve">
+    <value>Инициализация проекта</value>
+  </data>
+  <data name="InitializationHint" xml:space="preserve">
+    <value>Что агент делает сразу после создания проекта по этому шаблону - например структура, которая должна быть у проекта. Копируется в проект как .aiko/initialization.md и остаётся там.</value>
+  </data>
+  <data name="SaveTemplate" xml:space="preserve">
+    <value>Сохранить шаблон</value>
+  </data>
+  <data name="TemplateSaved" xml:space="preserve">
+    <value>Шаблон сохранён.</value>
+  </data>
+  <data name="CardTypeRevision" xml:space="preserve">
+    <value>Тип карточек · rev {0}</value>
+  </data>
+  <data name="CommandsTitle" xml:space="preserve">
+    <value>Команда агенту</value>
+  </data>
+  <data name="CommandsHint" xml:space="preserve">
+    <value>Aiko не запускает агентов, поэтому просьба ждёт в очереди проекта, пока агент не запустится и не заберёт её, — а его отчёт появляется здесь.</value>
+  </data>
+  <data name="CommandExamples" xml:space="preserve">
+    <value>Запустить самому в терминале</value>
+  </data>
+  <data name="CommandAction" xml:space="preserve">
+    <value>Что попросить</value>
+  </data>
+  <data name="CommandStart" xml:space="preserve">
+    <value>Начать этап</value>
+  </data>
+  <data name="CommandPause" xml:space="preserve">
+    <value>Поставить прогон на паузу</value>
+  </data>
+  <data name="CommandResume" xml:space="preserve">
+    <value>Продолжить прогон</value>
+  </data>
+  <data name="CommandAnswer" xml:space="preserve">
+    <value>Ответить на вопрос прогона</value>
+  </data>
+  <data name="CommandText" xml:space="preserve">
+    <value>Что передать агенту</value>
+  </data>
+  <data name="CommandPauseHint" xml:space="preserve">
+    <value>Почему пауза — это прочитает тот, кто продолжит прогон.</value>
+  </data>
+  <data name="CommandAnswerHint" xml:space="preserve">
+    <value>Ответ; он попадёт в ленту карточки и разбудит прогон.</value>
+  </data>
+  <data name="PlaceCommand" xml:space="preserve">
+    <value>Поставить команду</value>
+  </data>
+  <data name="CommandPlaced" xml:space="preserve">
+    <value>Команда {0} ждёт агента.</value>
+  </data>
+  <data name="CommandFailed" xml:space="preserve">
+    <value>Команду поставить не удалось.</value>
+  </data>
+  <data name="CommandWaiting" xml:space="preserve">
+    <value>ждёт</value>
+  </data>
+  <data name="CommandTaken" xml:space="preserve">
+    <value>взята</value>
+  </data>
+  <data name="CommandDone" xml:space="preserve">
+    <value>выполнена</value>
+  </data>
+  <data name="CommandRefused" xml:space="preserve">
+    <value>не удалась</value>
+  </data>
+  <data name="CommandWithdrawn" xml:space="preserve">
+    <value>отменена</value>
+  </data>
+  <data name="CommandStartHint" xml:space="preserve">
+    <value>Агент начнёт этап «{0}» этой карточки.</value>
+  </data>
+  <data name="CommandRunHint" xml:space="preserve">
+    <value>Агент будет действовать с прогоном {0}.</value>
+  </data>
+  <data name="CommandNoRunHint" xml:space="preserve">
+    <value>У карточки ещё нет прогонов, поэтому можно попросить только «начать этап».</value>
+  </data>
+  <data name="CommandStartCaption" xml:space="preserve">
+    <value>начать этап {0}</value>
+  </data>
+  <data name="CommandCaptionPause" xml:space="preserve">
+    <value>поставить прогон на паузу</value>
+  </data>
+  <data name="CommandCaptionResume" xml:space="preserve">
+    <value>продолжить прогон</value>
+  </data>
+  <data name="CommandCaptionAnswer" xml:space="preserve">
+    <value>ответить на вопрос прогона</value>
+  </data>
+  <data name="CommandCaptionRelease" xml:space="preserve">
+    <value>провести выпуск</value>
+  </data>
+  <data name="RunBoard" xml:space="preserve">
+    <value>Выполнить доску</value>
+  </data>
+  <data name="RunBoardHint" xml:space="preserve">
+    <value>Просит агента довести каждую незаконченную карточку доски — в порядке доски — до конца её конвейера.</value>
+  </data>
+  <data name="AppearanceNav" xml:space="preserve">
+    <value>Внешний вид</value>
+  </data>
+  <data name="AppearanceTitle" xml:space="preserve">
+    <value>Внешний вид</value>
+  </data>
+  <data name="AppearanceHint" xml:space="preserve">
+    <value>Как интерфейс выглядит и читается для вас. Выбор хранится в этом браузере, а не в проекте.</value>
+  </data>
+  <data name="AppearanceLanguage" xml:space="preserve">
+    <value>Язык</value>
+  </data>
+  <data name="AppearanceLanguageHint" xml:space="preserve">
+    <value>Сначала ваш выбор, затем язык браузера, затем английский.</value>
+  </data>
+  <data name="AppearanceReloadHint" xml:space="preserve">
+    <value>Смена языка перезагружает страницу, чтобы весь интерфейс был отрисован на нём.</value>
+  </data>
+  <data name="AppearanceMode" xml:space="preserve">
+    <value>Режим</value>
+  </data>
+  <data name="AppearanceModeHint" xml:space="preserve">
+    <value>Следовать системной настройке или держать одну схему, что бы она ни говорила.</value>
+  </data>
+  <data name="AppearanceModeAuto" xml:space="preserve">
+    <value>Авто</value>
+  </data>
+  <data name="AppearanceModeLight" xml:space="preserve">
+    <value>Светлая</value>
+  </data>
+  <data name="AppearanceModeDark" xml:space="preserve">
+    <value>Тёмная</value>
+  </data>
+  <data name="AppearancePalette" xml:space="preserve">
+    <value>Палитра</value>
+  </data>
+  <data name="AppearancePaletteHint" xml:space="preserve">
+    <value>Целая цветовая схема одной темы. Выбор применяется сразу и хранится в этом браузере.</value>
+  </data>
+  <data name="ReleaseNav" xml:space="preserve">
+    <value>Релиз</value>
+  </data>
+  <data name="ReleaseTitle" xml:space="preserve">
+    <value>Релиз</value>
+  </data>
+  <data name="ReleaseTag" xml:space="preserve">
+    <value>релиз</value>
+  </data>
+  <data name="ReleaseHint" xml:space="preserve">
+    <value>Что уже вышло и откуда релиз заказывают. Aiko не запускает агента и ничего не пишет в репозиторий: экран кладёт просьбу в очередь, а релиз проводит агент, который её возьмёт, — по политике, названной в просьбе.</value>
+  </data>
+  <data name="ReleaseRefresh" xml:space="preserve">
+    <value>Прочитать снова</value>
+  </data>
+  <data name="ReleaseCommandWaiting" xml:space="preserve">
+    <value>Команда {0} ждёт агента.</value>
+  </data>
+  <data name="ReleaseCreateButton" xml:space="preserve">
+    <value>Создать релиз</value>
+  </data>
+  <data name="ReleaseCreateTitle" xml:space="preserve">
+    <value>Новый релиз</value>
+  </data>
+  <data name="ReleaseCreateHint" xml:space="preserve">
+    <value>Aiko не запускает агентов, не пушит тег и ничего не устанавливает: это кладёт команду в очередь, и агент, который её возьмёт, проведёт релиз по выбранной вами политике.</value>
+  </data>
+  <data name="ReleasePolicyLabel" xml:space="preserve">
+    <value>Политика релиза</value>
+  </data>
+  <data name="ReleasePolicyHint" xml:space="preserve">
+    <value>По какому порядку идёт релиз — одна из схем, которые держит проект.</value>
+  </data>
+  <data name="ReleaseAgentLabel" xml:space="preserve">
+    <value>Агент</value>
+  </data>
+  <data name="ReleaseAgentAny" xml:space="preserve">
+    <value>Любой агент</value>
+  </data>
+  <data name="ReleaseAgentHint" xml:space="preserve">
+    <value>Кто проводит. Если не выбирать, просьбу возьмёт тот агент, который придёт следующим.</value>
+  </data>
+  <data name="ReleaseCreateConfirm" xml:space="preserve">
+    <value>Положить просьбу в очередь</value>
+  </data>
+  <data name="ReleaseCreated" xml:space="preserve">
+    <value>Команда {0} в очереди.</value>
+  </data>
+  <data name="ReleaseLoadFailed" xml:space="preserve">
+    <value>Не удалось прочитать экран релиза: {0}</value>
+  </data>
+  <data name="ReleaseProcedureTitle" xml:space="preserve">
+    <value>Как проводится релиз</value>
+  </data>
+  <data name="ReleaseProcedureHint" xml:space="preserve">
+    <value>Порядок выпуска — чтобы его не приходилось собирать из файлов workflow.</value>
+  </data>
+  <data name="ReleaseProcedureOrder" xml:space="preserve">
+    <value>Поставить тег, дождаться, пока workflow выпуска соберёт архив, установить его и подключить агентов заново.</value>
+  </data>
+  <data name="ReleaseProcedureTouches" xml:space="preserve">
+    <value>Установка пишет в %LOCALAPPDATA%\Aiko\bin и добавляет этот каталог в пользовательский PATH.</value>
+  </data>
+  <data name="ReleaseProcedureKeeps" xml:space="preserve">
+    <value>Проект не затрагивается: .aiko, aiko.db и токен доступа остаются на месте.</value>
+  </data>
+  <data name="ReleaseProcedureOpen" xml:space="preserve">
+    <value>Открыть экран выпуска</value>
+  </data>
+  <data name="ReleaseSchemes" xml:space="preserve">
+    <value>Схемы релиза</value>
+  </data>
+  <data name="ReleaseSchemesHint" xml:space="preserve">
+    <value>Порядки, по которым может идти релиз этого проекта. Какой именно — выбирается при создании релиза.</value>
+  </data>
+  <data name="ReleaseSchemesShipped" xml:space="preserve">
+    <value>Этот уровень своих схем не завёл, поэтому релиз идёт по схемам Aiko:</value>
+  </data>
+  <data name="ReleaseSchemeShipped" xml:space="preserve">
+    <value>Схема Aiko</value>
+  </data>
+  <data name="ReleaseSchemeId" xml:space="preserve">
+    <value>Идентификатор</value>
+  </data>
+  <data name="ReleaseSchemeIdHelper" xml:space="preserve">
+    <value>Что называет релиз, чтобы идти по этой схеме, например git-release</value>
+  </data>
+  <data name="ReleaseSchemeName" xml:space="preserve">
+    <value>Название</value>
+  </data>
+  <data name="ReleaseSchemeDescription" xml:space="preserve">
+    <value>Для чего она</value>
+  </data>
+  <data name="ReleaseSchemeBody" xml:space="preserve">
+    <value>Как проводится релиз</value>
+  </data>
+  <data name="ReleaseSchemeBodyPlaceholder" xml:space="preserve">
+    <value>1. Убедиться, что дерево зелёное: сборка без предупреждений и все наборы тестов проходят.</value>
+  </data>
+  <data name="ReleaseSchemeBodyHint" xml:space="preserve">
+    <value>Шаги, по которым идёт агент. Этот текст читает агент, поэтому он написан по-английски.</value>
+  </data>
+  <data name="ReleaseHistoryTitle" xml:space="preserve">
+    <value>История выпусков</value>
+  </data>
+  <data name="ReleaseHistoryHint" xml:space="preserve">
+    <value>Что проект выпустил, новые первыми, со схемой, по которой прошёл каждый выпуск.</value>
+  </data>
+  <data name="ReleaseHistoryEmpty" xml:space="preserve">
+    <value>Пока ничего не записано. Выпуск записывает агент, когда тот опубликован.</value>
+  </data>
+  <data name="ReleaseHistoryCards" xml:space="preserve">
+    <value>задач: {0}</value>
+  </data>
+  <data name="ReleaseKindPreliminary" xml:space="preserve">
+    <value>предварительный</value>
+  </data>
+  <data name="ReleaseKindOrdinary" xml:space="preserve">
+    <value>обычный</value>
+  </data>
+  <data name="ReleaseRecordTag" xml:space="preserve">
+    <value>запись выпуска</value>
+  </data>
+  <data name="ReleaseRecordHint" xml:space="preserve">
+    <value>Что вошло в этот выпуск: задачи, названные при записи, схема, по которой он проводился, и день, когда он был записан.</value>
+  </data>
+  <data name="ReleaseRecordBack" xml:space="preserve">
+    <value>Назад к экрану выпуска</value>
+  </data>
+  <data name="ReleaseRecordScheme" xml:space="preserve">
+    <value>Схема</value>
+  </data>
+  <data name="ReleaseRecordDate" xml:space="preserve">
+    <value>Записан</value>
+  </data>
+  <data name="ReleaseRecordTasks" xml:space="preserve">
+    <value>Задачи</value>
+  </data>
+  <data name="ReleaseRecordEmpty" xml:space="preserve">
+    <value>В этот выпуск ничего не вошло: запись не называет ни одной задачи — так выглядит выпуск одних исправлений, не заведённых карточками.</value>
+  </data>
+  <data name="ReleaseRecordMissing" xml:space="preserve">
+    <value>не прочитано</value>
+  </data>
+  <data name="ReleaseRecordFailed" xml:space="preserve">
+    <value>Запись выпуска не удалось прочитать: {0}</value>
+  </data>
+  <data name="ReleaseCardTag" xml:space="preserve">
+    <value>в выпуске</value>
+  </data>
+  <data name="ReleaseCardLine" xml:space="preserve">
+    <value>ушла в выпуск {0}</value>
+  </data>
+  <data name="BoardModeFilter" xml:space="preserve">
+    <value>Вид</value>
+  </data>
+  <data name="BoardSort" xml:space="preserve">
+    <value>Порядок</value>
+  </data>
+  <data name="BoardSortAscending" xml:space="preserve">
+    <value>Сначала низкий приоритет</value>
+  </data>
+  <data name="BoardSortDescending" xml:space="preserve">
+    <value>Сначала высокий приоритет</value>
+  </data>
+  <data name="BoardModeBoard" xml:space="preserve">
+    <value>Доска</value>
+  </data>
+  <data name="BoardModeArchive" xml:space="preserve">
+    <value>Архив</value>
+  </data>
+  <data name="ArchiveTitle" xml:space="preserve">
+    <value>Архив</value>
+  </data>
+  <data name="ArchiveHint" xml:space="preserve">
+    <value>Завершённые карточки, убранные с доски. Ничего не удалено: сама карточка, её лента, прогоны, артефакты и связи на месте.</value>
+  </data>
+  <data name="ArchiveEmpty" xml:space="preserve">
+    <value>В архиве пока ничего нет.</value>
+  </data>
+  <data name="ArchiveRestore" xml:space="preserve">
+    <value>Вернуть на доску</value>
+  </data>
+  <data name="ArchiveWhen" xml:space="preserve">
+    <value>убрана {0}</value>
+  </data>
+  <data name="ArchiveWhenUnknown" xml:space="preserve">
+    <value>убрана, момент неизвестен</value>
+  </data>
+  <data name="ArchiveFailed" xml:space="preserve">
+    <value>Карточку {0} не удалось вернуть на доску: {1}</value>
+  </data>
+  <data name="ArchiveCard" xml:space="preserve">
+    <value>Убрать в архив</value>
+  </data>
+  <data name="ArchiveCardHint" xml:space="preserve">
+    <value>Убрать завершённую карточку в архив: она уходит с доски, и ничего в ней не удаляется.</value>
+  </data>
+  <data name="RestoreCard" xml:space="preserve">
+    <value>Вернуть на доску</value>
+  </data>
+  <data name="RestoreCardHint" xml:space="preserve">
+    <value>Вернуть карточку из архива на ту стадию, с которой её убрали.</value>
+  </data>
+  <data name="ArchiveNotFinished" xml:space="preserve">
+    <value>Убрать в архив можно только карточку, дошедшую до конца своего конвейера; в этой ещё осталась работа.</value>
+  </data>
 </root>

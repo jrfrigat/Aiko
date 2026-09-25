@@ -28,7 +28,7 @@ else
             <FlareStack Gap="FlareSpacing.XXSmall">
                 <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
                     <span class="aiko-tag aiko-tag--accent">@Loc.Get("ProjectStats")</span>
-                    <span class="aiko-tag aiko-tag--quiet aiko-tag--clip" title="@board.Project.RootPath">
+                    <span class="aiko-tag aiko-tag--quiet" title="@board.Project.RootPath">
                         @board.Project.RootPath
                     </span>
                 </FlareStack>
@@ -97,7 +97,7 @@ else
                     </FlareStack>
                     @if (_analytics is { Weekly.Count: > 0 } velocity)
                     {
-                        <FlareChart Type="ChartType.Bar"
+                        <FlareChart Type="ChartType.Line"
                                     Data="@AnalyticsCharts.Velocity(velocity.Weekly)"
                                     Description="@Loc.Get("VelocityTitle")"
                                     Height="240"

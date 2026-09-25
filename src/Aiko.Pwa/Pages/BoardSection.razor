@@ -77,13 +77,13 @@
                                             <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.XXSmall">
                                                 <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall">
                                                     <FlareIconView Value="@FlareIcons.DragIndicator" Class="aiko-card__handle" />
-                                                    <FlareNavLink Href="@CardHref(card)" Class="aiko-card__id">
+                                                    <FlareLink Href="@CardHref(card)" Class="aiko-card__id">
                                                         <ChildContent>
                                                             <FlareText Element="span" Mono="true" Typo="TypographyScale.LabelSmall" Color="FlareColor.Secondary" Weight="FontWeight.SemiBold">
                                                                 #@card.Reference.CardId
                                                             </FlareText>
                                                         </ChildContent>
-                                                    </FlareNavLink>
+                                                    </FlareLink>
 
                                                     @if (!string.IsNullOrWhiteSpace(card.Size))
                                                     {
