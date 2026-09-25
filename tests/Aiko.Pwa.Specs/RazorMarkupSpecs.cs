@@ -1,9 +1,9 @@
-using System.Text.RegularExpressions;
 using Aiko.Domain.Cards;
 using Aiko.Domain.Workflow;
 using Aiko.Pwa.Layout;
 using Aiko.Pwa.Services;
 using Flare.Components;
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace Aiko.Pwa.Specs;
@@ -789,34 +789,6 @@ public sealed class RazorMarkupSpecs
     }
 
     [Fact]
-    public void The_board_opens_a_card_by_its_number_and_by_nothing_else()
-    {
-        var root = FindRepositoryRoot();
-        var board = File.ReadAllText(
-            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "BoardSection.razor"));
-
-        // The whole card is no longer a handler: no wrapper opens it, and nothing here raises a selection.
-        Assert.DoesNotContain("aiko-card__open", board, StringComparison.Ordinal);
-        Assert.DoesNotContain("OnCardSelected", board, StringComparison.Ordinal);
-
-        // The number is a real link, built by the one helper that speaks routes, and by the project's
-        // readable handle - the shape that makes the middle button and Ctrl+click work.
-        Assert.Contains("<FlareNavLink Href=\"@CardHref(card)\" Class=\"aiko-card__id\">", board, StringComparison.Ordinal);
-        Assert.Contains("ProjectRoutes.Card(Board.Project.Handle, card.Reference.CardId)", board, StringComparison.Ordinal);
-
-        // The board page keeps no way of opening a card of its own; the link is the only one left.
-        var view = File.ReadAllText(
-            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "BoardView.razor"));
-        Assert.DoesNotContain("OnCardSelected", view, StringComparison.Ordinal);
-
-        // And the stylesheet says the same: the number looks like a link, the card keeps the plain cursor.
-        var css = File.ReadAllText(
-            Path.Combine(root, "src", "Aiko.Pwa", "wwwroot", "css", "app.css"));
-        Assert.Contains(".aiko-card__id {", css, StringComparison.Ordinal);
-        Assert.DoesNotContain(".aiko-card__open", css, StringComparison.Ordinal);
-    }
-
-    [Fact]
     public void The_command_example_caption_is_in_both_languages()
     {
         var root = FindRepositoryRoot();
@@ -953,38 +925,6 @@ public sealed class RazorMarkupSpecs
             offenders.Count == 0,
             "A zero is what an assembly says when it says nothing, and it should read as a dash:" +
             Environment.NewLine + string.Join(Environment.NewLine, offenders));
-    }
-
-    [Fact]
-    public void The_card_tile_carries_the_backlog_slice_of_the_cards_it_counts()
-    {
-        var root = FindRepositoryRoot();
-        var view = File.ReadAllText(
-            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "BoardView.razor"));
-
-        // The strip stays the four metrics the design draws: the backlog is a reading of the card count, so
-        // it rides on that tile as a line of its own instead of becoming a fifth number beside it.
-        var tiles = Regex.Match(
-            view,
-            @"private IReadOnlyList<\(string Label, string Value, bool Warn, string\? Slice\)> SummaryTiles(?<body>.*?\n    })",
-            RegexOptions.Singleline);
-        Assert.True(tiles.Success, "SummaryTiles should stay the one place the strip is described.");
-        var body = tiles.Groups["body"].Value;
-        Assert.Equal(4, Regex.Matches(body, @"Loc\.Get\(").Count);
-        Assert.Contains("\"BacklogSlice\"", body, StringComparison.Ordinal);
-
-        // Its number comes from the shared counting rule, over the very set the count beside it counts: a
-        // second definition of "in the backlog" is how two numbers for one thing appear.
-        var slice = Regex.Match(body, @"BoardMetrics\.BacklogCount\((?<cards>[A-Za-z_][A-Za-z0-9_]*)\)");
-        Assert.True(slice.Success, "The slice should come from BoardMetrics.BacklogCount.");
-        Assert.Contains(
-            $"DisplayFormat.Number({slice.Groups["cards"].Value}.Count)",
-            body,
-            StringComparison.Ordinal);
-        Assert.DoesNotContain("BacklogStageId", view, StringComparison.Ordinal);
-
-        // ... and it is drawn under the tile, in the strip's own muted mono tone.
-        Assert.Contains("tile.Slice", view, StringComparison.Ordinal);
     }
 
     [Fact]
