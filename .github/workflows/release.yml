@@ -132,11 +132,63 @@ jobs:
           Write-Host "${archive}: $size MB"
           "archive=$archive" >> $env:GITHUB_OUTPUT
 
+          # The checksums of the archive, in the shape the product reads them: two spaces between the hash
+          # and the name, lower case, the asset's own file name. That is what ChecksumFile.Parse accepts and
+          # what ReleaseNaming.ChecksumsAssetName names - a looser spelling is a file the engine cannot use,
+          # and `scripts/install.ps1` would then refuse to install anything.
+          #
+          # utf8NoBOM on purpose: a byte-order mark would sit in front of the first hash.
+          $checksums = "SHA256SUMS"
+          $hash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $archive" | Set-Content -LiteralPath $checksums -Encoding utf8NoBOM
+          Write-Host "${checksums}: $hash"
+          "checksums=$checksums" >> $env:GITHUB_OUTPUT
+
+      # The staged layout is a directory; what a person downloads is the archive, and Compress-Archive sits
+      # between the two. So the entries are checked again inside the file that is actually published, and
+      # the checksum file is checked against that same file: a release whose SHA256SUMS describes something
+      # else is worse than one without it, because an installer would trust it.
+      - name: Verify the packaged archive
+        shell: pwsh
+        run: |
+          $archive = '${{ steps.package.outputs.archive }}'
+          $required = @(
+            'aiko.exe',
+            'aiko-stdio.exe',
+            'server/Aiko.Server.exe',
+            'server/wwwroot/index.html',
+            'templates/default/template.json'
+          )
+          # Entries at the root of the archive, not under a directory: Compress-Archive packs the contents
+          # of publish/stage, and that layout is what the installer unpacks into its directory.
+          $zip = [IO.Compression.ZipFile]::OpenRead((Resolve-Path $archive))
+          try {
+            # Forward slashes either way: the archive format uses them, and which one the packer writes is
+            # the packer's business - comparing the raw entry name would fail on a host that writes '\'.
+            $entries = @($zip.Entries | ForEach-Object { $_.FullName.Replace('\', '/') })
+          }
+          finally {
+            $zip.Dispose()
+          }
+
+          foreach ($entry in $required) {
+            if ($entries -notcontains $entry) { throw "The archive is missing $entry." }
+          }
+
+          $hash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ((Get-Content -LiteralPath '${{ steps.package.outputs.checksums }}') -notcontains "$hash  $archive") {
+            throw "SHA256SUMS does not vouch for $archive."
+          }
+
+          Write-Host "The archive carries every entry a release promises, and SHA256SUMS vouches for it."
+
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v7
         with:
           name: aiko-${{ steps.version.outputs.value }}-win-x64
-          path: ${{ steps.package.outputs.archive }}
+          path: |
+            ${{ steps.package.outputs.archive }}
+            ${{ steps.package.outputs.checksums }}
           if-no-files-found: error
 
       # Created as a DRAFT on purpose. The installer resolves "latest release" and picks the
@@ -151,10 +203,11 @@ jobs:
           TAG: ${{ steps.version.outputs.tag }}
           REPO: ${{ github.repository }}
           ARCHIVE: ${{ steps.package.outputs.archive }}
+          CHECKSUMS: ${{ steps.package.outputs.checksums }}
         run: |
           if gh release view "$TAG" -R "$REPO" >/dev/null 2>&1; then
-            echo "Release $TAG already exists (re-run) — refreshing its asset."
-            gh release upload "$TAG" "$ARCHIVE" -R "$REPO" --clobber
+            echo "Release $TAG already exists (re-run) — refreshing its assets."
+            gh release upload "$TAG" "$ARCHIVE" "$CHECKSUMS" -R "$REPO" --clobber
             exit 0
           fi
 
@@ -164,11 +217,11 @@ jobs:
             gh api --method POST "repos/$REPO/git/refs" -f "ref=refs/tags/$TAG" -f "sha=$GITHUB_SHA"
           fi
 
-          gh release create "$TAG" "$ARCHIVE" -R "$REPO" \
+          gh release create "$TAG" "$ARCHIVE" "$CHECKSUMS" -R "$REPO" \
             --title "Aiko $TAG" --generate-notes --draft
 
-  # The release becomes visible only once the archive is on it, so `scripts/install.ps1` never runs
-  # against a release that has nothing to download.
+  # The release becomes visible only once the archive and its checksums are on it, so `scripts/install.ps1`
+  # never runs against a release that has nothing to download, or a download nothing vouches for.
   finalize:
     name: Publish the release
     needs: publish
@@ -193,6 +246,12 @@ jobs:
           case "$assets" in
             *"aiko-"*"-win-x64.zip"*) ;;
             *) echo "::error::the release is missing aiko-*-win-x64.zip; leaving it as a draft" && exit 1 ;;
+          esac
+          # The archive is what the installer unpacks; the checksums are what it verifies the archive with
+          # first. A release with one and not the other is an install command that fails at the last step.
+          case "$assets" in
+            *"SHA256SUMS"*) ;;
+            *) echo "::error::the release is missing SHA256SUMS; leaving it as a draft" && exit 1 ;;
           esac
           # A tag that carries a pre-release part - `v0.1.2-pre`, or `-rc.1` - names a release that is not
           # the current one. GitHub does not infer that from the tag name, and scripts/install.ps1 resolves
