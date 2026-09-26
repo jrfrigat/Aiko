@@ -32,6 +32,7 @@ public static class AgentAdapters
         new CodexAgentAdapter(),
         new CursorAgentAdapter(),
         new ZCodeAgentAdapter(),
-        new ClineAgentAdapter()
+        new ClineAgentAdapter(),
+        new OpenCodeAgentAdapter()
     ];
 }
