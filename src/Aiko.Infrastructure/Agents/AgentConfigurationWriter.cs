@@ -26,9 +26,11 @@ internal static class AgentConfigurationWriter
         var desired = definition.Kind switch
         {
             AgentFileKind.JsonMcp => MergeMcpJson(
-                current, definition, nested: false, definition.ServerKey),
+                current, definition, AgentFileKind.JsonMcp, definition.ServerKey),
             AgentFileKind.NestedJsonMcp => MergeMcpJson(
-                current, definition, nested: true, definition.ServerKey),
+                current, definition, AgentFileKind.NestedJsonMcp, definition.ServerKey),
+            AgentFileKind.FlatJsonMcp => MergeMcpJson(
+                current, definition, AgentFileKind.FlatJsonMcp, definition.ServerKey),
             AgentFileKind.ManagedBlock => UpsertManagedBlock(
                 current,
                 definition.Content,
@@ -70,9 +72,11 @@ internal static class AgentConfigurationWriter
         {
             AgentFileKind.OwnedText => current.Contains(definition.OwnedMarker, StringComparison.Ordinal),
             AgentFileKind.JsonMcp => !string.Equals(
-                current, RemoveMcpJson(current, nested: false, definition.ServerKey), StringComparison.Ordinal),
+                current, RemoveMcpJson(current, AgentFileKind.JsonMcp, definition.ServerKey), StringComparison.Ordinal),
             AgentFileKind.NestedJsonMcp => !string.Equals(
-                current, RemoveMcpJson(current, nested: true, definition.ServerKey), StringComparison.Ordinal),
+                current, RemoveMcpJson(current, AgentFileKind.NestedJsonMcp, definition.ServerKey), StringComparison.Ordinal),
+            AgentFileKind.FlatJsonMcp => !string.Equals(
+                current, RemoveMcpJson(current, AgentFileKind.FlatJsonMcp, definition.ServerKey), StringComparison.Ordinal),
             AgentFileKind.ManagedBlock => !string.Equals(
                 current,
                 RemoveManagedBlock(current, Path.GetExtension(definition.Path), definition.BlockMarkerName),
@@ -115,8 +119,9 @@ internal static class AgentConfigurationWriter
 
         var desired = definition.Kind switch
         {
-            AgentFileKind.JsonMcp => RemoveMcpJson(current, nested: false, definition.ServerKey),
-            AgentFileKind.NestedJsonMcp => RemoveMcpJson(current, nested: true, definition.ServerKey),
+            AgentFileKind.JsonMcp => RemoveMcpJson(current, AgentFileKind.JsonMcp, definition.ServerKey),
+            AgentFileKind.NestedJsonMcp => RemoveMcpJson(current, AgentFileKind.NestedJsonMcp, definition.ServerKey),
+            AgentFileKind.FlatJsonMcp => RemoveMcpJson(current, AgentFileKind.FlatJsonMcp, definition.ServerKey),
             AgentFileKind.ManagedBlock => RemoveManagedBlock(
                 current,
                 Path.GetExtension(definition.Path),
@@ -151,7 +156,7 @@ internal static class AgentConfigurationWriter
     private static string MergeMcpJson(
         string current,
         AgentFileDefinition definition,
-        bool nested,
+        AgentFileKind kind,
         string serverKey)
     {
         var endpoint = definition.Content;
@@ -172,19 +177,7 @@ internal static class AgentConfigurationWriter
                 ?? throw new InvalidDataException("Agent configuration root must be a JSON object.");
         }
 
-        var parent = root;
-        var serversProperty = "mcpServers";
-        if (nested)
-        {
-            if (root["mcp"] is not null and not JsonObject)
-            {
-                throw new InvalidDataException("Agent configuration mcp must be a JSON object.");
-            }
-
-            parent = root["mcp"] as JsonObject ?? new JsonObject();
-            root["mcp"] = parent;
-            serversProperty = "servers";
-        }
+        var (parent, serversProperty) = ResolveServersContainer(root, kind);
 
         if (parent[serversProperty] is not null and not JsonObject)
         {
@@ -219,7 +212,7 @@ internal static class AgentConfigurationWriter
             Environment.NewLine;
     }
 
-    private static string RemoveMcpJson(string current, bool nested, string serverKey)
+    private static string RemoveMcpJson(string current, AgentFileKind kind, string serverKey)
     {
         if (string.IsNullOrWhiteSpace(current))
         {
@@ -235,8 +228,8 @@ internal static class AgentConfigurationWriter
             }) as JsonObject
             ?? throw new InvalidDataException("Agent configuration root must be a JSON object.");
         JsonObject parent;
-        var serversProperty = "mcpServers";
-        if (nested)
+        string serversProperty;
+        if (kind == AgentFileKind.NestedJsonMcp)
         {
             if (root["mcp"] is null)
             {
@@ -251,9 +244,15 @@ internal static class AgentConfigurationWriter
             parent = mcp;
             serversProperty = "servers";
         }
+        else if (kind == AgentFileKind.FlatJsonMcp)
+        {
+            parent = root;
+            serversProperty = "mcp";
+        }
         else
         {
             parent = root;
+            serversProperty = "mcpServers";
         }
 
         if (parent[serversProperty] is null)
@@ -274,6 +273,37 @@ internal static class AgentConfigurationWriter
 
         return root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) +
             Environment.NewLine;
+    }
+
+    /// <summary>
+    /// The object that holds the named MCP servers and the property it lives under, one branch per JSON shape
+    /// Aiko writes: the root <c>mcpServers</c> object, the nested <c>mcp.servers</c> object, or the flat root
+    /// <c>mcp</c> object whose entries are the server definitions themselves.
+    /// </summary>
+    private static (JsonObject Parent, string ServersProperty) ResolveServersContainer(
+        JsonObject root,
+        AgentFileKind kind) =>
+        kind switch
+        {
+            AgentFileKind.JsonMcp => (root, "mcpServers"),
+            AgentFileKind.FlatJsonMcp => (root, "mcp"),
+            AgentFileKind.NestedJsonMcp => (NestedMcp(root), "servers"),
+            _ => throw new InvalidOperationException($"Not a JSON MCP file kind: {kind}")
+        };
+
+    /// <summary>
+    /// The root <c>mcp</c> object, created when the file has none.
+    /// </summary>
+    private static JsonObject NestedMcp(JsonObject root)
+    {
+        if (root["mcp"] is not null and not JsonObject)
+        {
+            throw new InvalidDataException("Agent configuration mcp must be a JSON object.");
+        }
+
+        var mcp = root["mcp"] as JsonObject ?? new JsonObject();
+        root["mcp"] = mcp;
+        return mcp;
     }
 
     private static string CreateOwnedText(string current, string content, string ownedMarker)

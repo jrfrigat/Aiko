@@ -59,6 +59,20 @@ internal sealed record AgentFileDefinition(
             AccessToken: accessToken, McpTransport: mcpTransport);
 
     /// <summary>
+    /// Creates a definition for an HTTP MCP server entry in the root <c>mcp</c> object, the flat shape where
+    /// each named entry is the server object itself.
+    /// </summary>
+    public static AgentFileDefinition FlatJsonMcp(
+        string path,
+        string description,
+        string projectMcpEndpoint,
+        string? accessToken = null,
+        string? mcpTransport = null,
+        string serverKey = "aiko") =>
+        new(path, description, AgentFileKind.FlatJsonMcp, projectMcpEndpoint, serverKey,
+            AccessToken: accessToken, McpTransport: mcpTransport);
+
+    /// <summary>
     /// Creates a definition for an HTTP MCP server entry in the nested mcp.servers object.
     /// </summary>
     public static AgentFileDefinition NestedJsonMcp(
