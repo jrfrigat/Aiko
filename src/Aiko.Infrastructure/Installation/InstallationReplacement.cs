@@ -9,7 +9,17 @@ namespace Aiko.Infrastructure.Installation;
 /// Whether an interrupted earlier replacement was repaired before this one ran. The caller reports it: a
 /// repair that happens silently looks like an installation that was fine all along.
 /// </param>
-public sealed record ReplacementResult(InstalledVersion Version, int EntriesReplaced, bool RecoveredPrevious);
+/// <param name="PreviousKept">
+/// Whether the replaced version is still beside the installation. A process cannot delete the executable it
+/// was started from, and for <c>aiko update</c> that executable is the copy that was moved aside, so it stays
+/// where it is until the next run, which removes it before it replaces anything. The caller reports it, for
+/// the same reason it reports a recovered one.
+/// </param>
+public sealed record ReplacementResult(
+    InstalledVersion Version,
+    int EntriesReplaced,
+    bool RecoveredPrevious,
+    bool PreviousKept = false);
 
 /// <summary>
 /// Puts a staged release in place of what is installed, and can put the previous version back.
@@ -19,12 +29,25 @@ public sealed record ReplacementResult(InstalledVersion Version, int EntriesRepl
 /// it resolved, so the entries inside it are what moves. Renaming inside one volume is cheap and reversible,
 /// which is exactly what makes the rollback possible; replacing the directory would not be.
 /// <para>
+/// One case is not a rename: a release that is the one this process runs from. A process must not be
+/// relocated under itself - the bundle it still reads assemblies from would move with it - so those entries
+/// are copied and the running file stays where it is. That is what <c>aiko install --from</c> reaches, because
+/// the release it installs is the one the bootstrap unpacked and ran.
+/// </para>
+/// <para>
 /// The caller must have stopped a running daemon first. That needs the port from the settings, a health
 /// request and a restart, and it belongs to the verbs that drive an installation, not here.
 /// </para>
 /// </remarks>
-public sealed class InstallationReplacement
+/// <param name="runningImagePath">
+/// The file this process was started from. No production caller passes it: the process answers for itself
+/// through <see cref="Environment.ProcessPath"/>. It is a parameter because the branch above - the release
+/// being installed is the one this process runs from - cannot be reached any other way from a spec, where the
+/// running file belongs to the test host rather than to the release under test.
+/// </param>
+public sealed class InstallationReplacement(string? runningImagePath = null)
 {
+    private readonly string? runningImage = runningImagePath ?? Environment.ProcessPath;
     /// <summary>
     /// Replaces the installation with the staged release.
     /// </summary>
@@ -43,8 +66,15 @@ public sealed class InstallationReplacement
         var recovered = RepairInterruptedReplacement(installDirectory);
         Directory.CreateDirectory(installDirectory);
 
+        // Asked before anything moves: whether the installation being replaced is the one this process was
+        // started from decides both how the entries are placed and whether the copy moved aside can be removed
+        // at all - a running executable cannot be deleted.
+        var runningFromInstallation = RunsFrom(installDirectory);
+
         var previous = $"{installDirectory}.previous-{DateTime.UtcNow:yyyyMMddHHmmssfff}";
-        var replaced = Swap(installDirectory, staged.Directory, previous);
+        // Copying costs a full copy of the release, so it is done only where it is the difference between an
+        // installation and a process that died half-way through one.
+        var replaced = Swap(installDirectory, staged.Directory, previous, RunsFrom(staged.Directory));
 
         var version = new InstalledVersion(
             staged.Tag,
@@ -65,13 +95,16 @@ public sealed class InstallationReplacement
             throw;
         }
 
-        Discard(previous);
+        // The copy the process was started from cannot be deleted while it runs, and attempting it would report
+        // a replacement that finished as a half-finished one. So the delete is skipped where it is known to
+        // fail, and the next run removes that copy before it replaces anything.
+        var previousKept = (runningFromInstallation && Exists(previous)) || !TryDiscard(previous);
         if (updatePath)
         {
             InstallationPath.AddToUserPath(installDirectory);
         }
 
-        return new ReplacementResult(version, replaced, recovered);
+        return new ReplacementResult(version, replaced, recovered, previousKept);
     }
 
     /// <summary>
@@ -144,7 +177,9 @@ public sealed class InstallationReplacement
         {
             foreach (var candidate in candidates)
             {
-                Discard(candidate);
+                // Tolerant: a copy a running process still holds cannot be removed yet, and the run that finds
+                // it is there to install something, not to fail over tidying up. It goes on a later run.
+                TryDiscard(candidate);
             }
 
             return false;
@@ -160,18 +195,82 @@ public sealed class InstallationReplacement
         return true;
     }
 
-    private static int Swap(string installDirectory, string stagedDirectory, string previousDirectory)
+    /// <summary>
+    /// Exchanges what is installed for the staged release, moving what was there aside.
+    /// </summary>
+    /// <param name="installDirectory">Directory the release goes into.</param>
+    /// <param name="stagedDirectory">Directory the release was unpacked into.</param>
+    /// <param name="previousDirectory">Directory what is installed is moved aside into.</param>
+    /// <param name="copyStaged">
+    /// Whether the staged entries have to be copied rather than moved, which is the case when the staged
+    /// release is the one this process runs from: the running file would otherwise be relocated under the
+    /// process that is reading it. What that leaves in the staging directory is the caller's to remove once
+    /// this process has ended.
+    /// </param>
+    private static int Swap(
+        string installDirectory,
+        string stagedDirectory,
+        string previousDirectory,
+        bool copyStaged)
     {
         var movedAside = MoveEntries(installDirectory, previousDirectory);
         try
         {
-            MoveEntries(stagedDirectory, installDirectory);
+            if (copyStaged)
+            {
+                CopyEntries(stagedDirectory, installDirectory);
+            }
+            else
+            {
+                MoveEntries(stagedDirectory, installDirectory);
+            }
+
             return movedAside;
         }
         catch
         {
             RollBack(installDirectory, previousDirectory);
             throw;
+        }
+    }
+
+    /// <summary>
+    /// Whether this process was started from a file inside that directory.
+    /// </summary>
+    /// <remarks>
+    /// Only the path is compared, and only for the release in front of us: the question is not "what holds
+    /// this file open" - which no code can answer reliably, especially with a native library loaded beside the
+    /// executable - but "is this the copy I am running from", which the process can answer exactly.
+    /// </remarks>
+    private bool RunsFrom(string directory)
+    {
+        if (string.IsNullOrWhiteSpace(runningImage))
+        {
+            return false;
+        }
+
+        var prefix = Path.GetFullPath(directory).TrimEnd('\\') + '\\';
+        return Path.GetFullPath(runningImage).StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Removes a directory if it can, and says whether it is gone.
+    /// </summary>
+    /// <remarks>
+    /// What stands in the way is a file in use, and that is a state of the machine rather than a fault of the
+    /// run: a copy the running process still holds is removed by the next run, and a staging directory belongs
+    /// to whoever staged it. Throwing here would turn a finished replacement into a reported failure.
+    /// </remarks>
+    private static bool TryDiscard(string path)
+    {
+        try
+        {
+            Discard(path);
+            return !Exists(path);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return false;
         }
     }
 
@@ -228,6 +327,57 @@ public sealed class InstallationReplacement
         else
         {
             File.Move(source, destination);
+        }
+    }
+
+    /// <summary>
+    /// Copies the entries of a directory into another, leaving the source in place.
+    /// </summary>
+    /// <remarks>
+    /// The copy a running process needs: its own file must not move, and neither must anything beside it that
+    /// it may still reach for. What the copy costs is a second full copy of the release, which is why it
+    /// happens only for the release this process is running from.
+    /// </remarks>
+    private static int CopyEntries(string from, string to)
+    {
+        if (!Directory.Exists(from))
+        {
+            return 0;
+        }
+
+        Directory.CreateDirectory(to);
+        var copied = 0;
+        foreach (var entry in Directory.EnumerateFileSystemEntries(from))
+        {
+            CopyEntry(entry, Path.Combine(to, Path.GetFileName(entry)));
+            copied++;
+        }
+
+        return copied;
+    }
+
+    private static void CopyEntry(string source, string destination)
+    {
+        if (!Directory.Exists(source))
+        {
+            File.Copy(source, destination, overwrite: true);
+            return;
+        }
+
+        // As when moving: a destination in the way is the attempt's own entry, and it goes first.
+        if (Directory.Exists(destination))
+        {
+            Directory.Delete(destination, recursive: true);
+        }
+        else if (File.Exists(destination))
+        {
+            File.Delete(destination);
+        }
+
+        Directory.CreateDirectory(destination);
+        foreach (var nested in Directory.EnumerateFileSystemEntries(source))
+        {
+            CopyEntry(nested, Path.Combine(destination, Path.GetFileName(nested)));
         }
     }
 

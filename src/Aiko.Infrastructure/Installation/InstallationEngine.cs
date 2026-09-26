@@ -240,9 +240,13 @@ public sealed class InstallationEngine(
             throw;
         }
 
-        // The staging directory has been emptied by the swap, and an empty one left beside the installation
-        // is what a later run would have to decide about. The release itself now lives in the installation.
-        Discard(staged.Directory);
+        // The swap moves the release out of the directory it was staged in, so what is left is often nothing at
+        // all - and an empty one beside the installation is what a later run would have to decide about. When
+        // the release being installed is the one this process runs from, the entries were copied instead and
+        // the directory still holds the whole of it, executable included, because a running file cannot be
+        // deleted. That directory is the caller's, so the caller removes it once this process has ended - and
+        // the report says it is still there rather than leaving it to be discovered.
+        var stagingKept = !Discard(staged.Directory);
 
         steps.Add(new InstallationStep(
             "replace",
@@ -250,6 +254,12 @@ public sealed class InstallationEngine(
             $"{replaced.EntriesReplaced} entries replaced" +
             (replaced.RecoveredPrevious
                 ? "; an interrupted earlier replacement was repaired first"
+                : string.Empty) +
+            (replaced.PreviousKept
+                ? "; the replaced version is still beside the installation and the next run removes it"
+                : string.Empty) +
+            (stagingKept
+                ? $"; the staged release is still in {staged.Directory} and is the caller's to remove"
                 : string.Empty) +
             "."));
         steps.Add(new InstallationStep("record", true, $"install.json records {replaced.Version.Tag}."));
@@ -372,7 +382,16 @@ public sealed class InstallationEngine(
         Version.TryParse(installed, out var installedVersion) &&
         candidateVersion < installedVersion;
 
-    private static void Discard(string path)
+    /// <summary>
+    /// Removes a directory if it can, and says whether it is gone.
+    /// </summary>
+    /// <remarks>
+    /// What stands in the way is a file in use. For a staging directory that is the release's own executable
+    /// while the run that installed it is working from it; for a refused run it is whatever the person still
+    /// has open. Neither is a reason to replace the outcome of the run with a complaint about tidying up, so
+    /// the answer is returned and the caller says what it means.
+    /// </remarks>
+    private static bool Discard(string path)
     {
         try
         {
@@ -380,11 +399,12 @@ public sealed class InstallationEngine(
             {
                 Directory.Delete(path, recursive: true);
             }
+
+            return !Directory.Exists(path);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            // What is left is a staging directory beside the installation, and the next run discards it.
-            // Failing here would replace the reason the run stopped with a complaint about tidying up.
+            return false;
         }
     }
 }

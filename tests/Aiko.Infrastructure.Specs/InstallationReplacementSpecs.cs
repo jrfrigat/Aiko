@@ -33,6 +33,55 @@ public sealed class InstallationReplacementSpecs
         Assert.Empty(fixture.PreviousDirectories());
     }
 
+    [Fact]
+    public void A_release_the_process_runs_from_is_copied_and_left_where_it_was()
+    {
+        // `aiko install --from`: the release in front of the engine is the one this process was started from,
+        // and a process must not be relocated under itself - the bundle it still reads assemblies from would
+        // move with it. So the entries are copied, the running file stays where it is, and the staged directory
+        // is left for the caller to remove once this process has ended.
+        using var fixture = new ReplacementFixture();
+        var staged = fixture.Stage(ReleaseLayout.CliFileName, ReleaseLayout.StdioProxyFileName, "dir:server");
+        var replacement = fixture.ReplacementRunningFrom(
+            Path.Combine(fixture.StagedDirectory, ReleaseLayout.CliFileName));
+
+        var result = replacement.Apply(staged, fixture.InstallDirectory, updatePath: false);
+
+        Assert.False(result.PreviousKept);
+        Assert.Contains(ReleaseLayout.CliFileName, fixture.InstalledNames());
+        Assert.Contains(ReleaseLayout.StdioProxyFileName, fixture.InstalledNames());
+        Assert.Contains("server", fixture.InstalledNames());
+        Assert.Contains(InstallationFiles.VersionFileName, fixture.InstalledNames());
+
+        // Nothing was taken out of the staged release: it is what the running process is reading from.
+        Assert.True(File.Exists(Path.Combine(fixture.StagedDirectory, ReleaseLayout.CliFileName)));
+        Assert.True(Directory.Exists(Path.Combine(fixture.StagedDirectory, "server")));
+    }
+
+    [Fact]
+    public void A_previous_copy_the_process_runs_from_is_left_for_the_next_run()
+    {
+        // `aiko update`: the installation being replaced is the one this process was started from, so what is
+        // moved aside holds a running executable Windows will not delete. Leaving it is what lets the run
+        // finish; the next run removes it before it replaces anything.
+        using var fixture = new ReplacementFixture();
+        fixture.Install(ReleaseLayout.CliFileName, "old-only.txt");
+        var staged = fixture.Stage(ReleaseLayout.CliFileName, "new-only.txt");
+        var replacement = fixture.ReplacementRunningFrom(
+            Path.Combine(fixture.InstallDirectory, ReleaseLayout.CliFileName));
+
+        var result = replacement.Apply(staged, fixture.InstallDirectory, updatePath: false);
+
+        Assert.True(result.PreviousKept);
+        Assert.Single(fixture.PreviousDirectories());
+
+        // The replacement itself finished: the new release is installed and recorded, the old one is out of the
+        // way, and only the copy that cannot be deleted yet is still beside it.
+        Assert.Contains("new-only.txt", fixture.InstalledNames());
+        Assert.Contains(InstallationFiles.VersionFileName, fixture.InstalledNames());
+        Assert.DoesNotContain("old-only.txt", fixture.InstalledNames());
+    }
+
     [Theory]
     [InlineData("some-other-tool.exe")]
     [InlineData("aiko.db")]
@@ -190,6 +239,9 @@ public sealed class InstallationReplacementSpecs
         public string StagedDirectory { get; }
 
         public InstallationReplacement Replacement { get; } = new();
+
+        /// <summary>The replacement as a process that was started from that file.</summary>
+        public InstallationReplacement ReplacementRunningFrom(string imagePath) => new(imagePath);
 
         /// <summary>Puts entries into the installation.</summary>
         public void Install(params string[] entries) => Write(InstallDirectory, entries);
