@@ -90,7 +90,8 @@ public sealed class OpenCodeAdapterSpecs
                 }
 
                 // The workspace carries the procedure and the contract.
-                Assert.True(File.Exists(Path.Combine(context.Project.RootPath, "command", "aiko-run.md")));
+                Assert.True(File.Exists(
+                    Path.Combine(context.Project.RootPath, ".opencode", "commands", "aiko-run.md")));
                 var agents = await File.ReadAllTextAsync(Path.Combine(context.Project.RootPath, "AGENTS.md"));
                 Assert.Contains("aiko:begin", agents, StringComparison.Ordinal);
 

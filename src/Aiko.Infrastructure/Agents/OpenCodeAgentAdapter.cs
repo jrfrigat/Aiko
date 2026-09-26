@@ -81,7 +81,7 @@ public sealed class OpenCodeAgentAdapter : BuiltInAgentAdapter
                 mcpTransport: "remote",
                 serverKey: ServerKey(projectHandle)),
             .. procedures.Select(procedure => new AgentFileDefinition(
-                Path.Combine(projectRoot, "command", $"{procedure.Name}.md"),
+                Path.Combine(projectRoot, ".opencode", "commands", $"{procedure.Name}.md"),
                 $"Install the /{procedure.Name} command.",
                 AgentFileKind.OwnedText,
                 procedure.Body))
@@ -93,7 +93,7 @@ public sealed class OpenCodeAgentAdapter : BuiltInAgentAdapter
     [
         // The per-card-type commands are generated, so the ones of a type that left the project have to be
         // swept by name.
-        new(Path.Combine(projectRoot, "command"), "aiko-*.md")
+        new(Path.Combine(projectRoot, ".opencode", "commands"), "aiko-*.md")
     ];
 
     /// <inheritdoc />
@@ -128,7 +128,7 @@ public sealed class OpenCodeAgentAdapter : BuiltInAgentAdapter
     /// <summary>A global <c>/aiko-*</c> command, written into the client's own command directory.</summary>
     private static AgentFileDefinition Command(string name, string content) =>
         new(
-            Path.Combine(GlobalDirectory(), "command", $"{name}.md"),
+            Path.Combine(GlobalDirectory(), "commands", $"{name}.md"),
             $"Install the global /{name} command.",
             AgentFileKind.OwnedText,
             content);
