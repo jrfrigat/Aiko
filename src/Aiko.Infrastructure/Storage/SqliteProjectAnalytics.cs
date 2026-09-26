@@ -70,6 +70,9 @@ public sealed class SqliteProjectAnalytics(AikoDatabase database, IProjectCatalo
 
         return new ProjectAnalytics(
             weekly,
+            // The same weeks and the same window: a series the throughput chart does not draw would not line
+            // up with the cards that entered beside it.
+            await ReadFlowAsync(connection, project.Id, start, weekly, cancellationToken),
             // Keyed by the resolved id, not by the value the caller sent: the cards projection is written
             // under the project's immutable id, so grouping by the readable handle the project page holds
             // matched nothing and the distribution chart came back empty.
@@ -150,6 +153,87 @@ public sealed class SqliteProjectAnalytics(AikoDatabase database, IProjectCatalo
         }
 
         return buckets;
+    }
+
+    /// <summary>
+    /// Every stage's own traffic over the window: entries and exits per week, every week of the window
+    /// present so a series lines up with the throughput chart it is read beside.
+    /// </summary>
+    /// <remarks>
+    /// One query with a direction column rather than two: the rows are the same rows, and a project with a
+    /// long history should not be read twice. A card's creation has no source stage, so only its arrival is
+    /// counted - the union's second leg filters the empty side out.
+    /// </remarks>
+    private static async ValueTask<IReadOnlyList<AnalyticsStageFlow>> ReadFlowAsync(
+        SqliteConnection connection,
+        string projectId,
+        DateTimeOffset start,
+        IReadOnlyList<AnalyticsBucket> weeks,
+        CancellationToken cancellationToken)
+    {
+        var entered = new Dictionary<(string StageId, int Week), int>();
+        var left = new Dictionary<(string StageId, int Week), int>();
+
+        await using var command = connection.CreateCommand();
+        command.CommandText =
+            """
+            SELECT to_stage_id, 1, occurred_utc FROM card_stage_events
+            WHERE project_id = $projectId AND occurred_utc >= $start
+            UNION ALL
+            SELECT from_stage_id, 0, occurred_utc FROM card_stage_events
+            WHERE project_id = $projectId AND occurred_utc >= $start AND from_stage_id IS NOT NULL
+            """;
+        command.Parameters.AddWithValue("$projectId", projectId);
+        command.Parameters.AddWithValue("$start", start.ToString("O", CultureInfo.InvariantCulture));
+
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            if (reader.IsDBNull(0) ||
+                !DateTimeOffset.TryParse(
+                    reader.GetString(2),
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.None,
+                    out var occurred))
+            {
+                continue;
+            }
+
+            var index = (int)((StartOfWeek(occurred) - start).TotalDays / 7);
+            if (index < 0 || index >= weeks.Count)
+            {
+                continue;
+            }
+
+            var bucket = (reader.GetString(0), index);
+            var counts = reader.GetInt32(1) == 1 ? entered : left;
+            counts[bucket] = counts.TryGetValue(bucket, out var count) ? count + 1 : 1;
+        }
+
+        var stages = entered.Keys.Select(key => key.StageId)
+            .Concat(left.Keys.Select(key => key.StageId))
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(stageId => stageId, StringComparer.Ordinal)
+            .ToArray();
+
+        return
+        [
+            .. stages.Select(stageId => new AnalyticsStageFlow(
+                stageId,
+                Series(weeks, entered, stageId),
+                Series(weeks, left, stageId))),
+        ];
+
+        // A series over the window's own labels, a quiet week included: zero is what happened.
+        static IReadOnlyList<AnalyticsBucket> Series(
+            IReadOnlyList<AnalyticsBucket> weekLabels,
+            Dictionary<(string StageId, int Week), int> counts,
+            string stageId) =>
+            [
+                .. weekLabels.Select((week, index) => new AnalyticsBucket(
+                    week.Label,
+                    counts.TryGetValue((stageId, index), out var count) ? count : 0)),
+            ];
     }
 
     /// <summary>Midnight of the Monday of the week a moment falls in, in UTC.</summary>

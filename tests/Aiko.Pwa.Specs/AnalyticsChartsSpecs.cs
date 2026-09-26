@@ -79,4 +79,91 @@ public sealed class AnalyticsChartsSpecs
         Assert.Equal(new double[] { 4, 1 }, Assert.Single(data.Series).Values);
         Assert.Equal(new[] { "no size", "M" }, data.Labels!);
     }
+
+    [Fact]
+    public void The_velocity_chart_shows_both_speeds()
+    {
+        var weekly = new List<AnalyticsBucket> { new("01.09", 3), new("08.09", 0), new("15.09", 7) };
+        var closed = new List<AnalyticsBucket> { new("01.09", 1), new("08.09", 0), new("15.09", 4) };
+
+        var data = AnalyticsCharts.Velocity(weekly, closed);
+
+        // Two named series, so the legend says which line is which - the single series this chart used to
+        // draw could go without one.
+        Assert.Equal("entered", data.Series[0].Label);
+        Assert.Equal(new double[] { 3, 0, 7 }, data.Series[0].Values);
+        Assert.Equal("closed", data.Series[1].Label);
+        Assert.Equal(new double[] { 1, 0, 4 }, data.Series[1].Values);
+        Assert.Equal(new[] { "01.09", "08.09", "15.09" }, data.Labels!);
+    }
+
+    [Fact]
+    public void Only_the_last_stage_of_a_workflow_closes_a_card()
+    {
+        var weeks = new[] { "01.09", "08.09" };
+        var flow = new List<AnalyticsStageFlow>
+        {
+            new("in-progress", [new("01.09", 5), new("08.09", 2)], [new("01.09", 4), new("08.09", 3)]),
+            new("done", [new("01.09", 4), new("08.09", 3)], [new("01.09", 0), new("08.09", 0)]),
+        };
+
+        var closed = AnalyticsCharts.Closures(["done"], flow, weeks);
+
+        Assert.Equal(new[] { "01.09", "08.09" }, closed.Select(bucket => bucket.Label));
+        // Only the entries into the stage that ends the pipeline count; the traffic of `in-progress` is a
+        // move, not a closure.
+        Assert.Equal(new[] { 4, 3 }, closed.Select(bucket => bucket.Count));
+
+        // A stage the board no longer knows - renamed or dropped since - is not a closure either.
+        Assert.All(AnalyticsCharts.Closures(["shipped"], flow, weeks), bucket => Assert.Equal(0, bucket.Count));
+    }
+
+    [Fact]
+    public void The_cumulative_flow_is_walked_back_from_the_board()
+    {
+        var weeks = new[] { "01.09", "08.09", "15.09" };
+        // The board today: one card in progress, two done. The events say a card entered `done` in the first
+        // week and another in the last, and that one left `in-progress` in between.
+        var current = new List<AnalyticsBucket> { new("in-progress", 1), new("done", 2) };
+        var flow = new List<AnalyticsStageFlow>
+        {
+            new(
+                "in-progress",
+                [new("01.09", 0), new("08.09", 0), new("15.09", 0)],
+                [new("01.09", 0), new("08.09", 1), new("15.09", 0)]),
+            new(
+                "done",
+                [new("01.09", 1), new("08.09", 0), new("15.09", 1)],
+                [new("01.09", 0), new("08.09", 0), new("15.09", 0)]),
+        };
+
+        var data = AnalyticsCharts.CumulativeFlow(current, flow, weeks);
+
+        Assert.Equal(weeks, data.Labels!);
+        // The last week is the board's own count, exactly; every earlier week is that count less what
+        // entered and plus what left since.
+        Assert.Equal(
+            new double[] { 1, 1, 2 },
+            data.Series.Single(series => series.Label == "done").Values);
+        Assert.Equal(
+            new double[] { 2, 1, 1 },
+            data.Series.Single(series => series.Label == "in-progress").Values);
+
+        // A history shorter than the window cannot invent cards: a count that would come out negative is
+        // clamped to zero, because a stack cannot draw a negative number.
+        var clamped = AnalyticsCharts.CumulativeFlow(
+            [new AnalyticsBucket("done", 0)],
+            [new AnalyticsStageFlow("done", [new("01.09", 0), new("08.09", 3)], [])],
+            ["01.09", "08.09"]);
+        Assert.Equal(new double[] { 0, 0 }, Assert.Single(clamped.Series).Values);
+    }
+
+    [Fact]
+    public void An_empty_window_draws_no_cumulative_flow()
+    {
+        var data = AnalyticsCharts.CumulativeFlow([new AnalyticsBucket("done", 2)], [], []);
+
+        Assert.Empty(data.Series);
+        Assert.Empty(data.Labels!);
+    }
 }

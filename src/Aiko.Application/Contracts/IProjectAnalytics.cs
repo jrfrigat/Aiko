@@ -8,13 +8,32 @@ namespace Aiko.Application.Contracts;
 public sealed record AnalyticsBucket(string Label, int Count);
 
 /// <summary>
-/// What the project's own history says: how many cards moved per week, and what the board is made of.
+/// One stage's own traffic over the window: how many cards entered it and how many left it, week by week.
+/// </summary>
+/// <param name="StageId">The stage the flow belongs to.</param>
+/// <param name="Entered">Cards that entered it, per week, oldest first.</param>
+/// <param name="Left">Cards that left it, per week, oldest first.</param>
+public sealed record AnalyticsStageFlow(
+    string StageId,
+    IReadOnlyList<AnalyticsBucket> Entered,
+    IReadOnlyList<AnalyticsBucket> Left);
+
+/// <summary>
+/// What the project's own history says: how many cards moved per week, which way each stage's traffic ran,
+/// and what the board is made of.
 /// </summary>
 /// <param name="Weekly">Stage transitions per week, oldest first, one entry per week in the window.</param>
+/// <param name="Flow">
+/// Each stage's entries and exits per week, oldest first. The daemon reports the traffic it observed rather
+/// than deciding what a closure is: which stage ends a pipeline is a fact about the workflow, and the
+/// workflows live in the project's own files, so the screen that already holds the board is what reads a
+/// closure and a cumulative flow out of this.
+/// </param>
 /// <param name="ByKind">Cards by kind.</param>
 /// <param name="BySize">Cards by size step, with unsized cards under their own label.</param>
 public sealed record ProjectAnalytics(
     IReadOnlyList<AnalyticsBucket> Weekly,
+    IReadOnlyList<AnalyticsStageFlow> Flow,
     IReadOnlyList<AnalyticsBucket> ByKind,
     IReadOnlyList<AnalyticsBucket> BySize);
 
@@ -29,8 +48,8 @@ public sealed record ProjectAnalytics(
 public interface IProjectAnalytics
 {
     /// <summary>
-    /// Reads the project's charts: transitions per week for the last <paramref name="weeks"/> weeks, counts
-    /// by kind and counts by size.
+    /// Reads the project's charts: transitions per week for the last <paramref name="weeks"/> weeks, each
+    /// stage's own traffic per week, counts by kind and counts by size.
     /// </summary>
     /// <param name="projectId">Project to read.</param>
     /// <param name="weeks">How many weeks the throughput chart covers.</param>

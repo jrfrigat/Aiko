@@ -1303,13 +1303,25 @@
     <value>Pipeline velocity &amp; throughput</value>
   </data>
   <data name="VelocityHint" xml:space="preserve">
-    <value>Cards that entered a stage, per week, over the last {0} weeks</value>
+    <value>Cards that entered a stage, and cards that reached the end of their pipeline, per week, over the last {0} weeks</value>
   </data>
   <data name="VelocityTotal" xml:space="preserve">
     <value>{0} transitions in the window</value>
   </data>
   <data name="VelocityNone" xml:space="preserve">
     <value>No transitions recorded yet: they are counted as the board is worked.</value>
+  </data>
+  <data name="VelocityClosedTotal" xml:space="preserve">
+    <value>{0} cards closed in the window</value>
+  </data>
+  <data name="CfdTitle" xml:space="preserve">
+    <value>Cumulative flow</value>
+  </data>
+  <data name="CfdHint" xml:space="preserve">
+    <value>Cards in each stage at the end of every week, read back from the board's own history</value>
+  </data>
+  <data name="CfdNone" xml:space="preserve">
+    <value>No stage history yet: it is recorded as the board is worked.</value>
   </data>
   <data name="TriageTitle" xml:space="preserve">
     <value>Triage distribution</value>

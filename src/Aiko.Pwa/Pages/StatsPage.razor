@@ -97,13 +97,17 @@ else
                     </FlareStack>
                     @if (_analytics is { Weekly.Count: > 0 } velocity)
                     {
+                        var weeks = velocity.Weekly.Select(bucket => bucket.Label).ToArray();
+                        var closed = AnalyticsCharts.Closures(ClosingStageIds, velocity.Flow, weeks);
                         <FlareChart Type="ChartType.Line"
-                                    Data="@AnalyticsCharts.Velocity(velocity.Weekly)"
+                                    Data="@AnalyticsCharts.Velocity(velocity.Weekly, closed)"
                                     Description="@Loc.Get("VelocityTitle")"
                                     Height="240"
-                                    ShowLegend="false" />
+                                    ShowLegend="true" />
                         <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
                             @Loc.Format("VelocityTotal", velocity.Weekly.Sum(bucket => bucket.Count))
+                            ·
+                            @Loc.Format("VelocityClosedTotal", closed.Sum(bucket => bucket.Count))
                         </FlareText>
                     }
                     else
@@ -163,6 +167,35 @@ else
                 </FlareStack>
             </FlarePaper>
         </div>
+
+        @* The same history read as a stack: how many cards stood in each stage at the end of every week. The
+           events say what changed and the board says what is true now, so the counts are walked backwards
+           from the board's snapshot - the last week is exact, and older weeks get coarser the shorter the
+           history the daemon has seen is. *@
+        <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
+            <FlareStack Gap="FlareSpacing.Medium">
+                <FlareStack Gap="FlareSpacing.None">
+                    <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("CfdTitle")</FlareText>
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                        @Loc.Get("CfdHint")
+                    </FlareText>
+                </FlareStack>
+                @if (CumulativeFlow is { } cumulative)
+                {
+                    <FlareChart Type="ChartType.StackedBar"
+                                Data="@cumulative"
+                                Description="@Loc.Get("CfdTitle")"
+                                Height="260"
+                                ShowLegend="true" />
+                }
+                else
+                {
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                        @Loc.Get("CfdNone")
+                    </FlareText>
+                }
+            </FlareStack>
+        </FlarePaper>
 
         <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
             <FlareStack Gap="FlareSpacing.Medium">
@@ -297,6 +330,39 @@ else
             return result;
         }
     }
+
+    /// <summary>
+    /// The last stage of every workflow on the board: entering it is what closes a card. Which stage that is
+    /// comes from the workflow the project declares, never from a stage id spelled here.
+    /// </summary>
+    private IReadOnlyCollection<string> ClosingStageIds =>
+        State.Board is { } board
+            ? [.. board.Workflows
+                .Where(workflow => workflow.Stages.Count > 0)
+                .Select(workflow => workflow.Stages.OrderBy(stage => stage.Order).Last().Id)]
+            : [];
+
+    /// <summary>
+    /// Cards in each stage right now, counted the way this page's own stage bars count them: the snapshot
+    /// the cumulative flow is walked back from, which is why its last week is exact.
+    /// </summary>
+    private IReadOnlyList<AnalyticsBucket> StagesNow =>
+        [.. StagesByWorkflow
+            .SelectMany(workflow => workflow.Rows)
+            .GroupBy(row => row.StageId, StringComparer.Ordinal)
+            .Select(group => new AnalyticsBucket(group.Key, group.Sum(row => row.Count)))];
+
+    /// <summary>
+    /// The cumulative flow diagram's series, one per stage, or null when there is nothing to stack: no weeks
+    /// in the window, or no cards on the board to walk the counts back from.
+    /// </summary>
+    private ChartData? CumulativeFlow =>
+        _analytics is { Weekly.Count: > 0 } analytics && StagesNow.Count > 0
+            ? AnalyticsCharts.CumulativeFlow(
+                StagesNow,
+                analytics.Flow,
+                [.. analytics.Weekly.Select(bucket => bucket.Label)])
+            : null;
 
     /// <summary>
     /// A horizontal chart's height: tall enough for one row per category, and never taller than the

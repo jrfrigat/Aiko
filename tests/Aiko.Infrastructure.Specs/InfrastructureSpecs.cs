@@ -4051,4 +4051,49 @@ public class InfrastructureSpecs
             Assert.Single(CardArchiving.OnBoard(stored));
         });
     }
+
+    [Fact]
+    public async Task The_analytics_report_each_stages_own_traffic()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            // A card that walks the pipeline leaves one row per arrival: the creation, and every stage it
+            // enters. That traffic is the raw material the closure rate and the cumulative flow are read
+            // from, so the report has to carry it per stage rather than as one sum of everything.
+            var analytics = new SqliteProjectAnalytics(context.Database, context.Catalog);
+            // The test context's own store writes no stage events, so the rows this report reads have to be
+            // written by a store that is wired to the analytics - the same way the daemon wires them.
+            var store = new FileCardStore(context.Catalog, context.Database, analytics: analytics);
+            var card = CreateCard(context.Project.Id, "TASK-FLOW", 1);
+            await store.SaveAsync(card, 0, CancellationToken.None);
+            await store.SaveAsync(card with { StageId = "done", Revision = 2 }, 1, CancellationToken.None);
+
+            var report = await analytics.ReadAsync(context.Project.Id, 8, CancellationToken.None);
+
+            // The rows the store writes on a create and on a move are the same ones the throughput chart
+            // counts: two arrivals, so there is something for the flow to report.
+            Assert.Equal(2, report.Weekly.Sum(week => week.Count));
+
+            // The flow names every stage the window saw traffic in, in a stable order.
+            Assert.Equal(
+                "backlog, done",
+                string.Join(", ", report.Flow.Select(stage => stage.StageId)));
+            var backlog = Assert.Single(
+                report.Flow,
+                stage => StringComparer.Ordinal.Equals(stage.StageId, card.StageId));
+            var done = Assert.Single(
+                report.Flow,
+                stage => StringComparer.Ordinal.Equals(stage.StageId, "done"));
+
+            // Every stage's series follows the window the throughput chart draws, quiet weeks included, so
+            // the two charts are read against the same labels.
+            Assert.Equal(report.Weekly.Select(week => week.Label), backlog.Entered.Select(week => week.Label));
+            Assert.Equal(1, backlog.Entered.Sum(week => week.Count));
+            // The move out of the first stage is reported as well: without it the flow diagram could only be
+            // guessed forward, and the board - not the events - is what says how many cards stand where now.
+            Assert.Equal(1, backlog.Left.Sum(week => week.Count));
+            Assert.Equal(1, done.Entered.Sum(week => week.Count));
+            Assert.Equal(0, done.Left.Sum(week => week.Count));
+        });
+    }
 }

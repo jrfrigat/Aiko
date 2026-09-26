@@ -1303,13 +1303,25 @@
     <value>Скорость конвейера</value>
   </data>
   <data name="VelocityHint" xml:space="preserve">
-    <value>Сколько карточек вошло в этап, по неделям, за последние {0} недель</value>
+    <value>Сколько карточек вошло в этап и сколько дошло до конца своего конвейера, по неделям, за последние {0} недель</value>
   </data>
   <data name="VelocityTotal" xml:space="preserve">
     <value>переходов за окно: {0}</value>
   </data>
   <data name="VelocityNone" xml:space="preserve">
     <value>Переходов пока нет: они считаются по мере работы с доской.</value>
+  </data>
+  <data name="VelocityClosedTotal" xml:space="preserve">
+    <value>закрытых карточек за окно: {0}</value>
+  </data>
+  <data name="CfdTitle" xml:space="preserve">
+    <value>Накопительный поток</value>
+  </data>
+  <data name="CfdHint" xml:space="preserve">
+    <value>Сколько карточек было в каждом этапе в конце каждой недели, восстановлено по истории доски</value>
+  </data>
+  <data name="CfdNone" xml:space="preserve">
+    <value>Истории по этапам пока нет: она записывается по мере работы с доской.</value>
   </data>
   <data name="TriageTitle" xml:space="preserve">
     <value>Распределение по типам</value>

@@ -365,11 +365,14 @@ its own adapter id, so the feed says which agent wrote what.
 The project page opens with the project's own **activity**: the same contribution calendar the dashboard
 draws, over the days this project's runs and events happened on - work in another project never shows up in
 it. Below it sit the two charts, side by side, computed from what the daemon observed rather than from what
-you wrote: **pipeline velocity** (cards that entered a stage, per week - every week of the window, quiet
-ones included) and the **distribution** (by card kind and by size step). FlareChart draws them, the category
+you wrote: **pipeline velocity** (cards that entered a stage, and cards that reached the end of their own
+pipeline, per week - every week of the window, quiet ones included) and the **distribution** (by card kind
+and by size step). FlareChart draws them, the category
 labels sit beside the bars, and a value of zero draws no bar at all. The third block counts the project's
-**cards per stage**, workflow by workflow. The daemon screen reports **uptime, runs, runs without a clean
-stop, working set and managed heap**.
+**cards per stage**, workflow by workflow, and the fourth draws the **cumulative flow**: how many cards stood
+in each stage at the end of every week, read backwards from the board's own snapshot - which is why its last
+week is exact and an older week is only as good as the history the daemon has seen. The daemon screen
+reports **uptime, runs, runs without a clean stop, working set and managed heap**.
 
 Those numbers live in SQLite on purpose: a stage transition is something the daemon observed, not authored
 content. Losing the table costs a chart, not a card. Everything that matters - cards, settings, templates,
