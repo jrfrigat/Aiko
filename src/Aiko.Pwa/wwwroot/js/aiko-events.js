@@ -107,6 +107,24 @@ function connectDirectly(url, dotnet) {
     };
 }
 
+// Whether this tab is on screen, reported to .NET.
+//
+// Nothing in Blazor knows that, and it matters: a hidden tab is throttled by the browser - its timers fire
+// late and a request sent from it can be answered after the client's own deadline has passed - which is how
+// a minimized window reported "the board could not be updated" for a daemon that was answering. The client
+// asks here instead of reading a hidden tab's board, and reads once when the tab comes back.
+window.aikoVisibility = {
+    subscribe: function (dotnet) {
+        const report = function () {
+            dotnet.invokeMethodAsync('OnVisibilityChanged', !document.hidden).catch(function () {});
+        };
+        document.addEventListener('visibilitychange', report);
+        // The state at subscribe time is the first word: a tab restored with the session can already be
+        // hidden, and the client would otherwise assume it is on screen.
+        report();
+    }
+};
+
 // Focuses the element matched by `selector` when the visitor presses Ctrl+K (Cmd+K on macOS).
 // The quick search sits in the shell's top bar, and reaching it from anywhere is the part of the
 // design's command palette no component owns: Flare handles keys inside its own controls, not the

@@ -27,9 +27,12 @@ internal sealed class WorkspaceState : IAsyncDisposable
     private readonly HttpClient _http;
     private readonly ProjectEventClient _events;
     private readonly NavigationManager _navigation;
+    private readonly IJSRuntime _js;
+    private readonly BoardPresence _presence = new();
     private readonly object _sync = new();
     private Task? _initialization;
     private CancellationTokenSource? _boardReloadDelay;
+    private DotNetObjectReference<WorkspaceState>? _visibility;
     private bool _disposed;
 
     /// <summary>
@@ -39,6 +42,7 @@ internal sealed class WorkspaceState : IAsyncDisposable
     {
         _http = http;
         _navigation = navigation;
+        _js = js;
         _events = new ProjectEventClient(js);
         _events.Received += OnProjectEventAsync;
         _events.ConnectionChanged += OnEventConnectionChangedAsync;
@@ -188,6 +192,7 @@ internal sealed class WorkspaceState : IAsyncDisposable
             Loading = false;
         }
 
+        await SubscribeVisibilityAsync();
         await NotifyAsync();
     }
 
@@ -262,6 +267,9 @@ internal sealed class WorkspaceState : IAsyncDisposable
     /// </summary>
     public async Task LoadBoardAsync()
     {
+        // Taken before the read starts: whether this attempt still speaks for the tab is decided when it ends,
+        // not when it begins.
+        var epoch = _presence.Epoch;
         Error = null;
         if (SelectedProjectId is null)
         {
@@ -282,7 +290,13 @@ internal sealed class WorkspaceState : IAsyncDisposable
         }
         catch (Exception exception)
         {
-            Error = FailureText.Describe(exception);
+            // A read that was in flight while the tab was away says nothing about the board the person is
+            // looking at now: its failure is dropped, and the read the return schedules is the one that gets to
+            // speak. A read made while the tab is on screen is reported as it always was.
+            if (_presence.IsCurrent(epoch))
+            {
+                Error = FailureText.Describe(exception);
+            }
         }
 
         await NotifyAsync();
@@ -646,6 +660,59 @@ internal sealed class WorkspaceState : IAsyncDisposable
     }
 
     /// <summary>
+    /// Asks the browser to report whether this tab is on screen, and takes its word as the tab's presence.
+    /// </summary>
+    /// <remarks>
+    /// No part of Blazor knows whether a tab is visible, and the hidden tab is the one that produced the
+    /// failures this replaces: throttled, answered late, and reported as an error the person never caused.
+    /// Without the subscription the tab counts as visible - the behaviour before this existed - so an interop
+    /// that is not there (prerender) is a degradation, not a failure, and is reported nowhere.
+    /// </remarks>
+    private async Task SubscribeVisibilityAsync()
+    {
+        try
+        {
+            _visibility ??= DotNetObjectReference.Create(this);
+            await _js.InvokeVoidAsync("aikoVisibility.subscribe", _visibility);
+        }
+        catch (JSDisconnectedException)
+        {
+            // The Blazor circuit is gone; there is nothing left to report to.
+        }
+        catch (JSException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
+        }
+    }
+
+    /// <summary>
+    /// Applies what the browser reports about this tab, and reads the board once when the tab comes back.
+    /// </summary>
+    /// <remarks>
+    /// The return to the tab is the moment the snapshot has to be right: minutes may have passed, and the
+    /// events of a throttled tab arrive late if they arrive at all. Taking the plate away and re-reading the
+    /// board in the same gesture is what makes "the message goes when the connection is there" true here as
+    /// well - a daemon that is still unreachable fails this read and puts the plate straight back up. A report
+    /// that changes nothing does nothing, so alt-tabbing does not turn into a stream of reads.
+    /// </remarks>
+    /// <param name="visible">Whether the document is on screen, as the browser reports it.</param>
+    [JSInvokable]
+    public async Task OnVisibilityChanged(bool visible)
+    {
+        // Hiding changes nothing on screen, and what was in flight for this tab has just been abandoned: the
+        // return does the reading.
+        if (!_presence.Apply(visible) || !visible)
+        {
+            return;
+        }
+
+        Error = null;
+        await LoadBoardAsync();
+    }
+
+    /// <summary>
     /// Whether the client that is running is older than the bundle the daemon now serves.
     /// </summary>
     /// <remarks>
@@ -669,10 +736,21 @@ internal sealed class WorkspaceState : IAsyncDisposable
         EventsStatusMessage = connected ? null : reason;
         if (connected)
         {
+            // The link is back, so a plate put up while it was gone is no longer the news, and the board may
+            // have moved while nothing was arriving. What was in flight for the dead link is abandoned first, so
+            // a failure from it cannot arrive afterwards and put the plate back up.
+            _presence.Abandon();
+            Error = null;
             // A (re)connect is how a daemon restart shows up here - and a restart is exactly when the daemon
             // may serve a newer client than this tab loaded. Probing the version at that moment is what lets
             // the shell say "reload" instead of hiding the mismatch under a live badge.
             await RefreshSystemAsync();
+            if (_presence.CanRead)
+            {
+                // The board is re-read by the same gesture that takes the plate away, so a daemon that is still
+                // down fails this read and puts the plate straight back up.
+                await LoadBoardAsync();
+            }
         }
 
         await NotifyAsync();
@@ -766,6 +844,15 @@ internal sealed class WorkspaceState : IAsyncDisposable
     /// </summary>
     private void ScheduleBoardReload()
     {
+        // A hidden tab does not read the board at all. The browser throttles such a tab, so a read is answered
+        // late and the client's own deadline can pass over an answer the daemon already gave - which is how a
+        // minimized window reported a failure for a daemon that was answering. Events arriving meanwhile need no
+        // bookkeeping: the one read the return to the tab makes covers all of them.
+        if (!_presence.CanRead)
+        {
+            return;
+        }
+
         CancellationToken token;
         lock (_sync)
         {
@@ -811,6 +898,8 @@ internal sealed class WorkspaceState : IAsyncDisposable
         _disposed = true;
         _events.Received -= OnProjectEventAsync;
         _events.ConnectionChanged -= OnEventConnectionChangedAsync;
+        _visibility?.Dispose();
+        _visibility = null;
         lock (_sync)
         {
             _boardReloadDelay?.Cancel();

@@ -375,6 +375,9 @@
   <data name="BoardUpdateFailed" xml:space="preserve">
     <value>Could not update the board</value>
   </data>
+  <data name="DaemonTimeoutHint" xml:space="preserve">
+    <value>The daemon did not answer in time. Refresh to try again.</value>
+  </data>
   <data name="Cards" xml:space="preserve">
     <value>Cards</value>
   </data>

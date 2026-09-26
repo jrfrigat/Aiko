@@ -375,6 +375,9 @@
   <data name="BoardUpdateFailed" xml:space="preserve">
     <value>Не удалось обновить доску</value>
   </data>
+  <data name="DaemonTimeoutHint" xml:space="preserve">
+    <value>Демон не ответил вовремя. Нажмите «Обновить», чтобы попробовать снова.</value>
+  </data>
   <data name="Cards" xml:space="preserve">
     <value>Карточки</value>
   </data>
