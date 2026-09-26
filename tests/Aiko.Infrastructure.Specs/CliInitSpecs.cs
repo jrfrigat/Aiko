@@ -68,10 +68,21 @@ public sealed class CliInitSpecs
         Assert.Contains("agent uninstall [--project <id>]", help, StringComparison.Ordinal);
     }
 
-    internal static async Task<(int ExitCode, string Output)> RunCliAsync(
+    internal static Task<(int ExitCode, string Output)> RunCliAsync(
         string databasePath,
         string userHome,
-        params string[] arguments)
+        params string[] arguments) =>
+        RunCliWithEnvironmentAsync(databasePath, userHome, environment: null, arguments);
+
+    /// <summary>
+    /// The same run with extra environment, for a spec that needs one of the knobs the CLI reads - a mirror of
+    /// the releases, say, so that an update can be checked without a network.
+    /// </summary>
+    internal static async Task<(int ExitCode, string Output)> RunCliWithEnvironmentAsync(
+        string databasePath,
+        string userHome,
+        IReadOnlyDictionary<string, string>? environment,
+        string[] arguments)
     {
         var startInfo = new ProcessStartInfo("dotnet")
         {
@@ -93,6 +104,11 @@ public sealed class CliInitSpecs
 
         startInfo.Environment["AIKO_DATABASE"] = databasePath;
         startInfo.Environment["AIKO_USER_HOME"] = userHome;
+
+        foreach (var item in environment ?? new Dictionary<string, string>())
+        {
+            startInfo.Environment[item.Key] = item.Value;
+        }
 
         using var process = Process.Start(startInfo)!;
         var output = process.StandardOutput.ReadToEndAsync();

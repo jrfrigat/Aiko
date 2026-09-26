@@ -4,16 +4,6 @@ using Aiko.Infrastructure.Storage;
 namespace Aiko.Infrastructure.Installation;
 
 /// <summary>
-/// A release downloaded, verified and unpacked, ready to replace what is installed.
-/// </summary>
-/// <param name="Tag">Release tag it came from.</param>
-/// <param name="Version">Version the tag names.</param>
-/// <param name="AssetName">Asset it was unpacked from.</param>
-/// <param name="Sha256">The verified checksum of that asset.</param>
-/// <param name="Directory">The staging directory holding the unpacked release.</param>
-public sealed record StagedRelease(string Tag, string Version, string AssetName, string Sha256, string Directory);
-
-/// <summary>
 /// Prepares a release beside the installation: download, verify, unpack, validate.
 /// </summary>
 /// <remarks>

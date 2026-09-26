@@ -1,10 +1,12 @@
 using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using Aiko.Application.Agents;
 using Aiko.Application.Contracts;
+using Aiko.Application.Installation;
 using Aiko.Cli;
 using Aiko.Domain.Execution;
 using Aiko.Domain.Workflow;
@@ -13,6 +15,7 @@ using Aiko.Infrastructure.Cards;
 using Aiko.Infrastructure.Commands;
 using Aiko.Infrastructure.Diagnostics;
 using Aiko.Infrastructure.Execution;
+using Aiko.Infrastructure.Installation;
 using Aiko.Infrastructure.Projects;
 using Aiko.Infrastructure.Settings;
 using Aiko.Infrastructure.Storage;
@@ -40,6 +43,9 @@ var exitCode = command switch
     "backup" => await BackupAsync(args),
     "restore" => await RestoreAsync(args),
     "logs" => await LogsAsync(args),
+    "update" => await UpdateAsync(args),
+    "install" => await InstallAsync(args),
+    "--version" => Version(args),
     "help" or "--help" or "-h" => Help(),
     _ => Unknown(command)
 };
@@ -102,6 +108,15 @@ static int Help()
           logs [--lines <n>] [--project <id>] [--after <id>] [--port <p>]
                                                         The tail of the daemon's log, and with --project the
                                                         tail of that project's event journal
+          update [--check] [--tag <tag>] [--install-dir <path>] [--no-path] [--agents <ids>|--no-agents] [--force]
+                                                        Bring the installation up to the newest release, or to
+                                                        one named with --tag. --check prints what is installed
+                                                        and what is available, and changes nothing
+          install --from <stagedDir> --tag <tag> [--sha256 <hash>] [--install-dir <path>] [--no-path]
+                                                        Put a release that install.ps1 already fetched and
+                                                        unpacked in place, and record it
+          --version                                     Print the installed version, or this build's when
+                                                        nothing is installed
           reindex <projectId>                           Rebuild a project's SQLite projections
           commands [--project <id>] [--card <id>] [--state <s>]
                                                         Show the commands a screen placed for an agent;
@@ -2119,3 +2134,221 @@ static ProjectGitPolicy? ParseGitPolicy(string? value) =>
             _ => throw new ArgumentException(
                 "Git policy must be local-only, track-project-knowledge or custom.")
         };
+
+// The version the installation reports: what install.json says, or - on an installation made before that file
+// existed - the version of the build that is running. Never a guess: "unknown" is the truth, and an invented
+// version would outlive the run that printed it.
+static int Version(string[] args)
+{
+    var installed = InstalledVersionFile.Read(ResolveInstallDirectory(args));
+    Console.WriteLine(installed?.Tag ?? BuildVersion());
+    return 0;
+}
+
+static string BuildVersion() =>
+    typeof(CliJsonContext).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+        ?.InformationalVersion
+    ?? typeof(CliJsonContext).Assembly.GetName().Version?.ToString()
+    ?? "unknown";
+
+// `aiko update` brings an installed Aiko up to a release, through the engine that installs it as well:
+// resolve, verify, stage, stop the daemon, replace atomically, record, repair, report. Nothing here fetches or
+// replaces anything itself - a second spelling of that is how installing and updating come to disagree.
+static async Task<int> UpdateAsync(string[] args)
+{
+    var request = new InstallationRequest(
+        ResolveInstallDirectory(args),
+        ReadOption(args, "--tag"),
+        UpdatePath: !HasFlag(args, "--no-path"),
+        Agents: ReadAgents(args),
+        NoAgents: HasFlag(args, "--no-agents"),
+        Force: HasFlag(args, "--force"),
+        Check: HasFlag(args, "--check"));
+
+    try
+    {
+        var engine = await CreateInstallationEngineAsync();
+        var report = await engine.UpdateAsync(request, CancellationToken.None);
+        PrintInstallationReport(report);
+        return report.Outcome is InstallationOutcome.Refused ? 1 : 0;
+    }
+    catch (Exception exception) when (exception is not OperationCanceledException)
+    {
+        // A fault is not a decision, and the two have to look different to whatever started this. The engine
+        // reports what it refused and lets what broke escape, exactly as the installer's host did.
+        Console.Error.WriteLine($"The run did not finish: {exception.Message}");
+        return 3;
+    }
+}
+
+// `aiko install --from` is the half of an installation that a machine without .NET cannot do for itself. The
+// bootstrap script fetches the release, verifies its checksum and unpacks it; what follows - validate, stop,
+// replace, record, repair, report - is the same method `aiko update` reaches once it has staged a release.
+static async Task<int> InstallAsync(string[] args)
+{
+    var stagedDirectory = ReadOption(args, "--from");
+    if (string.IsNullOrWhiteSpace(stagedDirectory))
+    {
+        Console.Error.WriteLine(
+            "Usage: aiko install --from <stagedDirectory> --tag <tag> [--sha256 <hash>] "
+            + "[--install-dir <path>] [--no-path] [--agents <ids>|--no-agents]");
+        return 2;
+    }
+
+    var tag = ReadOption(args, "--tag");
+    if (string.IsNullOrWhiteSpace(tag))
+    {
+        // The tag is what install.json will record, so an installation made without one would report a version
+        // nobody published. Refused rather than guessed.
+        Console.Error.WriteLine("`--tag` is required: it is what the installation will report as its version.");
+        return 2;
+    }
+
+    try
+    {
+        var released = new StagedRelease(
+            tag,
+            ReleaseNaming.VersionFromTag(tag),
+            ReleaseNaming.AssetNameForTag(tag),
+            // The checksum is the caller's to check - it has the archive - and is carried only so the report
+            // can say it was checked. The replacement reads the tag, the version and the directory.
+            ReadOption(args, "--sha256") ?? string.Empty,
+            Path.GetFullPath(stagedDirectory));
+        var request = new InstallationRequest(
+            ResolveInstallDirectory(args),
+            tag,
+            UpdatePath: !HasFlag(args, "--no-path"),
+            Agents: ReadAgents(args),
+            NoAgents: HasFlag(args, "--no-agents"));
+
+        var engine = await CreateInstallationEngineAsync();
+        var report = await engine.FinishAsync(request, released, CancellationToken.None);
+        SeedReleaseTemplates(released.Directory);
+        PrintInstallationReport(report);
+        return report.Outcome is InstallationOutcome.Refused ? 1 : 0;
+    }
+    catch (FormatException exception)
+    {
+        // A tag that does not name a version is a usage error, not a failed installation: nothing was read and
+        // nothing written, so saying which argument was wrong is the whole answer.
+        Console.Error.WriteLine(exception.Message);
+        return 2;
+    }
+    catch (Exception exception) when (exception is not OperationCanceledException)
+    {
+        Console.Error.WriteLine($"The run did not finish: {exception.Message}");
+        return 3;
+    }
+}
+
+// `--agents a,b` names them; saying nothing leaves what is already configured alone. That difference is why
+// InstallationAgentSelection exists, and folding it into an empty list here would lose it.
+static IReadOnlyList<string>? ReadAgents(string[] args) =>
+    ReadOption(args, "--agents") is { Length: > 0 } named
+        ? [.. named.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)]
+        : null;
+
+// An installation is the one on this machine unless another directory is named: the same directory the
+// bootstrap script fills and `aiko uninstall` empties.
+static string ResolveInstallDirectory(string[] args) =>
+    ReadOption(args, "--install-dir") is { Length: > 0 } given
+        ? Path.GetFullPath(given)
+        : new AikoInstallation(AikoDataPaths.FromEnvironment()).BinDirectory;
+
+// The engine, assembled where it is used: the database, the catalog, the reindexer, the agent adapters and the
+// doctor, because the engine's repair step performs the work `aiko repair --fix` performs. It is the wiring the
+// installer's exe host used to carry; once TASK-270 removes that host, this is the only composition of the
+// installation path in the product.
+static async ValueTask<IInstallationEngine> CreateInstallationEngineAsync()
+{
+    var dataPaths = AikoDataPaths.FromEnvironment();
+    var database = new AikoDatabase(dataPaths);
+    await database.InitializeAsync(CancellationToken.None);
+
+    var catalog = new SqliteProjectCatalog(database);
+    var definitions = new FileProjectDefinitionStore(catalog);
+    var cards = new FileCardStore(catalog, database);
+    var adapters = CreateAdapters();
+    var agents = new UnifiedAgentInstaller(adapters, catalog, definitions);
+    var repair = new InstallationRepair(catalog, new ProjectReindexer(catalog, database), agents);
+    var diagnostics = new WorkshopDoctor(
+        dataPaths,
+        catalog,
+        agents,
+        adapters,
+        new DaemonEndpointConfiguration(dataPaths),
+        new AccessTokenStore(dataPaths),
+        cards,
+        definitions,
+        new SqliteExecutionCoordinator(
+            catalog,
+            cards,
+            database,
+            new AppSettingsService(new FileAppSettingsStore(catalog))));
+
+    // Where Aiko's own releases live. The bootstrap script names the same two, and the two copies are the
+    // point: a script cannot read a constant compiled into this program, and this program must not ask a
+    // script. The exe host used to hold a third copy; TASK-270 removes it.
+    const string ReleaseOwner = "jrfrigat";
+    const string Repository = "Aiko";
+
+    // AIKO_RELEASE_FEED points at a directory laid out like a release feed, which is what a mirror - or a
+    // machine that has to install without a network - needs. Without it the releases come from GitHub.
+    IReleaseSource source = ReadReleaseFeed() is { } feed
+        ? new LocalReleaseSource(feed)
+        : new GitHubReleaseSource(new HttpClient(), ReleaseOwner, Repository);
+
+    return new InstallationEngine(source, new DaemonLifecycle(dataPaths), repair, diagnostics);
+}
+
+static string? ReadReleaseFeed()
+{
+    var configured = Environment.GetEnvironmentVariable("AIKO_RELEASE_FEED");
+    return string.IsNullOrWhiteSpace(configured) ? null : Path.GetFullPath(configured);
+}
+
+// A release carries the base project template in the shape the daemon reads it from its data directory. The
+// store answers with a built-in template when nothing is there, so this copies the release's own version rather
+// than making an init possible at all - which is why a release without the directory is not an error.
+static void SeedReleaseTemplates(string stagedDirectory)
+{
+    var templates = Path.Combine(stagedDirectory, "templates");
+    if (!Directory.Exists(templates))
+    {
+        return;
+    }
+
+    var destination = AikoDataPaths.FromEnvironment().TemplatesRoot;
+    foreach (var directory in Directory.EnumerateDirectories(templates))
+    {
+        var target = Path.Combine(destination, Path.GetFileName(directory));
+        foreach (var file in Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories))
+        {
+            var copy = Path.Combine(target, Path.GetRelativePath(directory, file));
+            Directory.CreateDirectory(Path.GetDirectoryName(copy)!);
+            File.Copy(file, copy, overwrite: true);
+        }
+    }
+}
+
+// What a run did, in the order it did it, and what is installed against what is available - the same account
+// the installer's own host printed, because it is the same report.
+static void PrintInstallationReport(InstallationReport report)
+{
+    foreach (var step in report.Steps)
+    {
+        Console.WriteLine($"{(step.Succeeded ? "ok  " : "stop")} {step.Name}: {step.Detail}");
+    }
+
+    Console.WriteLine();
+    Console.WriteLine(report.Summary);
+    if (report.Installed is { } installed)
+    {
+        Console.WriteLine($"installed: {installed.Tag} in {installed.InstallDirectory}");
+    }
+
+    if (report.Available is { } available)
+    {
+        Console.WriteLine($"available: {available.Tag}");
+    }
+}
