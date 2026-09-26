@@ -6,7 +6,10 @@
 #
 #     irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1 | iex
 #
-# This script stays as the contributor path: it builds what is in the working tree.
+# This script stays as the contributor path: it builds what is in the working tree. It deliberately does not
+# call `aiko install --from` the way scripts/install.ps1 does: what it publishes is a framework-dependent build
+# of the checkout, not a release - there is no tag to record, no SHA256SUMS to verify and no install.json to
+# write, and `aiko --version` answers with the version of that build, which is the truth about it.
 
 # This is an interactive installer: its progress lines belong on the console, not on the pipeline.
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute(

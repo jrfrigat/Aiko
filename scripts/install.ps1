@@ -3,9 +3,14 @@
     Installs the Aiko daemon, CLI and stdio proxy (Windows, x64).
 
 .DESCRIPTION
-    Downloads the self-contained release build from GitHub, unpacks it into the user's programs
-    directory and puts that directory on the user PATH. Nothing is installed machine-wide and no
-    administrator rights are needed; .NET does not have to be installed either.
+    Downloads the release from GitHub, verifies its checksum, unpacks it beside the installation, and
+    hands the rest to the release's own `aiko.exe install --from`: that replaces the installed files
+    atomically, rolls back on failure, records the version in install.json, keeps the directory on the
+    user PATH, connects the agents, and repairs and reports. The script does only what has to happen
+    before Aiko exists at all - download, verify, unpack.
+
+    Nothing is installed machine-wide and no administrator rights are needed; .NET does not have to be
+    installed either.
 
     Run it directly:
 
@@ -15,11 +20,16 @@
 
         & ([scriptblock]::Create((irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1))) -Version v0.3.1
 
+    To install from a mirror, set AIKO_RELEASE_BASE_URL to the mirror's base address, for example
+    https://mirror.example.com; the default is https://github.com. Authenticity does not rest on the
+    host: the checksums are fetched from the same one, so the archive is still verified before it is
+    unpacked.
+
 .PARAMETER Version
     The release tag to install, for example "v0.1.0". Defaults to the latest release.
 
 .PARAMETER InstallDir
-    Where to unpack. Defaults to %LOCALAPPDATA%\Aiko\bin.
+    Where to install. Defaults to %LOCALAPPDATA%\Aiko\bin.
 
 .PARAMETER NoPathUpdate
     Skip adding the install directory to the user PATH.
@@ -64,12 +74,24 @@ $command = 'aiko'
 
 function Write-Step([string] $message) { Write-Host "==> $message" -ForegroundColor Cyan }
 
-function Get-LatestReleaseTag([string] $repository) {
+# Where the release is fetched from. GitHub by default; a mirror, or a machine that has to install without
+# reaching it, sets AIKO_RELEASE_BASE_URL. Authenticity does not rest on the host: the checksums come from the
+# same one, and the archive is verified against them before anything is unpacked.
+function Get-ReleaseBaseUrl {
+    $configured = $env:AIKO_RELEASE_BASE_URL
+    if ([string]::IsNullOrWhiteSpace($configured)) {
+        return 'https://github.com'
+    }
+
+    return $configured.TrimEnd('/')
+}
+
+function Get-LatestReleaseTag([string] $baseUrl, [string] $repository) {
     # The unauthenticated GitHub API is limited to 60 requests per public IP. That limit is often
     # shared by an office, VPN or ISP and can make the installer fail even though releases are
     # available. The regular releases/latest endpoint is not subject to that API limit and redirects
     # to /releases/tag/<tag>, so only inspect its Location header.
-    $latestUrl = "https://github.com/$repository/releases/latest"
+    $latestUrl = "$baseUrl/$repository/releases/latest"
     $request = [Net.HttpWebRequest]::Create($latestUrl)
     $request.Method = 'HEAD'
     $request.AllowAutoRedirect = $false
@@ -79,7 +101,7 @@ function Get-LatestReleaseTag([string] $repository) {
         $response = [Net.HttpWebResponse] $request.GetResponse()
     }
     catch {
-        throw "Cannot resolve the latest GitHub release ($latestUrl): $($_.Exception.Message)"
+        throw "Cannot resolve the latest release ($latestUrl): $($_.Exception.Message)"
     }
 
     try {
@@ -90,7 +112,7 @@ function Get-LatestReleaseTag([string] $repository) {
     }
 
     if (-not $location -or $location -notmatch '/releases/tag/([^/?#]+)') {
-        throw "GitHub did not redirect $latestUrl to a release tag. Location: $location"
+        throw "The release index did not redirect $latestUrl to a release tag. Location: $location"
     }
 
     return [Uri]::UnescapeDataString($Matches[1])
@@ -146,23 +168,41 @@ function Stop-InstalledAiko {
         Stop-Process -Force -ErrorAction SilentlyContinue
 }
 
+# The checksum the release publishes for this asset. SHA256SUMS is the format `shasum` writes: one line per
+# asset, "<hash>  <name>", with some tools putting a "*" before a binary's name. A release that does not vouch
+# for the asset is refused here, before anything is downloaded twice or unpacked.
+function Get-PublishedChecksum([string] $checksumsFile, [string] $assetName, [string] $tag) {
+    foreach ($line in Get-Content -Path $checksumsFile) {
+        $parts = $line.Trim() -split '\s+', 2
+        if ($parts.Count -ne 2) { continue }
+        if ($parts[1].TrimStart('*') -eq $assetName) {
+            return $parts[0]
+        }
+    }
+
+    throw "Release $tag publishes no checksum for $assetName, so the download cannot be verified."
+}
+
 Assert-InstallDirIsAiko $InstallDir
 
+$baseUrl = Get-ReleaseBaseUrl
 $headers = @{ 'User-Agent' = 'aiko-installer' }
 $tag = $Version
 if ($Version -eq 'latest') {
     Write-Step "Looking up the latest release of $repo"
-    $tag = Get-LatestReleaseTag $repo
+    $tag = Get-LatestReleaseTag $baseUrl $repo
 }
 
 $releaseVersion = ($tag -replace '^v', '').Split('+')[0]
 $assetName = "aiko-$releaseVersion-win-x64.zip"
+$checksumsName = 'SHA256SUMS'
 $escapedTag = [Uri]::EscapeDataString($tag)
-$downloadUrl = "https://github.com/$repo/releases/download/$escapedTag/$assetName"
+$releaseUrl = "$baseUrl/$repo/releases/download/$escapedTag"
 
-# The base project template ships with the release, and the installer is what puts it where the daemon
-# looks for it. An existing file is left alone: it is the installation's own copy by then, and an upgrade
-# must not overwrite defaults a person edited.
+# The base project template ships with the release, and something has to put it where the daemon looks for it
+# before the daemon has ever run. The CLI seeds it too (SeedReleaseTemplates), but that one overwrites the file
+# and this leaves it alone: an upgrade must not throw away defaults a person edited. Bringing the CLI to the
+# same rule, and dropping the seed here afterwards, is an open item recorded on TASK-112.
 function Install-BaseTemplate([string] $sourceDir, [string] $dataDir) {
     $source = Join-Path $sourceDir 'templates\default\template.json'
     $target = Join-Path $dataDir 'templates\default\template.json'
@@ -177,100 +217,81 @@ function Install-BaseTemplate([string] $sourceDir, [string] $dataDir) {
 
 $temp = Join-Path ([IO.Path]::GetTempPath()) ("aiko-" + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $temp | Out-Null
+
+# Unpacked beside the installation and never inside it: the engine moves entries within one volume, which is
+# what makes the replacement reversible, and the installed version keeps working while this happens.
+$staging = "$InstallDir.staging-$([DateTime]::UtcNow.ToString('yyyyMMddHHmmssfff'))"
+$exitCode = 0
 try {
     $archive = Join-Path $temp $assetName
+    $checksumsFile = Join-Path $temp $checksumsName
     Write-Step "Downloading $assetName"
     try {
         # Basic parsing avoids the Internet Explorer dependency in Windows PowerShell 5.1.
-        Invoke-WebRequest -Uri $downloadUrl -OutFile $archive -Headers $headers -UseBasicParsing
+        Invoke-WebRequest -Uri "$releaseUrl/$assetName" -OutFile $archive -Headers $headers -UseBasicParsing
+        Invoke-WebRequest -Uri "$releaseUrl/$checksumsName" -OutFile $checksumsFile -Headers $headers -UseBasicParsing
     }
     catch {
-        throw "Cannot download the win-x64 archive for release $tag ($downloadUrl): $($_.Exception.Message)"
+        throw "Cannot download the win-x64 release $tag from $releaseUrl`: $($_.Exception.Message)"
     }
 
-    Write-Step "Unpacking into $InstallDir"
-    $staging = Join-Path $temp 'unpacked'
+    # Checked before anything is unpacked and before the installation is touched: a substituted archive has to
+    # be refused while there is still nothing to undo.
+    $expected = Get-PublishedChecksum -checksumsFile $checksumsFile -assetName $assetName -tag $tag
+    $actual = (Get-FileHash -Path $archive -Algorithm SHA256).Hash
+    if ($actual -ne $expected) {
+        throw "$assetName does not match the checksum release $tag publishes for it " +
+            "(expected $expected, and the download is $actual). Nothing was installed."
+    }
+
+    Write-Step "Verified $assetName against $checksumsName"
+    Write-Step "Unpacking into $staging"
     Expand-Archive -Path $archive -DestinationPath $staging -Force
 
-    # The archive is checked before anything installed is touched, so a broken download costs nothing.
+    # This is not the release's layout rule - the engine validates that before it replaces anything - but the one
+    # file this script is about to run, and a plain message here beats a failure from a command that never was.
     if (-not (Test-Path (Join-Path $staging "$command.exe"))) {
         throw "The archive did not contain $command.exe. Contents: $((Get-ChildItem $staging | ForEach-Object Name) -join ', ')"
     }
-    if (-not (Test-Path (Join-Path $staging 'server\Aiko.Server.exe'))) {
-        throw "The archive did not contain server\Aiko.Server.exe. Contents: $((Get-ChildItem $staging -Recurse | ForEach-Object Name) -join ', ')"
-    }
 
+    Install-BaseTemplate -sourceDir $staging -dataDir (Join-Path $env:LOCALAPPDATA 'Aiko')
+
+    # The daemon and the agents' stdio proxies run out of the install directory and hold their executables open,
+    # and the engine - which stops the daemon itself - knows nothing about the proxies.
     Stop-InstalledAiko $InstallDir
 
-    # Replace the contents rather than the directory itself: the directory may already be on PATH, and a
-    # running shell keeps resolving the path it was given. What is installed is moved aside first - a rename
-    # within one volume, which works even on a file something still holds - and comes back if the copy fails.
-    $previous = "$InstallDir.previous-$([DateTime]::UtcNow.ToString('yyyyMMddHHmmssfff'))"
-    if (Test-Path $InstallDir) {
-        New-Item -ItemType Directory -Path $previous | Out-Null
-        try {
-            Get-ChildItem -Path $InstallDir -Force | Move-Item -Destination $previous
-        }
-        catch {
-            # Whatever moved aside before the failure goes back, so a refused move leaves the installation whole.
-            $failure = $_.Exception.Message
-            Get-ChildItem -Path $previous -Force | Move-Item -Destination $InstallDir -Force -ErrorAction SilentlyContinue
-            Remove-Item -Path $previous -Recurse -Force -ErrorAction SilentlyContinue
-            throw "Could not move the installed files in $InstallDir aside, so nothing was replaced: $failure"
-        }
-    }
-    else {
-        New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
-    }
+    # Everything from here belongs to the release's own aiko.exe: validate the layout, replace the installed
+    # files atomically, roll back on failure, record install.json, keep PATH idempotent, connect the agents,
+    # repair and report. The script only says what it resolved and what it verified.
+    $installArgs = @('install', '--from', $staging, '--tag', $tag, '--sha256', $actual, '--install-dir', $InstallDir)
+    if ($NoPathUpdate) { $installArgs += '--no-path' }
+    if ($NoAgentSetup) { $installArgs += '--no-agents' }
+    elseif ($Agents) { $installArgs += @('--agents', $Agents) }
 
-    try {
-        Copy-Item -Path (Join-Path $staging '*') -Destination $InstallDir -Recurse -Force
-    }
-    catch {
-        $failure = $_.Exception.Message
-        Get-ChildItem -Path $InstallDir -Force | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
-        if (Test-Path $previous) {
-            Get-ChildItem -Path $previous -Force | Move-Item -Destination $InstallDir -Force
-            Remove-Item -Path $previous -Recurse -Force -ErrorAction SilentlyContinue
-        }
-        throw "Installing into $InstallDir failed and the previous installation was put back: $failure"
-    }
-
-    # A file still held open keeps the old copy from going; the next run's installer clears it away.
-    if (Test-Path $previous) {
-        Remove-Item -Path $previous -Recurse -Force -ErrorAction SilentlyContinue
-    }
+    Write-Step "Installing $tag"
+    & (Join-Path $staging "$command.exe") @installArgs
+    $exitCode = $LASTEXITCODE
 }
 
 finally {
     Remove-Item -Path $temp -Recurse -Force -ErrorAction SilentlyContinue
+    # The engine moves the staged entries into the installation, so what its success leaves behind is an empty
+    # directory beside it; after a refusal it is a directory that has to go, so that "nothing was changed" is
+    # true on the disk and not only in the report.
+    Remove-Item -Path $staging -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+# The release's own report has already said why it could not finish, and the exit code is what a caller - the
+# documented `irm ... | iex` included - reads as the outcome. A refusal left the previous version in place.
+if ($exitCode -ne 0) {
+    Write-Host ""
+    Write-Host "The installation did not finish (aiko install exited with $exitCode); the previous version is untouched." -ForegroundColor Red
+    exit $exitCode
 }
 
 $exe = Join-Path $InstallDir "$command.exe"
 if (-not (Test-Path $exe)) {
-    throw "The archive did not contain $command.exe. Contents: $((Get-ChildItem $InstallDir | ForEach-Object Name) -join ', ')"
-}
-
-$daemon = Join-Path $InstallDir 'server\Aiko.Server.exe'
-if (-not (Test-Path $daemon)) {
-    throw "The archive did not contain server\Aiko.Server.exe. Contents: $((Get-ChildItem $InstallDir -Recurse | ForEach-Object Name) -join ', ')"
-}
-
-# The daemon reads project templates from its data directory; seeding the base one here is what makes a
-# fresh installation able to create a project without ever having run the daemon.
-Install-BaseTemplate -sourceDir $InstallDir -dataDir (Join-Path $env:LOCALAPPDATA 'Aiko')
-
-if (-not $NoPathUpdate) {
-    $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
-    $entries = if ($userPath) { $userPath.Split(';', [StringSplitOptions]::RemoveEmptyEntries) } else { @() }
-    if ($entries -notcontains $InstallDir) {
-        Write-Step "Adding $InstallDir to the user PATH"
-        $updated = (@($entries) + $InstallDir) -join ';'
-        [Environment]::SetEnvironmentVariable('Path', $updated, 'User')
-        # So the current session can run it without reopening the terminal.
-        $env:Path = "$env:Path;$InstallDir"
-        Write-Host "    Open a new terminal for PATH to apply everywhere." -ForegroundColor DarkGray
-    }
+    throw "The installation did not produce $command.exe in $InstallDir."
 }
 
 # Starting the daemon at sign-in is the person's choice: the question defaults to no, and the entry is
@@ -297,33 +318,13 @@ if ($startAtSignIn) {
     }
 }
 
-# There is no agent menu: "aiko agent install --scope user" already knows which agents are on this machine,
-# and a list of five here was a second place holding the same knowledge - one that had to be kept in step with
-# the adapters by hand. -Agents names them explicitly; -NoAgentSetup leaves them alone.
-$agentsConnected = $false
-if (-not $NoAgentSetup) {
-    if ($Agents) {
-        Write-Step "Connecting the agents you named: $Agents"
-        & $exe agent install --scope user --agent $Agents
-    }
-    else {
-        Write-Step 'Connecting the agents found on this machine'
-        & $exe agent install --scope user
-    }
-
-    $agentsConnected = $LASTEXITCODE -eq 0
-    if (-not $agentsConnected) {
-        Write-Host "    Agent setup reported a problem; re-run 'aiko agent install --scope user' after fixing it." -ForegroundColor DarkYellow
-    }
-}
-
+# The agents are connected by `install --from` itself, so there is no menu here and nothing to report about
+# them afterwards: a second place holding the same knowledge is exactly what used to drift from the adapters.
 Write-Host ""
 Write-Host "Aiko $tag installed." -ForegroundColor Green
 Write-Host "  Start the daemon:  " -NoNewline
 Write-Host "aiko serve" -ForegroundColor Yellow
 Write-Host "  Open the board:    " -NoNewline
 Write-Host "aiko ui" -ForegroundColor Yellow
-if (-not $agentsConnected) {
-    Write-Host "  Connect an agent:  " -NoNewline
-    Write-Host "aiko agent install --scope user" -ForegroundColor Yellow
-}
+Write-Host "  Connect an agent:  " -NoNewline
+Write-Host "aiko agent install --scope user" -ForegroundColor Yellow
