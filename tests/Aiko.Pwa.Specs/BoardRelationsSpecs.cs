@@ -75,14 +75,21 @@ public sealed class BoardRelationsSpecs
         Assert.Contains("Loc.Format(\"BlockedByCard\"", section, StringComparison.Ordinal);
 
         // The card's own tree is the row under them: the number of the card it belongs to, and the count of
-        // the cards that belong to it as something to press. Children are counted and never listed, so the
-        // plain-link chips the row used to carry are gone.
+        // the cards that belong to it. The count is something to press, and what it opens is Flare's popover:
+        // one row per child, each a real link to the child's own page. The plain-link chips the row used to
+        // carry stay gone - the tree is one control that opens a list, not a row of addresses.
         Assert.Contains("aiko-card__hierarchy", section, StringComparison.Ordinal);
         Assert.Contains("ParentOf(card)", section, StringComparison.Ordinal);
         Assert.Contains("ChildrenOf(card)", section, StringComparison.Ordinal);
         Assert.Contains("RelationTypes.ParentChild", section, StringComparison.Ordinal);
         Assert.Contains("class=\"aiko-card__subtasks\"", section, StringComparison.Ordinal);
+        Assert.Contains("<FlarePopover ", section, StringComparison.Ordinal);
+        Assert.Contains("aiko-card__children", section, StringComparison.Ordinal);
+        Assert.Contains("Href=\"@CardHref(child)\"", section, StringComparison.Ordinal);
         Assert.DoesNotContain("RelatedTags", section, StringComparison.Ordinal);
+
+        // Flare binds Escape to a hover popover only, so this one closes itself; the section has to say so.
+        Assert.Contains("\"Escape\"", section, StringComparison.Ordinal);
     }
 
     private static Card CardAt(string cardId, string stageId) =>

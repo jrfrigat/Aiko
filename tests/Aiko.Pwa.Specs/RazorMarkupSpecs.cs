@@ -788,6 +788,70 @@ public sealed class RazorMarkupSpecs
         Assert.Contains("if (RelatedCard(relation) is not { } related)", text, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// The number is the one thing that opens a card, and it opens it as a real link.
+    /// </summary>
+    /// <remarks>
+    /// Restored after the markup moved: the number used to be a <c>FlareNavLink</c>, which carries a button's
+    /// height, and is now a <c>FlareLink</c> - an anchor at the surrounding line height. The rule the fact
+    /// states did not change with the component, so it is written against the markup as it stands: a real
+    /// link, built by the one helper that speaks routes, and by nothing else.
+    /// </remarks>
+    /// <summary>
+    /// The card page opens with Flare's own breadcrumb, and every step but the current one is a link.
+    /// </summary>
+    /// <remarks>
+    /// The row used to be hand-built and only its middle step worked, so the steps a reader could see were
+    /// mostly dead. The trail is Flare's now: the project's screen, the board, and the projection - which is a
+    /// section of the board, so that step leads there too - with the card drawn as the current step.
+    /// </remarks>
+    [Fact]
+    public void The_card_page_opens_with_a_real_breadcrumb()
+    {
+        var root = FindRepositoryRoot();
+        var page = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "CardPage.razor"));
+
+        Assert.Contains("<FlareBreadcrumb Items=\"@CrumbItems\"", page, StringComparison.Ordinal);
+        Assert.Contains("new(State.Board?.Project.Name ?? ProjectId, ProjectRoutes.Overview(ProjectId))", page, StringComparison.Ordinal);
+        Assert.Contains("new(Loc.Get(\"KanbanBoard\"), BoardHref)", page, StringComparison.Ordinal);
+        Assert.Contains("new(ProjectionCaption, BoardHref)", page, StringComparison.Ordinal);
+
+        // The hand-built trail is gone, and its stylesheet with it: no dead rule is left behind.
+        Assert.DoesNotContain("aiko-crumb", page, StringComparison.Ordinal);
+        var css = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "wwwroot", "css", "app.css"));
+        Assert.DoesNotContain(".aiko-crumb", css, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_board_opens_a_card_by_its_number_and_by_nothing_else()
+    {
+        var root = FindRepositoryRoot();
+        var board = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "BoardSection.razor"));
+
+        // The whole card is not a handler: no wrapper opens it, and nothing here raises a selection.
+        Assert.DoesNotContain("aiko-card__open", board, StringComparison.Ordinal);
+        Assert.DoesNotContain("OnCardSelected", board, StringComparison.Ordinal);
+
+        // The number is a real link, built by the one helper that speaks routes, and by the project's
+        // readable handle - the shape that makes the middle button and Ctrl+click work.
+        Assert.Contains("<FlareLink Href=\"@CardHref(card)\" Class=\"aiko-card__id\">", board, StringComparison.Ordinal);
+        Assert.Contains("ProjectRoutes.Card(Board.Project.Handle, card.Reference.CardId)", board, StringComparison.Ordinal);
+
+        // The board page keeps no way of opening a card of its own; the link is the only one left.
+        var view = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "BoardView.razor"));
+        Assert.DoesNotContain("OnCardSelected", view, StringComparison.Ordinal);
+
+        // And the stylesheet says the same: the number looks like a link, the card keeps the plain cursor.
+        var css = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "wwwroot", "css", "app.css"));
+        Assert.Contains(".aiko-card__id {", css, StringComparison.Ordinal);
+        Assert.DoesNotContain(".aiko-card__open", css, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void The_command_example_caption_is_in_both_languages()
     {

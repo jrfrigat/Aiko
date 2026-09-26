@@ -24,17 +24,10 @@ else
         @* The breadcrumb the design opens a card with: where the card sits, and the two actions that
            belong to a card - editing its identity, and sending it to the last stage of its own pipeline. *@
         <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small" Wrap="true">
-            <nav class="aiko-crumb" aria-label="@Loc.Get("KanbanBoard")">
-                <span class="aiko-value aiko-crumb__project">@board.Project.Name</span>
-                <span class="aiko-crumb__sep">/</span>
-                <FlareNavLink Href="@BoardHref">
-                    <ChildContent>@Loc.Get("KanbanBoard")</ChildContent>
-                </FlareNavLink>
-                <span class="aiko-crumb__sep">/</span>
-                <span class="aiko-crumb__here">@ProjectionCaption</span>
-                <span class="aiko-crumb__sep">/</span>
-                <span class="aiko-crumb__id">@($"#{Card.Reference.CardId}")</span>
-            </nav>
+            @* Where the card sits: Flare's own breadcrumb, so every step before the card is a real link and
+               the card itself is the step the reader is on. The row used to be hand-built and only its middle
+               step worked - which is what the person reading it complained about. *@
+            <FlareBreadcrumb Items="@CrumbItems" AriaLabel="@Loc.Get("KanbanBoard")" />
             <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
                 <FlareButton Variant="ButtonVariant.Tonal"
                              Size="ButtonSize.Sm"
@@ -157,6 +150,24 @@ else
     [Parameter] public string CardId { get; set; } = string.Empty;
 
     private string BoardHref => ProjectRoutes.Board(ProjectId);
+
+    /// <summary>
+    /// The trail the card page opens with, as a real breadcrumb: the project's own screen, the board the card
+    /// is drawn on, the projection it belongs to, and the card itself - which Flare draws as the step the
+    /// reader is on, text and not a link.
+    /// </summary>
+    /// <remarks>
+    /// The projection is a section of the board rather than a page of its own - no route draws one card type
+    /// alone - so that step leads to the board, where the reader sees it. Writing it as dead text instead is
+    /// what the hand-built row did, and that is exactly what the person reading it complained about.
+    /// </remarks>
+    private IReadOnlyList<BreadcrumbItem> CrumbItems =>
+    [
+        new(State.Board?.Project.Name ?? ProjectId, ProjectRoutes.Overview(ProjectId)),
+        new(Loc.Get("KanbanBoard"), BoardHref),
+        new(ProjectionCaption, BoardHref),
+        new($"#{Card?.Reference.CardId ?? CardId}", null)
+    ];
 
     /// <summary>
     /// The projection this card belongs to, named as the board's own views are: the trail says where the

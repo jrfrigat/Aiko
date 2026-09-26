@@ -131,10 +131,41 @@
                                                     }
                                                     @if (children.Count > 0)
                                                     {
-                                                        <button type="button" class="aiko-card__subtasks">
-                                                            <FlareIconView Value="@MaterialDesign3Icons.Regular.GridView" />
-                                                            @Loc.Format("BoardSubTasks", children.Count)
-                                                        </button>
+                                                        @* The count is the way into the cards that belong to this one: pressing it
+                                                           opens Flare's popover with the list. The panel closes by pressing again, by a
+                                                           click outside (Flare's own backdrop) or by Escape - which Flare binds only
+                                                           for a hover popover, so it is handled here. Dragging is the handle's alone
+                                                           already (see wwwroot/js/aiko-board.js), so the control takes a press. *@
+                                                        <FlarePopover Open="@IsChildrenOpen(card)"
+                                                                      OpenChanged="@(open => SetChildrenOpen(card, open))"
+                                                                      MaxHeight="16rem">
+                                                            <AnchorContent>
+                                                                <button type="button"
+                                                                        class="aiko-card__subtasks"
+                                                                        aria-haspopup="true"
+                                                                        aria-expanded="@(IsChildrenOpen(card) ? "true" : "false")"
+                                                                        @onclick="() => SetChildrenOpen(card, !IsChildrenOpen(card))"
+                                                                        @onkeydown="e => CloseChildrenOnEscape(card, e.Key)">
+                                                                    <FlareIconView Value="@MaterialDesign3Icons.Regular.GridView" />
+                                                                    @Loc.Format("BoardSubTasks", children.Count)
+                                                                </button>
+                                                            </AnchorContent>
+                                                            <ChildContent>
+                                                                <div class="aiko-card__children" @onkeydown="e => CloseChildrenOnEscape(card, e.Key)">
+                                                                    @foreach (var child in children)
+                                                                    {
+                                                                        <FlareLink Href="@CardHref(child)" Class="aiko-card__child">
+                                                                            <FlareText Element="span" Mono="true" Typo="TypographyScale.LabelSmall" Color="FlareColor.Secondary" Weight="FontWeight.SemiBold">
+                                                                                #@child.Reference.CardId
+                                                                            </FlareText>
+                                                                            <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.Default">
+                                                                                @child.Title
+                                                                            </FlareText>
+                                                                        </FlareLink>
+                                                                    }
+                                                                </div>
+                                                            </ChildContent>
+                                                        </FlarePopover>
                                                     }
                                                 </FlareStack>
                                             }
@@ -421,4 +452,28 @@
         Board.Cards
             .Concat(Board.ArchivedCards ?? [])
             .FirstOrDefault(candidate => StringComparer.Ordinal.Equals(candidate.Reference.CardId, cardId));
+
+    /// <summary>
+    /// The card whose list of children is open, or null when none is: the whole section keeps one popover at
+    /// a time, so opening another closes the one before it whatever the reader did to leave it.
+    /// </summary>
+    private string? _childrenOpenFor;
+
+    private bool IsChildrenOpen(Card card) =>
+        StringComparer.Ordinal.Equals(_childrenOpenFor, card.Reference.CardId);
+
+    private void SetChildrenOpen(Card card, bool open) =>
+        _childrenOpenFor = open ? card.Reference.CardId : null;
+
+    /// <summary>
+    /// Escape closes the open list. Flare binds its own Escape handling to a hover popover only, so a popover
+    /// of ours has to say so itself - on the anchor and on the panel, because the focus can be in either.
+    /// </summary>
+    private void CloseChildrenOnEscape(Card card, string key)
+    {
+        if (StringComparer.Ordinal.Equals(key, "Escape"))
+        {
+            SetChildrenOpen(card, false);
+        }
+    }
 }

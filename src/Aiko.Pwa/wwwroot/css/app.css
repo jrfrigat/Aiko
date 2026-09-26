@@ -549,6 +549,32 @@ html.flare-mode-dark .splash-mark i {
     color: var(--flare-color-primary);
 }
 
+/* What the sub-task count opens: one row per card that belongs to this one, the number in the card
+   language's mono and the title beside it. Flare's popover paper is the surface, so this is only the list's
+   own layout - and the row is a link, which is why it loses the anchor's own underline. */
+.aiko-card__children {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    min-width: 12rem;
+    max-width: 20rem;
+}
+
+.aiko-card__child {
+    display: flex;
+    align-items: baseline;
+    gap: 0.375rem;
+    padding: 0.125rem 0.25rem;
+    border-radius: var(--flare-shape-extra-small);
+    text-decoration: none;
+}
+
+.aiko-card__child:hover,
+.aiko-card__child:focus-visible {
+    background: var(--flare-color-surface-container-high);
+    text-decoration: none;
+}
+
 /* The card's tag row and footer: recessed mono strips. */
 .aiko-card__tags,
 .aiko-card__dod {
@@ -1139,39 +1165,6 @@ html.flare-mode-dark .splash-mark i {
     .aiko-table__row > :nth-child(6) {
         display: none;
     }
-}
-
-/* The card's breadcrumb, as the design draws it: the project in mono accent, quiet separators, the trail
-   through the board, and the card's own id in a chip. */
-.aiko-crumb {
-    display: flex;
-    align-items: center;
-    gap: 0.375rem;
-    flex-wrap: wrap;
-    font-family: var(--aiko-font-mono, monospace);
-    font-size: 0.75rem;
-    line-height: 1.25rem;
-}
-
-.aiko-crumb__project {
-    color: var(--flare-color-secondary);
-}
-
-.aiko-crumb__sep {
-    color: var(--flare-color-outline-variant);
-}
-
-/* The view the reader came from: dimmer than the trail, and not a link. */
-.aiko-crumb__here {
-    color: var(--flare-color-outline);
-}
-
-.aiko-crumb__id {
-    padding: 0.0625rem 0.375rem;
-    border-radius: var(--flare-shape-extra-small);
-    background: var(--flare-color-surface-container-high);
-    color: var(--flare-color-primary);
-    font-weight: 600;
 }
 
 /* The code-changes block: the design's patch, one line per row. Additions and removals carry a tinted
