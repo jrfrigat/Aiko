@@ -1013,6 +1013,117 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
     }
 
     [Fact]
+    public async Task A_settings_document_round_trips_without_changing_the_file()
+    {
+        using var http = CreateClient();
+        var root = Path.Combine(Path.GetTempPath(), "Aiko.Specs", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var project = await InitializeProjectAsync(http, root);
+            var settingsFile = Path.Combine(root, ".aiko", "settings.json");
+            var before = await File.ReadAllBytesAsync(settingsFile);
+
+            // What the document route hands out is exactly what its PUT accepts: a client can read it,
+            // change one value and send it back.
+            var document = await http.GetFromJsonAsync<JsonElement>(
+                $"api/v1/projects/{project}/settings/document");
+            Assert.Equal(JsonValueKind.Object, document.GetProperty("execution").ValueKind);
+            Assert.Equal(JsonValueKind.Object, document.GetProperty("priority").ValueKind);
+
+            using var saved = await http.PutAsJsonAsync(
+                $"api/v1/projects/{project}/settings/document",
+                document);
+            Assert.Equal(HttpStatusCode.OK, saved.StatusCode);
+
+            // The reproduction this card is about: a read-then-write round trip used to leave the project
+            // with an empty settings document. The file now ends byte for byte as it began.
+            Assert.Equal(before, await File.ReadAllBytesAsync(settingsFile));
+
+            var view = await http.GetFromJsonAsync<JsonElement>($"api/v1/projects/{project}/settings");
+            Assert.Equal("project", view.GetProperty("executionSource").GetString());
+            Assert.Equal(JsonValueKind.Object, view.GetProperty("snapshot").GetProperty("execution").ValueKind);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
+    public async Task Putting_the_resolved_view_back_is_refused_and_leaves_the_settings_alone()
+    {
+        using var http = CreateClient();
+        var root = Path.Combine(Path.GetTempPath(), "Aiko.Specs", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var project = await InitializeProjectAsync(http, root);
+            var settingsFile = Path.Combine(root, ".aiko", "settings.json");
+            var before = await File.ReadAllBytesAsync(settingsFile);
+
+            // The most natural client mistake: read the settings, send the same body back. The view is not a
+            // document, so the write is refused instead of quietly emptying the project.
+            var view = await http.GetFromJsonAsync<JsonElement>($"api/v1/projects/{project}/settings");
+            using var refused = await http.PutAsJsonAsync($"api/v1/projects/{project}/settings", view);
+            Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
+
+            // The refusal names the field it did not understand, so the client can see what to send.
+            var refusal = await refused.Content.ReadFromJsonAsync<JsonElement>();
+            Assert.Contains("snapshot", refusal.GetProperty("message").GetString()!, StringComparison.Ordinal);
+
+            Assert.Equal(before, await File.ReadAllBytesAsync(settingsFile));
+
+            var after = await http.GetFromJsonAsync<JsonElement>($"api/v1/projects/{project}/settings");
+            Assert.Equal("project", after.GetProperty("executionSource").GetString());
+            Assert.Equal(JsonValueKind.Object, after.GetProperty("snapshot").GetProperty("execution").ValueKind);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
+    public async Task A_settings_document_that_misspells_a_field_is_refused()
+    {
+        using var http = CreateClient();
+        var root = Path.Combine(Path.GetTempPath(), "Aiko.Specs", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var project = await InitializeProjectAsync(http, root);
+            var settingsFile = Path.Combine(root, ".aiko", "settings.json");
+            var before = await File.ReadAllBytesAsync(settingsFile);
+
+            // A typo inside a section is the other half of the same trap: it binds, the value is dropped and
+            // nothing says so. It is refused now, and the file keeps the settings it had.
+            using var refused = await http.PutAsJsonAsync(
+                $"api/v1/projects/{project}/settings/document",
+                new
+                {
+                    schemaVersion = 1,
+                    execution = new { workspaceMode = "Shared", maxConcurrentRun = 2 }
+                });
+            Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
+            Assert.Equal(before, await File.ReadAllBytesAsync(settingsFile));
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    /// <summary>Registers a throwaway project and answers with its id.</summary>
+    private static async Task<string> InitializeProjectAsync(HttpClient http, string root)
+    {
+        var created = await http.PostAsJsonAsync("/api/v1/projects/initialize", new { rootPath = root });
+        created.EnsureSuccessStatusCode();
+        var project = await created.Content.ReadFromJsonAsync<JsonElement>();
+        return project.GetProperty("id").GetString()!;
+    }
+
+    [Fact]
     public async Task Agents_are_discovered()
     {
         using var http = CreateClient();
