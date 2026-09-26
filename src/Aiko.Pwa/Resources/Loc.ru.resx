@@ -1963,10 +1963,13 @@
     <value>Тип карточек «{0}» создан.</value>
   </data>
   <data name="BacklogStageFirst" xml:space="preserve">
-    <value>Бэклог всегда первый статус: поставить что-либо перед ним нельзя.</value>
+    <value>Бэклог всегда первый статус, «Готово» — всегда последний: поставить что-либо перед ними или после них нельзя.</value>
   </data>
   <data name="BacklogStageReserved" xml:space="preserve">
     <value>Бэклог — стандартная колонка, её нельзя удалить.</value>
+  </data>
+  <data name="DoneStageReserved" xml:space="preserve">
+    <value>«Готово» — конечная стандартная колонка, её нельзя удалить.</value>
   </data>
   <data name="StageTitleBacklog" xml:space="preserve">
     <value>Бэклог</value>
@@ -2354,5 +2357,17 @@
   </data>
   <data name="ArchiveNotFinished" xml:space="preserve">
     <value>Убрать в архив можно только карточку, дошедшую до конца своего конвейера; в этой ещё осталась работа.</value>
+  </data>
+  <data name="ArchiveFinished" xml:space="preserve">
+    <value>Отправить завершённые в архив</value>
+  </data>
+  <data name="ArchiveFinishedDone" xml:space="preserve">
+    <value>В архив ушло карточек: {0}.</value>
+  </data>
+  <data name="ArchiveFinishedPartial" xml:space="preserve">
+    <value>В архив ушло карточек: {0}; на доске осталось {1}, которые архив не принял ({2}).</value>
+  </data>
+  <data name="ArchiveFinishedFailed" xml:space="preserve">
+    <value>Не удалось отправить завершённые карточки в архив: {0}</value>
   </data>
 </root>

@@ -138,6 +138,7 @@ public sealed class WorkshopDoctor(
             tree));
 
         InspectCardLayout(project, findings);
+        InspectWorkflowStages(project, findings);
         await InspectCardProgressAsync(project, findings, cancellationToken);
 
         if (settings is null)
@@ -190,6 +191,52 @@ public sealed class WorkshopDoctor(
         }
     }
 
+    /// <summary>
+    /// Reports workflows that do not satisfy the reserved-stage rule: a pipeline must begin with <c>backlog</c>
+    /// and end with <c>done</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Read from the documents themselves rather than through <see cref="IProjectDefinitionStore"/>, and
+    /// deliberately: the definition store is where the rule is enforced, so a check that went through it would
+    /// fail on exactly the project it has to describe. This is also the only check that names the workflows a
+    /// repair cannot fix - a pipeline with no <c>backlog</c> stage, whose first stage is the author's decision
+    /// and not something Aiko may invent.
+    /// </para>
+    /// <para>
+    /// The engine reads the end of a pipeline from the reserved stage id, so a document that ends elsewhere has
+    /// no end: no card of it could ever be finished, archived or stop blocking another one. That is worth saying
+    /// out loud, because none of it is visible on the board.
+    /// </para>
+    /// </remarks>
+    private static void InspectWorkflowStages(RegisteredProject project, List<DiagnosticFinding> findings)
+    {
+        var plan = WorkflowStageMigrator.Plan(project.RootPath);
+
+        if (plan.Repairable.Count > 0)
+        {
+            findings.Add(new DiagnosticFinding(
+                "workflow-stages",
+                DiagnosticSeverity.Warning,
+                $"{project.Name}: {plan.Repairable.Count} workflow(s) do not begin with the reserved backlog " +
+                $"stage and end with the reserved done stage ({string.Join(", ", plan.Repairable)}); " +
+                "run `aiko repair --fix` to bring them to the rule.",
+                AikoProjectPaths.DataRoot(project.RootPath)));
+        }
+
+        if (plan.Unrepairable.Count > 0)
+        {
+            findings.Add(new DiagnosticFinding(
+                "workflow-stages",
+                DiagnosticSeverity.Error,
+                $"{project.Name}: {plan.Unrepairable.Count} workflow(s) break the reserved-stage rule and " +
+                $"cannot be repaired automatically ({string.Join(", ", plan.Unrepairable)}); a workflow needs " +
+                "a backlog stage and a done stage, and Aiko does not invent the first one. Add them by hand " +
+                "in the workflow editor.",
+                AikoProjectPaths.DataRoot(project.RootPath)));
+        }
+    }
+
     /// <summary>Card ids that sit in the collection of their type in both roots.</summary>
     private static IReadOnlyList<string> DuplicatedCards(string projectRoot)
     {
@@ -236,7 +283,15 @@ public sealed class WorkshopDoctor(
         List<DiagnosticFinding> findings,
         CancellationToken cancellationToken)
     {
-        var board = await definitions.ReadAsync(project.Id, cancellationToken);
+        var board = await ReadBoardOrNothingAsync(project, cancellationToken);
+        if (board is null)
+        {
+            // A definition the engine refuses to read is named by InspectWorkflowStages, which reads the
+            // documents directly. These checks need the pipelines, so they step aside rather than turning one
+            // unreadable document into a diagnosis that says nothing at all.
+            return;
+        }
+
         var unworked = new List<string>();
         var abandoned = new List<string>();
         foreach (var card in await cards.ListAsync(project.Id, cancellationToken))
@@ -293,6 +348,25 @@ public sealed class WorkshopDoctor(
                     + "the card was moved on - continue that stage with aiko_start_stage, or complete it with "
                     + "aiko_complete_stage.",
                 project.RootPath));
+        }
+    }
+
+    /// <summary>
+    /// The project's board, or null when its definitions cannot be read - which is what a document that breaks
+    /// the reserved-stage rule looks like. The diagnosis must survive that, because saying nothing at all is the
+    /// answer a person can act on least.
+    /// </summary>
+    private async ValueTask<ProjectBoardDefinition?> ReadBoardOrNothingAsync(
+        RegisteredProject project,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await definitions.ReadAsync(project.Id, cancellationToken);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            return null;
         }
     }
 

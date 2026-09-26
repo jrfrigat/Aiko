@@ -480,7 +480,7 @@
             <FlareButton FullWidth="true" Loading="@_saving" OnClick="SaveAsync">@Loc.Get("SaveWorkflow")</FlareButton>
             <FlareButton FullWidth="true"
                          Variant="ButtonVariant.Text"
-                         Disabled="@(_stages.Count <= 1 || IsBacklogStage(SelectedStage))"
+                         Disabled="@(_stages.Count <= 1 || IsBacklogStage(SelectedStage) || IsDoneStage(SelectedStage))"
                          OnClick="RemoveStage">@Loc.Get("RemoveStage")</FlareButton>
             <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant">
                 @Loc.Get("WorkflowHint")
@@ -829,17 +829,22 @@
         }
 
         var kinds = SelectedWorkflow.Stages.FirstOrDefault()?.AllowedCardKinds ?? [SelectedWorkflow.CardType];
-        _stages.Add(new StageDraft
+        var added = new StageDraft
         {
             Id = id,
             Title = Loc.Get("NewStage"),
-            Order = (_stages.Count + 1) * 10,
+            Order = 0,
             Instruction = Loc.Get("NewStageInstruction"),
             AllowedCardKinds = kinds,
             ActionPolicies = new Dictionary<string, ActionPolicy>(StringComparer.Ordinal),
             IsNew = true
-        });
-        _selectedStage = _stages[^1];
+        };
+        // A new stage is a working stage, so it lands before the reserved done stage rather than after it:
+        // the end of the pipeline has to stay the end. NormalizeOrder does the numbering.
+        var done = _stages.FindIndex(IsDoneStage);
+        _stages.Insert(done < 0 ? _stages.Count : done, added);
+        NormalizeOrder();
+        _selectedStage = added;
     }
 
     private void RemoveStage()
@@ -854,6 +859,15 @@
         if (StringComparer.Ordinal.Equals(stage.Id, WorkflowDefinition.BacklogStageId))
         {
             ShowError(Loc.Get("BacklogStageReserved"));
+            return;
+        }
+
+        // The done stage is the end of the pipeline for the same reason the backlog is its beginning: the engine
+        // reads "finished" from that id, so a pipeline without it would have no card that could ever be finished,
+        // archived or stop blocking another one.
+        if (StringComparer.Ordinal.Equals(stage.Id, WorkflowDefinition.DoneStageId))
+        {
+            ShowError(Loc.Get("DoneStageReserved"));
             return;
         }
 
@@ -978,6 +992,10 @@
             return;
         }
 
+        // The pipeline is pinned before it is written, so the editor cannot save one the engine would refuse:
+        // the backlog is first and the done stage is last, whatever the arrows and the drafts were left in.
+        NormalizeOrder();
+
         var stages = new List<StageDefinition>();
         foreach (var draft in _stages)
         {
@@ -1063,9 +1081,9 @@
     }
 
     /// <summary>
-    /// Renumbers the stages by their place in the list - and pins the reserved backlog to the front, which
-    /// is the pipeline invariant rather than a preference: a card enters its workflow there, so nothing may
-    /// be placed before it.
+    /// Renumbers the stages by their place in the list - and pins the reserved stages: the backlog to the front
+    /// and the done stage to the back. It is the pipeline invariant rather than a preference: a card enters its
+    /// workflow in the backlog and is finished in the done stage, so nothing may be placed before or after them.
     /// </summary>
     private void NormalizeOrder()
     {
@@ -1074,6 +1092,13 @@
         {
             _stages.Remove(backlog);
             _stages.Insert(0, backlog);
+        }
+
+        var done = _stages.FirstOrDefault(IsDoneStage);
+        if (done is not null && !ReferenceEquals(_stages[^1], done))
+        {
+            _stages.Remove(done);
+            _stages.Add(done);
         }
 
         for (var index = 0; index < _stages.Count; index++)
@@ -1237,6 +1262,13 @@
     private static bool IsBacklogStage(StageDraft? stage) =>
         stage is not null && StringComparer.Ordinal.Equals(stage.Id, WorkflowDefinition.BacklogStageId);
 
+    /// <summary>
+    /// Whether the stage is the reserved done column. The engine reads the end of a pipeline from that id, so
+    /// it is not a column the editor may remove or reorder away either.
+    /// </summary>
+    private static bool IsDoneStage(StageDraft? stage) =>
+        stage is not null && StringComparer.Ordinal.Equals(stage.Id, WorkflowDefinition.DoneStageId);
+
     private void ShowError(string message)
     {
         _message = message;
@@ -1277,36 +1309,41 @@
     private int IndexOfBacklog => _stages.FindIndex(IsBacklogStage);
 
     /// <summary>
-    /// Whether a stage may move towards the top. The reserved backlog is first by construction, so the
-    /// stage directly below it has nowhere to go.
+    /// Whether a stage may move towards the top. The reserved backlog is first by construction, so the stage
+    /// directly below it has nowhere to go, and the reserved done stage is the end of the pipeline: it never
+    /// moves.
     /// </summary>
-    private bool CanMoveUp(StageDraft stage) => _stages.IndexOf(stage) > IndexOfBacklog + 1;
+    private bool CanMoveUp(StageDraft stage) =>
+        !IsDoneStage(stage) && _stages.IndexOf(stage) > IndexOfBacklog + 1;
 
     /// <summary>
     /// Whether a stage may move towards the bottom. The backlog never moves down - nothing may be placed
-    /// before it - and the last stage has no room left.
+    /// before it - the reserved done stage is the end, and the stage directly above it has nowhere to go
+    /// either, because the end has to stay the end.
     /// </summary>
-    private bool CanMoveDown(StageDraft stage) =>
-        !IsBacklogStage(stage) && _stages.IndexOf(stage) < _stages.Count - 1;
+    private bool CanMoveDown(StageDraft stage)
+    {
+        var index = _stages.IndexOf(stage);
+        return !IsBacklogStage(stage) &&
+               !IsDoneStage(stage) &&
+               index >= 0 &&
+               index < _stages.Count - 1 &&
+               !IsDoneStage(_stages[index + 1]);
+    }
 
     /// <summary>
-    /// A stage's place in the pipeline. Derived from the order rather than stored: the first stage is where
-    /// a card enters and the last is where it leaves, and a second field saying so would be a second truth.
+    /// A stage's place in the pipeline, read from the reserved ids rather than from the order: the backlog is
+    /// where a card enters and the done stage is where it leaves, and a second field saying so would be a
+    /// second truth.
     /// </summary>
     private string StageRole(StageDraft stage)
     {
-        var ordered = _stages.OrderBy(item => item.Order).ToArray();
-        if (ordered.Length == 0)
-        {
-            return string.Empty;
-        }
-
-        if (ReferenceEquals(stage, ordered[0]))
+        if (IsBacklogStage(stage))
         {
             return Loc.Get("StageRoleInitial");
         }
 
-        return ReferenceEquals(stage, ordered[^1]) ? Loc.Get("StageRoleTerminal") : string.Empty;
+        return IsDoneStage(stage) ? Loc.Get("StageRoleTerminal") : string.Empty;
     }
 
     /// <summary>The display name of an adapter id, falling back to the id when it was not discovered.</summary>

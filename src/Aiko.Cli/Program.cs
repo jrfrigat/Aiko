@@ -1945,6 +1945,24 @@ static async Task<int> RepairAsync(string[] args)
                 $"({string.Join(", ", migration.Moved)}).");
         }
 
+        // Workflows of a project made before the reserved-stage rule are brought to it here, before the
+        // reindex reads them: the engine refuses a pipeline that does not begin with backlog and end with done,
+        // so a repair is the moment the project is put back into the shape this build expects.
+        var stageMigration = WorkflowStageMigrator.Migrate(project.RootPath);
+        if (stageMigration.Repaired.Count > 0)
+        {
+            Console.WriteLine(
+                $"{project.Name}: brought {stageMigration.Repaired.Count} workflow(s) to the reserved-stage " +
+                $"rule ({string.Join(", ", stageMigration.Repaired)}).");
+        }
+
+        foreach (var workflow in stageMigration.Failed)
+        {
+            Console.WriteLine(
+                $"{project.Name}: workflow {workflow} still breaks the reserved-stage rule; " +
+                "`aiko doctor` names what it needs.");
+        }
+
         var reindexed = await reindexer.ReindexAsync(project.Id, CancellationToken.None);
         Console.WriteLine(
             $"Reindexed {project.Name}: {reindexed.Cards} cards, {reindexed.Relations} relations, " +

@@ -72,6 +72,29 @@ internal sealed record MoveCardRequest(
 internal sealed record ArchiveCardRequest(bool Archived, long ExpectedRevision);
 
 /// <summary>
+/// Asks the daemon to put every finished card of the project into the archive - the board's own action, which is
+/// why the body is optional: sending the list of cards the screen believes are finished would move the decision
+/// off the daemon, and the daemon is where the archive gate lives.
+/// </summary>
+/// <param name="CardIds">
+/// Cards to consider, or null for every finished card of the project. The release page narrows the same action
+/// to the cards a release carries.
+/// </param>
+internal sealed record ArchiveFinishedCardsRequest(IReadOnlyList<string>? CardIds = null);
+
+/// <summary>What the archive action came to, as the board's result line reads it.</summary>
+/// <param name="Archived">Cards that were put away, by id.</param>
+/// <param name="Refused">Cards the archive gate would not accept, each with its reason.</param>
+internal sealed record ArchiveFinishedCardsResponse(
+    IReadOnlyList<string> Archived,
+    IReadOnlyList<ArchiveRefusal> Refused);
+
+/// <summary>One card that stayed on the board, and what the gate said about it.</summary>
+/// <param name="CardId">Card that stayed.</param>
+/// <param name="Reason">Reason the archive gate gave.</param>
+internal sealed record ArchiveRefusal(string CardId, string Reason);
+
+/// <summary>
 /// Updates the editable fields of a card.
 /// </summary>
 /// <param name="Title">New title.</param>

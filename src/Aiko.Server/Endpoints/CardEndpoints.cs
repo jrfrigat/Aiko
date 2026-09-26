@@ -106,6 +106,101 @@ internal static class CardEndpoints
                 await cards.SaveAsync(archived, request.ExpectedRevision, cancellationToken);
                 return Results.Ok(archived);
             });
+        // The board's own action: put every card that finished its pipeline away in one request. Serving it here
+        // rather than letting the screen loop over the cards keeps the archive gate in one place - a client that
+        // walked the board would either restate the rule or ask the daemon once per card, and would leave the
+        // work half done at the first refusal while reporting a single failure.
+        app.MapPost(
+            "/api/v1/projects/{projectId}/cards/archive-finished",
+            async (
+                string projectId,
+                HttpRequest httpRequest,
+                IProjectDefinitionStore definitions,
+                ICardStore cards,
+                IExecutionCoordinator executions,
+                CancellationToken cancellationToken) =>
+            {
+                // The body is optional by design, and it is read here rather than bound to a handler parameter: a
+                // parameter would make the route declare that it accepts JSON, and a caller that sends no body at
+                // all would then fall through routing to a 404 instead of getting "every finished card". A body
+                // that is there but is not JSON is refused out loud rather than ignored.
+                ArchiveFinishedCardsRequest? request = null;
+                if (httpRequest.HasJsonContentType())
+                {
+                    request = await httpRequest.ReadFromJsonAsync<ArchiveFinishedCardsRequest>(
+                        cancellationToken);
+                }
+                else if (httpRequest.ContentLength is > 0)
+                {
+                    return Results.StatusCode(StatusCodes.Status415UnsupportedMediaType);
+                }
+
+                var definition = await definitions.ReadAsync(projectId, cancellationToken);
+                var workflows = definition.Workflows.ToDictionary(
+                    workflow => workflow.Id,
+                    StringComparer.Ordinal);
+
+                // One read of each source for the whole action, the way the work queue reads them: the gate is
+                // then asked per card in memory instead of the coordinator being asked once per card.
+                var projectCards = await cards.ListAsync(projectId, cancellationToken);
+                var runsByCard = (await executions.ReadStageRunsAsync(projectId, cancellationToken))
+                    .GroupBy(run => run.CardId, StringComparer.Ordinal)
+                    .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.Ordinal);
+
+                var wanted = request?.CardIds is { Count: > 0 } cardIds
+                    ? cardIds.ToHashSet(StringComparer.Ordinal)
+                    : null;
+
+                var archived = new List<string>();
+                var refused = new List<ArchiveRefusal>();
+                foreach (var card in CardArchiving.OnBoard(projectCards))
+                {
+                    if (wanted is not null && !wanted.Contains(card.Reference.CardId))
+                    {
+                        continue;
+                    }
+
+                    // Only the cards that stand at the end of their own pipeline are this action's business. A
+                    // card still in work is not a refusal - the request is "archive the finished ones", and
+                    // naming every unfinished card would turn the answer into a list of the whole board.
+                    workflows.TryGetValue(card.WorkflowId, out var workflow);
+                    if (!StandsAtTheEnd(card, workflow))
+                    {
+                        continue;
+                    }
+
+                    var runs = runsByCard.TryGetValue(card.Reference.CardId, out var cardRuns)
+                        ? cardRuns
+                            .Where(run => run.StateValue is not null)
+                            .Select(run => new StageRun(run.StageId, run.StateValue!.Value))
+                            .ToArray()
+                        : [];
+                    if (CardArchiving.Refuse(card, workflow, runs) is { } refusal)
+                    {
+                        refused.Add(new ArchiveRefusal(card.Reference.CardId, refusal));
+                        continue;
+                    }
+
+                    var putAway = card with
+                    {
+                        Metadata = Card.WithArchivedAt(card.Metadata, DateTimeOffset.UtcNow),
+                        Revision = card.Revision + 1
+                    };
+                    try
+                    {
+                        await cards.SaveAsync(putAway, card.Revision, cancellationToken);
+                        archived.Add(card.Reference.CardId);
+                    }
+                    catch (RevisionConflictException conflict)
+                    {
+                        // The card changed between the read and the write: someone is working on it right now.
+                        // That is one card left on the board, not a reason to abandon the others.
+                        refused.Add(new ArchiveRefusal(card.Reference.CardId, conflict.Message));
+                    }
+                }
+
+                return Results.Ok(new ArchiveFinishedCardsResponse(archived, refused));
+            });
         app.MapPut(
             "/api/v1/projects/{projectId}/cards/{cardId}",
             async (
@@ -421,6 +516,21 @@ internal static class CardEndpoints
     /// </summary>
     private static string? NormalizeSize(string? size) =>
         string.IsNullOrWhiteSpace(size) ? null : size.Trim();
+
+    /// <summary>
+    /// Whether the card stands at the end of its own pipeline: the reserved done stage of a workflow that has
+    /// one.
+    /// </summary>
+    /// <remarks>
+    /// This is the candidate test of the mass action, not the verdict - the verdict is
+    /// <see cref="CardArchiving.Refuse"/>, which also weighs the runs. Standing in the done stage is what makes a
+    /// card its business; a card that stands there with its closing run still open is considered all the same,
+    /// and refused with the reason.
+    /// </remarks>
+    private static bool StandsAtTheEnd(Card card, WorkflowDefinition? workflow) =>
+        workflow is not null &&
+        workflow.Stages.Any(WorkflowDefinition.IsDone) &&
+        StringComparer.Ordinal.Equals(card.StageId, WorkflowDefinition.DoneStageId);
 
     /// <summary>
     /// Why the card may not be put into the archive, or null when it may.

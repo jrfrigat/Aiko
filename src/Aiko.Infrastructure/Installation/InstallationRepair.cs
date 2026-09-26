@@ -12,8 +12,9 @@ namespace Aiko.Infrastructure.Installation;
 /// </summary>
 /// <remarks>
 /// Nothing here is new behaviour: the reindex is <see cref="IProjectReindexer"/>, the old card layout is
-/// moved by <see cref="CardLayoutMigrator"/>, and the agent integration is rewritten by
-/// <see cref="IUnifiedAgentInstaller"/> - the same three <c>aiko repair --fix</c> uses. What is new is only
+/// moved by <see cref="CardLayoutMigrator"/>, the reserved-stage rule is applied to workflows that predate it
+/// by <see cref="WorkflowStageMigrator"/>, and the agent integration is rewritten by
+/// <see cref="IUnifiedAgentInstaller"/> - the same steps <c>aiko repair --fix</c> uses. What is new is only
 /// that an update runs them too, because an update is exactly the moment the projects on this machine stop
 /// matching the build that now reads them, and an agent configuration that still names the old build would
 /// otherwise go stale without anyone being told.
@@ -52,6 +53,28 @@ public sealed class InstallationRepair(
                     true,
                     $"{project.Name}: filed {migration.Moved.Count} card collection(s) under .aiko/workflows " +
                     $"({string.Join(", ", migration.Moved)})."));
+            }
+
+            // A project authored before the reserved-stage rule cannot be read at all: the engine refuses a
+            // workflow that does not begin with backlog and end with done. The repair brings those documents
+            // to the rule before the reindex reads them, and names the ones it could not.
+            var stages = WorkflowStageMigrator.Migrate(project.RootPath);
+            if (stages.Repaired.Count > 0)
+            {
+                steps.Add(new InstallationStep(
+                    "workflow-stages",
+                    true,
+                    $"{project.Name}: brought {stages.Repaired.Count} workflow(s) to the reserved-stage rule " +
+                    $"({string.Join(", ", stages.Repaired)})."));
+            }
+
+            foreach (var workflow in stages.Failed)
+            {
+                steps.Add(new InstallationStep(
+                    "workflow-stages",
+                    false,
+                    $"{project.Name}: workflow {workflow} could not be brought to the reserved-stage rule; " +
+                    "`aiko doctor` names what it needs."));
             }
 
             var reindexed = await reindexer.ReindexAsync(project.Id, cancellationToken);

@@ -199,6 +199,28 @@ foreach (var project in await app.Services
             collection);
     }
 
+    // Workflows of a project made before the reserved-stage rule are brought to it here, and before the
+    // reindex below: the engine refuses to read a pipeline that does not begin with backlog and end with
+    // done, so a project left un-migrated would come back as no pipelines at all rather than as an old shape.
+    var stageMigration = WorkflowStageMigrator.Migrate(project.RootPath);
+    if (stageMigration.Repaired.Count > 0)
+    {
+        app.Logger.LogInformation(
+            "Aiko: {Project}: brought {Count} workflow(s) to the reserved-stage rule ({Workflows}).",
+            project.Name,
+            stageMigration.Repaired.Count,
+            string.Join(", ", stageMigration.Repaired));
+    }
+
+    foreach (var workflow in stageMigration.Failed)
+    {
+        app.Logger.LogWarning(
+            "Aiko: {Project}: workflow {Workflow} still breaks the reserved-stage rule and could not be " +
+            "repaired; run `aiko doctor` to see what it needs.",
+            project.Name,
+            workflow);
+    }
+
     // The board is a projection of the project's files, and the files change while the daemon is away - a git
     // pull, a checkout, a save cut short. Rebuilding it here is what keeps the board from starting on revisions
     // that are no longer there. A project that cannot be read is reported and left alone: one broken project

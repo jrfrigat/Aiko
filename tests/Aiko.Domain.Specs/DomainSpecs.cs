@@ -484,7 +484,7 @@ public class DomainSpecs
         Assert.Contains("blocked", refusal, StringComparison.Ordinal);
 
         // The same blocker at the end of its own pipeline no longer holds anything back, and the message says
-        // nothing: the last stage is read from the workflow, so a type whose end is not called 'done' works too.
+        // nothing: the end is the reserved done stage, which is where a card of this type is finished.
         var finished = Card("TASK-1", "done");
         Assert.Empty(CardBlocking.Unfinished(
             blocked.Reference, [blocks], [blocked, finished], workflows, _ => StageExecutionState.Completed));
@@ -655,24 +655,64 @@ public class DomainSpecs
     }
 
     [Fact]
-    public void Finishing_is_the_end_of_a_cards_own_pipeline_and_not_the_name_done()
+    public void Finishing_is_the_end_of_a_cards_own_pipeline_and_only_the_done_stage_has_one()
     {
-        var pipeline = Pipeline("shipped");
+        var pipeline = Pipeline();
 
-        Assert.True(CardCompletion.IsFinished(pipeline, "shipped", StageExecutionState.Completed));
+        Assert.True(CardCompletion.IsFinished(pipeline, "done", StageExecutionState.Completed));
 
-        // The last stage without a finished run is work left to do, whoever is standing in it.
-        Assert.False(CardCompletion.IsFinished(pipeline, "shipped", StageExecutionState.Running));
-        Assert.False(CardCompletion.IsFinished(pipeline, "shipped", null));
-
-        // A stage called 'done' that this pipeline does not end with is the end of nothing.
-        Assert.False(CardCompletion.IsFinished(pipeline, "done", StageExecutionState.Completed));
+        // The done stage without a finished run is work left to do, whoever is standing in it.
+        Assert.False(CardCompletion.IsFinished(pipeline, "done", StageExecutionState.Running));
+        Assert.False(CardCompletion.IsFinished(pipeline, "done", null));
 
         // A middle stage with a finished run is still work: the next stage is what it waits for.
         Assert.False(CardCompletion.IsFinished(pipeline, "backlog", StageExecutionState.Completed));
 
+        // A pipeline that does not carry the reserved done stage has no end at all, and the engine refuses such
+        // a workflow when it is written or read - until it is repaired, nothing in it is finished.
+        var headless = pipeline with
+        {
+            Stages = [.. pipeline.Stages.Where(stage => !WorkflowDefinition.IsDone(stage))]
+        };
+        Assert.False(CardCompletion.IsFinished(headless, "backlog", StageExecutionState.Completed));
+        Assert.False(CardCompletion.IsFinished(headless, "done", StageExecutionState.Completed));
+
         // A card whose type has no pipeline has no end to have reached.
-        Assert.False(CardCompletion.IsFinished(null, "shipped", StageExecutionState.Completed));
+        Assert.False(CardCompletion.IsFinished(null, "done", StageExecutionState.Completed));
+    }
+
+    [Fact]
+    public void A_pipeline_begins_with_the_backlog_and_ends_with_the_done_stage()
+    {
+        // The two reserved stages, asked of the engine rather than restated by every caller.
+        Assert.True(WorkflowDefinition.IsBacklog(Reserved("backlog", 10)));
+        Assert.False(WorkflowDefinition.IsDone(Reserved("backlog", 10)));
+        Assert.True(WorkflowDefinition.IsDone(Reserved("done", 20)));
+        Assert.False(WorkflowDefinition.IsBacklog(Reserved("done", 20)));
+
+        // A pipeline in the reserved shape is accepted.
+        Assert.Null(WorkflowDefinition.RefuseReservedStages(Pipeline()));
+
+        // A pipeline that ends somewhere else has no end: the reserved done stage is missing.
+        var renamed = Flow([Reserved("backlog", 10), Reserved("shipped", 20)]);
+        Assert.Contains(WorkflowDefinition.DoneStageId, WorkflowDefinition.RefuseReservedStages(renamed)!);
+
+        // The done stage is there but not last.
+        var notLast = Flow([Reserved("backlog", 10), Reserved("done", 20), Reserved("review", 30)]);
+        Assert.Contains("last stage", WorkflowDefinition.RefuseReservedStages(notLast)!);
+
+        // Nothing may be placed before the backlog.
+        var notFirst = Flow([Reserved("intake", 10), Reserved("backlog", 20), Reserved("done", 30)]);
+        Assert.Contains("first stage", WorkflowDefinition.RefuseReservedStages(notFirst)!);
+
+        // A workflow with no stages at all is refused for that reason rather than crashing the check.
+        Assert.NotNull(WorkflowDefinition.RefuseReservedStages(Flow([])));
+
+        static StageDefinition Reserved(string id, int order) =>
+            new(id, id, order, "Work", ["Task"], null, [], new Dictionary<string, ActionPolicy>());
+
+        static WorkflowDefinition Flow(IReadOnlyList<StageDefinition> stages) =>
+            new("task", "Tasks", stages, 1);
     }
 
     [Fact]
@@ -682,7 +722,7 @@ public class DomainSpecs
         // "already there" rather than "you may".
         var refusal = CardArchiving.Refuse(
             Archived(CardAt("done"), DateTimeOffset.UnixEpoch),
-            Pipeline("done"),
+            Pipeline(),
             [new StageRun("done", StageExecutionState.Completed)]);
 
         Assert.NotNull(refusal);
@@ -692,7 +732,7 @@ public class DomainSpecs
     [Fact]
     public void The_archive_gate_refuses_a_card_whose_stage_is_still_open()
     {
-        var pipeline = Pipeline("done");
+        var pipeline = Pipeline();
 
         // The gate reads the latest run of a stage, and NeedsAttention is a stage left hanging: putting the
         // card away would hide the work someone has to come back to.
@@ -715,7 +755,7 @@ public class DomainSpecs
     [Fact]
     public void The_archive_gate_refuses_a_card_that_has_not_reached_the_end()
     {
-        var pipeline = Pipeline("done");
+        var pipeline = Pipeline();
 
         // Mid-pipeline: the refusal names the stage the card sits in and the last stage it should reach.
         var midway = CardArchiving.Refuse(
@@ -764,7 +804,7 @@ public class DomainSpecs
         // The two rules hold together, and this is where they are pinned: CardBlocking counts a blocker that
         // reached the end of its pipeline as finished, and the archive accepts nothing but such a card - so
         // putting a card away cannot hide a blockage, because an archivable card blocked nobody.
-        var pipeline = Pipeline("done");
+        var pipeline = Pipeline();
         var blocker = CardAt("done", "TASK-1");
         var waiting = CardAt("backlog", "TASK-2");
         var relation = new CardRelation(
@@ -814,8 +854,12 @@ public class DomainSpecs
     private static Card Archived(Card card, DateTimeOffset at) =>
         card with { Metadata = Card.WithArchivedAt(card.Metadata, at) };
 
-    /// <summary>A two-stage pipeline whose last stage is named as asked, so 'done' is never assumed.</summary>
-    private static WorkflowDefinition Pipeline(string lastStageId) =>
+    /// <summary>
+    /// A two-stage pipeline in the reserved shape: the backlog a card enters and the done stage it is finished
+    /// in. The end is the reserved stage id rather than a name a caller picks, because a pipeline that ends
+    /// anywhere else is one the engine refuses.
+    /// </summary>
+    private static WorkflowDefinition Pipeline() =>
         new(
             "task",
             "Tasks",
@@ -823,7 +867,7 @@ public class DomainSpecs
                 new StageDefinition(
                     "backlog", "Backlog", 10, "Start", ["Task"], null, [], new Dictionary<string, ActionPolicy>()),
                 new StageDefinition(
-                    lastStageId, lastStageId, 20, "Finish", ["Task"], null, [], new Dictionary<string, ActionPolicy>())
+                    "done", "Done", 20, "Finish", ["Task"], null, [], new Dictionary<string, ActionPolicy>())
             ],
             1);
 }

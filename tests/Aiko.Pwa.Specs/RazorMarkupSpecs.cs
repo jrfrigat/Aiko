@@ -1077,6 +1077,50 @@ public sealed class RazorMarkupSpecs
         }
     }
 
+    [Fact]
+    public void The_board_offers_sending_the_finished_cards_to_the_archive()
+    {
+        var root = FindRepositoryRoot();
+        var view = File.ReadAllText(Path.Combine(root, "src", "Aiko.Pwa", "Pages", "BoardView.razor"));
+
+        // The action stands in the row of board actions, which is drawn over the work alone: switching to the
+        // archive steps that whole block aside, so the button cannot offer to archive the archive.
+        var workBlock = view.IndexOf("None of it belongs to the archive", StringComparison.Ordinal);
+        var actions = view.IndexOf("Class=\"aiko-actions\"", StringComparison.Ordinal);
+        var button = view.IndexOf("Loc.Get(\"ArchiveFinished\")", StringComparison.Ordinal);
+        var archiveList = view.IndexOf("@if (ArchiveOnly)", StringComparison.Ordinal);
+        Assert.True(
+            workBlock > 0 && actions > workBlock && button > actions,
+            "the archive action belongs to the board's action row, which the archive view steps aside");
+        Assert.True(
+            archiveList > button,
+            "the action is offered over the work, above the archive's own list");
+
+        // The verdict is the daemon's: the screen sends no list of the cards it believes are finished, and the
+        // route it calls is the one that asks the question.
+        Assert.Contains("cards/archive-finished", view, StringComparison.Ordinal);
+        Assert.Contains("new ArchiveFinishedCardsRequest()", view, StringComparison.Ordinal);
+        Assert.Contains("ArchiveFinishedCardsResponse", view, StringComparison.Ordinal);
+        // ... and it says what became of every card the gate would not take.
+        Assert.Contains("ArchiveFinishedPartial", view, StringComparison.Ordinal);
+        Assert.Contains("result!.Refused.Select(item => item.CardId)", view, StringComparison.Ordinal);
+        Assert.Contains("await State.LoadBoardAsync();", view, StringComparison.Ordinal);
+
+        // Every key the button and its result line ask for exists in both dictionaries.
+        foreach (var resource in new[] { "Loc.resx", "Loc.ru.resx" })
+        {
+            var resx = File.ReadAllText(
+                Path.Combine(root, "src", "Aiko.Pwa", "Resources", resource));
+            foreach (var key in new[]
+                     {
+                         "ArchiveFinished", "ArchiveFinishedDone", "ArchiveFinishedPartial", "ArchiveFinishedFailed"
+                     })
+            {
+                Assert.Contains($"name=\"{key}\"", resx, StringComparison.Ordinal);
+            }
+        }
+    }
+
     /// <summary>A card standing in one stage, for the counts that read cards and nothing else.</summary>
     private static Card CardIn(string id, string kind, string stageId) => new(
         new CardReference("p1", id),

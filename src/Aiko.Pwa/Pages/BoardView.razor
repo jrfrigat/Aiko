@@ -160,6 +160,18 @@ else
                 <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.PlayArrow" /></LeadingIcon>
                 <ChildContent>@Loc.Get("RunBoard")</ChildContent>
             </FlareButton>
+            @* The board's tidy-up, beside the button that starts work: the cards that reached the end of their
+               pipeline leave the board in one request, and the line under it says what went and what the archive
+               gate refused. The verdict is the daemon's - the screen neither lists the cards it thinks are
+               finished nor restates the rule - so the button sends the question its own label asks. *@
+            <FlareButton Variant="ButtonVariant.Text"
+                         Size="ButtonSize.Sm"
+                         Disabled="@_archiving"
+                         Loading="@_archiving"
+                         OnClick="ArchiveFinishedAsync">
+                <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.TaskAlt" /></LeadingIcon>
+                <ChildContent>@Loc.Get("ArchiveFinished")</ChildContent>
+            </FlareButton>
         </FlareStack>
 
         <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
@@ -183,6 +195,18 @@ else
         {
             <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
                 @boardMessage
+            </FlareText>
+        }
+
+        @* What the last archive action came to. It is its own line rather than the run button's: the two say
+           different things, and the one about the archive has to name the cards the gate would not take, because
+           a person who pressed "send to archive" and still sees a card in the done column is owed the reason. *@
+        @if (_archiveMessage is { Length: > 0 } archiveMessage)
+        {
+            <FlareText Element="span"
+                       Typo="TypographyScale.LabelSmall"
+                       Color="@(_archiveRefused > 0 ? FlareColor.Error : FlareColor.OnSurfaceVariant2)">
+                @archiveMessage
             </FlareText>
         }
 
@@ -316,6 +340,9 @@ else
 
     private bool _placingBoardRun;
     private string? _boardMessage;
+    private bool _archiving;
+    private string? _archiveMessage;
+    private int _archiveRefused;
 
     /// <summary>
     /// The project's most recent request to work the board, open or closed: what the button placed and what
@@ -376,6 +403,55 @@ else
         finally
         {
             _placingBoardRun = false;
+        }
+    }
+
+    /// <summary>
+    /// Asks the daemon to put the finished cards away and then reads the board again, so the columns and the
+    /// archive both show what actually happened rather than what was asked for.
+    /// </summary>
+    /// <remarks>
+    /// No body and no list of ids: which cards are finished is the daemon's answer, and a screen that sent its
+    /// own list would be enforcing the archive rule from the browser. The result line is derived from the
+    /// answer, so a card the gate refused is named with the gate's own reason instead of disappearing into a
+    /// silent success.
+    /// </remarks>
+    private async Task ArchiveFinishedAsync()
+    {
+        if (State.Board is not { } board || _archiving)
+        {
+            return;
+        }
+
+        _archiving = true;
+        _archiveMessage = null;
+        _archiveRefused = 0;
+        try
+        {
+            using var response = await Http.PostAsJsonAsync(
+                $"api/v1/projects/{Uri.EscapeDataString(board.Project.Id)}/cards/archive-finished",
+                new ArchiveFinishedCardsRequest(),
+                PwaJson.Options);
+            response.EnsureSuccessStatusCode();
+            var result = await response.Content.ReadFromJsonAsync<ArchiveFinishedCardsResponse>(
+                PwaJson.Options);
+            _archiveRefused = result?.Refused.Count ?? 0;
+            _archiveMessage = _archiveRefused == 0
+                ? Loc.Format("ArchiveFinishedDone", result?.Archived.Count ?? 0)
+                : Loc.Format(
+                    "ArchiveFinishedPartial",
+                    result?.Archived.Count ?? 0,
+                    _archiveRefused,
+                    string.Join(", ", result!.Refused.Select(item => item.CardId)));
+        }
+        catch (Exception exception)
+        {
+            _archiveMessage = Loc.Format("ArchiveFinishedFailed", FailureText.Describe(exception));
+        }
+        finally
+        {
+            _archiving = false;
+            await State.LoadBoardAsync();
         }
     }
 

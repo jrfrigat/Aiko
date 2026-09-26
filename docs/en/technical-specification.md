@@ -321,6 +321,20 @@ A Stage contains:
 The user can create a Stage and write an instruction. Aiko turns it into an internal skill.
 The MCP tool list stays stable; the dynamic instruction is returned through the stage context.
 
+Two stage ids are **reserved**, and the engine enforces both rather than trusting the document: a pipeline
+begins with `backlog` and ends with `done`. `WorkflowDefinition.BacklogStageId` / `IsBacklog` and
+`WorkflowDefinition.DoneStageId` / `IsDone` state them, `WorkflowDefinition.IsLastStage` reads the end of a
+pipeline from the reserved id rather than from the stage with the greatest order, and
+`WorkflowDefinition.RefuseReservedStages` states the rule once for every caller. A workflow that breaks it is
+refused when it is written (`FileProjectDefinitionStore.ValidateWorkflow`, and `WorkflowEndpoints.Validate` for
+both projects and templates) and refused when it is read, with the file named; a project that predates the rule is
+brought to it by `WorkflowStageMigrator` at daemon startup, in `aiko repair --fix` and on update, and whatever
+that cannot repair - a pipeline with no `backlog` stage, whose first stage is the author's decision - is named by
+`aiko doctor` under `workflow-stages`. The workflow editor mirrors the rule: neither reserved column can be
+removed or reordered away. The point of it is that "finished" is one fact: `CardCompletion.IsFinished` is true
+only in the `done` stage, so the work queue, the archive gate and the blocking rule all agree about a card that
+ends somewhere else - namely that it has not ended.
+
 Skills come in two scopes. **Global** (user-scope) skills manage Aiko itself and work before or outside any
 project; **project** skills are written by `/aiko-init` and belong to one project. The mapping
 "skill -> MCP tool -> UI path" is kept in `agent-integration.md`, so a capability reachable from an agent
@@ -385,13 +399,13 @@ A card can also leave the board without leaving the project. Being in the archiv
 metadata** - `Card.Metadata["archivedAt"]`, read back through `Card.ArchivedAt`, with `Card.IsArchived` asking
 whether the key is there rather than whether its text can be read - and not a stage and not a folder: the files,
 the feed, the runs, the artifacts and the relations stay exactly where they were, which is what makes the archive
-reversible. `CardCompletion.IsFinished` states the one condition - the card sits in the last stage of its own
-workflow and that stage's latest run is `Completed` - and the work queue and the archive gate both read it, so
-"finished" has one definition rather than two. `CardArchiving.Refuse` gates putting a card away (already there,
-an open run, not finished) and `CardArchiving.RefuseWork` refuses starting a stage on, or moving, a card that is
-in the archive. The board snapshot carries the archive beside its cards (`ArchivedCards`, null from an older
-daemon reading as an empty archive), the work queue and both metric groupings leave archivable cards out, and
-`aiko_list_cards` leaves them out unless `includeArchived` is true. Nothing is hidden from a reader, though:
+reversible. `CardCompletion.IsFinished` states the one condition - the card sits in the reserved `done` stage of
+its own workflow and that stage's latest run is `Completed` - and the work queue and the archive gate both read
+it, so "finished" has one definition rather than two. `CardArchiving.Refuse` gates putting a card away (already
+there, an open run, not finished) and `CardArchiving.RefuseWork` refuses starting a stage on, or moving, a card
+that is in the archive. The board snapshot carries the archive beside its cards (`ArchivedCards`, null from an
+older daemon reading as an empty archive), the work queue and both metric groupings leave archivable cards out,
+and `aiko_list_cards` leaves them out unless `includeArchived` is true. Nothing is hidden from a reader, though:
 `aiko_get_card`, `aiko_get_card_artifact` and `aiko_list_comments` answer for a card in the archive exactly as
 they always did.
 
@@ -517,8 +531,9 @@ the person as the command's `failed` message.
 | Surface | Path |
 | :-- | :-- |
 | REST | `PUT .../cards/{cardId}/archive` with `{ archived, expectedRevision }` - one route for both directions, held to the same revision check as the stage route |
+| REST | `POST .../cards/archive-finished` - the board's own tidy-up: every card standing in the reserved `done` stage goes to the archive in one request, and the answer says what went and what the gate refused. The body is optional: `{ cardIds: [...] }` narrows the same action to the cards named, which is how the release page asks it. The gate is asked per card, exactly as the single-card route asks it, and the reads behind it happen once for the whole request |
 | MCP | `aiko_archive_card(cardId, expectedRevision)` and `aiko_restore_card(cardId, expectedRevision)`; `aiko_list_cards` takes `includeArchived`; `aiko_start_stage` and both move routes refuse a card that is in the archive |
-| UI | Board - the view group's *Archive*: the cards that were put away, each with its type, the stage it came from and the moment, and a button that returns one; a card's own panel offers putting it away (only once it is finished) or bringing it back |
+| UI | Board - the view group's *Archive*: the cards that were put away, each with its type, the stage it came from and the moment, and a button that returns one; a card's own panel offers putting it away (only once it is finished) or bringing it back. The board's action row carries *Send the finished ones to the archive*, offered over the work alone, and its result line names the cards the gate would not take; one release's own page carries the same action narrowed to the cards that release names |
 | Storage | the mark in `metadata.archivedAt` of `card.json`. No projection change: the two metric queries skip archivable cards with `json_extract`, and `ICardStore.ListAsync` keeps returning every card, because the id generator and the doctor must still see what is archived |
 
 ## 13. Concurrency and workspaces

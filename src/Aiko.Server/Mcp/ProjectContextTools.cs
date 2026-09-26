@@ -307,8 +307,9 @@ internal sealed class ProjectContextTools(
 
         builder.Append("A card's kind is the type id below and its workflowId is the same id lower-cased; a ")
             .Append("new card starts in the \"").Append(WorkflowDefinition.BacklogStageId)
-            .AppendLine("\" stage of its own pipeline.");
-        builder.AppendLine();
+            .Append("\" stage of its own pipeline and is finished in its \"").Append(WorkflowDefinition.DoneStageId)
+            .AppendLine("\" stage, which every pipeline ends with.")
+            .AppendLine();
 
         foreach (var workflow in workflows.OrderBy(item => item.Title, StringComparer.Ordinal))
         {
@@ -326,6 +327,10 @@ internal sealed class ProjectContextTools(
                 if (WorkflowDefinition.IsBacklog(stage))
                 {
                     builder.Append(" (backlog: a new card starts here)");
+                }
+                else if (WorkflowDefinition.IsDone(stage))
+                {
+                    builder.Append(" (done: the pipeline ends here, and only here may a card be finished)");
                 }
 
                 if (!string.IsNullOrWhiteSpace(stage.Instruction))

@@ -1963,10 +1963,13 @@
     <value>Card type '{0}' was created.</value>
   </data>
   <data name="BacklogStageFirst" xml:space="preserve">
-    <value>The backlog is always the first status: nothing can be placed before it.</value>
+    <value>The backlog is always the first status and done is always the last: nothing can be placed before or after them.</value>
   </data>
   <data name="BacklogStageReserved" xml:space="preserve">
     <value>Backlog is a standard column and cannot be removed.</value>
+  </data>
+  <data name="DoneStageReserved" xml:space="preserve">
+    <value>Done is the final standard column and cannot be removed.</value>
   </data>
   <data name="StageTitleBacklog" xml:space="preserve">
     <value>Backlog</value>
@@ -2354,5 +2357,17 @@
   </data>
   <data name="ArchiveNotFinished" xml:space="preserve">
     <value>Only a card that reached the end of its pipeline can be put away; this one has work left in it.</value>
+  </data>
+  <data name="ArchiveFinished" xml:space="preserve">
+    <value>Send the finished ones to the archive</value>
+  </data>
+  <data name="ArchiveFinishedDone" xml:space="preserve">
+    <value>{0} card(s) went to the archive.</value>
+  </data>
+  <data name="ArchiveFinishedPartial" xml:space="preserve">
+    <value>{0} card(s) went to the archive; the board keeps {1} it would not accept ({2}).</value>
+  </data>
+  <data name="ArchiveFinishedFailed" xml:space="preserve">
+    <value>Could not send the finished cards to the archive: {0}</value>
   </data>
 </root>

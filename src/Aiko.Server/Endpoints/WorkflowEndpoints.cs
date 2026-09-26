@@ -289,9 +289,10 @@ internal static class WorkflowEndpoints
     }
 
     /// <summary>
-    /// The checks a create and an update share: the id must be file-safe, the pipeline must be non-empty and
-    /// it must keep the reserved backlog stage as its first step. Returns the failure result, or null when
-    /// the request may proceed. Shared with the template endpoints, which apply the same rules.
+    /// The checks a create and an update share: the id, the title and the stages are required, and the
+    /// pipeline must begin with the reserved <c>backlog</c> stage and end with the reserved <c>done</c> stage.
+    /// Returns the failure result, or null when the request may proceed. Shared with the template endpoints,
+    /// which apply the same rules.
     /// </summary>
     internal static IResult? Validate(
         string workflowId,
@@ -305,20 +306,13 @@ internal static class WorkflowEndpoints
                 "Workflow id, title and at least one stage are required."));
         }
 
-        var backlog = stages.FirstOrDefault(WorkflowDefinition.IsBacklog);
-        if (backlog is null)
-        {
-            return Results.BadRequest(new ErrorResponse(
-                $"A workflow must keep its {WorkflowDefinition.BacklogStageId} stage."));
-        }
-
-        if (backlog.Order != stages.Min(stage => stage.Order))
-        {
-            return Results.BadRequest(new ErrorResponse(
-                $"The {WorkflowDefinition.BacklogStageId} stage must be the first stage of the workflow."));
-        }
-
-        return null;
+        // The reserved-stage rule is the engine's own, so it is asked rather than restated: the id must be
+        // file-safe, the pipeline must be non-empty, it must begin with the reserved backlog stage and end with
+        // the reserved done stage. Stating it here as well would be the second definition the rule was
+        // consolidated to remove.
+        var refusal = WorkflowDefinition.RefuseReservedStages(
+            new WorkflowDefinition(workflowId, title!, stages, Revision: 0));
+        return refusal is null ? null : Results.BadRequest(new ErrorResponse(refusal));
     }
 
     /// <summary>Trims an optional text field and turns the empty string into null.</summary>

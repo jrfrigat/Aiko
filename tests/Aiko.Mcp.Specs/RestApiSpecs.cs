@@ -361,7 +361,7 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
             {
                 title = "Tasks",
                 expectedRevision = revision,
-                stages = new[]
+                stages = new object[]
                 {
                     new
                     {
@@ -376,6 +376,17 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
                         validationCommands = new[] { "dotnet test --no-build" },
                         skillsBeforeInstruction = new[] { "aiko-memory" },
                         skillsAfterInstruction = new[] { "aiko-report" }
+                    },
+                    new
+                    {
+                        id = "done",
+                        title = "Done",
+                        order = 20,
+                        instruction = "Record the outcome.",
+                        allowedCardKinds = new[] { "Task" },
+                        defaultAgentAdapterId = (string?)null,
+                        requiredArtifacts = Array.Empty<object>(),
+                        actionPolicies = new Dictionary<string, string>()
                     }
                 }
             });
@@ -585,9 +596,10 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
         var typeId = $"theme{suffix}";
         var kind = $"Theme{suffix}";
 
-        // A new type is a workflow of its own: the reserved backlog stage plus at least one working stage,
-        // with its own description, icon and colour. The id is unique per run - the default template now ships
-        // an epic pipeline itself, so this spec states its own type instead of taking a name the project has.
+        // A new type is a workflow of its own: the reserved backlog stage, at least one working stage and the
+        // reserved done stage, with its own description, icon and colour. The id is unique per run - the default
+        // template now ships an epic pipeline itself, so this spec states its own type instead of taking a name
+        // the project has.
         using var created = await http.PostAsJsonAsync($"api/v1/projects/{project}/workflows", new
         {
             id = typeId,
@@ -622,6 +634,19 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
                     actionPolicies = new Dictionary<string, string>(),
                     icon = "code",
                     color = "warning"
+                },
+                new
+                {
+                    id = "done",
+                    title = "Done",
+                    order = 30,
+                    instruction = "Record the outcome.",
+                    allowedCardKinds = new[] { kind },
+                    defaultAgentAdapterId = (string?)null,
+                    requiredArtifacts = Array.Empty<object>(),
+                    actionPolicies = new Dictionary<string, string>(),
+                    icon = "done-all",
+                    color = "success"
                 }
             }
         });
@@ -1492,5 +1517,189 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
         var after = await http.GetFromJsonAsync<JsonElement>(
             $"api/v1/projects/{fixture.ProjectId}/memory/search?q=zebrafish");
         Assert.DoesNotContain(after.EnumerateArray(), entry => entry.GetProperty("path").GetString() == path);
+    }
+
+    [Fact]
+    public async Task Sending_the_finished_cards_to_the_archive_is_one_request_that_says_what_it_did()
+    {
+        using var http = CreateClient();
+        var root = Path.Combine(Path.GetTempPath(), "Aiko.Specs", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            // A project of its own: the action archives every finished card of the project, so sharing the
+            // fixture's project would take cards other specs are still working with.
+            var created = await http.PostAsJsonAsync("/api/v1/projects/initialize", new { rootPath = root });
+            created.EnsureSuccessStatusCode();
+            var project = (await created.Content.ReadFromJsonAsync<JsonElement>())
+                .GetProperty("id")
+                .GetString()!;
+
+            // Three cards, three states: one that finished its pipeline, one standing in the done column with its
+            // closing run still open, one still in work.
+            var finished = CardId("FIN");
+            var open = CardId("OPEN");
+            var working = CardId("WORK");
+            foreach (var cardId in new[] { finished, open, working })
+            {
+                using var card = await http.PostAsJsonAsync($"api/v1/projects/{project}/cards", new
+                {
+                    cardId,
+                    kind = "Task",
+                    title = cardId,
+                    workflowId = "task",
+                    stageId = "backlog",
+                    ownPriority = 1
+                });
+                Assert.Equal(HttpStatusCode.Created, card.StatusCode);
+            }
+
+            await WalkToDoneAsync(http, project, finished);
+            await WalkToDoneAsync(http, project, working);
+
+            // The same action narrowed to the cards named: the release page asks exactly this way, so the two
+            // screens share one rule rather than stating it twice.
+            using var narrowed = await http.PostAsJsonAsync(
+                $"api/v1/projects/{project}/cards/archive-finished",
+                new { cardIds = new[] { working } });
+            narrowed.EnsureSuccessStatusCode();
+            var narrowedResult = await narrowed.Content.ReadFromJsonAsync<JsonElement>();
+            Assert.Equal([working], Ids(narrowedResult, "archived"));
+            Assert.Empty(Ids(narrowedResult, "refused"));
+
+            // The card whose closing run is left open goes last: a project allows one running stage at a time, so
+            // leaving this one hanging is the last thing the walk can do.
+            await WalkToDoneAsync(http, project, open, completeLast: false);
+
+            // No body at all: the request is the button's own question - "archive the finished ones" - and the
+            // daemon answers it rather than being handed the list the screen guessed at.
+            using var archived = await http.PostAsync(
+                $"api/v1/projects/{project}/cards/archive-finished", content: null);
+            Assert.Equal(HttpStatusCode.OK, archived.StatusCode);
+            var result = await archived.Content.ReadFromJsonAsync<JsonElement>();
+            var taken = Ids(result, "archived");
+            Assert.Contains(finished, taken);
+            Assert.DoesNotContain(open, taken);
+            Assert.DoesNotContain(working, taken);
+
+            // The card whose closing run was never finished stays on the board, and the answer names it with the
+            // gate's own reason instead of reporting a success the board contradicts.
+            Assert.Equal([open], Ids(result, "refused"));
+            Assert.Contains(
+                "open run",
+                result.GetProperty("refused")[0].GetProperty("reason").GetString(),
+                StringComparison.Ordinal);
+
+            // A card still in work is not a refusal: it is not what the request asked about, and answering with
+            // the whole board would be an answer to a question nobody asked.
+            var board = await http.GetFromJsonAsync<JsonElement>($"api/v1/projects/{project}/board");
+            Assert.Contains(Archived(board), cardId => cardId == finished);
+            Assert.Contains(Archived(board), cardId => cardId == working);
+            Assert.Contains(OnBoard(board), cardId => cardId == open);
+
+            // Pressed again with nothing left to take: a success with zero, not an error, and the same refusal as
+            // before - the card has not become archivable by being asked about twice.
+            using var again = await http.PostAsync(
+                $"api/v1/projects/{project}/cards/archive-finished", content: null);
+            Assert.Equal(HttpStatusCode.OK, again.StatusCode);
+            var second = await again.Content.ReadFromJsonAsync<JsonElement>();
+            Assert.Empty(Ids(second, "archived"));
+            Assert.Equal([open], Ids(second, "refused"));
+
+            // A body the action cannot read is refused out loud rather than treated as "no filter": silently
+            // archiving everything because the filter did not parse is the one answer that must never happen.
+            using var notJson = await http.PostAsync(
+                $"api/v1/projects/{project}/cards/archive-finished",
+                new StringContent("cardIds=FIN-1", System.Text.Encoding.UTF8, "text/plain"));
+            Assert.Equal(HttpStatusCode.UnsupportedMediaType, notJson.StatusCode);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    /// <summary>A card id that is unique per run and short enough to stay readable in a failure message.</summary>
+    private static string CardId(string stem) => $"{stem}-{Guid.NewGuid():N}"[..12];
+
+    /// <summary>One of the two id lists of the archive answer, read as plain strings.</summary>
+    private static string[] Ids(JsonElement result, string property) =>
+        result.GetProperty(property)
+            .EnumerateArray()
+            .Select(item => property == "archived"
+                ? item.GetString()!
+                : item.GetProperty("cardId").GetString()!)
+            .ToArray();
+
+    /// <summary>The ids of the cards the board is drawing, and of the ones it put away.</summary>
+    private static string[] OnBoard(JsonElement board) => CardIds(board.GetProperty("cards"));
+
+    private static string[] Archived(JsonElement board) => CardIds(board.GetProperty("archivedCards"));
+
+    private static string[] CardIds(JsonElement cards) =>
+        cards.EnumerateArray()
+            .Select(card => card.GetProperty("reference").GetProperty("cardId").GetString()!)
+            .ToArray();
+
+    /// <summary>
+    /// Walks a card to the end of its own pipeline over REST, one stage at a time. The closing stage is left open
+    /// when asked, which is how a spec hands the archive gate a card that stands in the done column without having
+    /// finished it.
+    /// </summary>
+    private static async Task WalkToDoneAsync(
+        HttpClient http,
+        string project,
+        string cardId,
+        bool completeLast = true)
+    {
+        foreach (var stage in new[] { "analysis", "implementation", "review", "done" })
+        {
+            using var started = await http.PostAsJsonAsync(
+                $"api/v1/projects/{project}/cards/{cardId}/executions",
+                new { stageId = stage, agentAdapterId = "cline" });
+            Assert.True(
+                started.StatusCode == HttpStatusCode.OK,
+                $"{cardId} could not start {stage}: {started.StatusCode} {await started.Content.ReadAsStringAsync()}");
+
+            // A stage closes on an estimate made during its own run, so the walk records one: the readiness
+            // criterion is what says the work is finished, and without it the completion is refused. The revision
+            // is read from the board because starting the run moved the card.
+            var board = await http.GetFromJsonAsync<JsonElement>($"api/v1/projects/{project}/board");
+            var revision = board.GetProperty("cards")
+                .EnumerateArray()
+                .First(card => card.GetProperty("reference").GetProperty("cardId").GetString() == cardId)
+                .GetProperty("revision")
+                .GetInt64();
+            using var estimated = await http.PutAsJsonAsync(
+                $"api/v1/projects/{project}/cards/{cardId}",
+                new
+                {
+                    title = cardId,
+                    ownPriority = 1,
+                    declaredScopeFiles = Array.Empty<string>(),
+                    expectedRevision = revision,
+                    criterionValues = new Dictionary<string, decimal> { ["readiness"] = 8 }
+                });
+            Assert.True(
+                estimated.StatusCode == HttpStatusCode.OK,
+                $"{cardId} could not be estimated in {stage}: {estimated.StatusCode} " +
+                $"{await estimated.Content.ReadAsStringAsync()}");
+
+            if (stage == "done" && !completeLast)
+            {
+                return;
+            }
+
+            var executionId = (await started.Content.ReadFromJsonAsync<JsonElement>())
+                .GetProperty("id")
+                .GetString();
+            using var completed = await http.PostAsJsonAsync(
+                $"api/v1/projects/{project}/executions/{executionId}/complete",
+                new { actualChangedFiles = Array.Empty<string>(), artifacts = Array.Empty<string>() });
+            Assert.True(
+                completed.StatusCode == HttpStatusCode.OK,
+                $"{cardId} could not complete {stage}: {completed.StatusCode} " +
+                $"{await completed.Content.ReadAsStringAsync()}");
+        }
     }
 }

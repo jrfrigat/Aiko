@@ -10,8 +10,9 @@ namespace Aiko.Domain.Workflow;
 /// its workflow and that stage's latest run completed. It is a fact about the pipeline rather than about the
 /// queue, so it is stated here - the queue hides finished cards and the archive accepts nothing else, and two
 /// places that each decide what "finished" means is how one of them starts hiding a card the other still calls
-/// work. The last stage is read from the card's own workflow, because pipelines differ per card type and calling
-/// the end <c>done</c> is only true of the workflows that happen to use that id.
+/// work. The end of a pipeline is the reserved <see cref="WorkflowDefinition.DoneStageId"/> stage, read from the
+/// card's own workflow through <see cref="WorkflowDefinition.IsLastStage"/>, so a pipeline that ends anywhere
+/// else has no end for a card to have reached.
 /// </remarks>
 public static class CardCompletion
 {

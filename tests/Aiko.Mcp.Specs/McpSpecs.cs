@@ -269,6 +269,17 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
                         defaultAgentAdapterId = (string?)null,
                         requiredArtifacts = Array.Empty<object>(),
                         actionPolicies = new Dictionary<string, string>()
+                    },
+                    new
+                    {
+                        id = "done",
+                        title = "Done",
+                        order = 20,
+                        instruction = "Record the fix.",
+                        allowedCardKinds = new[] { "Bug" },
+                        defaultAgentAdapterId = (string?)null,
+                        requiredArtifacts = Array.Empty<object>(),
+                        actionPolicies = new Dictionary<string, string>()
                     }
                 }
             });

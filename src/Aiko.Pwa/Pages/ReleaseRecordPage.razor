@@ -94,10 +94,38 @@
         </FlareStack>
     </FlarePaper>
 
-    <FlareButton Variant="ButtonVariant.Tonal" Size="ButtonSize.Sm" Loading="@_loading" OnClick="ReloadAsync">
-        <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.Refresh" /></LeadingIcon>
-        <ChildContent>@Loc.Get("ReleaseRefresh")</ChildContent>
-    </FlareButton>
+    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small" Wrap="true">
+        <FlareButton Variant="ButtonVariant.Tonal" Size="ButtonSize.Sm" Loading="@_loading" OnClick="ReloadAsync">
+            <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.Refresh" /></LeadingIcon>
+            <ChildContent>@Loc.Get("ReleaseRefresh")</ChildContent>
+        </FlareButton>
+        @* The release's own tidy-up. It is offered only when the record carries cards, and that is not a
+           decoration: the request narrows the archive to the cards it names, and a list with nothing in it would
+           travel as no filter at all - which the daemon reads as "every finished card of the project". *@
+        @if (_record?.Cards is { Count: > 0 })
+        {
+            <FlareButton Variant="ButtonVariant.Text"
+                         Size="ButtonSize.Sm"
+                         Disabled="@_archiving"
+                         Loading="@_archiving"
+                         OnClick="ArchiveReleaseCardsAsync">
+                <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.TaskAlt" /></LeadingIcon>
+                <ChildContent>@Loc.Get("ArchiveFinished")</ChildContent>
+            </FlareButton>
+        }
+    </FlareStack>
+
+    @* The verdict is the daemon's, and it is read back rather than assumed: a card of this release that has not
+       finished its pipeline stays on the board, and the person who pressed the button is owed its id and the
+       reason instead of a silent success. *@
+    @if (_archiveMessage is { Length: > 0 } archiveMessage)
+    {
+        <FlareText Element="span"
+                   Typo="TypographyScale.LabelSmall"
+                   Color="@(_archiveRefused > 0 ? FlareColor.Error : FlareColor.OnSurfaceVariant2)">
+            @archiveMessage
+        </FlareText>
+    }
 </FlareStack>
 
 @code {
@@ -110,6 +138,9 @@
     private ReleaseView? _record;
     private string? _message;
     private bool _loading;
+    private bool _archiving;
+    private string? _archiveMessage;
+    private int _archiveRefused;
 
     /// <summary>
     /// Whether this release is a preliminary one, read from the tag's own suffix - the same fact the workflow
@@ -149,6 +180,60 @@
         finally
         {
             _loading = false;
+        }
+    }
+
+    /// <summary>
+    /// Asks the daemon to put this release's finished cards away, then reads the record again so the page shows
+    /// what became of them rather than what was asked for.
+    /// </summary>
+    /// <remarks>
+    /// The same request the board's own button sends, narrowed to the cards this record names: one rule, one
+    /// route and one answer for "send the finished ones to the archive", whether the person is looking at the
+    /// board or at a release. Nothing here decides whether a card may go - the daemon's archive gate does - so a
+    /// card that has not finished its pipeline stays and this page names it with the gate's own reason.
+    /// <para>
+    /// The button that calls this is not drawn while the record carries no cards, and that guard is load-bearing:
+    /// an empty list would travel as no filter at all, which the daemon reads as "every finished card of the
+    /// project".
+    /// </para>
+    /// </remarks>
+    private async Task ArchiveReleaseCardsAsync()
+    {
+        if (_record is not { Cards.Count: > 0 } record || _archiving)
+        {
+            return;
+        }
+
+        _archiving = true;
+        _archiveMessage = null;
+        _archiveRefused = 0;
+        try
+        {
+            using var response = await Http.PostAsJsonAsync(
+                $"api/v1/projects/{Uri.EscapeDataString(Handle)}/cards/archive-finished",
+                new ArchiveFinishedCardsRequest(record.Cards),
+                PwaJson.Options);
+            response.EnsureSuccessStatusCode();
+            var result = await response.Content.ReadFromJsonAsync<ArchiveFinishedCardsResponse>(
+                PwaJson.Options);
+            _archiveRefused = result?.Refused.Count ?? 0;
+            _archiveMessage = _archiveRefused == 0
+                ? Loc.Format("ArchiveFinishedDone", result?.Archived.Count ?? 0)
+                : Loc.Format(
+                    "ArchiveFinishedPartial",
+                    result?.Archived.Count ?? 0,
+                    _archiveRefused,
+                    string.Join(", ", result!.Refused.Select(item => item.CardId)));
+        }
+        catch (Exception exception)
+        {
+            _archiveMessage = Loc.Format("ArchiveFinishedFailed", FailureText.Describe(exception));
+        }
+        finally
+        {
+            _archiving = false;
+            await ReloadAsync();
         }
     }
 }

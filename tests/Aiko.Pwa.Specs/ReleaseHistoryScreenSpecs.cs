@@ -96,6 +96,29 @@ public sealed class ReleaseHistoryScreenSpecs
     }
 
     [Fact]
+    public void The_release_record_offers_sending_its_own_cards_to_the_archive()
+    {
+        var page = Read("src", "Aiko.Pwa", "Pages", "ReleaseRecordPage.razor");
+
+        // The same request the board's own button sends, narrowed to the cards this record names - so the two
+        // screens share one rule and one route rather than stating either twice.
+        Assert.Contains("cards/archive-finished", page, StringComparison.Ordinal);
+        Assert.Contains("new ArchiveFinishedCardsRequest(record.Cards)", page, StringComparison.Ordinal);
+        Assert.Contains("ArchiveFinishedCardsResponse", page, StringComparison.Ordinal);
+
+        // The offer is drawn only while the record carries cards, and that guard is the point rather than a
+        // nicety: an empty list travels as no filter at all, which the daemon reads as "every finished card of
+        // the project" - a button for one release would empty the whole board.
+        Assert.Contains("if (_record?.Cards is { Count: > 0 })", page, StringComparison.Ordinal);
+
+        // What the gate refused is read back and named, and the page is read again so it draws what became of
+        // the cards rather than what was asked of them.
+        Assert.Contains("result!.Refused.Select(item => item.CardId)", page, StringComparison.Ordinal);
+        Assert.Contains("ArchiveFinishedPartial", page, StringComparison.Ordinal);
+        Assert.Contains("await ReloadAsync();", page, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Every_caption_the_release_markup_asks_for_exists_in_both_dictionaries()
     {
         var pages = new[]

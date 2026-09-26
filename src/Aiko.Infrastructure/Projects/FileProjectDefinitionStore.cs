@@ -31,7 +31,8 @@ public sealed class FileProjectDefinitionStore(IProjectCatalog projects) : IProj
             Path.Combine(stitchRoot, "workflows"),
             ProjectJsonContext.Default.WorkflowDefinition,
             cancellationToken,
-            ValidateIdentifiers);
+            ValidateIdentifiers,
+            ValidateReservedStages);
         var projections = await ReadDocumentsAsync(
             Path.Combine(stitchRoot, "projections"),
             ProjectJsonContext.Default.BoardProjectionDefinition,
@@ -294,7 +295,7 @@ public sealed class FileProjectDefinitionStore(IProjectCatalog projects) : IProj
         string directory,
         System.Text.Json.Serialization.Metadata.JsonTypeInfo<T> typeInfo,
         CancellationToken cancellationToken,
-        Action<T>? validate = null)
+        params Action<T>[] validate)
     {
         if (!Directory.Exists(directory))
         {
@@ -309,7 +310,10 @@ public sealed class FileProjectDefinitionStore(IProjectCatalog projects) : IProj
                 ?? throw new InvalidDataException($"Invalid Aiko document: {path}");
             try
             {
-                validate?.Invoke(document);
+                foreach (var check in validate)
+                {
+                    check(document);
+                }
             }
             catch (ArgumentException exception)
             {
@@ -435,17 +439,30 @@ public sealed class FileProjectDefinitionStore(IProjectCatalog projects) : IProj
             }
         }
 
-        // Backlog is the list of cards not taken into work yet, so it is not a column a user may remove: it
-        // has to exist and it has to be where a card enters the pipeline.
-        var backlog = workflow.Stages.FirstOrDefault(WorkflowDefinition.IsBacklog)
-            ?? throw new ArgumentException(
-                $"A workflow must keep its {WorkflowDefinition.BacklogStageId} stage.",
-                nameof(workflow));
-        var firstOrder = workflow.Stages.Min(stage => stage.Order);
-        if (backlog.Order != firstOrder)
+        // The reserved-stage rule is stated in the domain, so the write path, the read path and the diagnosis
+        // all ask the same one. It is asked last: a workflow that is broken in several ways should be told about
+        // its shape once the things a person can see in the editor are already valid.
+        if (WorkflowDefinition.RefuseReservedStages(workflow) is { } refusal)
+        {
+            throw new ArgumentException(refusal, nameof(workflow));
+        }
+    }
+
+    /// <summary>
+    /// Refuses a workflow read from disk that does not begin with <c>backlog</c> and end with <c>done</c>.
+    /// </summary>
+    /// <remarks>
+    /// The engine reads the end of a pipeline from the reserved stage id, so a document that ends somewhere
+    /// else would silently have no end: no card of it could ever be finished, archivable or stop blocking. The
+    /// check is asked on the read path as well as the write path, and a project that predates the rule is
+    /// brought to it by <see cref="WorkflowStageMigrator"/> rather than by reading the file anyway.
+    /// </remarks>
+    private static void ValidateReservedStages(WorkflowDefinition workflow)
+    {
+        if (WorkflowDefinition.RefuseReservedStages(workflow) is { } refusal)
         {
             throw new ArgumentException(
-                $"The {WorkflowDefinition.BacklogStageId} stage must be the first stage of the workflow.",
+                $"{refusal} Run `aiko repair --fix` to bring a project that predates the rule to it.",
                 nameof(workflow));
         }
     }
