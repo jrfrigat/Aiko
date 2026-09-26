@@ -15,6 +15,17 @@ namespace Aiko.Theme.StitchFlow;
 /// The design defines no separate success/warning/info hues, so Success and Info deliberately reuse
 /// the tertiary green and the secondary blue; Warning is the one role the design does not name, and
 /// it is set to an amber that still belongs to the palette.
+/// Flare 0.42 made fourteen more roles required: the two ends of the surface ladder and, for each accent,
+/// its fixed ladder. The design files name none of them, so they are read off roles the design does name, by
+/// the rule Flare itself applies to a palette that carries its own accents
+/// (<c>PaletteFactory.WithPrimaryFixedFromPrimary</c>): the fixed fill is the light scheme's container, the
+/// dim step the dark scheme's accent, and the text on both the light scheme's on-container. The two schemes
+/// of a palette therefore state the same fixed values - content painted with a fixed role must not change
+/// between modes - and <c>ThemeSpecs</c> checks exactly that. The surface ends are the palette's own ladder
+/// read in each scheme's direction: the bright plane is the chrome in a light scheme and the last step in a
+/// dark one, the dim plane the other way round. Where a design's light container and its dark accent sit far
+/// apart in lightness - Cyber Amber is the case - one on-colour cannot be legible on both; the roles are
+/// stated by the library's rule rather than re-designed, and nothing in the cockpit paints with them today.
 /// </remarks>
 public static class StitchFlowPalettes
 {
@@ -90,6 +101,23 @@ public static class StitchFlowPalettes
         Shadow = "#000000",
         ShadowUmbra = "rgba(0, 0, 0, 0.6)",
         ShadowPenumbra = "rgba(0, 0, 0, 0.3)",
+
+        // Roles Flare 0.42 made required: the ladder's ends and the mode-invariant fixed ladders (see the
+        // remarks on this class).
+        SurfaceBright = "#2d3449",
+        SurfaceDim = "#0b1326",
+        PrimaryFixed = "#e0e0ff",
+        PrimaryFixedDim = "#c0c1ff",
+        OnPrimaryFixed = "#0d0096",
+        OnPrimaryFixedVariant = "#0d0096",
+        SecondaryFixed = "#c9e6ff",
+        SecondaryFixedDim = "#89ceff",
+        OnSecondaryFixed = "#001e2f",
+        OnSecondaryFixedVariant = "#001e2f",
+        TertiaryFixed = "#6ffbbe",
+        TertiaryFixedDim = "#4edea3",
+        OnTertiaryFixed = "#002113",
+        OnTertiaryFixedVariant = "#002113",
     };
 
     // The design is dark-only; this is the same role contract read in daylight - the accents deepen
@@ -149,6 +177,23 @@ public static class StitchFlowPalettes
         Shadow = "#000000",
         ShadowUmbra = "rgba(0, 0, 0, 0.3)",
         ShadowPenumbra = "rgba(0, 0, 0, 0.15)",
+
+        // Roles Flare 0.42 made required: the ladder's ends and the mode-invariant fixed ladders (see the
+        // remarks on this class).
+        SurfaceBright = "#ffffff",
+        SurfaceDim = "#dee1ec",
+        PrimaryFixed = "#e0e0ff",
+        PrimaryFixedDim = "#c0c1ff",
+        OnPrimaryFixed = "#0d0096",
+        OnPrimaryFixedVariant = "#0d0096",
+        SecondaryFixed = "#c9e6ff",
+        SecondaryFixedDim = "#89ceff",
+        OnSecondaryFixed = "#001e2f",
+        OnSecondaryFixedVariant = "#001e2f",
+        TertiaryFixed = "#6ffbbe",
+        TertiaryFixedDim = "#4edea3",
+        OnTertiaryFixed = "#002113",
+        OnTertiaryFixedVariant = "#002113",
     };
 
     /// <summary>The design's own dark scheme, with a light counterpart built from the same roles.</summary>
@@ -233,6 +278,23 @@ public static class StitchFlowPalettes
         Shadow = "#000000",
         ShadowUmbra = "rgba(0, 0, 0, 0.6)",
         ShadowPenumbra = "rgba(0, 0, 0, 0.3)",
+
+        // Roles Flare 0.42 made required: the ladder's ends and the mode-invariant fixed ladders (see the
+        // remarks on this class).
+        SurfaceBright = "#383432",
+        SurfaceDim = "#161311",
+        PrimaryFixed = "#b15f00",
+        PrimaryFixedDim = "#ffb77d",
+        OnPrimaryFixed = "#fffbff",
+        OnPrimaryFixedVariant = "#fffbff",
+        SecondaryFixed = "#fd8a42",
+        SecondaryFixedDim = "#ffb68e",
+        OnSecondaryFixed = "#682c00",
+        OnSecondaryFixedVariant = "#682c00",
+        TertiaryFixed = "#00855d",
+        TertiaryFixedDim = "#68dba9",
+        OnTertiaryFixed = "#f5fff7",
+        OnTertiaryFixedVariant = "#f5fff7",
     };
 
     /// <summary>The same warm family read on parchment, as the design draws it.</summary>
@@ -287,6 +349,23 @@ public static class StitchFlowPalettes
         Shadow = "#000000",
         ShadowUmbra = "rgba(0, 0, 0, 0.3)",
         ShadowPenumbra = "rgba(0, 0, 0, 0.15)",
+
+        // Roles Flare 0.42 made required: the ladder's ends and the mode-invariant fixed ladders (see the
+        // remarks on this class).
+        SurfaceBright = "#ffffff",
+        SurfaceDim = "#e9e1dd",
+        PrimaryFixed = "#b15f00",
+        PrimaryFixedDim = "#ffb77d",
+        OnPrimaryFixed = "#fffbff",
+        OnPrimaryFixedVariant = "#fffbff",
+        SecondaryFixed = "#fd8a42",
+        SecondaryFixedDim = "#ffb68e",
+        OnSecondaryFixed = "#682c00",
+        OnSecondaryFixedVariant = "#682c00",
+        TertiaryFixed = "#00855d",
+        TertiaryFixedDim = "#68dba9",
+        OnTertiaryFixed = "#f5fff7",
+        OnTertiaryFixedVariant = "#f5fff7",
     };
 
     /// <summary>The warm amber sibling: brown-amber accents on parchment and on warm charcoal.</summary>
@@ -351,6 +430,23 @@ public static class StitchFlowPalettes
         Shadow = "#000000",
         ShadowUmbra = "rgba(0, 0, 0, 0.6)",
         ShadowPenumbra = "rgba(0, 0, 0, 0.3)",
+
+        // Roles Flare 0.42 made required: the ladder's ends and the mode-invariant fixed ladders (see the
+        // remarks on this class).
+        SurfaceBright = "#30353f",
+        SurfaceDim = "#0e131c",
+        PrimaryFixed = "#f59e0b",
+        PrimaryFixedDim = "#ffc174",
+        OnPrimaryFixed = "#613b00",
+        OnPrimaryFixedVariant = "#613b00",
+        SecondaryFixed = "#ffc329",
+        SecondaryFixedDim = "#ffc640",
+        OnSecondaryFixed = "#6f5100",
+        OnSecondaryFixedVariant = "#6f5100",
+        TertiaryFixed = "#22c990",
+        TertiaryFixedDim = "#4de6aa",
+        OnTertiaryFixed = "#004e35",
+        OnTertiaryFixedVariant = "#004e35",
     };
 
     /// <summary>The same amber read on cool slate, as the design draws it.</summary>
@@ -405,6 +501,23 @@ public static class StitchFlowPalettes
         Shadow = "#000000",
         ShadowUmbra = "rgba(0, 0, 0, 0.3)",
         ShadowPenumbra = "rgba(0, 0, 0, 0.15)",
+
+        // Roles Flare 0.42 made required: the ladder's ends and the mode-invariant fixed ladders (see the
+        // remarks on this class).
+        SurfaceBright = "#ffffff",
+        SurfaceDim = "#dee2ef",
+        PrimaryFixed = "#f59e0b",
+        PrimaryFixedDim = "#ffc174",
+        OnPrimaryFixed = "#613b00",
+        OnPrimaryFixedVariant = "#613b00",
+        SecondaryFixed = "#ffc329",
+        SecondaryFixedDim = "#ffc640",
+        OnSecondaryFixed = "#6f5100",
+        OnSecondaryFixedVariant = "#6f5100",
+        TertiaryFixed = "#22c990",
+        TertiaryFixedDim = "#4de6aa",
+        OnTertiaryFixed = "#004e35",
+        OnTertiaryFixedVariant = "#004e35",
     };
 
     /// <summary>The cool amber sibling: amber on slate chrome rather than on warm charcoal.</summary>
@@ -494,6 +607,23 @@ public static class StitchFlowPalettes
         Shadow = "#000000",
         ShadowUmbra = "rgba(0, 0, 0, 0.3)",
         ShadowPenumbra = "rgba(0, 0, 0, 0.15)",
+
+        // Roles Flare 0.42 made required: the ladder's ends and the mode-invariant fixed ladders (see the
+        // remarks on this class).
+        SurfaceBright = "#ffffff",
+        SurfaceDim = "#e5e2e1",
+        PrimaryFixed = "#0e639c",
+        PrimaryFixedDim = "#99cbff",
+        OnPrimaryFixed = "#beddff",
+        OnPrimaryFixedVariant = "#beddff",
+        SecondaryFixed = "#7df4d9",
+        SecondaryFixedDim = "#61dac1",
+        OnSecondaryFixed = "#00705f",
+        OnSecondaryFixedVariant = "#00705f",
+        TertiaryFixed = "#85523d",
+        TertiaryFixedDim = "#fab79d",
+        OnTertiaryFixed = "#ffcfbc",
+        OnTertiaryFixedVariant = "#ffcfbc",
     };
 
     /// <summary>The same workstation read at night, as the design draws it.</summary>
@@ -549,6 +679,23 @@ public static class StitchFlowPalettes
         Shadow = "#000000",
         ShadowUmbra = "rgba(0, 0, 0, 0.6)",
         ShadowPenumbra = "rgba(0, 0, 0, 0.3)",
+
+        // Roles Flare 0.42 made required: the ladder's ends and the mode-invariant fixed ladders (see the
+        // remarks on this class).
+        SurfaceBright = "#353535",
+        SurfaceDim = "#131313",
+        PrimaryFixed = "#0e639c",
+        PrimaryFixedDim = "#99cbff",
+        OnPrimaryFixed = "#beddff",
+        OnPrimaryFixedVariant = "#beddff",
+        SecondaryFixed = "#7df4d9",
+        SecondaryFixedDim = "#61dac1",
+        OnSecondaryFixed = "#00705f",
+        OnSecondaryFixedVariant = "#00705f",
+        TertiaryFixed = "#85523d",
+        TertiaryFixedDim = "#fab79d",
+        OnTertiaryFixed = "#ffcfbc",
+        OnTertiaryFixedVariant = "#ffcfbc",
     };
 
     /// <summary>The editor-workstation sibling: the Studio Modern design's blue on neutral chrome.</summary>

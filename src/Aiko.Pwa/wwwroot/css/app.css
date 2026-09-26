@@ -451,7 +451,10 @@ html.flare-mode-dark .splash-mark i {
        radius, so the value has to be stated here. */
     border-radius: var(--flare-shape-extra-small);
     border: 1px solid var(--flare-color-outline-variant);
-    transition: border-color var(--flare-motion-duration-short2) var(--flare-motion-easing-standard);
+    /* Flare 0.42 removed the ordinal duration scale, so this reads the role instead: a border changing
+       colour is a state change. The old `short2` variable is no longer published, and an undefined one
+       voids the whole declaration rather than falling back. */
+    transition: border-color var(--flare-motion-duration-state-change) var(--flare-motion-easing-standard);
 }
 
 /* The card's inset belongs to the app, and this rule is what makes it so: FlareCard paints its
@@ -504,7 +507,8 @@ html.flare-mode-dark .splash-mark i {
        that tall; the design reads this line at 10-11px mono, so the handle is 14px. */
     font-size: 0.875rem;
     cursor: grab;
-    transition: opacity var(--flare-motion-duration-short2) var(--flare-motion-easing-standard);
+    /* Opacity moving is a state change too, and the ordinal scale this used to read is gone in Flare 0.42. */
+    transition: opacity var(--flare-motion-duration-state-change) var(--flare-motion-easing-standard);
 }
 
 .aiko-card__handle:active {

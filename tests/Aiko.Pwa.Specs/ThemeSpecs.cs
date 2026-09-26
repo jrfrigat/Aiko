@@ -1,6 +1,7 @@
 using Aiko.Theme.StitchFlow;
 using Flare.Abstractions;
 using Flare.Abstractions.Tokens;
+using Flare.Theme.MaterialDesign3Expressive;
 using System.Globalization;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -23,8 +24,14 @@ public sealed class ThemeSpecs
     public void Theme_owns_its_style_family()
     {
         Assert.Equal(StitchFlowTheme.ThemeId, Theme.Id);
-        // Its own family: none of the base theme's stylesheets can apply to this subtree.
-        Assert.Equal(Theme.Id, Theme.StyleFamilyId);
+        // Its own family: the base's stylesheets are replaced rather than added to, so none of Material's
+        // CSS can apply to this subtree. Flare 0.42 states that as a lineage - a theme names its parent and
+        // says whether the parent's stylesheets come along - where 0.40 had a style family id for it.
+        var baseTheme = new MaterialDesign3ExpressiveTheme();
+        Assert.Equal(baseTheme.Id, Theme.Base?.Id);
+        Assert.DoesNotContain(
+            Theme.StyleAssets,
+            asset => baseTheme.StyleAssets.Contains(asset, StringComparer.Ordinal));
         Assert.Contains(
             $"_content/Aiko.Theme.StitchFlow/css/{Theme.Id}.css",
             Theme.StyleAssets);
@@ -164,7 +171,9 @@ public sealed class ThemeSpecs
             .Where(property => property.PropertyType == typeof(string))
             .Select(property => property.Name)
             .ToArray();
-        Assert.Equal(49, roles.Length);
+        // Flare 0.42 added the fourteen Material 3 add-on roles (surface-bright, surface-dim and the
+        // *-fixed ladder of each accent), so the contract this checks is 63 roles rather than 0.40's 49.
+        Assert.Equal(63, roles.Length);
 
         foreach (var palette in Theme.Palettes)
         {
@@ -241,6 +250,28 @@ public sealed class ThemeSpecs
                 {
                     AssertReadable(palette.Id, schemeName, scheme, pair, 3.0);
                 }
+            }
+        }
+    }
+
+    [Fact]
+    public void Fixed_roles_hold_one_value_in_both_schemes()
+    {
+        // "Fixed" means the colour content painted with it reads the same in either mode. The design files
+        // name no such role, so each palette derives all twelve from its own accents - and a derivation
+        // that let the two schemes drift would paint mode-invariant content differently in each mode.
+        string[] roles =
+        [
+            "PrimaryFixed", "PrimaryFixedDim", "OnPrimaryFixed", "OnPrimaryFixedVariant",
+            "SecondaryFixed", "SecondaryFixedDim", "OnSecondaryFixed", "OnSecondaryFixedVariant",
+            "TertiaryFixed", "TertiaryFixedDim", "OnTertiaryFixed", "OnTertiaryFixedVariant",
+        ];
+
+        foreach (var palette in Theme.Palettes)
+        {
+            foreach (var role in roles)
+            {
+                Assert.Equal(Role(palette.Light, role), Role(palette.Dark, role));
             }
         }
     }

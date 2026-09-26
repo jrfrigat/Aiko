@@ -61,8 +61,9 @@ public static class StitchFlowTheme
             "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap",
             $"_content/Aiko.Theme.StitchFlow/css/{ThemeId}.css",
         ],
-        // Replaces the family's stylesheets entirely: nothing from Material applies to this subtree.
-        styleFamilyId: ThemeId);
+        // Replaces the base's stylesheets entirely: nothing from Material applies to this subtree. Flare
+        // 0.42 took the style family away and made this the way a derived theme says the same thing.
+        inheritStyleAssets: false);
 
     /// <summary>Focus is a ring everywhere - the cockpit is keyboard-driven.</summary>
     private const string FocusRing = "2px solid var(--flare-color-primary)";
@@ -241,7 +242,16 @@ public static class StitchFlowTheme
             // The design's "primary button glows" rule.
             FilledHoverShadow = "0 0 14px color-mix(in srgb, var(--flare-color-primary) 30%, transparent)",
             DisabledOpacity = "0.38",
-            DisabledLayer = "var(--flare-color-on-surface)",
+            // Flare 0.42 replaced the disabled layer with a repaint: 0% keeps the variant's own colours
+            // and lets DisabledOpacity above do the fading, which is how a disabled control reads in this
+            // design - the same control, faded, rather than a neutral chip. The three colours the repaint
+            // would paint with are stated because the record requires them; at 0% nothing is painted with
+            // them, and the old layer's on-surface tint was the library's own defect, named as such by the
+            // 0.42 changelog.
+            DisabledRepaint = "0%",
+            DisabledContainer = "var(--flare-color-surface-container)",
+            DisabledContent = "var(--flare-color-on-surface-variant)",
+            DisabledStroke = "var(--flare-color-outline-variant)",
             LoadingOpacity = "0.60",
         },
 
@@ -287,7 +297,10 @@ public static class StitchFlowTheme
             SubtitleFontFamily = UiFont,
             SubtitleFontSize = "var(--flare-typescale-label-small-size)",
 
-            TransitionDuration = "var(--flare-motion-duration-short2)",
+            // Flare 0.42 removed the ordinal duration scale and made the pace of a change a role: a card's
+            // fade is a state change, which is the role the stylesheets read for colour, background, border
+            // and shadow. The old `short2` variable is gone, and an undefined one voids the declaration.
+            TransitionDuration = "var(--flare-motion-duration-state-change)",
             TransitionEasing = "var(--flare-motion-easing-standard)",
         },
 
