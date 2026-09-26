@@ -1,6 +1,6 @@
 # Aiko - Agent Integration
 
-Aiko connects Claude Code, Codex, Cursor, ZCode and Cline through a per-project MCP endpoint.
+Aiko connects Claude Code, Codex, Cursor, ZCode, Cline and OpenCode through a per-project MCP endpoint.
 
 ## MCP endpoints
 
@@ -133,7 +133,7 @@ learned is not lost on the next.
 The daemon authenticates its MCP endpoint with the local access token, so **every generated MCP entry
 carries it** - without it the daemon answers `401` and the agent simply never sees Aiko:
 
-- clients whose configuration holds headers (Claude Code, Cursor, ZCode, Cline) get
+- clients whose configuration holds headers (Claude Code, Cursor, ZCode, Cline, OpenCode) get
   `"headers": { "Authorization": "Bearer <token>" }`, written in the same shape the client's own CLI
   produces (Claude Code also gets its `"type": "http"` tag);
 - Codex cannot hold a literal header, so its entry names the environment variable its own CLI writes:
@@ -143,7 +143,7 @@ carries it** - without it the daemon answers `401` and the agent simply never se
 Because the token lives in those files, they must not be committed. Project initialization adds them to
 `.gitignore` (`/.mcp.json`, `/.cursor/mcp.json`, `/.zcode/config.json`, plus the `.aiko` entry the git
 policy already covers); for a project initialized earlier, add the lines by hand. The directories Aiko writes
-agent files into (`/.cline/`, `/.clinerules/`, `/.codex/`, `/.agents/`) are added too, because every install
+agent files into (`/.cline/`, `/.clinerules/`, `/.codex/`, `/.agents/`, `/.opencode/`) are added too, because every install
 and repair rewrites them. `AGENTS.md` and `CLAUDE.md` are not added: those are shared instructions, and Aiko
 only puts a marked block in them.
 
@@ -288,7 +288,7 @@ over is therefore the same address the UI links to itself, not a second form of 
 
 An agent is detected by every signal it leaves behind, not only by an executable: a CLI is found on `PATH`,
 while a desktop app or an IDE extension - which has nothing on `PATH` at all - is found by its own data
-directory (`~/.claude`, `~/.codex`, `~/.cursor`, `~/.zcode`, `~/.cline`). Detection decides what the dashboard
+directory (`~/.claude`, `~/.codex`, `~/.cursor`, `~/.zcode`, `~/.cline`, `~/.config/opencode`). Detection decides what the dashboard
 offers and what a repair touches; it never runs the agent, so no version is reported.
 
 ## What the installer writes
@@ -302,12 +302,13 @@ Per project (`aiko agent install --project <id>`). The contract and the procedur
 | Cursor | `.cursor/rules/aiko.mdc` | — (neither skills nor commands) |
 | ZCode | `AGENTS.md` block | `.zcode/skills/aiko-*/SKILL.md`, `.zcode/commands/aiko-*.md` |
 | Cline | `.clinerules/aiko.md` | `.cline/skills/aiko-*/SKILL.md` (no commands) |
+| OpenCode | `AGENTS.md` block | `.opencode/commands/aiko-*.md` |
 
 One create procedure per card type the project defines is written alongside the rest, and both are a
 projection of the workflows: they are re-written when a type is created or removed, and only for the agents
 already connected to that project.
 
-Codex and ZCode share the `AGENTS.md` block: it is the cross-client mechanism ZCode reads project
+Codex, ZCode and OpenCode share the `AGENTS.md` block: it is the cross-client mechanism ZCode reads project
 instructions from, and the content is identical, so two adapters merge into one block instead of fighting
 over the file.
 
@@ -321,6 +322,7 @@ orientation skill explains the flow; the actions are commands:
 | Cursor | `~/.cursor/rules/aiko.mdc` |
 | ZCode | `~/.zcode/skills/aiko/SKILL.md`, `~/.zcode/commands/aiko-*.md` |
 | Cline | `~/.cline/skills/aiko/SKILL.md`, `~/.agents/skills/aiko-*/SKILL.md` |
+| OpenCode | `~/.config/opencode/opencode.json` (`aiko-<handle>` entry), `~/.config/opencode/commands/aiko-*.md` |
 
 Cline gets its procedures globally as well as in the workspace, and the duplication is deliberate: a Cline
 build that does not surface workspace skills - the desktop app reads the global root and leaves a project's
@@ -359,6 +361,14 @@ commands - and they are named after the procedures (`aiko-create`, `aiko-run`, .
 which is the name the global skill holds and Cline resolves first. That precedence is why the workspace
 skill used to be called `aiko-project`. The contract itself sits in `.clinerules/aiko.md`, which Cline
 reads on every run.
+
+OpenCode reads its MCP servers from a flat `mcp` object rather than a `servers` list, so its entry carries the
+client's own `"type": "remote"` tag beside the `url` and the `headers`. The workspace file is `opencode.json` at
+the project root and the global one is `~/.config/opencode/opencode.json`, where each project is added under its
+own key (`aiko-<handle>`) for the same reason Cline needs one: a global file cannot name a project. The
+procedures reach it as commands in `.opencode/commands` (workspace) and `~/.config/opencode/commands` (global),
+and the contract sits in the `AGENTS.md` block rather than the file's own `instructions` array - one file has one
+writer, and a second Aiko entry in the same JSON would fight the MCP one.
 
 Installation is idempotent and preserves your own settings; uninstall removes only Aiko-managed
 content (MCP entries, managed blocks, and files carrying the Aiko ownership marker).

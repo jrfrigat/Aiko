@@ -12,7 +12,7 @@
 [![Status](https://img.shields.io/badge/status-MVP%20foundation-orange)](docs/en/technical-specification.md)
 
 Aiko (AI kanban orchestrator) is a **local-first orchestrator for AI-assisted development**: one
-loopback daemon that gives Claude Code, Codex, Cursor, ZCode and Cline a shared project context, a
+loopback daemon that gives Claude Code, Codex, Cursor, ZCode, Cline and OpenCode a shared project context, a
 configurable Kanban pipeline, durable memory and a stable MCP contract - while you keep every file
 on disk, in Git-friendly Markdown and JSON.
 
@@ -55,7 +55,7 @@ rate limit) hands off to another agent without losing history.
   run, so handoff, resume, pause and rate-limit states never lose history
 - **Durable memory** - decisions, conventions and lessons live in `.aiko/memory` as Markdown and
   are searchable through an SQLite FTS5 index
-- **Unified agent installer** - discovers Claude Code, Codex, Cursor, ZCode and Cline installations and
+- **Unified agent installer** - discovers Claude Code, Codex, Cursor, ZCode, Cline and OpenCode installations and
   applies idempotent, user-config-preserving project configuration (MCP entries, managed blocks,
   owned skills/commands) with per-adapter plans and surgical uninstall
 - **`.aiko` is the source of truth** - cards, workflows, artifacts and memory live in `.aiko` files;
@@ -221,7 +221,7 @@ that have commands. One create procedure per card type the project defines is ge
 | `aiko-ui` | Open the board for this project |
 
 The working contract travels in the rule channel instead, one file per client: a marked block in `CLAUDE.md`
-(Claude Code), `AGENTS.md` (Codex and ZCode) and `.clinerules/aiko.md` (Cline), or the rule Aiko owns in
+(Claude Code), `AGENTS.md` (Codex, ZCode and OpenCode) and `.clinerules/aiko.md` (Cline), or the rule Aiko owns in
 `.cursor/rules/aiko.mdc` (Cursor).
 
 User scope (`--scope user`), available without a project open. One skill explains the flow; the actions

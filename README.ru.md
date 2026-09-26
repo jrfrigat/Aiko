@@ -12,7 +12,7 @@
 [![Статус](https://img.shields.io/badge/status-MVP%20foundation-orange)](docs/ru/technical-specification.md)
 
 Aiko (AI kanban orchestrator) - **локальный оркестратор разработки с участием ИИ**: один loopback-демон
-дает Claude Code, Codex, Cursor, ZCode и Cline общий контекст проекта, настраиваемый Kanban-конвейер,
+дает Claude Code, Codex, Cursor, ZCode, Cline и OpenCode общий контекст проекта, настраиваемый Kanban-конвейер,
 устойчивую память и стабильный MCP-контракт - при этом все данные остаются на диске в
 Git-дружелюбных Markdown и JSON.
 
@@ -54,7 +54,7 @@ Aiko не заменяет агентов. Он связывает их: кар�
   попытку агента, поэтому handoff, resume, pause и rate-limit не теряют историю
 - **Устойчивая память** - решения, соглашения и уроки живут в `.aiko/memory` как Markdown и
   ищутся через FTS5-индекс SQLite
-- **Единый установщик агентов** - обнаруживает установки Claude Code, Codex, Cursor, ZCode и Cline и
+- **Единый установщик агентов** - обнаруживает установки Claude Code, Codex, Cursor, ZCode, Cline и OpenCode и
   идемпотентно применяет проектную конфигурацию (MCP-записи, управляемые блоки, собственные
   skills/команды), сохраняя настройки пользователя; планы по адаптерам и точечное удаление
 - **`.aiko` - источник истины** - карточки, workflow, артефакты и память лежат в файлах `.aiko`;
@@ -223,7 +223,7 @@ slash-команду. Рядом генерируется по одной про
 | `aiko-ui` | Открыть доску этого проекта |
 
 Сам контракт поведения идёт по каналу правил, по файлу на клиента: размеченный блок в `CLAUDE.md`
-(Claude Code), `AGENTS.md` (Codex и ZCode) и `.clinerules/aiko.md` (Cline), либо правило, которым владеет
+(Claude Code), `AGENTS.md` (Codex, ZCode и OpenCode) и `.clinerules/aiko.md` (Cline), либо правило, которым владеет
 Aiko, - `.cursor/rules/aiko.mdc` (Cursor).
 
 Глобальные (`--scope user`), работают без открытого проекта. Один скилл объясняет порядок работы, сами
