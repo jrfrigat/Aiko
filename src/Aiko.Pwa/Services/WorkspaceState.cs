@@ -33,6 +33,7 @@ internal sealed class WorkspaceState : IAsyncDisposable
     private Task? _initialization;
     private CancellationTokenSource? _boardReloadDelay;
     private DotNetObjectReference<WorkspaceState>? _visibility;
+    private bool _shellLoaded;
     private bool _disposed;
 
     /// <summary>
@@ -153,6 +154,26 @@ internal sealed class WorkspaceState : IAsyncDisposable
 
     private async Task InitializeCoreAsync()
     {
+        await LoadShellAsync();
+        Loading = false;
+        await SubscribeVisibilityAsync();
+        await NotifyAsync();
+    }
+
+    /// <summary>
+    /// Reads the shell: the registered projects and the daemon's own identity, plus the agent list and the
+    /// templates the screens draw from. Returns whether it came back.
+    /// </summary>
+    /// <remarks>
+    /// A failure is recorded in <see cref="Error"/> rather than thrown, because a tab whose first load met a
+    /// daemon that was not running has to be able to read the shell again later - see <see cref="CatchUpAsync"/>.
+    /// What counts as the shell being here is the project list and the daemon identity: the agent and template
+    /// lists stay overview information whose failure turns nothing into an error screen. The empty project list
+    /// of an installation without projects is a legitimate answer, which is why the fact is a flag rather than a
+    /// count.
+    /// </remarks>
+    private async Task<bool> LoadShellAsync()
+    {
         try
         {
             Projects = await _http.GetFromJsonAsync<IReadOnlyList<RegisteredProject>>(
@@ -186,14 +207,13 @@ internal sealed class WorkspaceState : IAsyncDisposable
         catch (Exception exception)
         {
             Error = FailureText.Describe(exception);
-        }
-        finally
-        {
-            Loading = false;
+            return false;
         }
 
-        await SubscribeVisibilityAsync();
-        await NotifyAsync();
+        _shellLoaded = true;
+        // The shell is here, so a message about it not being here is no longer true.
+        Error = null;
+        return true;
     }
 
     /// <summary>
@@ -270,9 +290,11 @@ internal sealed class WorkspaceState : IAsyncDisposable
         // Taken before the read starts: whether this attempt still speaks for the tab is decided when it ends,
         // not when it begins.
         var epoch = _presence.Epoch;
-        Error = null;
         if (SelectedProjectId is null)
         {
+            // Nothing is read here, so nothing is cleared either: the plate going away is the reward of a read
+            // that came back, not of one that never happened - which is how a tab whose shell never loaded lost
+            // its message and kept its empty screen.
             Board = null;
             Commands = [];
             await NotifyAsync();
@@ -287,6 +309,9 @@ internal sealed class WorkspaceState : IAsyncDisposable
             SettingsView = await _http.GetFromJsonAsync<AppSettingsView>(
                 $"api/v1/projects/{projectId}/settings", PwaJson.Options);
             await ReloadCommandsAsync(projectId);
+            // The board is here, so a message saying it is not is no longer true. Cleared on the success of the
+            // read rather than at its start: an attempt that fails must not take the plate away on its way in.
+            Error = null;
         }
         catch (Exception exception)
         {
@@ -708,7 +733,38 @@ internal sealed class WorkspaceState : IAsyncDisposable
             return;
         }
 
-        Error = null;
+        await CatchUpAsync();
+    }
+
+    /// <summary>
+    /// Reads what a returning tab or a returning link still owes the person: the shell, if it never came back,
+    /// and then the board.
+    /// </summary>
+    /// <remarks>
+    /// Nothing here takes the plate away: a read that comes back clears the message and a read that fails leaves
+    /// it, which is what keeps "the daemon is not there" on screen while it is still true. The shell is read
+    /// first because a tab whose first load met a daemon that was not running has no project list - and no board
+    /// to read either. A hidden tab reads nothing at all; the next return does the catch-up.
+    /// </remarks>
+    private async Task CatchUpAsync()
+    {
+        if (!_presence.CanRead)
+        {
+            // A hidden tab reads nothing, the shell included: a read from a throttled tab is answered late (see
+            // <see cref="BoardPresence"/>), and the return asks again. The board used to be the only read kept
+            // out of a hidden tab; the shell is not different just because it is read less often.
+            await NotifyAsync();
+            return;
+        }
+
+        if (!_shellLoaded && !await LoadShellAsync())
+        {
+            // The daemon is still not answering. Without the shell there is nothing else to read, and the plate
+            // that says so stays where it is.
+            await NotifyAsync();
+            return;
+        }
+
         await LoadBoardAsync();
     }
 
@@ -736,21 +792,17 @@ internal sealed class WorkspaceState : IAsyncDisposable
         EventsStatusMessage = connected ? null : reason;
         if (connected)
         {
-            // The link is back, so a plate put up while it was gone is no longer the news, and the board may
-            // have moved while nothing was arriving. What was in flight for the dead link is abandoned first, so
-            // a failure from it cannot arrive afterwards and put the plate back up.
+            // What was in flight for the dead link is abandoned first, so a failure from it cannot arrive
+            // afterwards and put the plate back up.
             _presence.Abandon();
-            Error = null;
             // A (re)connect is how a daemon restart shows up here - and a restart is exactly when the daemon
             // may serve a newer client than this tab loaded. Probing the version at that moment is what lets
             // the shell say "reload" instead of hiding the mismatch under a live badge.
             await RefreshSystemAsync();
-            if (_presence.CanRead)
-            {
-                // The board is re-read by the same gesture that takes the plate away, so a daemon that is still
-                // down fails this read and puts the plate straight back up.
-                await LoadBoardAsync();
-            }
+            // The board, and the shell when this tab never got one - the daemon may have been down when it first
+            // asked. Either read takes the plate away by succeeding; a daemon that is still down fails both and
+            // leaves it up.
+            await CatchUpAsync();
         }
 
         await NotifyAsync();

@@ -121,7 +121,7 @@ public sealed class BoardPresenceSpecs
     }
 
     [Fact]
-    public void A_returning_link_takes_the_plate_away_and_reads_the_board()
+    public void A_returning_link_abandons_what_is_in_flight_and_catches_up()
     {
         var state = Text("src", "Aiko.Pwa", "Services", "WorkspaceState.cs");
         var reconnect = Between(
@@ -129,9 +129,11 @@ public sealed class BoardPresenceSpecs
             "private async Task OnEventConnectionChangedAsync",
             "private async Task RefreshSystemAsync");
 
+        // The read that was waiting on the dead link says nothing any more, and the catch-up is what takes the
+        // plate away - by coming back, not by clearing the message on the way in (TASK-269).
         Assert.Contains("_presence.Abandon();", reconnect, StringComparison.Ordinal);
-        Assert.Contains("Error = null;", reconnect, StringComparison.Ordinal);
-        Assert.Contains("await LoadBoardAsync();", reconnect, StringComparison.Ordinal);
+        Assert.Contains("await CatchUpAsync();", reconnect, StringComparison.Ordinal);
+        Assert.DoesNotContain("Error = null;", reconnect, StringComparison.Ordinal);
     }
 
     [Fact]
