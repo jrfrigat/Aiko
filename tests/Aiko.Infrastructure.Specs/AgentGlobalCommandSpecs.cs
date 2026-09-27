@@ -11,10 +11,10 @@ namespace Aiko.Infrastructure.Specs;
 /// command that lands in one adapter's global scope and not in its neighbour's.
 /// </summary>
 /// <remarks>
-/// The global commands are a channel of the two adapters that have one (Claude Code and ZCode); Codex, Cline
-/// and Cursor are told about them by the shared Aiko skill or, for Cursor, by the rule channel. That is how
-/// the neighbouring commands (<c>/aiko-backup</c>, <c>/aiko-token</c>) already work, so a command is never
-/// expected in every adapter - only to be consistent wherever its channel exists.
+/// The global commands are a channel of the three adapters that have one (Claude Code, ZCode and OpenCode);
+/// Codex, Cline and Cursor are told about them by the shared Aiko skill or, for Cursor, by the rule channel.
+/// That is how the neighbouring commands (<c>/aiko-backup</c>, <c>/aiko-token</c>) already work, so a command
+/// is never expected in every adapter - only to be consistent wherever its channel exists.
 /// </remarks>
 public sealed class AgentGlobalCommandSpecs
 {
@@ -23,9 +23,12 @@ public sealed class AgentGlobalCommandSpecs
     {
         var claudeCode = await GlobalCommandsAsync(new ClaudeCodeAgentAdapter());
         var zcode = await GlobalCommandsAsync(new ZCodeAgentAdapter());
+        var openCode = await GlobalCommandsAsync(new OpenCodeAgentAdapter());
 
         Assert.Equal(claudeCode, zcode);
+        Assert.Equal(claudeCode, openCode);
         Assert.Contains("aiko-logs", claudeCode);
+        Assert.Contains("aiko-update", claudeCode);
     }
 
     [Fact]
@@ -53,6 +56,41 @@ public sealed class AgentGlobalCommandSpecs
         var claudeCode = await GlobalCommandsAsync(new ClaudeCodeAgentAdapter());
         Assert.Contains("aiko-release", claudeCode);
         Assert.Contains("/aiko-release", AgentTemplates.GlobalSkill, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_update_command_reaches_every_channel_that_carries_the_other_global_commands()
+    {
+        // The command channel is three adapters wide, so a command that landed there alone would be
+        // invisible to the rest: Codex, Cline and Cursor read the list out of the shared skill.
+        var claudeCode = await GlobalCommandsAsync(new ClaudeCodeAgentAdapter());
+        Assert.Contains("aiko-update", claudeCode);
+        Assert.Contains("/aiko-update", AgentTemplates.GlobalSkill, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_update_procedure_keeps_the_check_and_the_person_in_place()
+    {
+        var body = AgentTemplates.GlobalUpdate;
+
+        // The safe half is named as safe: reading the version and the check change nothing.
+        Assert.Contains("aiko --version", body, StringComparison.Ordinal);
+        Assert.Contains("aiko update --check", body, StringComparison.Ordinal);
+        Assert.Contains("changes nothing", body, StringComparison.Ordinal);
+
+        // What an update does, and what it leaves alone, is said as the observable facts STORY-9 proved
+        // rather than as the engine's own steps - two descriptions of one behaviour drift apart.
+        Assert.Contains("verifies its published checksum", body, StringComparison.Ordinal);
+        Assert.Contains("rolls back if a step fails", body, StringComparison.Ordinal);
+        Assert.Contains("integrations so they point at the daemon", body, StringComparison.Ordinal);
+        Assert.Contains("projects are not touched", body, StringComparison.Ordinal);
+
+        // The boundary is the point of the procedure, not a footnote to it: replacing the running daemon
+        // ends this agent's own connection with it, so the moment is the person's.
+        Assert.Contains("own connection ends with it", body, StringComparison.Ordinal);
+        Assert.Contains("let the person choose", body, StringComparison.Ordinal);
+        Assert.Contains("An available version is not a reason", body, StringComparison.Ordinal);
+        Assert.Contains("is the person's decision", body, StringComparison.Ordinal);
     }
 
     [Fact]

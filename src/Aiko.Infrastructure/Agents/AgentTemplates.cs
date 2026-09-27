@@ -603,7 +603,8 @@ internal static class AgentTemplates
         (/aiko-status), diagnose it (/aiko-doctor), repair what the diagnosis found (/aiko-repair),
         manage the agents' integrations (/aiko-agents), read and change settings (/aiko-settings),
         show the access token (/aiko-token), conduct a release (/aiko-release), back a project up
-        (/aiko-backup), read the log tail (/aiko-logs) and open the UI (/aiko-ui). After
+        (/aiko-backup), read the log tail (/aiko-logs), update the installation (/aiko-update) and
+        open the UI (/aiko-ui). After
         /aiko-init, restart this agent so the project-scoped MCP configuration and skills are loaded.
 
         If the Aiko tools are missing, check that AIKO_TOKEN is set to the value of `aiko token show` - a
@@ -834,6 +835,40 @@ internal static class AgentTemplates
         is answered - with `--lines <n>` for more of it. Add `--project <id>` for the tail of that project's
         event journal: what happened to its cards and its stage runs. An empty log says so rather than
         failing, and the log is bounded, so it also says what it dropped.
+        """;
+
+    /// <summary>
+    /// Global slash command that reports the installed version and updates the installation.
+    /// </summary>
+    /// <remarks>
+    /// The procedure wraps a command that already ships, so it is short by design. What it carries that the
+    /// command does not is the boundary: an update replaces the daemon that is running and the configuration
+    /// that points at it, which ends this agent's own connection - so the moment is the person's to choose,
+    /// and a check that reports an available version is a report, not a request. The facts it states about
+    /// the engine are the observable ones (the checksum is verified, a failed step rolls back, the data and
+    /// the projects are untouched) rather than its internals, because two descriptions of one behaviour drift
+    /// apart.
+    /// </remarks>
+    public const string GlobalUpdate =
+        """
+        Report the installed version of Aiko and update this machine to a release. Read what is installed
+        with `aiko --version`; check what a release offers with `aiko update --check`, which prints the
+        installed and the available version and changes nothing; apply with `aiko update`.
+
+        `aiko update` resolves the release, verifies its published checksum, stages it, replaces the
+        installed binaries, rolls back if a step fails, records the version it installed and rewrites this
+        machine's agent integrations so they point at the daemon the new version runs. The data directory,
+        the settings and the projects are not touched.
+
+        An update replaces the daemon that is running and the configuration that points at it, so this
+        agent's own connection ends with it: say what will happen before you run it, let the person choose
+        the moment, and tell them to restart their agents afterwards. An available version is not a reason
+        to apply it - updating a machine is the person's decision, and a check is a report, not a request.
+        If the agent integrations look stale afterwards, /aiko-doctor says so and /aiko-repair fixes what
+        it names.
+
+        Close by saying the version before and after, and what the update reported it did, rollbacks
+        included.
         """;
 
     /// <summary>

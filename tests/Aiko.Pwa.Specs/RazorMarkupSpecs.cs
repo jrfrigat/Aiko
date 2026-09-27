@@ -1202,6 +1202,131 @@ public sealed class RazorMarkupSpecs
         }
     }
 
+    [Fact]
+    public void The_card_page_moves_a_card_through_its_stages_with_three_explicit_actions()
+    {
+        var root = FindRepositoryRoot();
+        var page = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "CardPage.razor"));
+
+        // One move, three destinations: the request is assembled in a single function, so forward, back and
+        // "close the card" cannot drift into three descriptions of one PUT.
+        Assert.Contains("private async Task MoveToAsync(StageDefinition stage)", page, StringComparison.Ordinal);
+        Assert.Contains("new MoveCardRequest(stage.Id, card.Revision)", page, StringComparison.Ordinal);
+        Assert.Contains("cards/{Uri.EscapeDataString(card.Reference.CardId)}/stage", page, StringComparison.Ordinal);
+        Assert.Contains("OnClick=\"() => MoveToAsync(previous)\"", page, StringComparison.Ordinal);
+        Assert.Contains("OnClick=\"() => MoveToAsync(next)\"", page, StringComparison.Ordinal);
+        Assert.Contains("OnClick=\"() => MoveToAsync(last)\"", page, StringComparison.Ordinal);
+
+        // The neighbours come from the workflow's own order, and the stage's state from the runs the
+        // snapshot carries - the same reading the board draws a column with.
+        Assert.Contains("private StageDefinition? PreviousStage", page, StringComparison.Ordinal);
+        Assert.Contains("private StageDefinition? NextStage", page, StringComparison.Ordinal);
+        Assert.Contains("StageStateView.Of(State.Board?.StageRuns", page, StringComparison.Ordinal);
+
+        // Forward is offered only from a finished stage, and the refusal is a sentence rather than a dead
+        // button: the stage's own name says what has to finish first.
+        Assert.Contains(
+            "private bool CanAdvance => CurrentStageState == StageState.Completed",
+            page,
+            StringComparison.Ordinal);
+        Assert.Contains("Disabled=\"@(!CanAdvance)\"", page, StringComparison.Ordinal);
+        Assert.Contains("Loc.Format(\"StageActionNextNeedsFinished\", StageCaption)", page, StringComparison.Ordinal);
+
+        // The card's own actions stand together in one group.
+        Assert.Contains("<FlareButtonGroup Connected=\"true\">", page, StringComparison.Ordinal);
+
+        // And the board keeps its free drag: this changed the card page, not the way a person moves cards
+        // on the board.
+        var board = File.ReadAllText(Path.Combine(root, "src", "Aiko.Pwa", "Pages", "BoardView.razor"));
+        Assert.Contains(
+            "private async Task MoveCardAsync(string kind, BoardCardMove move)",
+            board,
+            StringComparison.Ordinal);
+
+        foreach (var resource in new[] { "Loc.resx", "Loc.ru.resx" })
+        {
+            var resx = File.ReadAllText(Path.Combine(root, "src", "Aiko.Pwa", "Resources", resource));
+            foreach (var key in new[] { "StageActionPrevious", "StageActionNext", "StageActionNextNeedsFinished" })
+            {
+                Assert.Contains($"name=\"{key}\"", resx, StringComparison.Ordinal);
+            }
+        }
+    }
+
+    [Fact]
+    public void The_project_memory_screen_lists_searches_and_saves_what_the_agent_reads()
+    {
+        var root = FindRepositoryRoot();
+        var rail = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Layout", "MainLayout.razor"));
+        var page = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "MemoryPage.razor"));
+
+        // The screen owns the route, and the rail leads to it in the project's own group: a screen with no
+        // way in is a screen nobody has, and a link assembled anywhere else drifts.
+        Assert.Contains("@page \"/p/{ProjectId}/memory\"", page, StringComparison.Ordinal);
+        Assert.Contains("SectionHref(open.Handle, \"memory\")", rail, StringComparison.Ordinal);
+        Assert.Contains("Loc.Get(\"ProjectMemoryNav\")", rail, StringComparison.Ordinal);
+
+        // It reads the three things the daemon exposes: the listing, the search, and one document...
+        Assert.Contains("/memory", page, StringComparison.Ordinal);
+        Assert.Contains("/search?q=", page, StringComparison.Ordinal);
+        Assert.Contains("/document?path=", page, StringComparison.Ordinal);
+
+        // ...writes through the same path an agent's tool writes through, and can take a document back...
+        Assert.Contains("new StoreMemoryRequest(path, _content)", page, StringComparison.Ordinal);
+        Assert.Contains("Http.DeleteAsync", page, StringComparison.Ordinal);
+
+        // ...reuses the editor the rest of the cockpit already draws long text with...
+        Assert.Contains("<PromptField", page, StringComparison.Ordinal);
+        Assert.Contains("ValueChanged=\"value => _content = value\"", page, StringComparison.Ordinal);
+
+        // ...and shows the daemon's own sentence rather than a status code.
+        Assert.Contains("ReadFromJsonAsync<ErrorResponse>", page, StringComparison.Ordinal);
+        Assert.Contains("<FlareAlert", page, StringComparison.Ordinal);
+
+        // The listing is what a person chooses a document by, so it carries the path, the size and the date.
+        Assert.Contains("MemoryDocumentSummary", page, StringComparison.Ordinal);
+        Assert.Contains("LastModifiedAt.ToLocalTime()", page, StringComparison.Ordinal);
+
+        // Every caption the rail and the screen use exists in both languages.
+        string[] keys =
+        [
+            "ProjectMemoryNav",
+            "ProjectMemoryTitle",
+            "ProjectMemoryHint",
+            "ProjectMemoryNone",
+            "ProjectMemoryDocuments",
+            "ProjectMemorySearchLabel",
+            "ProjectMemorySearchPlaceholder",
+            "ProjectMemorySearchAction",
+            "ProjectMemorySearchResults",
+            "ProjectMemorySearchEmpty",
+            "ProjectMemoryNew",
+            "ProjectMemoryNewHint",
+            "ProjectMemoryPathLabel",
+            "ProjectMemoryPathPlaceholder",
+            "ProjectMemoryEditor",
+            "ProjectMemoryContent",
+            "ProjectMemoryOpen",
+            "ProjectMemorySave",
+            "ProjectMemoryDelete",
+            "ProjectMemorySaved",
+            "ProjectMemoryDeleted",
+            "ProjectMemorySize"
+        ];
+        foreach (var resource in new[] { "Loc.resx", "Loc.ru.resx" })
+        {
+            var resx = File.ReadAllText(
+                Path.Combine(root, "src", "Aiko.Pwa", "Resources", resource));
+            foreach (var key in keys)
+            {
+                Assert.Contains($"name=\"{key}\"", resx, StringComparison.Ordinal);
+            }
+        }
+    }
+
     /// <summary>
     /// Walks up from this assembly to the solution file, the same way the daemon fixture does.
     /// </summary>

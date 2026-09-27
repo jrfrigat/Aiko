@@ -114,6 +114,7 @@ public sealed class OpenCodeAgentAdapter : BuiltInAgentAdapter
         Command("aiko-release", AgentTemplates.GlobalRelease),
         Command("aiko-backup", AgentTemplates.GlobalBackup),
         Command("aiko-logs", AgentTemplates.GlobalLogs),
+        Command("aiko-update", AgentTemplates.GlobalUpdate),
         Command("aiko-ui", AgentTemplates.GlobalUi)
     ];
 

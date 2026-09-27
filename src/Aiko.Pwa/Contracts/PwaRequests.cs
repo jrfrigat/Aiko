@@ -250,3 +250,10 @@ internal sealed record ScopeResponseRequest(bool Approved, string? AgentAdapterI
 
 /// <summary>Approving or rejecting the commit a run is waiting on.</summary>
 internal sealed record CommitApprovalRequest(bool Approved);
+
+/// <summary>
+/// One document of the project memory as it is written: its relative Markdown path under
+/// <c>.aiko/memory</c> and its whole content. The answer carries the stored document back, so the screen
+/// shows what the file holds rather than what was typed into it.
+/// </summary>
+internal sealed record StoreMemoryRequest(string Path, string Content);

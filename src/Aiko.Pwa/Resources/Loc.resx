@@ -1011,6 +1011,15 @@
   <data name="CloseTask" xml:space="preserve">
     <value>Close task</value>
   </data>
+  <data name="StageActionPrevious" xml:space="preserve">
+    <value>Previous stage</value>
+  </data>
+  <data name="StageActionNext" xml:space="preserve">
+    <value>Next stage</value>
+  </data>
+  <data name="StageActionNextNeedsFinished" xml:space="preserve">
+    <value>The stage has to be finished before the card moves on: finish {0}, or close the card.</value>
+  </data>
   <data name="ExecutionState" xml:space="preserve">
     <value>Execution state</value>
   </data>
@@ -1838,6 +1847,72 @@
   </data>
   <data name="LinkedProjectsNav" xml:space="preserve">
     <value>Linked projects</value>
+  </data>
+  <data name="ProjectMemoryNav" xml:space="preserve">
+    <value>Project memory</value>
+  </data>
+  <data name="ProjectMemoryTitle" xml:space="preserve">
+    <value>Project memory</value>
+  </data>
+  <data name="ProjectMemoryHint" xml:space="preserve">
+    <value>The durable memory an agent reads and writes: the Markdown documents under `.aiko/memory`. A decision written here outlives the conversation that produced it.</value>
+  </data>
+  <data name="ProjectMemoryNone" xml:space="preserve">
+    <value>No memory documents yet.</value>
+  </data>
+  <data name="ProjectMemoryDocuments" xml:space="preserve">
+    <value>Documents</value>
+  </data>
+  <data name="ProjectMemorySearchLabel" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="ProjectMemorySearchPlaceholder" xml:space="preserve">
+    <value>text to look for</value>
+  </data>
+  <data name="ProjectMemorySearchAction" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="ProjectMemorySearchResults" xml:space="preserve">
+    <value>{0} documents match</value>
+  </data>
+  <data name="ProjectMemorySearchEmpty" xml:space="preserve">
+    <value>Nothing matches that text.</value>
+  </data>
+  <data name="ProjectMemoryNew" xml:space="preserve">
+    <value>New document</value>
+  </data>
+  <data name="ProjectMemoryNewHint" xml:space="preserve">
+    <value>The path is relative to `.aiko/memory` and ends in `.md`.</value>
+  </data>
+  <data name="ProjectMemoryPathLabel" xml:space="preserve">
+    <value>Path</value>
+  </data>
+  <data name="ProjectMemoryPathPlaceholder" xml:space="preserve">
+    <value>decisions/auth.md</value>
+  </data>
+  <data name="ProjectMemoryEditor" xml:space="preserve">
+    <value>Document</value>
+  </data>
+  <data name="ProjectMemoryContent" xml:space="preserve">
+    <value>Markdown</value>
+  </data>
+  <data name="ProjectMemoryOpen" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="ProjectMemorySave" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="ProjectMemoryDelete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="ProjectMemorySaved" xml:space="preserve">
+    <value>Saved {0}.</value>
+  </data>
+  <data name="ProjectMemoryDeleted" xml:space="preserve">
+    <value>Deleted {0}.</value>
+  </data>
+  <data name="ProjectMemorySize" xml:space="preserve">
+    <value>{0} bytes</value>
   </data>
   <data name="LinkedProjectsMovedHint" xml:space="preserve">
     <value>Links are edited on a screen of their own, reached from the rail, so this page only points at it.</value>

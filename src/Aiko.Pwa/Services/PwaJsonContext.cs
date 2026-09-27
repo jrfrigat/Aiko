@@ -107,6 +107,12 @@ namespace Aiko.Pwa.Services;
 [JsonSerializable(typeof(ConnectProjectAgentsRequest))]
 [JsonSerializable(typeof(AgentConnectionResponse))]
 [JsonSerializable(typeof(AgentInstallation))]
+// The project memory: the listing, the document the screen opens, and the document it writes back.
+[JsonSerializable(typeof(MemoryDocumentSummary))]
+[JsonSerializable(typeof(IReadOnlyList<MemoryDocumentSummary>))]
+[JsonSerializable(typeof(MemoryDocument))]
+[JsonSerializable(typeof(IReadOnlyList<MemoryDocument>))]
+[JsonSerializable(typeof(StoreMemoryRequest))]
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     UseStringEnumConverter = true)]

@@ -1011,6 +1011,15 @@
   <data name="CloseTask" xml:space="preserve">
     <value>Закрыть задачу</value>
   </data>
+  <data name="StageActionPrevious" xml:space="preserve">
+    <value>Предыдущий этап</value>
+  </data>
+  <data name="StageActionNext" xml:space="preserve">
+    <value>Следующий этап</value>
+  </data>
+  <data name="StageActionNextNeedsFinished" xml:space="preserve">
+    <value>Прежде чем двигать карточку дальше, этап должен быть завершён: завершите «{0}» или закройте карточку.</value>
+  </data>
   <data name="ExecutionState" xml:space="preserve">
     <value>Состояние выполнения</value>
   </data>
@@ -1838,6 +1847,72 @@
   </data>
   <data name="LinkedProjectsNav" xml:space="preserve">
     <value>Связанные проекты</value>
+  </data>
+  <data name="ProjectMemoryNav" xml:space="preserve">
+    <value>Память проекта</value>
+  </data>
+  <data name="ProjectMemoryTitle" xml:space="preserve">
+    <value>Память проекта</value>
+  </data>
+  <data name="ProjectMemoryHint" xml:space="preserve">
+    <value>Долговременная память, которую читает и пишет агент: Markdown-документы в `.aiko/memory`. Записанное здесь решение переживает разговор, в котором оно появилось.</value>
+  </data>
+  <data name="ProjectMemoryNone" xml:space="preserve">
+    <value>Документов памяти пока нет.</value>
+  </data>
+  <data name="ProjectMemoryDocuments" xml:space="preserve">
+    <value>Документы</value>
+  </data>
+  <data name="ProjectMemorySearchLabel" xml:space="preserve">
+    <value>Поиск</value>
+  </data>
+  <data name="ProjectMemorySearchPlaceholder" xml:space="preserve">
+    <value>что искать</value>
+  </data>
+  <data name="ProjectMemorySearchAction" xml:space="preserve">
+    <value>Найти</value>
+  </data>
+  <data name="ProjectMemorySearchResults" xml:space="preserve">
+    <value>Совпало документов: {0}</value>
+  </data>
+  <data name="ProjectMemorySearchEmpty" xml:space="preserve">
+    <value>По этому тексту ничего не найдено.</value>
+  </data>
+  <data name="ProjectMemoryNew" xml:space="preserve">
+    <value>Новый документ</value>
+  </data>
+  <data name="ProjectMemoryNewHint" xml:space="preserve">
+    <value>Путь задаётся относительно `.aiko/memory` и оканчивается на `.md`.</value>
+  </data>
+  <data name="ProjectMemoryPathLabel" xml:space="preserve">
+    <value>Путь</value>
+  </data>
+  <data name="ProjectMemoryPathPlaceholder" xml:space="preserve">
+    <value>decisions/auth.md</value>
+  </data>
+  <data name="ProjectMemoryEditor" xml:space="preserve">
+    <value>Документ</value>
+  </data>
+  <data name="ProjectMemoryContent" xml:space="preserve">
+    <value>Markdown</value>
+  </data>
+  <data name="ProjectMemoryOpen" xml:space="preserve">
+    <value>Открыть</value>
+  </data>
+  <data name="ProjectMemorySave" xml:space="preserve">
+    <value>Сохранить</value>
+  </data>
+  <data name="ProjectMemoryDelete" xml:space="preserve">
+    <value>Удалить</value>
+  </data>
+  <data name="ProjectMemorySaved" xml:space="preserve">
+    <value>Сохранено: {0}.</value>
+  </data>
+  <data name="ProjectMemoryDeleted" xml:space="preserve">
+    <value>Удалено: {0}.</value>
+  </data>
+  <data name="ProjectMemorySize" xml:space="preserve">
+    <value>{0} байт</value>
   </data>
   <data name="LinkedProjectsMovedHint" xml:space="preserve">
     <value>Связи редактируются на отдельном экране, который открывается из меню, поэтому здесь только указатель.</value>

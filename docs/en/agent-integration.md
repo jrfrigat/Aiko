@@ -225,10 +225,12 @@ Global skills/commands (installed with `aiko agent install --scope user`):
 `/aiko-settings`, `/aiko-token`, `/aiko-release [scheme-id]`, `/aiko-backup`, `/aiko-logs`, `/aiko-update`,
 `/aiko-ui`.
 
-`/aiko-update` is the one of these that is still to be written: the command it wraps - `aiko update`, which
-replaces the installed binaries and leaves the data and the projects alone - ships today, and the skill that
-hands an agent that procedure is written with the update skill. Until it lands, the command and the installer
-are the way in.
+`/aiko-update` hands an agent the update itself: `aiko --version` says what is installed, `aiko update --check`
+says what a release offers and changes nothing, and `aiko update` resolves that release, verifies its published
+checksum, replaces the installed binaries - rolling back if a step fails - and rewrites this machine's agent
+integrations so they point at the daemon the new version runs. The data directory, the settings and the projects
+are not touched. Updating replaces the running daemon, which ends the agent's own connection with it, so the
+procedure names the moment as the person's to choose and asks them to restart their agents afterwards.
 
 User scope is the machine-wide connection: it is what the dashboard's *Agents* card reports as
 **connected**, and its Connect / Disconnect buttons write and remove exactly these files. The

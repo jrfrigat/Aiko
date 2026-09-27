@@ -242,9 +242,11 @@ themselves are commands:
 | `/aiko-update` | Update the installed Aiko to a release, or report what is available |
 | `/aiko-ui` | Open the UI |
 
-`/aiko-update` wraps the `aiko update` command that ships with this release (`aiko update --check` reports
-what is available without changing anything). The global skill itself is written with the update skill, so
-until that lands the command, and the installer, are the way in.
+`/aiko-update` wraps the `aiko update` command that ships with this release: `aiko update --check` reports
+what is available without changing anything, and `aiko update` verifies the release's published checksum,
+replaces the installed binaries with it and reconnects this machine's agents to the new daemon. The data
+directory, the settings and the projects are not touched. Updating replaces the daemon that is running, so
+the moment is the person's to choose rather than something an agent applies because a version is available.
 
 [Agent Integration](docs/en/agent-integration.md) has the full skill → MCP tool → UI table, including
 what the UI cannot do yet.

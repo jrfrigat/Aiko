@@ -28,22 +28,56 @@ else
                the card itself is the step the reader is on. The row used to be hand-built and only its middle
                step worked - which is what the person reading it complained about. *@
             <FlareBreadcrumb Items="@CrumbItems" AriaLabel="@Loc.Get("KanbanBoard")" />
-            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
-                <FlareButton Variant="ButtonVariant.Tonal"
-                             Size="ButtonSize.Sm"
-                             OnClick="() => _editOpen = true">
-                    <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.Edit" /></LeadingIcon>
-                    <ChildContent>@Loc.Get("EditCard")</ChildContent>
-                </FlareButton>
-                @if (LastStage is { } last && !string.Equals(last.Id, Card.StageId, StringComparison.Ordinal))
-                {
-                    <FlareButton Variant="ButtonVariant.Filled"
+            @* The card's own actions in one place: editing its identity, and the three things a person can
+               do about where it stands in its pipeline. Moving a card is not the board's drag alone - a card
+               read on its own page is moved from here - and "forward" says why it is refused instead of
+               leaving a disabled button looking broken. The board stays free: the drag is untouched. *@
+            <FlareStack Gap="FlareSpacing.XXSmall" Align="FlareAlignItems.End">
+                <FlareButtonGroup Connected="true">
+                    <FlareButton Variant="ButtonVariant.Tonal"
                                  Size="ButtonSize.Sm"
-                                 Loading="@_closing"
-                                 OnClick="CloseCardAsync">
-                        <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.TaskAlt" /></LeadingIcon>
-                        <ChildContent>@Loc.Get("CloseTask")</ChildContent>
+                                 OnClick="() => _editOpen = true">
+                        <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.Edit" /></LeadingIcon>
+                        <ChildContent>@Loc.Get("EditCard")</ChildContent>
                     </FlareButton>
+                    @if (PreviousStage is { } previous)
+                    {
+                        <FlareButton Variant="ButtonVariant.Outlined"
+                                     Size="ButtonSize.Sm"
+                                     Loading="@_moving"
+                                     OnClick="() => MoveToAsync(previous)">
+                            <ChildContent>@Loc.Get("StageActionPrevious")</ChildContent>
+                        </FlareButton>
+                    }
+                    @if (NextStage is { } next)
+                    {
+                        <FlareButton Variant="ButtonVariant.Filled"
+                                     Size="ButtonSize.Sm"
+                                     Disabled="@(!CanAdvance)"
+                                     Loading="@_moving"
+                                     OnClick="() => MoveToAsync(next)">
+                            <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.ChevronRight" /></LeadingIcon>
+                            <ChildContent>@Loc.Get("StageActionNext")</ChildContent>
+                        </FlareButton>
+                    }
+                    @if (LastStage is { } last && !string.Equals(last.Id, Card.StageId, StringComparison.Ordinal))
+                    {
+                        <FlareButton Variant="ButtonVariant.Outlined"
+                                     Size="ButtonSize.Sm"
+                                     Loading="@_moving"
+                                     OnClick="() => MoveToAsync(last)">
+                            <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.TaskAlt" /></LeadingIcon>
+                            <ChildContent>@Loc.Get("CloseTask")</ChildContent>
+                        </FlareButton>
+                    }
+                </FlareButtonGroup>
+                @* A disabled button with no reason reads as a broken screen; the stage's own name is what says
+                   which one has to finish first. *@
+                @if (NextStage is not null && !CanAdvance)
+                {
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                        @Loc.Format("StageActionNextNeedsFinished", StageCaption)
+                    </FlareText>
                 }
             </FlareStack>
         </FlareStack>
@@ -187,23 +221,57 @@ else
             StringComparer.Ordinal.Equals(workflow.Id, Card.WorkflowId))
         ?.Stages.OrderBy(stage => stage.Order).LastOrDefault();
 
+    /// <summary>Every stage of the card's own pipeline, in the order the workflow runs them.</summary>
+    private IReadOnlyList<StageDefinition> Stages => State.Board?.Workflows
+        .FirstOrDefault(workflow => Card is not null &&
+            StringComparer.Ordinal.Equals(workflow.Id, Card.WorkflowId))
+        ?.Stages.OrderBy(stage => stage.Order).ToArray()
+        ?? [];
+
+    /// <summary>Where the card sits in that order, or -1 when the snapshot has nothing to say.</summary>
+    private int StageIndex => Card is { } card
+        ? Stages.ToList().FindIndex(stage => StringComparer.Ordinal.Equals(stage.Id, card.StageId))
+        : -1;
+
+    /// <summary>The stage before the card's own, or null at the head of the pipeline.</summary>
+    private StageDefinition? PreviousStage => StageIndex > 0 ? Stages[StageIndex - 1] : null;
+
+    /// <summary>The stage after the card's own, or null at its end.</summary>
+    private StageDefinition? NextStage =>
+        StageIndex >= 0 && StageIndex < Stages.Count - 1 ? Stages[StageIndex + 1] : null;
+
     /// <summary>
-    /// Moves the card to the last stage of its pipeline, which is what "close" means here: the workflow's
-    /// own end, not a state the UI invents.
+    /// Where the card's current stage got to, from the runs the snapshot carries - the same reading the
+    /// board draws a column with, so the two screens cannot disagree.
     /// </summary>
-    private async Task CloseCardAsync()
+    private StageState CurrentStageState => Card is { } card
+        ? StageStateView.Of(State.Board?.StageRuns, card.Reference.CardId, card.StageId)
+        : StageState.Pending;
+
+    /// <summary>
+    /// Whether the card may move forward: a stage is left only once it is finished. That is the rule the
+    /// agent's own move follows, and the button says so instead of the daemon having to refuse.
+    /// </summary>
+    private bool CanAdvance => CurrentStageState == StageState.Completed && NextStage is not null;
+
+    /// <summary>
+    /// Moves the card to one stage of its own pipeline - forward, back, or to its end - and reads the board
+    /// back. One function for all three actions: they are one operation with three destinations, and two
+    /// descriptions of one move are two descriptions that drift apart.
+    /// </summary>
+    private async Task MoveToAsync(StageDefinition stage)
     {
-        if (Card is not { } card || LastStage is not { } last || _closing)
+        if (Card is not { } card || _moving)
         {
             return;
         }
 
-        _closing = true;
+        _moving = true;
         try
         {
             using var response = await Http.PutAsJsonAsync(
                 $"api/v1/projects/{Uri.EscapeDataString(card.Reference.ProjectId)}/cards/{Uri.EscapeDataString(card.Reference.CardId)}/stage",
-                new MoveCardRequest(last.Id, card.Revision),
+                new MoveCardRequest(stage.Id, card.Revision),
                 PwaJson.Options);
             response.EnsureSuccessStatusCode();
         }
@@ -213,7 +281,7 @@ else
         }
         finally
         {
-            _closing = false;
+            _moving = false;
             await State.LoadBoardAsync();
         }
     }
@@ -292,7 +360,7 @@ else
         }
     }
 
-    private bool _closing;
+    private bool _moving;
     private bool _editOpen;
 
     protected override async Task OnParametersSetAsync() => await State.EnsureProjectAsync(ProjectId);

@@ -56,6 +56,12 @@ public sealed class PwaJsonSpecs
             typeof(AgentAdapterOption),
             typeof(IReadOnlyList<AgentAdapterOption>),
             typeof(AgentInstallation),
+            // The project memory screen: the listing it reads, the document it opens and the one it writes.
+            typeof(MemoryDocumentSummary),
+            typeof(IReadOnlyList<MemoryDocumentSummary>),
+            typeof(MemoryDocument),
+            typeof(IReadOnlyList<MemoryDocument>),
+            typeof(StoreMemoryRequest),
             typeof(AgentProjectConnection),
             typeof(IReadOnlyList<AgentProjectConnection>),
             typeof(ConnectProjectAgentsRequest),
