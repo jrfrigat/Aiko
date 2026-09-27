@@ -937,7 +937,13 @@
     <value>Could not change the {0} connection: {1}</value>
   </data>
   <data name="CardNotFound" xml:space="preserve">
-    <value>No such card on this project's board.</value>
+    <value>No such card in this project.</value>
+  </data>
+  <data name="CardArchivedNotice" xml:space="preserve">
+    <value>This card is in the archive: the board no longer draws it, and its stage can be neither started nor moved until the card is brought back.</value>
+  </data>
+  <data name="ArchiveBadge" xml:space="preserve">
+    <value>Archive</value>
   </data>
   <data name="OverviewGroup" xml:space="preserve">
     <value>Overview</value>

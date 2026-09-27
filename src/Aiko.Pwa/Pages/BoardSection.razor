@@ -446,12 +446,10 @@
 
     /// <summary>
     /// The snapshot's own card, live or archived: an archived card is still a card somebody can open, and the
-    /// board carries it for exactly that reason.
+    /// board carries it for exactly that reason. How the two are read together lives in one place
+    /// (<see cref="BoardCards.Find"/>), so this panel and the card's own page cannot answer differently.
     /// </summary>
-    private Card? CardById(string cardId) =>
-        Board.Cards
-            .Concat(Board.ArchivedCards ?? [])
-            .FirstOrDefault(candidate => StringComparer.Ordinal.Equals(candidate.Reference.CardId, cardId));
+    private Card? CardById(string cardId) => BoardCards.Find(Board, cardId);
 
     /// <summary>
     /// The card whose list of children is open, or null when none is: the whole section keeps one popover at

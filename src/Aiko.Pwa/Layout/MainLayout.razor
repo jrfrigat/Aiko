@@ -152,6 +152,13 @@
                                         <FlareText Element="span" Typo="TypographyScale.BodySmall">@item.Title</FlareText>
                                     </FlareStack>
                                     <span class="aiko-tag">@item.StageId</span>
+                                    @* A card the search found in the archive is not on the board, so the row
+                                       says where it is: a match the board does not draw would otherwise read as
+                                       a stale result rather than as a card that was put away. *@
+                                    @if (item.IsArchived)
+                                    {
+                                        <span class="aiko-tag aiko-tag--pill">@Loc.Get("ArchiveBadge")</span>
+                                    }
                                 </button>
                             }
                         }
@@ -502,6 +509,11 @@
     /// The cards matching the quick search: the id or the title, at most eight of them, so the panel
     /// stays a shortcut rather than a second board.
     /// </summary>
+    /// <remarks>
+    /// Read over the board and the archive together, because a person searching for a card they put away is
+    /// asking where it went - not whether it still exists. The row says which of the two it came from, so a
+    /// result that is not on the board is explained rather than surprising.
+    /// </remarks>
     private IReadOnlyList<Card> QuickMatches
     {
         get
@@ -512,7 +524,7 @@
                 return [];
             }
 
-            return board.Cards
+            return BoardCards.All(board)
                 .Where(card =>
                     card.Reference.CardId.Contains(query, StringComparison.OrdinalIgnoreCase) ||
                     card.Title.Contains(query, StringComparison.OrdinalIgnoreCase))

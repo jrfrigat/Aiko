@@ -937,7 +937,13 @@
     <value>Не удалось изменить подключение {0}: {1}</value>
   </data>
   <data name="CardNotFound" xml:space="preserve">
-    <value>Такой карточки на доске проекта нет.</value>
+    <value>Такой карточки в проекте нет.</value>
+  </data>
+  <data name="CardArchivedNotice" xml:space="preserve">
+    <value>Эта карточка в архиве: доска её больше не рисует, а этап нельзя начать или переместить, пока карточку не вернут из архива.</value>
+  </data>
+  <data name="ArchiveBadge" xml:space="preserve">
+    <value>Архив</value>
   </data>
   <data name="OverviewGroup" xml:space="preserve">
     <value>Обзор</value>
