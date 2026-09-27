@@ -239,7 +239,12 @@ themselves are commands:
 | `/aiko-token` | Show the local access token |
 | `/aiko-backup` | Back up a project's `.aiko` tree |
 | `/aiko-logs` | Tail of the daemon log, and a project's event journal with `--project <id>` |
+| `/aiko-update` | Update the installed Aiko to a release, or report what is available |
 | `/aiko-ui` | Open the UI |
+
+`/aiko-update` wraps the `aiko update` command that ships with this release (`aiko update --check` reports
+what is available without changing anything). The global skill itself is written with the update skill, so
+until that lands the command, and the installer, are the way in.
 
 [Agent Integration](docs/en/agent-integration.md) has the full skill → MCP tool → UI table, including
 what the UI cannot do yet.

@@ -222,7 +222,13 @@ command the way the card page places a command for a card, and any agent that ru
 Global skills/commands (installed with `aiko agent install --scope user`):
 
 `/aiko-init [templateId]`, `/aiko-list-projects`, `/aiko-status`, `/aiko-doctor`, `/aiko-repair`, `/aiko-agents`,
-`/aiko-settings`, `/aiko-token`, `/aiko-release [scheme-id]`, `/aiko-backup`, `/aiko-logs`, `/aiko-ui`.
+`/aiko-settings`, `/aiko-token`, `/aiko-release [scheme-id]`, `/aiko-backup`, `/aiko-logs`, `/aiko-update`,
+`/aiko-ui`.
+
+`/aiko-update` is the one of these that is still to be written: the command it wraps - `aiko update`, which
+replaces the installed binaries and leaves the data and the projects alone - ships today, and the skill that
+hands an agent that procedure is written with the update skill. Until it lands, the command and the installer
+are the way in.
 
 User scope is the machine-wide connection: it is what the dashboard's *Agents* card reports as
 **connected**, and its Connect / Disconnect buttons write and remove exactly these files. The
@@ -271,6 +277,7 @@ over is therefore the same address the UI links to itself, not a second form of 
 | Rebuild projections | — | `aiko_reindex` | — (`aiko reindex`) |
 | Diagnose the installation | `/aiko-doctor` | `aiko_doctor` | — (`aiko doctor`) |
 | Repair the installation | `/aiko-repair` | — | — (`aiko repair --fix`) |
+| Update the installed Aiko | `/aiko-update` | — (`aiko update`, `aiko install --from`: resolve, verify, stage, replace, roll back, record; the installer is one caller of it) | — (`aiko update [--check]`) |
 | Back up a project | `/aiko-backup` | `aiko_backup` | — |
 | Link a project, say what it is for and where its reference lives | `/aiko-link <slug> <description>` | `aiko_link_project`, `aiko_unlink_project`, `aiko_list_links` | Rail - *Linked projects* |
 | File a card into a linked project | `/aiko-link` for the link, then the project's own contract | `aiko_create_card_in_project` (`userConfirmed` on an *Ask* project) | — (only an agent files the card; it lands on the target project's board) |

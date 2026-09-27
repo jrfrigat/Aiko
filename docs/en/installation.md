@@ -21,12 +21,22 @@ One line in PowerShell:
 irm https://raw.githubusercontent.com/jrfrigat/Aiko/main/scripts/install.ps1 | iex
 ```
 
-The installer:
+The installer is a thin bootstrap: it fetches, verifies and unpacks, and the release's own `aiko.exe` does
+the rest.
 
-1. resolves the newest GitHub release (or the tag you pass),
-2. downloads `aiko-<version>-win-x64.zip` from it,
-3. unpacks it into `%LOCALAPPDATA%\Aiko\bin`,
-4. adds that directory to the user `PATH`.
+1. resolves the newest release - or the tag you pass - from `releases/latest`, a plain redirect rather than
+   the API, whose 60-requests-per-hour limit a whole office or VPN shares;
+2. refuses a directory that is not Aiko's *before* it downloads anything;
+3. downloads `aiko-<version>-win-x64.zip` and `SHA256SUMS` and checks the archive against the published
+   SHA-256 **before** it unpacks;
+4. unpacks into `<install dir>.staging-<timestamp>`, beside the installation and never inside it;
+5. hands over to `<staging>\aiko.exe install --from <staging> --tag <tag> --sha256 <hash>`, which validates
+   the layout, stops the daemon, replaces the files atomically, puts the previous version back if that
+   fails, records the version in `install.json`, adds the directory to the user `PATH`, connects the agents,
+   repairs and reports.
+
+A download that does not match its published checksum is refused before anything is unpacked, so a
+substituted archive costs a retry and nothing else.
 
 Nothing is installed machine-wide and no administrator rights are needed. Open a new terminal so the
 `aiko` command is picked up.
@@ -49,7 +59,7 @@ names them instead, and `-NoAgentSetup` connects nobody.
 
 | Option | Effect |
 | :-- | :-- |
-| `-Version <tag>` | Install a specific release, for example `v0.1.0`. Defaults to the latest release. |
+| `-Version <tag>` | Install a specific release, for example `v0.1.0`. Defaults to the latest release. The release goes in through the same engine `aiko update` uses, so an **older** release is refused here - see [Update and uninstall](#update-and-uninstall). |
 | `-InstallDir <path>` | Unpack somewhere else. Defaults to `%LOCALAPPDATA%\Aiko\bin`. |
 | `-Agents <ids>` | Connect these agents globally instead of the ones found on this machine, for example `claude-code,codex`. |
 | `-NoAgentSetup` | Do not connect agents (run `aiko agent install --scope user` later). |
@@ -67,8 +77,28 @@ Options need the scriptblock form, because `irm ... | iex` cannot take parameter
 The install directory belongs to Aiko: its contents are replaced on every install and update. The installer
 therefore accepts only a directory that does not exist yet, an empty one, or one Aiko was installed into, and
 refuses any other - `-InstallDir D:\Tools` or the data directory `%LOCALAPPDATA%\Aiko` - without touching it.
-Running it again over an installation is the way to update: it stops the running daemon and the agents'
-`aiko-stdio` proxies first, moves the old files aside and puts them back if the copy fails.
+Running it again over an installation updates it: the running daemon - and, through it, the agents'
+`aiko-stdio` proxies - is stopped first, the previous version is moved to
+`<install dir>.previous-<timestamp>` and is put back if the replacement fails. `aiko update` does the same
+without fetching the bootstrap script again: the two go through one engine, so they cannot drift apart.
+
+### Install from a mirror, or without a network
+
+`AIKO_RELEASE_BASE_URL` points the installer at a mirror of the releases instead of `github.com`. Authenticity
+does not rest on the host: the checksums are fetched from the same one and the archive is verified against them
+before it is unpacked.
+
+The CLI reads a different knob. `AIKO_RELEASE_FEED` names a **directory** laid out as a release feed:
+
+```text
+<feed>\latest.txt                 the tag the feed considers current
+<feed>\<tag>\aiko-<version>-win-x64.zip
+<feed>\<tag>\SHA256SUMS
+```
+
+With it, `aiko update` and `aiko install --from` take the release from that directory and never reach the
+network - which is how Aiko is installed and updated on a machine without internet, or against a mirror that
+is not a GitHub host at all.
 
 ### Install from the ZIP
 
@@ -160,6 +190,8 @@ installed after Aiko is the ordinary case, and the line says which command conne
 | `AIKO_TOKEN` | Fixed access token (otherwise generated and persisted in `access-token`) |
 | `AIKO_PAIR_CODE` | Fixed pairing code (used by tests/scripts) |
 | `AIKO_INSECURE` | Set to `1` to disable authentication (local debugging only) |
+| `AIKO_RELEASE_BASE_URL` | Base address `scripts/install.ps1` downloads releases from (default `https://github.com`) - a mirror |
+| `AIKO_RELEASE_FEED` | Directory holding a release feed (`latest.txt`, `<tag>/<archive>`, `<tag>/SHA256SUMS`); `aiko update` and `aiko install --from` read it instead of GitHub |
 
 On its first start the daemon takes port `24560`, or a free one from `18000-18999` when that is busy, and
 remembers the choice in `settings.json` next to the database. A saved port is kept: to move the daemon, start
@@ -217,8 +249,49 @@ shows which agents were found on this machine. Restart the agent so it loads the
 
 ## Update and uninstall
 
-- Update: re-run the installer (release or source) - it replaces the binaries and keeps project data
-  and settings. Pin a release with `-Version` when you do not want the newest one.
+### Update
+
+```powershell
+aiko update                               # the newest release
+aiko update --check                       # what is installed against what is available; changes nothing
+aiko update --tag v0.3.1                  # a named release
+aiko update --install-dir D:\Tools\Aiko   # an installation somewhere else
+```
+
+Nothing has to be deleted by hand first. The run resolves the release, verifies the archive against the
+SHA-256 the release publishes, unpacks it beside the installation, checks that the unpacked directory really is
+a release, stops the daemon, replaces the files atomically - putting the version that was there back if the
+replacement fails - records what is installed in `install.json`, adds the directory to the user `PATH` only
+when it is not named there already, starts the daemon again if it had been running, reindexes the registered
+projects, rewrites the connected agents' user-scope configurations, and ends with the `aiko doctor` report.
+
+`--no-path` leaves the user `PATH` untouched; `--agents <ids>` and `--no-agents` decide which agents are
+reconnected; `--force` is what puts an **older** release in place. `--check` answers
+`Installed <tag>, available <tag>` and stops before anything is fetched, stopped, replaced or repaired.
+
+**What an update does not touch:** the data directory (`aiko.db`, `settings.json`, `access-token`, `backups`)
+and every project's `.aiko`. The reindex rebuilds the database's projections *from* `.aiko`, so it reads the
+work and never rewrites it. Agents change only in their Aiko integration files, and `--no-agents` leaves even
+those alone.
+
+**Going back.** The version that was replaced stays beside the installation as
+`<install dir>.previous-<timestamp>` until the next run removes it, and a failed replacement restores it by
+itself. To return to an older release deliberately, name it and say so:
+
+```powershell
+aiko update --tag v0.3.0 --force
+```
+
+The installer's `-Version` is not that command: it hands the release to the same engine, which refuses one
+older than what is installed.
+
+`aiko --version` prints the tag `install.json` records, or the version of the build itself when nothing is
+installed. Re-running the installer (release or source) is the other way to update, and it reaches the same
+engine; the contributor script publishes the working tree instead of a release, so an installation made that
+way reports the build's own version rather than a tag.
+
+### Uninstall
+
 - Uninstall: `aiko uninstall`. It stops a running daemon, removes the start-at-sign-in entry if there is
   one, drops the install directory from the user `PATH` and deletes the published binaries - the running
   `aiko` is one of them, so it says which files it had to leave and they can be deleted once the command
@@ -250,8 +323,9 @@ The installer unpacks a released build into `%LOCALAPPDATA%\Aiko\bin`; a build f
 reaches that folder by itself. To move an installation to a newer build:
 
 1. Stop the running daemon: `aiko serve stop` (or the stop action on the daemon screen).
-2. Either run the release installer again - it installs the latest release - or, from a clone of the
-   repository, run the contributor installer in its root:
+2. Either run `aiko update` - `aiko update --check` first if you want to see what is available - or the
+   release installer again, which installs the newest release through the same engine; or, from a clone of
+   the repository, run the contributor installer in its root:
 
    ```powershell
    .\install.ps1

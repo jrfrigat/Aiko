@@ -18,6 +18,59 @@ powershell -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.c
 `aiko` is not found after installing: open a new terminal (or check that
 `%LOCALAPPDATA%\Aiko\bin` is on the user `PATH`).
 
+## The update does not go through
+
+`aiko update` (and the installer, which reaches the same engine) refuses rather than half-install, and it says
+which half it refused. The run ends with an exit code: `0` success - including "already up to date" and a
+`--check` report - `1` a refusal, `2` a usage error, and `3` a fault the run did not decide on.
+
+- **`does not match the checksum release <tag> publishes`** - the downloaded archive is not the one the
+  release vouches for. Nothing was unpacked and nothing was installed. Retry once (a truncated download does
+  happen), then look at the feed: the message names the expected sum and the one the download has.
+- **`is not empty and holds no Aiko installation`** - the install directory holds someone else's files, or
+  `--install-dir` was pointed at the data directory. Nothing was written. Choose an empty directory or the
+  one Aiko was installed into.
+- **`The installed <tag> is newer than <tag>`** - you asked for an older release. That is deliberate:
+  pass `--force` when it is really what you want.
+- **`Already at <tag>; nothing was written`** - the release you asked for is the one in place.
+- **`<tag> is required`** - `aiko install --from` records the tag in `install.json`, so it refuses to guess
+  one. `-Version` on the installer and `--tag` on `aiko update`/`aiko install` are that argument.
+- **`The staged release in … does not carry <file>`** - what was handed over is not a release (an
+  interrupted unpack, or a directory someone edited). Nothing was replaced; install again from a fresh
+  unpack.
+- **The daemon refused to stop** - the files cannot be replaced while a process holds them. `aiko serve stop`
+  and read the message: a 401 there means the token the CLI sends is not the one the daemon checks, which
+  `aiko doctor` reports.
+
+The report of a run is the list of steps it took, in order, each marked `ok` or `stop`; that list is the
+answer to "how far did it get". An install that finished left its tag in
+`%LOCALAPPDATA%\Aiko\bin\install.json`, which `aiko --version` prints.
+
+## The update did not finish while the daemon was running
+
+The run stops the daemon before it touches the binaries - replacing files under a live process is the one
+thing it will not do - and starts it again afterwards if it had been running. Updating with the daemon up is
+therefore normal, and `aiko serve stop` beforehand is not needed.
+
+One other process can hold a file in the installation: an agent's `aiko-stdio` proxy, which an agent starts
+out of that directory and which the engine knows nothing about.
+
+- The **installer** handles it: after asking the daemon to stop, it ends whatever still runs from the
+  installation directory, and an agent starts its proxy again on its next call. Re-running the installer is
+  the safest way to update a machine with agents connected.
+- **`aiko update`** stops only the daemon. Windows lets the run rename a running executable but not delete
+  it, so the update finishes and the replaced version is left beside the installation -
+  `<install dir>.previous-<timestamp>`, which the run's own report names - and an agent still holding the old
+  proxy keeps using it until it is restarted.
+
+If the message says `The daemon did not come back up; start it with 'aiko serve'`, the new binaries are in
+place and only the start failed. Start it: `aiko serve -d`. `aiko serve stop` and then `aiko update` is the
+way to retry, and the previous version is still beside the installation as
+`<install dir>.previous-<timestamp>` if you need it back.
+
+Changing the installation's files by hand while the daemon runs (unpacking a ZIP over `bin`, deleting a file)
+is what leaves an installation half-old: use `aiko update` or the installer, which stop it for you.
+
 ## Upgrading from an earlier Aiko
 
 The agent layout changed: the working contract now travels in the rule channel (`CLAUDE.md`, `AGENTS.md`,
