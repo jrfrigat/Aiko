@@ -528,6 +528,19 @@ the person as the command's `failed` message.
 | UI | Release screen - the history, newest first, with each release marked ordinary or preliminary by its tag's suffix; a page per release at `/p/{handle}/release/{version}`, listing the tasks that went into it; a task's card says which release it went into, and says nothing when no release named it |
 | Event | `releases.updated`, published when a release is recorded |
 
+A release plan is the planned half of that same history: what a version is waiting for, rather than what it
+shipped.
+
+| Surface | Path |
+| :-- | :-- |
+| Storage | `.aiko/release-plan.json` — one plan per version: the tag, the scheme, the composition (card, when it joined, note, which released plan it was carried from), the "current" mark, when it was created, when the version was released and a note. A document of the project rather than a projection of the database: it holds the answer to "what was v0.2.0 waiting for", which nothing else knows |
+| Rules | `ReleasePlans` — a plan's version answers to the release rule (it is the same tag), a project holds at most one current plan, and the plan of a released version is closed and no longer changes |
+| MCP | `aiko_list_release_plans` — the plans with each card's readiness (finished, blocked, in work, missing) and who holds it; `aiko_update_release_plan(version, schemeId, addCards, removeCards, isCurrent, notes)` — the only mutation of a plan; `aiko_close_release_plan(version, cardsToCarry, carryIntoVersion)` — close a recorded version's plan and carry the work that outlived it forward. Readiness is not stored: it is read from the live cards by the same rules the work queue uses |
+| Inflow | A card created while a plan is current joins it: `aiko_create_card` and the card form on the screen both call one service, so the two cannot disagree. Leaving a card out needs a reason - `releasePlan: "none"` without `releasePlanReason` is refused. What happened is written on the card itself - `metadata.release-plan` (the version that took it), `metadata.release-plan-exclusion` (why it was kept out) or `metadata.release-plan-note` (why no plan took it: none exists, or it is closed) - and travels back in the tool's answer, which is the card. A plan is never invented for a version nobody planned |
+| REST | `GET .../release-plan` — the plans with each card's readiness. Reading only: the HTTP surface has no writer, because the plan is moved by the agent's tools |
+| UI | Release screen — *Release plan*: the versions still ahead, the current one marked, the counts (finished / in work / blocked / missing), and per card its state and who holds it. Readiness is said in words ("this version can go") rather than left to be inferred from four numbers. The screen only reads, and releases nothing itself |
+| Event | `release-plan.updated`, published on every change and carrying the whole document: closing a plan changes two plans at once, and a subscriber wants the picture after the change rather than half of it |
+
 | Surface | Path |
 | :-- | :-- |
 | REST | `PUT .../cards/{cardId}/archive` with `{ archived, expectedRevision }` - one route for both directions, held to the same revision check as the stage route |

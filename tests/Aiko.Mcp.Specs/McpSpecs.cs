@@ -59,7 +59,10 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         "aiko_get_card_artifact",
         "aiko_save_card_artifact",
         "aiko_list_releases",
-        "aiko_record_release"
+        "aiko_record_release",
+        "aiko_list_release_plans",
+        "aiko_update_release_plan",
+        "aiko_close_release_plan"
     ];
 
     private async Task<McpClient> ConnectAsync()

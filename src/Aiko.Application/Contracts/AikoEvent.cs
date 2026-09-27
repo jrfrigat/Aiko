@@ -45,6 +45,14 @@ public static class AikoEventTypes
     public const string ReleasesUpdated = "releases.updated";
 
     /// <summary>
+    /// The project's release plans changed: a plan was created, its composition changed, or a version was
+    /// released and its plan closed. The payload is the <see cref="ReleasePlanDocument"/> JSON - the whole
+    /// document, because closing a plan changes two plans at once and a subscriber wants the picture after
+    /// the change rather than half of it.
+    /// </summary>
+    public const string ReleasePlanUpdated = "release-plan.updated";
+
+    /// <summary>
     /// A card was created in this project on behalf of another one. The payload names the created card and the
     /// target project; the target's own journal carries the matching <see cref="CardUpdated"/>.
     /// </summary>

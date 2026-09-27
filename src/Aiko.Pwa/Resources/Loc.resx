@@ -2280,6 +2280,45 @@
   <data name="ReleaseHistoryCards" xml:space="preserve">
     <value>cards: {0}</value>
   </data>
+  <data name="ReleasePlanTitle" xml:space="preserve">
+    <value>Release plan</value>
+  </data>
+  <data name="ReleasePlanHint" xml:space="preserve">
+    <value>What each version still ahead is waiting for. The plan is moved by an agent's tools; this screen reads it.</value>
+  </data>
+  <data name="ReleasePlanEmpty" xml:space="preserve">
+    <value>No version is planned. An agent plans one with the release-plan tools, and the cards made while it is being worked on flow into it.</value>
+  </data>
+  <data name="ReleasePlanCurrent" xml:space="preserve">
+    <value>current</value>
+  </data>
+  <data name="ReleasePlanCounts" xml:space="preserve">
+    <value>finished {0} · in work {1} · blocked {2} · missing {3}</value>
+  </data>
+  <data name="ReleasePlanReleasable" xml:space="preserve">
+    <value>Every planned card is finished: this version can go.</value>
+  </data>
+  <data name="ReleasePlanNotReleasable" xml:space="preserve">
+    <value>Not ready yet: the cards below are what it waits for.</value>
+  </data>
+  <data name="ReleasePlanCardFinished" xml:space="preserve">
+    <value>finished</value>
+  </data>
+  <data name="ReleasePlanCardInWork" xml:space="preserve">
+    <value>in work</value>
+  </data>
+  <data name="ReleasePlanCardBlocked" xml:space="preserve">
+    <value>blocked</value>
+  </data>
+  <data name="ReleasePlanCardMissing" xml:space="preserve">
+    <value>missing</value>
+  </data>
+  <data name="ReleasePlanCardMissingTitle" xml:space="preserve">
+    <value>(no such card in this project)</value>
+  </data>
+  <data name="ReleasePlanBlockedBy" xml:space="preserve">
+    <value>held by {0}</value>
+  </data>
   <data name="ReleaseKindPreliminary" xml:space="preserve">
     <value>preliminary</value>
   </data>

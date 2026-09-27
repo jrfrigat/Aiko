@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using Aiko.Application.Agents;
 using Aiko.Application.Contracts;
 using Aiko.Application.Prioritization;
+using Aiko.Application.Releases;
 using Aiko.Domain.Cards;
 using Aiko.Domain.Execution;
 using Aiko.Domain.Workflow;
@@ -50,6 +51,22 @@ namespace Aiko.Server.Contracts;
 [JsonSerializable(typeof(ReleaseHistoryItem))]
 [JsonSerializable(typeof(ReleaseHistoryItem[]))]
 [JsonSerializable(typeof(ReleaseView))]
+// The release plan and what an agent reads back from it: the plan itself, the readiness of each of its
+// cards, and the document report that carries both.
+[JsonSerializable(typeof(ReleasePlan))]
+[JsonSerializable(typeof(ReleasePlanCardState))]
+[JsonSerializable(typeof(ReleasePlanCardReadiness))]
+[JsonSerializable(typeof(IReadOnlyList<ReleasePlanCardReadiness>))]
+[JsonSerializable(typeof(ReleasePlanReadiness))]
+[JsonSerializable(typeof(ReleasePlanReport))]
+[JsonSerializable(typeof(IReadOnlyList<ReleasePlanReport>))]
+[JsonSerializable(typeof(ReleasePlanDocumentReport))]
+// The release screen reads the plan through HTTP, so the view the route answers with is a contract too.
+[JsonSerializable(typeof(ReleasePlanView))]
+[JsonSerializable(typeof(ReleasePlanView[]))]
+[JsonSerializable(typeof(IReadOnlyList<ReleasePlanView>))]
+[JsonSerializable(typeof(ReleasePlanCardView))]
+[JsonSerializable(typeof(IReadOnlyList<ReleasePlanCardView>))]
 [JsonSerializable(typeof(AikoEvent))]
 [JsonSerializable(typeof(IReadOnlyList<AikoEvent>))]
 [JsonSerializable(typeof(MoveCardRequest))]

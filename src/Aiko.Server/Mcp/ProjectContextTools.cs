@@ -23,7 +23,8 @@ internal sealed class ProjectContextTools(
     IProjectDefinitionStore definitions,
     IProjectGitPolicyReader gitPolicies,
     IProjectLinkStore links,
-    IAppSettingsService settings) : ProjectToolBase(httpContextAccessor, projects)
+    IAppSettingsService settings,
+    IReleasePlanStore releasePlans) : ProjectToolBase(httpContextAccessor, projects)
 {
     [McpServerTool(
         Name = "aiko_get_project_context",
@@ -59,6 +60,9 @@ internal sealed class ProjectContextTools(
         // The projects this one hands work to: an agent that cannot see them files the neighbour's work here,
         // and the link registry exists precisely so that does not happen.
         var linked = await links.ListAsync(project.Id, cancellationToken);
+        // Which version the project is working on: a card made now joins that plan, so an agent that does not
+        // learn it here either forgets where the work goes or asks a question the document could answer.
+        var plannedVersion = (await releasePlans.ReadAsync(project.Id, cancellationToken)).Current?.Version;
 
         // One block per section, in the order the document reads: a client that truncates a long answer drops
         // its middle, and the middle is where the links live. The section list is the answer; the words of the
@@ -73,7 +77,7 @@ internal sealed class ProjectContextTools(
                 (LinksSection, DescribeLinkedProjects(linked)),
                 (ScoringSection, DescribeScoring(priority)),
                 (TypesSection, DescribeCardTypes(workflows)),
-                (ReleaseSection, DescribeRelease(release)),
+                (ReleaseSection, DescribeRelease(release, plannedVersion)),
                 (InitializationSection, initialization)
             ],
             section);
@@ -550,7 +554,10 @@ internal sealed class ProjectContextTools(
     /// chosen scheme could not answer a request that named another one.
     /// </remarks>
     /// <param name="release">The effective release section of the project.</param>
-    private static string DescribeRelease(ReleaseSettings release)
+    /// <param name="plannedVersion">
+    /// The version the project is working on, or null when it plans nothing: the plan a new card joins.
+    /// </param>
+    private static string DescribeRelease(ReleaseSettings release, string? plannedVersion)
     {
         var builder = new StringBuilder();
         builder.AppendLine("## The release schemes of this project");
@@ -581,6 +588,16 @@ internal sealed class ProjectContextTools(
             builder.AppendLine(scheme.Body);
         }
 
+        builder.AppendLine();
+        // Where new work goes is part of the context, not a detail of the release: an agent that creates a card
+        // without knowing the version being worked on files the work without saying so.
+        builder.AppendLine(plannedVersion is null
+            ? "No release plan is current, so a card created now joins none. Plan a version with "
+              + "aiko_update_release_plan and the work made while it is being worked on flows into it; "
+              + "aiko_list_release_plans reads the plans and how far each is from being releasable."
+            : $"The version being worked on is {plannedVersion}: a new card joins its plan unless you say "
+              + "otherwise, and saying otherwise means saying why. aiko_list_release_plans reads the plans and "
+              + "how far each is from being releasable.");
         builder.AppendLine();
         builder.AppendLine(
             "The history of what this project released is read with aiko_list_releases, and a conducted "

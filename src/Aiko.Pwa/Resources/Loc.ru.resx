@@ -2280,6 +2280,45 @@
   <data name="ReleaseHistoryCards" xml:space="preserve">
     <value>задач: {0}</value>
   </data>
+  <data name="ReleasePlanTitle" xml:space="preserve">
+    <value>План релиза</value>
+  </data>
+  <data name="ReleasePlanHint" xml:space="preserve">
+    <value>Чего ждёт каждая версия впереди. План двигают инструменты агента; этот экран его показывает.</value>
+  </data>
+  <data name="ReleasePlanEmpty" xml:space="preserve">
+    <value>Ни одна версия не запланирована. Агент планирует её инструментами плана, и карточки, созданные во время работы над ней, попадают в неё.</value>
+  </data>
+  <data name="ReleasePlanCurrent" xml:space="preserve">
+    <value>текущая</value>
+  </data>
+  <data name="ReleasePlanCounts" xml:space="preserve">
+    <value>закрыто {0} · в работе {1} · заблокировано {2} · отсутствует {3}</value>
+  </data>
+  <data name="ReleasePlanReleasable" xml:space="preserve">
+    <value>Все карточки плана закрыты: версию можно выпускать.</value>
+  </data>
+  <data name="ReleasePlanNotReleasable" xml:space="preserve">
+    <value>Ещё не готова: ниже то, чего она ждёт.</value>
+  </data>
+  <data name="ReleasePlanCardFinished" xml:space="preserve">
+    <value>закрыта</value>
+  </data>
+  <data name="ReleasePlanCardInWork" xml:space="preserve">
+    <value>в работе</value>
+  </data>
+  <data name="ReleasePlanCardBlocked" xml:space="preserve">
+    <value>заблокирована</value>
+  </data>
+  <data name="ReleasePlanCardMissing" xml:space="preserve">
+    <value>отсутствует</value>
+  </data>
+  <data name="ReleasePlanCardMissingTitle" xml:space="preserve">
+    <value>(такой карточки в проекте нет)</value>
+  </data>
+  <data name="ReleasePlanBlockedBy" xml:space="preserve">
+    <value>держит {0}</value>
+  </data>
   <data name="ReleaseKindPreliminary" xml:space="preserve">
     <value>предварительный</value>
   </data>

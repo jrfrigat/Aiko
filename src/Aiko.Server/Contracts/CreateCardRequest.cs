@@ -23,6 +23,14 @@ namespace Aiko.Server.Contracts;
 /// What the user asked for, in their own words, stored in the card's metadata; null for none. It is the raw
 /// wording rather than the reworked task, and the card stops being able to change it once it leaves the backlog.
 /// </param>
+/// <param name="ReleasePlan">
+/// The version whose plan should take the card, <c>"none"</c> to keep it out of every plan, or null to let
+/// Aiko choose the version being worked on: a card created while a version is planned joins that version's
+/// plan.
+/// </param>
+/// <param name="ReleasePlanReason">
+/// Why the card is kept out of every plan; required when <paramref name="ReleasePlan"/> is <c>"none"</c>.
+/// </param>
 public sealed record CreateCardRequest(
     string? CardId,
     string Kind,
@@ -34,4 +42,6 @@ public sealed record CreateCardRequest(
     IReadOnlyDictionary<string, decimal>? CriterionValues,
     string? Size = null,
     string? Requirements = null,
-    string? Request = null);
+    string? Request = null,
+    string? ReleasePlan = null,
+    string? ReleasePlanReason = null);

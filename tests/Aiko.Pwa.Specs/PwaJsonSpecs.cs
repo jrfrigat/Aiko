@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Aiko.Application.Agents;
 using Aiko.Application.Contracts;
+using Aiko.Application.Releases;
 using Aiko.Domain.Cards;
 using Aiko.Domain.Execution;
 using Aiko.Domain.Workflow;
@@ -57,7 +58,11 @@ public sealed class PwaJsonSpecs
             typeof(AgentInstallation),
             typeof(AgentProjectConnection),
             typeof(IReadOnlyList<AgentProjectConnection>),
-            typeof(ConnectProjectAgentsRequest)
+            typeof(ConnectProjectAgentsRequest),
+            typeof(ReleasePlanView),
+            typeof(IReadOnlyList<ReleasePlanView>),
+            typeof(ReleasePlanCardView),
+            typeof(ReleasePlanCardState)
         ];
 
         foreach (var type in types)

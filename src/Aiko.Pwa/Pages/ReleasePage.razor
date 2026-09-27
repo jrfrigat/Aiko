@@ -1,5 +1,6 @@
 @page "/p/{Handle}/release"
 @using Aiko.Application.Contracts
+@using Aiko.Application.Releases
 @using Aiko.Domain.Execution
 @using Aiko.Pwa.Contracts
 @using Aiko.Pwa.Services
@@ -43,6 +44,80 @@
     {
         <span class="aiko-tag">@Loc.Format("ReleaseCommandWaiting", waiting.Id)</span>
     }
+
+    @* The plan: what each version still ahead is waiting for, and whether it can go. The screen only reads it -
+       the plan is moved by the agent's tools - so a version whose work is all closed is a statement here and
+       not a button: releasing is the person's tag and the agent's record, both of which live below. *@
+    <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
+        <FlareStack Gap="FlareSpacing.Medium">
+            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
+                <span class="aiko-panel__icon aiko-panel__icon--secondary">
+                    <FlareIconView Value="@MaterialDesign3Icons.Regular.ListAlt" />
+                </span>
+                <FlareStack Gap="FlareSpacing.None">
+                    <FlareText Element="h2" Typo="TypographyScale.TitleMedium">@Loc.Get("ReleasePlanTitle")</FlareText>
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                        @Loc.Get("ReleasePlanHint")
+                    </FlareText>
+                </FlareStack>
+            </FlareStack>
+
+            @if (_plans.Count == 0)
+            {
+                <FlareText Element="span" Typo="TypographyScale.BodyMedium" Color="FlareColor.OnSurfaceVariant">
+                    @Loc.Get("ReleasePlanEmpty")
+                </FlareText>
+            }
+            else
+            {
+                <FlareStack Gap="FlareSpacing.Medium">
+                    @foreach (var version in _plans)
+                    {
+                        var plan = version;
+                        <FlareStack Gap="FlareSpacing.XSmall">
+                            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
+                                <FlareText Element="span" Typo="TypographyScale.TitleSmall">@plan.Version</FlareText>
+                                <span class="aiko-tag">@plan.SchemeId</span>
+                                @if (plan.IsCurrent)
+                                {
+                                    <span class="aiko-tag aiko-tag--accent">@Loc.Get("ReleasePlanCurrent")</span>
+                                }
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                    @Loc.Format("ReleasePlanCounts", plan.Finished, plan.InWork, plan.Blocked, plan.Missing)
+                                </FlareText>
+                            </FlareStack>
+
+                            @* Readiness is the daemon's answer, said in words rather than left to be inferred from
+                               four numbers: it is the one thing a person looks for before releasing. *@
+                            <FlareText Element="span" Typo="TypographyScale.LabelMedium"
+                                       Color="@(plan.IsReleasable ? FlareColor.Primary : FlareColor.OnSurfaceVariant)">
+                                @Loc.Get(plan.IsReleasable ? "ReleasePlanReleasable" : "ReleasePlanNotReleasable")
+                            </FlareText>
+
+                            @foreach (var planned in plan.Cards)
+                            {
+                                var card = planned;
+                                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
+                                    <FlareLink Href="@ProjectRoutes.Card(Handle, card.CardId)">@card.CardId</FlareLink>
+                                    <FlareText Element="span" Typo="TypographyScale.BodySmall">
+                                        @(card.Title ?? Loc.Get("ReleasePlanCardMissingTitle"))
+                                    </FlareText>
+                                    <span class="aiko-tag">@Loc.Get(CardStateKey(card.State))</span>
+                                    @* "Blocked" without "by what" is not something a person can act on. *@
+                                    @if (card.BlockedBy.Count > 0)
+                                    {
+                                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                            @Loc.Format("ReleasePlanBlockedBy", string.Join(", ", card.BlockedBy))
+                                        </FlareText>
+                                    }
+                                </FlareStack>
+                            }
+                        </FlareStack>
+                    }
+                </FlareStack>
+            }
+        </FlareStack>
+    </FlarePaper>
 
     @* The history is the project's own record rather than a probe of the repository: what was released, newest
        first. A release is marked ordinary or preliminary by its tag's suffix - the same fact release.yml reads
@@ -156,6 +231,11 @@
     [Parameter] public string Handle { get; set; } = string.Empty;
 
     private IReadOnlyList<ReleaseHistoryItem> _history = [];
+    /// <summary>
+    /// The plan of every version, newest first. Read and never written: the plan is moved by the agent's
+    /// tools, and a screen that wrote it would need its own rules beside theirs.
+    /// </summary>
+    private IReadOnlyList<ReleasePlanView> _plans = [];
     private IReadOnlyList<ReleaseScheme> _schemes = ReleaseSchemes.BuiltIn;
     private string? _policyId;
     private string? _agentId;
@@ -182,6 +262,18 @@
         version.EndsWith(ReleaseSchemes.PreReleaseSuffix, StringComparison.Ordinal);
 
     /// <summary>
+    /// The caption for a planned card's state. The state itself is the daemon's own vocabulary - the one the
+    /// readiness rule uses - so the screen translates it rather than forming a second opinion about a card.
+    /// </summary>
+    private static string CardStateKey(ReleasePlanCardState state) => state switch
+    {
+        ReleasePlanCardState.Finished => "ReleasePlanCardFinished",
+        ReleasePlanCardState.Blocked => "ReleasePlanCardBlocked",
+        ReleasePlanCardState.Missing => "ReleasePlanCardMissing",
+        _ => "ReleasePlanCardInWork"
+    };
+
+    /// <summary>
     /// Subscribed once, when the component is created. Doing it while the parameters are set would add a
     /// handler on every navigation, and the page would then redraw as many times as it had been visited.
     /// </summary>
@@ -200,6 +292,12 @@
         {
             _history = await Http.GetFromJsonAsync<IReadOnlyList<ReleaseHistoryItem>>(
                 $"api/v1/projects/{Uri.EscapeDataString(Handle)}/releases",
+                PwaJson.Options) ?? [];
+            // What the versions still ahead are waiting for, and how far each is from being releasable. The
+            // reading is derived from the live cards on every read, so it is asked for on every visit rather
+            // than remembered here.
+            _plans = await Http.GetFromJsonAsync<IReadOnlyList<ReleasePlanView>>(
+                $"api/v1/projects/{Uri.EscapeDataString(Handle)}/release-plan",
                 PwaJson.Options) ?? [];
             // The schemes come from the settings document the rest of the cockpit already reads. A project
             // that states none follows the ones Aiko ships - that is what the model says, and the dialog has

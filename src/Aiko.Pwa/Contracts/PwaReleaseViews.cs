@@ -1,3 +1,5 @@
+using Aiko.Application.Releases;
+
 namespace Aiko.Pwa.Contracts;
 
 /// <summary>
@@ -38,3 +40,46 @@ internal sealed record ReleaseView(
     string? Notes,
     IReadOnlyList<string> Cards,
     IReadOnlyDictionary<string, string>? CardTitles = null);
+
+/// <summary>
+/// One card of a release plan, as the daemon answers it.
+/// </summary>
+/// <param name="CardId">Card the version waits for.</param>
+/// <param name="Title">Its current title, or null when the project no longer has the card.</param>
+/// <param name="State">
+/// Where the card got to. The state travels as the daemon's own enumeration - <c>Aiko.Application</c> is
+/// referenced from here, so the vocabulary of states is shared rather than re-spelled on this side.
+/// </param>
+/// <param name="BlockedBy">The cards that hold it, by id.</param>
+internal sealed record ReleasePlanCardView(
+    string CardId,
+    string? Title,
+    ReleasePlanCardState State,
+    IReadOnlyList<string> BlockedBy);
+
+/// <summary>
+/// One version's plan, as the daemon answers it.
+/// </summary>
+/// <param name="Version">The tag the version will be published under.</param>
+/// <param name="SchemeId">Identifier of the scheme the version will follow.</param>
+/// <param name="IsCurrent">Whether new cards flow into this plan.</param>
+/// <param name="ReleasedAt">When the version was recorded, or null while it is still planned.</param>
+/// <param name="Notes">What is remembered about this version, or null.</param>
+/// <param name="Cards">The composition, in the order the cards joined.</param>
+/// <param name="Finished">How many of them reached the end of their pipeline.</param>
+/// <param name="Blocked">How many wait for another card.</param>
+/// <param name="InWork">How many still have work in them.</param>
+/// <param name="Missing">How many cards the project no longer has.</param>
+/// <param name="IsReleasable">Whether every planned card has finished.</param>
+internal sealed record ReleasePlanView(
+    string Version,
+    string SchemeId,
+    bool IsCurrent,
+    DateTimeOffset? ReleasedAt,
+    string? Notes,
+    IReadOnlyList<ReleasePlanCardView> Cards,
+    int Finished,
+    int Blocked,
+    int InWork,
+    int Missing,
+    bool IsReleasable);

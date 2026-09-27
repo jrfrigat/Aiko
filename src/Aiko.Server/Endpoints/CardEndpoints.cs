@@ -1,6 +1,7 @@
 using System.Globalization;
 using Aiko.Application.Cards;
 using Aiko.Application.Contracts;
+using Aiko.Application.Releases;
 using Aiko.Domain.Cards;
 using Aiko.Server.Contracts;
 using Aiko.Domain.Workflow;
@@ -340,6 +341,7 @@ internal static class CardEndpoints
                 IProjectCatalog catalog,
                 ICardStore cards,
                 IProjectDefinitionStore definitions,
+                ReleasePlanInflow releasePlanInflow,
                 CancellationToken cancellationToken) =>
             {
                 if (string.IsNullOrWhiteSpace(request.Title) || request.OwnPriority < 0)
@@ -383,6 +385,14 @@ internal static class CardEndpoints
                     return Results.Conflict(new ErrorResponse($"Card '{cardId}' already exists."));
                 }
 
+                // The same inflow the agent's tool calls, so a card made on the screen and a card made by an
+                // agent go to the same place: one flow, two doors.
+                var attribution = await releasePlanInflow.AttributeAsync(
+                    project.Id,
+                    cardId,
+                    request.ReleasePlan,
+                    request.ReleasePlanReason,
+                    cancellationToken);
                 var card = new Card(
                     reference,
                     kind,
@@ -397,7 +407,9 @@ internal static class CardEndpoints
                         .Distinct(StringComparer.OrdinalIgnoreCase)
                         .ToArray(),
                     [],
-                    BuildMetadata(request.Requirements, request.Request),
+                    ReleasePlanInflow.WithAttribution(
+                        BuildMetadata(request.Requirements, request.Request),
+                        attribution),
                     null,
                     request.CriterionValues,
                     NormalizeSize(request.Size));

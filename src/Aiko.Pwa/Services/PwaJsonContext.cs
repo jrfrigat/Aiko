@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Aiko.Application.Agents;
 using Aiko.Application.Contracts;
+using Aiko.Application.Releases;
 using Aiko.Application.Prioritization;
 using Aiko.Domain.Cards;
 using Aiko.Domain.Execution;
@@ -38,6 +39,11 @@ namespace Aiko.Pwa.Services;
 [JsonSerializable(typeof(ReleaseHistoryItem))]
 [JsonSerializable(typeof(IReadOnlyList<ReleaseHistoryItem>))]
 [JsonSerializable(typeof(ReleaseView))]
+[JsonSerializable(typeof(ReleasePlanView))]
+[JsonSerializable(typeof(IReadOnlyList<ReleasePlanView>))]
+[JsonSerializable(typeof(ReleasePlanCardView))]
+[JsonSerializable(typeof(IReadOnlyList<ReleasePlanCardView>))]
+[JsonSerializable(typeof(ReleasePlanCardState))]
 [JsonSerializable(typeof(AppSettingsView))]
 [JsonSerializable(typeof(ExecutionSettings))]
 [JsonSerializable(typeof(PrioritySettings))]

@@ -55,11 +55,19 @@ public static class ReleaseSchemes
         1. Make sure the tree is green: the application builds with no warnings and every test suite passes.
         2. Choose the version and explain the choice to the person: a patch for fixes only, a minor for a new
            capability, a major only when the person decides it.
-        3. Form the tag. The version is a tag of the shape `v<major>.<minor>.<patch>`, so the command that
+        3. Read what that version is waiting for: `aiko_list_release_plans`. Its plan is where the composition
+           comes from, and the readiness it reports is what says whether the version can go. A card the plan
+           still holds unclosed does not hold the release back - the tag is the person's and the record says
+           what shipped - but name those cards to the person rather than letting them pass. When no plan covers
+           the version, say so and fall back to everything that reached the end of its pipeline since the
+           previous record.
+        4. Form the tag. The version is a tag of the shape `v<major>.<minor>.<patch>`, so the command that
            sets it is `git tag v0.1.3`. Hand it to the person and say plainly that the tag has to be pushed:
            setting and pushing the tag are the person's steps, and you do not push it yourself.
-        4. Wait for the person to push the tag and for the release workflow to publish the release.
-        5. Record the release: `aiko_record_release(version, schemeId: "git-release", cards)`.
+        5. Wait for the person to push the tag and for the release workflow to publish the release.
+        6. Record the release: `aiko_record_release(version, schemeId: "git-release", cards)`, then close the
+           version's plan with `aiko_close_release_plan(version, cardsToCarry)`, naming the planned cards that
+           did not finish so they are carried into the next plan instead of standing in one nobody can change.
 
         The result: this release becomes the latest one.
         """);
@@ -77,11 +85,19 @@ public static class ReleaseSchemes
            warnings and every test suite passes.
         2. Choose the version and explain the choice to the person. A preliminary release is still a version,
            so the same rule applies: a patch for fixes, a minor for a capability.
-        3. Form the tag. The version is a tag of the shape `v<major>.<minor>.<patch>-pre`, so the command that
+        3. Read what that version is waiting for: `aiko_list_release_plans`. Its plan is where the composition
+           comes from, and the readiness it reports is what says whether the version can go. A card the plan
+           still holds unclosed does not hold the release back, but name those cards to the person rather than
+           letting them pass. When no plan covers the version, say so and fall back to everything that reached
+           the end of its pipeline since the previous record.
+        4. Form the tag. The version is a tag of the shape `v<major>.<minor>.<patch>-pre`, so the command that
            sets it is `git tag v0.1.3-pre`. Hand it to the person and say plainly that the tag has to be
            pushed: setting and pushing the tag are the person's steps, and you do not push it yourself.
-        4. Wait for the person to push the tag and for the release workflow to publish the release. The `-pre`
+        5. Wait for the person to push the tag and for the release workflow to publish the release. The `-pre`
            suffix marks it as a preliminary one, so it does not become the latest release.
-        5. Record the release: `aiko_record_release(version, schemeId: "git-pre-release", cards)`.
+        6. Record the release: `aiko_record_release(version, schemeId: "git-pre-release", cards)`, then close
+           the version's plan with `aiko_close_release_plan(version, cardsToCarry)`, naming the planned cards
+           that did not finish so they are carried into the next plan instead of standing in one nobody can
+           change.
         """);
 }

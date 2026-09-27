@@ -6,6 +6,7 @@ using System.Text.Json.Nodes;
 using ModelContextProtocol.Server;
 using Aiko.Application.Cards;
 using Aiko.Application.Contracts;
+using Aiko.Application.Releases;
 using Aiko.Domain.Cards;
 using Aiko.Domain.Prioritization;
 using Aiko.Domain.Workflow;
@@ -29,7 +30,8 @@ internal sealed class CardTools(
     ICardBlockers blockers,
     ICardArtifactStore artifacts,
     IExecutionCoordinator executions,
-    IAppSettingsService settings) : ProjectToolBase(httpContextAccessor, projects)
+    IAppSettingsService settings,
+    ReleasePlanInflow releasePlanInflow) : ProjectToolBase(httpContextAccessor, projects)
 {
     [McpServerTool(Name = "aiko_list_cards", Title = "List Aiko cards")]
     [Description(
@@ -146,6 +148,15 @@ internal sealed class CardTools(
             + "tidying it up into a task. It records what was asked and is fixed once the card leaves the "
             + "backlog, while the requirements go on describing the work.")]
         [Optional] string? request,
+        [Description(
+            "The version whose plan should take the card, or \"none\" to keep it out of every plan. Leave it "
+            + "null to let Aiko choose the version being worked on: a card created while a version is planned "
+            + "joins that version's plan, because releasing a version means finishing what grew out of it.")]
+        [Optional] string? releasePlan,
+        [Description(
+            "Why the card is kept out of every plan. Required when releasePlan is \"none\": leaving work out of "
+            + "a release is a decision somebody has to be able to read.")]
+        [Optional] string? releasePlanReason,
         CancellationToken cancellationToken)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(ownPriority);
@@ -177,6 +188,16 @@ internal sealed class CardTools(
         IReadOnlyDictionary<string, string> metadata = new Dictionary<string, string>(StringComparer.Ordinal);
         metadata = Card.WithText(metadata, Card.RequirementsMetadataKey, requirements);
         metadata = Card.WithText(metadata, Card.RequestMetadataKey, request);
+        // Where the card goes is decided before it is written, so what the card says about its plan describes
+        // what actually happened rather than what was intended. A refusal to leave it out without a reason
+        // reaches the agent as an error, which is the point: the decision has to be readable.
+        var attribution = await releasePlanInflow.AttributeAsync(
+            project.Id,
+            resolvedId,
+            releasePlan,
+            releasePlanReason,
+            cancellationToken);
+        metadata = ReleasePlanInflow.WithAttribution(metadata, attribution);
 
         var card = new Card(
             new CardReference(project.Id, resolvedId),

@@ -2,6 +2,7 @@ using ModelContextProtocol.AspNetCore;
 using ModelContextProtocol.Protocol;
 using Aiko.Application.Agents;
 using Aiko.Application.Contracts;
+using Aiko.Application.Releases;
 using Aiko.Infrastructure.Agents;
 using Aiko.Infrastructure.Cards;
 using Aiko.Infrastructure.Commands;
@@ -83,6 +84,15 @@ builder.Services.AddSingleton<ICardCommandStore, FileCardCommandStore>();
 // The release history is a document of the project rather than a projection of the database: it holds the
 // answer to what went into v0.1.3, which nothing else in Aiko knows, so losing it would lose that answer.
 builder.Services.AddSingleton<IReleaseStore, FileReleaseStore>();
+// The release plan is that history's planned counterpart, and a document of the project for the same
+// reason: it holds what each version is waiting for, which nothing else in Aiko knows.
+builder.Services.AddSingleton<IReleasePlanStore, FileReleasePlanStore>();
+// What a version is waiting for is read from the live cards on every call, so the reader is a service of its
+// own rather than state kept beside the plan.
+builder.Services.AddSingleton<ReleasePlanReadinessProjector>();
+// The inflow is one service because both doors that create a card call it: a card made on the screen and a
+// card made by an agent must go to the same place, or the two disagree about what a release is waiting for.
+builder.Services.AddSingleton<ReleasePlanInflow>();
 builder.Services.AddSingleton<IProjectDefinitionStore, FileProjectDefinitionStore>();
 builder.Services.AddSingleton<IProjectGitPolicyReader, FileProjectGitPolicyReader>();
 builder.Services.AddSingleton<IProjectLinkStore, FileProjectLinkStore>();
@@ -125,6 +135,9 @@ builder.Services
     // Reading the release history and recording a release: the procedure a project's scheme describes ends in
     // a record, and the next release reads it to see what has shipped since.
     .WithTools<ReleaseTools>()
+    // Planning a release is the other half of recording it: the composition is chosen before the tag, and the
+    // plan is closed when the record is written.
+    .WithTools<ReleasePlanTools>()
     .WithTools<DaemonTools>()
     .WithTools<MaintenanceTools>()
     // A tool that throws otherwise reaches the agent as "An error occurred invoking 'aiko_start_stage'",
@@ -329,6 +342,7 @@ app.MapMemoryEndpoints();
 app.MapAgentEndpoints();
 app.MapSettingsEndpoints();
 app.MapReleaseEndpoints();
+app.MapReleasePlanEndpoints();
 app.MapLinkEndpoints();
 app.MapEventEndpoints();
 app.MapActivityEndpoints();

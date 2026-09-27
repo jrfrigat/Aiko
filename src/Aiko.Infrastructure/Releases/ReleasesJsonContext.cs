@@ -17,4 +17,6 @@ namespace Aiko.Infrastructure.Releases;
     WriteIndented = true,
     UseStringEnumConverter = true)]
 [JsonSerializable(typeof(ReleaseDocument))]
+[JsonSerializable(typeof(ReleasePlanDocument))]
+[JsonSerializable(typeof(ReleasePlan))]
 internal sealed partial class ReleasesJsonContext : JsonSerializerContext;

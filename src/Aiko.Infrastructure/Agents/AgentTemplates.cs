@@ -795,12 +795,17 @@ internal static class AgentTemplates
            published, and let them reconnect their agents afterwards (`aiko agent install --project <id>` for
            this project and `aiko agent install --scope user` for the machine).
         4. Record the release once it is published: `aiko_record_release(version, schemeId, cards)`, with the id
-           of the scheme you followed, so the record says which order this release took. Offer the list of cards
-           first - everything that reached the end of its pipeline since the record you read in step 2 - and let
-           the person see it before it is written. An empty list is a legitimate record, a release of fixes
-           nobody carded, but say so rather than letting it pass: the list is what answers "which tasks went
-           into this version" afterwards.
-        5. Close with one sentence: what was released, what was installed and what is left. A release that ends
+           of the scheme you followed, so the record says which order this release took. Take the list from the
+           version's plan - read it with `aiko_list_release_plans` - rather than assembling it yourself, and let
+           the person see it before it is written; a version the project has no plan for is a thing to say out
+           loud, not to work around quietly. An empty list is a legitimate record, a release of fixes nobody
+           carded, but say so rather than letting it pass: the list is what answers "which tasks went into this
+           version" afterwards.
+        5. Close that version's plan once the record is written: `aiko_close_release_plan(version, cardsToCarry)`,
+           naming the planned cards that did not finish. That is what carries them forward instead of leaving
+           them in a plan nobody can change, and it is the step that leaves the plan and the record telling the
+           same story.
+        6. Close with one sentence: what was released, what was installed and what is left. A release that ends
            without it leaves the next person to guess.
         """;
 
