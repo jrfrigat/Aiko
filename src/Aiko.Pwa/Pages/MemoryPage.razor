@@ -4,6 +4,7 @@
 @using Aiko.Pwa.Services
 @inject HttpClient Http
 @inject WorkspaceState State
+@inject IJSRuntime Js
 
 @* The project's durable memory: the Markdown documents under `.aiko/memory` that an agent reads and
    writes with its tools. This screen is the same door a person can use - the list, the search, and the
@@ -62,9 +63,18 @@
                         <FlareStack Row="true" Align="FlareAlignItems.Start"
                                     Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small">
                             <FlareStack Gap="FlareSpacing.XXSmall">
-                                <FlareText Element="span" Mono="true" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
-                                    @result.Path
-                                </FlareText>
+                                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                                    <FlareText Element="span" Mono="true" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                                        @result.Path
+                                    </FlareText>
+                                    @* The row says it is the one the editor holds: the editor sits below the
+                                       whole list, so without a mark here the click leaves no trace where the
+                                       reader is looking. *@
+                                    @if (IsOpenPath(result.Path))
+                                    {
+                                        <span class="aiko-tag aiko-tag--pill">@Loc.Get("ProjectMemoryOpenNow")</span>
+                                    }
+                                </FlareStack>
                                 <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant">
                                     @Excerpt(result.Content)
                                 </FlareText>
@@ -98,9 +108,18 @@
                     <FlareStack Row="true" Align="FlareAlignItems.Center"
                                 Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small">
                         <FlareStack Gap="FlareSpacing.XXSmall">
-                            <FlareText Element="span" Mono="true" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
-                                @item.Path
-                            </FlareText>
+                            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+                                <FlareText Element="span" Mono="true" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                                    @item.Path
+                                </FlareText>
+                                @* The open document is marked where it was opened: the editor is below this whole
+                                   listing, and a click that only changes something off-screen reads as a button
+                                   that did nothing. *@
+                                @if (IsOpenPath(item.Path))
+                                {
+                                    <span class="aiko-tag aiko-tag--pill">@Loc.Get("ProjectMemoryOpenNow")</span>
+                                }
+                            </FlareStack>
                             <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
                                 @Loc.Format("ProjectMemorySize", DisplayFormat.Number((int)item.Size))
                                 ·
@@ -116,7 +135,11 @@
         </FlareStack>
     </FlarePaper>
 
-    @* The document itself: the one that is open, or a new one whose path is typed before it is saved. *@
+    @* The document itself: the one that is open, or a new one whose path is typed before it is saved. The
+       anchor above it is what opening a document scrolls to: the editor sits below the whole document list,
+       and in a real project that list is longer than the screen, so a document that opened out of sight
+       reads as a button that did nothing. *@
+    <div @ref="_editor"></div>
     <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
         <FlareStack Gap="FlareSpacing.Small">
             <FlareStack Row="true" Align="FlareAlignItems.Center"
@@ -191,6 +214,15 @@
     /// <summary>The path of the new document being written, before it exists in the memory.</summary>
     private string? _newPath;
 
+    /// <summary>
+    /// The spot just above the editor. Opening a document brings the reader here, because the editor sits below
+    /// the whole document list and in a real project that list is longer than the screen.
+    /// </summary>
+    private ElementReference _editor;
+
+    /// <summary>Whether the next render should bring the editor into view.</summary>
+    private bool _landOnEditor;
+
     private string? _message;
     private bool _error;
 
@@ -198,6 +230,13 @@
     private string BaseUrl => $"api/v1/projects/{Uri.EscapeDataString(ProjectId)}/memory";
 
     private bool IsOpen => _open is not null;
+
+    /// <summary>
+    /// Whether this path is the document the editor holds. It is what marks the row a reader just opened in the
+    /// listing and in the search results alike.
+    /// </summary>
+    private bool IsOpenPath(string path) =>
+        _open?.Path is { Length: > 0 } open && string.Equals(open, path, StringComparison.Ordinal);
 
     private bool CanSave =>
         !string.IsNullOrWhiteSpace(_content) &&
@@ -271,10 +310,41 @@
             _open = document;
             _content = document?.Content;
             _newPath = null;
+            // The editor is below the whole listing, so opening reports itself and brings the reader to the
+            // document: a change nobody can see is a button that looks broken. Saving and deleting already
+            // tell the reader what happened; opening is the third of the screen's actions and says so too.
+            _landOnEditor = true;
+            Show(Loc.Format("ProjectMemoryOpened", document?.Path ?? path), error: false);
         }
         catch (Exception exception)
         {
             Show(exception.Message, error: true);
+        }
+    }
+
+    /// <summary>
+    /// Brings the editor into view once it has been redrawn with the document that was opened, and only when an
+    /// open asked for it.
+    /// </summary>
+    /// <remarks>
+    /// The jump is a convenience the screen asks the browser for: the document is open either way, so a JS
+    /// runtime that cannot do it (a stale client, a disabled browser) must cost the scroll and nothing else.
+    /// </remarks>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_landOnEditor)
+        {
+            return;
+        }
+
+        _landOnEditor = false;
+        try
+        {
+            await Js.InvokeVoidAsync("aikoScrollIntoView", _editor);
+        }
+        catch (JSException)
+        {
+            // No scroll, then: the page has already said the document is open.
         }
     }
 

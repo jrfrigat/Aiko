@@ -1917,6 +1917,12 @@
   <data name="ProjectMemoryDeleted" xml:space="preserve">
     <value>Удалено: {0}.</value>
   </data>
+  <data name="ProjectMemoryOpened" xml:space="preserve">
+    <value>Открыт: {0}.</value>
+  </data>
+  <data name="ProjectMemoryOpenNow" xml:space="preserve">
+    <value>открыт</value>
+  </data>
   <data name="ProjectMemorySize" xml:space="preserve">
     <value>{0} байт</value>
   </data>

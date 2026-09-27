@@ -168,6 +168,17 @@ window.aikoPair = function () {
         if (response.ok) {
             history.replaceState(null, '', location.pathname + location.search);
             location.reload();
+
+// Brings an element into view. A page asks for this when its own layout puts the answer below the click:
+// the project memory opens a document in an editor that sits under the whole document list, and a list of
+// thirty documents is longer than the screen, so without this the open looks like nothing happened.
+window.aikoScrollIntoView = function (element) {
+    if (!element || !element.scrollIntoView) {
+        return;
+    }
+    element.scrollIntoView({ block: 'start', behavior: 'smooth' });
+};
+
         }
     }).catch(function () {});
 };

@@ -1917,6 +1917,12 @@
   <data name="ProjectMemoryDeleted" xml:space="preserve">
     <value>Deleted {0}.</value>
   </data>
+  <data name="ProjectMemoryOpened" xml:space="preserve">
+    <value>Opened {0}.</value>
+  </data>
+  <data name="ProjectMemoryOpenNow" xml:space="preserve">
+    <value>open</value>
+  </data>
   <data name="ProjectMemorySize" xml:space="preserve">
     <value>{0} bytes</value>
   </data>
