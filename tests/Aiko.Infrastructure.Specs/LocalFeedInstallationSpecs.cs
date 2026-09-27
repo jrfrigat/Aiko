@@ -40,6 +40,13 @@ public sealed class LocalFeedInstallationSpecs
         var pathBefore = fixture.UserPath();
         var beforeInstall = fixture.Fingerprint();
 
+        // What the fingerprint watches, said out loud: a fingerprint that named nothing would compare equal
+        // to itself whatever a run did, so this is the difference between a check and a formality.
+        Assert.Contains("project/.aiko/", beforeInstall, StringComparison.Ordinal);
+        Assert.Contains("project/.gitignore", beforeInstall, StringComparison.Ordinal);
+        Assert.Contains("data|", beforeInstall, StringComparison.Ordinal);
+        Assert.Contains("backups/aiko-20260101.zip", beforeInstall, StringComparison.Ordinal);
+
         var (installExitCode, installOutput) = await fixture.RunAsync(
             "install", "--from", fixture.Staged,
             "--tag", InstalledDataFixture.FirstTag,
