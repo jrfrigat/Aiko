@@ -119,6 +119,45 @@ public sealed class ReleaseHistoryScreenSpecs
     }
 
     [Fact]
+    public void The_records_own_actions_stand_in_one_row_above_what_they_act_on()
+    {
+        var page = Read("src", "Aiko.Pwa", "Pages", "ReleaseRecordPage.razor");
+        var panel = page.IndexOf("Class=\"aiko-panel\"", StringComparison.Ordinal);
+
+        // One row holds the way back to the screen and the two things a person can do about this record. They used
+        // to stand at opposite ends of the page: the way back above the panel, the actions below everything they
+        // act on, and the verdict below those.
+        Assert.Contains(
+            "<FlareStack Row=\"true\" Align=\"FlareAlignItems.Center\" " +
+                "Justify=\"FlareJustifyContent.SpaceBetween\" Gap=\"FlareSpacing.Small\" Wrap=\"true\">",
+            page,
+            StringComparison.Ordinal);
+
+        // Each action is offered once, and above the panel rather than below it.
+        Assert.Single(Regex.Matches(page, "ReleaseRecordBack").Cast<Match>());
+        Assert.Single(Regex.Matches(page, "ReleaseRefresh").Cast<Match>());
+        Assert.Single(Regex.Matches(page, "ArchiveFinished\"").Cast<Match>());
+        Assert.True(panel >= 0, "The record's panel should be drawn.");
+        Assert.True(
+            page.IndexOf("ReleaseRefresh", StringComparison.Ordinal) < panel,
+            "The record's actions belong above the panel they act on.");
+        Assert.True(
+            page.IndexOf("@if (_archiveMessage is { Length: > 0 } archiveMessage)", StringComparison.Ordinal) < panel,
+            "The verdict of the archive belongs under the button that asked for it, not at the page's other end.");
+    }
+
+    [Fact]
+    public void The_records_three_figures_keep_to_one_line()
+    {
+        var page = Read("src", "Aiko.Pwa", "Pages", "ReleaseRecordPage.razor");
+
+        // The base class lays out two columns, so a third tile would drop to a line of its own; the modifier is
+        // the one the card's own strip of three already uses.
+        Assert.Contains("<div class=\"aiko-tiles aiko-tiles--three\">", page, StringComparison.Ordinal);
+        Assert.DoesNotContain("<div class=\"aiko-tiles\">", page, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Every_caption_the_release_markup_asks_for_exists_in_both_dictionaries()
     {
         var pages = new[]

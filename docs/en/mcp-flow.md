@@ -2,8 +2,8 @@
 
 > [Русская версия ->](../ru/mcp-flow.md) - [Technical specification](technical-specification.md) - [README](../../README.md)
 
-(A project analogous to Ruflo; the working name was "StitchFlow". The final name was pending
-approval. This is the original historical terms of reference kept for reference.)
+(The working name was "StitchFlow"; the project is now Aiko. This is the original historical terms
+of reference, kept for reference.)
 
 ---
 

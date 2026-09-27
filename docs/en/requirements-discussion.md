@@ -104,8 +104,8 @@ Use one memory service with two representations:
 - `CLAUDE.md`, `AGENTS.md` and Cursor/OpenCode rules must point the agent to the StitchFlow MCP
   and the `.flow` memory without copying the memory itself across several directories.
 
-The approach is based on the useful part of the Ruflo architecture (SQLite, index and graph) but
-avoids the problem Ruflo itself noted of several overlapping memory systems.
+The approach takes the useful part of the reference architecture (SQLite, index and graph) but
+avoids the known problem of several overlapping memory systems.
 
 #### Local API security
 

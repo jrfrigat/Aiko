@@ -14,7 +14,7 @@
 | [Git and Security](en/git-and-security.md) | Threat model, access token, pairing, git and commit policies |
 | [Technical Specification](en/technical-specification.md) | Normative MVP specification |
 | [Requirements Discussion](en/requirements-discussion.md) | Journal of requirements Q&A and decisions |
-| [Original Terms of Reference](en/mcp-flow.md) | Historical source document (the Ruflo-style TZ) |
+| [Original Terms of Reference](en/mcp-flow.md) | Historical source document (the original TZ) |
 
 ## Русский
 
@@ -28,5 +28,5 @@
 | [Git и безопасность](ru/git-and-security.md) | Модель угроз, токен доступа, сопряжение, политики git и коммитов |
 | [Техническая спецификация](ru/technical-specification.md) | Нормативная спецификация MVP |
 | [Журнал уточнения требований](ru/requirements-discussion.md) | Журнал вопросов, ответов и решений |
-| [Исходное ТЗ](ru/mcp-flow.md) | Исторический исходный документ (ТЗ в стиле Ruflo) |
+| [Исходное ТЗ](ru/mcp-flow.md) | Исторический исходный документ (первоначальное ТЗ) |
 

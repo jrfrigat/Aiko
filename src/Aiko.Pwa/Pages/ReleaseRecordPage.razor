@@ -23,13 +23,53 @@
         </FlareText>
     </FlareStack>
 
-    <FlareNavLink Href="@ProjectRoutes.Release(Handle)">
-        <ChildContent>@Loc.Get("ReleaseRecordBack")</ChildContent>
-    </FlareNavLink>
+    @* Where the reader can go and what they can do about this record, in one row: the way back to the screen,
+       the record read again, and the tidy-up of the cards it names. The last two used to sit in a row of their
+       own at the very bottom of the page, below everything they act on. *@
+    <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small" Wrap="true">
+        <FlareNavLink Href="@ProjectRoutes.Release(Handle)">
+            <ChildContent>@Loc.Get("ReleaseRecordBack")</ChildContent>
+        </FlareNavLink>
+        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
+            <FlareButton Variant="ButtonVariant.Tonal" Size="ButtonSize.Sm" Loading="@_loading" OnClick="ReloadAsync">
+                <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.Refresh" /></LeadingIcon>
+                <ChildContent>@Loc.Get("ReleaseRefresh")</ChildContent>
+            </FlareButton>
+            @* The release's own tidy-up. It is offered only when the record carries cards, and that is not a
+               decoration: the request narrows the archive to the cards it names, and a list with nothing in it
+               would travel as no filter at all - which the daemon reads as "every finished card of the
+               project". *@
+            @if (_record?.Cards is { Count: > 0 })
+            {
+                <FlareButton Variant="ButtonVariant.Text"
+                             Size="ButtonSize.Sm"
+                             Disabled="@_archiving"
+                             Loading="@_archiving"
+                             OnClick="ArchiveReleaseCardsAsync">
+                    <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.TaskAlt" /></LeadingIcon>
+                    <ChildContent>@Loc.Get("ArchiveFinished")</ChildContent>
+                </FlareButton>
+            }
+        </FlareStack>
+    </FlareStack>
+
+    @* The verdict is the daemon's, and it is read back rather than assumed: a card of this release that has not
+       finished its pipeline stays on the board, and the person who pressed the button is owed its id and the
+       reason instead of a silent success. It stands under the button that asked, not at the page's other end. *@
+    @if (_archiveMessage is { Length: > 0 } archiveMessage)
+    {
+        <FlareText Element="span"
+                   Typo="TypographyScale.LabelSmall"
+                   Color="@(_archiveRefused > 0 ? FlareColor.Error : FlareColor.OnSurfaceVariant2)">
+            @archiveMessage
+        </FlareText>
+    }
 
     <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
         <FlareStack Gap="FlareSpacing.Medium">
-            <div class="aiko-tiles">
+            @* Three figures read as one strip, so the tile row keeps them on one line: the base class lays out
+               two columns, and a third tile would drop to a line of its own. *@
+            <div class="aiko-tiles aiko-tiles--three">
                 <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
                     <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
                         @Loc.Get("ReleaseRecordScheme")
@@ -93,39 +133,6 @@
             }
         </FlareStack>
     </FlarePaper>
-
-    <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small" Wrap="true">
-        <FlareButton Variant="ButtonVariant.Tonal" Size="ButtonSize.Sm" Loading="@_loading" OnClick="ReloadAsync">
-            <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.Refresh" /></LeadingIcon>
-            <ChildContent>@Loc.Get("ReleaseRefresh")</ChildContent>
-        </FlareButton>
-        @* The release's own tidy-up. It is offered only when the record carries cards, and that is not a
-           decoration: the request narrows the archive to the cards it names, and a list with nothing in it would
-           travel as no filter at all - which the daemon reads as "every finished card of the project". *@
-        @if (_record?.Cards is { Count: > 0 })
-        {
-            <FlareButton Variant="ButtonVariant.Text"
-                         Size="ButtonSize.Sm"
-                         Disabled="@_archiving"
-                         Loading="@_archiving"
-                         OnClick="ArchiveReleaseCardsAsync">
-                <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.TaskAlt" /></LeadingIcon>
-                <ChildContent>@Loc.Get("ArchiveFinished")</ChildContent>
-            </FlareButton>
-        }
-    </FlareStack>
-
-    @* The verdict is the daemon's, and it is read back rather than assumed: a card of this release that has not
-       finished its pipeline stays on the board, and the person who pressed the button is owed its id and the
-       reason instead of a silent success. *@
-    @if (_archiveMessage is { Length: > 0 } archiveMessage)
-    {
-        <FlareText Element="span"
-                   Typo="TypographyScale.LabelSmall"
-                   Color="@(_archiveRefused > 0 ? FlareColor.Error : FlareColor.OnSurfaceVariant2)">
-            @archiveMessage
-        </FlareText>
-    }
 </FlareStack>
 
 @code {
