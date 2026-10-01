@@ -371,7 +371,7 @@ identify their dimension: kind first, then size step, including cards without a 
 independent views of the same cards, so their counts are not added together. FlareChart draws the charts;
 category labels sit beside the bars, and a value of zero draws no bar. Both charts share a height that
 grows with the number of distribution categories; narrow screens show the panels one below the other.
-Next comes **cumulative flow**: how many cards stood in each stage at the end of every week, read backwards
+Next comes **cumulative flow**, with one line per stage: how many cards stood in each stage at the end of every week, read backwards
 from the board's own snapshot — its last week is exact and older weeks depend on the history the daemon
 has seen. The final block counts **cards per stage**, workflow by workflow. The daemon screen
 reports **uptime, runs, runs without a clean stop, working set and managed heap**.

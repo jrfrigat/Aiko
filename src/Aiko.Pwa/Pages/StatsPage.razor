@@ -155,7 +155,7 @@ else
             </FlarePaper>
         </div>
 
-        @* The same history read as a stack: how many cards stood in each stage at the end of every week. The
+        @* The same history read as lines: how many cards stood in each stage at the end of every week. The
            events say what changed and the board says what is true now, so the counts are walked backwards
            from the board's snapshot - the last week is exact, and older weeks get coarser the shorter the
            history the daemon has seen is. *@
@@ -169,7 +169,7 @@ else
                 </FlareStack>
                 @if (CumulativeFlow is { } cumulative)
                 {
-                    <FlareChart Type="ChartType.StackedBar"
+                    <FlareChart Type="ChartType.Line"
                                 Data="@cumulative"
                                 Description="@Loc.Get("CfdTitle")"
                                 Height="260"
@@ -340,7 +340,7 @@ else
             .Select(group => new AnalyticsBucket(group.Key, group.Sum(row => row.Count)))];
 
     /// <summary>
-    /// The cumulative flow diagram's series, one per stage, or null when there is nothing to stack: no weeks
+    /// The cumulative flow diagram's series, one per stage, or null when there is no history to draw: no weeks
     /// in the window, or no cards on the board to walk the counts back from.
     /// </summary>
     private ChartData? CumulativeFlow =>
