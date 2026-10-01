@@ -98,6 +98,35 @@ public sealed class AnalyticsChartsSpecs
     }
 
     [Fact]
+    public void Distribution_keeps_independent_dimensions_and_zero_counts()
+    {
+        var data = AnalyticsCharts.Distribution(
+            [new("M", 5), new("Task", 0)],
+            [new("M", 2), new(string.Empty, 3)],
+            kind => $"Тип: {kind}",
+            size => $"Размер: {(size.Length == 0 ? "без размера" : size)}");
+
+        Assert.Equal(new double[] { 5, 0, 2, 3 }, Assert.Single(data.Series).Values);
+        Assert.Equal(new[] { "Тип: M", "Тип: Task", "Размер: M", "Размер: без размера" }, data.Labels!);
+    }
+
+    [Fact]
+    public void Distribution_handles_empty_dimensions_without_inventing_categories()
+    {
+        var kindsOnly = AnalyticsCharts.Distribution([new("Task", 2)], [], kind => kind, size => size);
+        Assert.Equal(new double[] { 2 }, Assert.Single(kindsOnly.Series).Values);
+        Assert.Equal(new[] { "Task" }, kindsOnly.Labels!);
+
+        var sizesOnly = AnalyticsCharts.Distribution([], [new("S", 2)], kind => kind, size => size);
+        Assert.Equal(new double[] { 2 }, Assert.Single(sizesOnly.Series).Values);
+        Assert.Equal(new[] { "S" }, sizesOnly.Labels!);
+
+        var empty = AnalyticsCharts.Distribution([], [], kind => kind, size => size);
+        Assert.Empty(Assert.Single(empty.Series).Values);
+        Assert.Empty(empty.Labels!);
+    }
+
+    [Fact]
     public void Only_the_last_stage_of_a_workflow_closes_a_card()
     {
         var weeks = new[] { "01.09", "08.09" };

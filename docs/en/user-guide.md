@@ -364,14 +364,16 @@ its own adapter id, so the feed says which agent wrote what.
 
 The project page opens with the project's own **activity**: the same contribution calendar the dashboard
 draws, over the days this project's runs and events happened on - work in another project never shows up in
-it. Below it sit the two charts, side by side, computed from what the daemon observed rather than from what
-you wrote: **pipeline velocity** (cards that entered a stage, and cards that reached the end of their own
-pipeline, per week - every week of the window, quiet ones included) and the **distribution** (by card kind
-and by size step). FlareChart draws them, the category
-labels sit beside the bars, and a value of zero draws no bar at all. The third block counts the project's
-**cards per stage**, workflow by workflow, and the fourth draws the **cumulative flow**: how many cards stood
-in each stage at the end of every week, read backwards from the board's own snapshot - which is why its last
-week is exact and an older week is only as good as the history the daemon has seen. The daemon screen
+it. Below it sit two panels of equal height: **pipeline velocity**, drawn as two lines (cards that entered
+a stage and cards that reached the end of their own pipeline per week, quiet weeks included), with the
+totals below; and **card distribution**, drawn as one horizontal bar chart. Distribution categories
+identify their dimension: kind first, then size step, including cards without a size. These are two
+independent views of the same cards, so their counts are not added together. FlareChart draws the charts;
+category labels sit beside the bars, and a value of zero draws no bar. Both charts share a height that
+grows with the number of distribution categories; narrow screens show the panels one below the other.
+Next comes **cumulative flow**: how many cards stood in each stage at the end of every week, read backwards
+from the board's own snapshot — its last week is exact and older weeks depend on the history the daemon
+has seen. The final block counts **cards per stage**, workflow by workflow. The daemon screen
 reports **uptime, runs, runs without a clean stop, working set and managed heap**.
 
 Those numbers live in SQLite on purpose: a stage transition is something the daemon observed, not authored

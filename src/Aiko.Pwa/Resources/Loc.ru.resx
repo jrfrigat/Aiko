@@ -1342,10 +1342,10 @@
     <value>Истории по этапам пока нет: она записывается по мере работы с доской.</value>
   </data>
   <data name="TriageTitle" xml:space="preserve">
-    <value>Распределение по типам</value>
+    <value>Распределение карточек</value>
   </data>
   <data name="TriageHint" xml:space="preserve">
-    <value>Из чего состоят карточки проекта</value>
+    <value>Два среза одних карточек: тип и размер</value>
   </data>
   <data name="UptimeLabel" xml:space="preserve">
     <value>Аптайм</value>
@@ -2510,5 +2510,11 @@
   </data>
   <data name="ArchiveFinishedFailed" xml:space="preserve">
     <value>Не удалось отправить завершённые карточки в архив: {0}</value>
+  </data>
+  <data name="DistributionKind" xml:space="preserve">
+    <value>Тип: {0}</value>
+  </data>
+  <data name="DistributionSize" xml:space="preserve">
+    <value>Размер: {0}</value>
   </data>
 </root>

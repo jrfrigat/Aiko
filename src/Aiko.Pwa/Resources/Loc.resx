@@ -1342,10 +1342,10 @@
     <value>No stage history yet: it is recorded as the board is worked.</value>
   </data>
   <data name="TriageTitle" xml:space="preserve">
-    <value>Triage distribution</value>
+    <value>Card distribution</value>
   </data>
   <data name="TriageHint" xml:space="preserve">
-    <value>What the project's cards are made of</value>
+    <value>Two views of the same cards: kind and size</value>
   </data>
   <data name="UptimeLabel" xml:space="preserve">
     <value>Uptime</value>
@@ -2510,5 +2510,11 @@
   </data>
   <data name="ArchiveFinishedFailed" xml:space="preserve">
     <value>Could not send the finished cards to the archive: {0}</value>
+  </data>
+  <data name="DistributionKind" xml:space="preserve">
+    <value>Kind: {0}</value>
+  </data>
+  <data name="DistributionSize" xml:space="preserve">
+    <value>Size: {0}</value>
   </data>
 </root>

@@ -78,10 +78,10 @@ else
         </FlarePaper>
 
         @* The project's history, side by side: how fast the pipeline moves, and what the board is made of.
-           Both are FlareChart drawings of the daemon's analytics - a bar per week, and a bar per card type
+           Both are FlareChart drawings of the daemon's analytics - two lines per week, and a bar per card type
            and per size step. The category labels sit beside the bars, so a chart says which bar is which
            without a legend. *@
-        <div class="aiko-panels--split">
+        <div class="aiko-panels--split" style="align-items: stretch">
             <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
                 <FlareStack Gap="FlareSpacing.Medium">
                     <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
@@ -102,7 +102,7 @@ else
                         <FlareChart Type="ChartType.Line"
                                     Data="@AnalyticsCharts.Velocity(velocity.Weekly, closed)"
                                     Description="@Loc.Get("VelocityTitle")"
-                                    Height="240"
+                                    Height="@HistoryChartHeight"
                                     ShowLegend="true" />
                         <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
                             @Loc.Format("VelocityTotal", velocity.Weekly.Sum(bucket => bucket.Count))
@@ -134,29 +134,16 @@ else
                     </FlareStack>
                     @if (_analytics is { ByKind.Count: > 0 } distribution)
                     {
-                        <FlareStack Gap="FlareSpacing.XSmall">
-                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">@Loc.Get("CardKind")</FlareText>
-                            <FlareChart Type="ChartType.Bar"
-                                        Data="@AnalyticsCharts.ByKind(distribution.ByKind, KindLabel)"
-                                        Description="@Loc.Get("CardKind")"
-                                        Height="@ChartHeight(distribution.ByKind.Count)"
-                                        Horizontal="true"
-                                        BarWidthRatio="0.55"
-                                        ShowLegend="false" />
-                        </FlareStack>
-                        @if (distribution.BySize.Count > 0)
-                        {
-                            <FlareStack Gap="FlareSpacing.XSmall">
-                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">@Loc.Get("SizeIdLabel")</FlareText>
-                                <FlareChart Type="ChartType.Bar"
-                                            Data="@AnalyticsCharts.BySize(distribution.BySize, SizeLabel)"
-                                            Description="@Loc.Get("SizeIdLabel")"
-                                            Height="@ChartHeight(distribution.BySize.Count)"
-                                            Horizontal="true"
-                                            BarWidthRatio="0.55"
-                                            ShowLegend="false" />
-                            </FlareStack>
-                        }
+                        <FlareChart Type="ChartType.Bar"
+                                    Data="@AnalyticsCharts.Distribution(distribution.ByKind, distribution.BySize,
+                                        kind => Loc.Format("DistributionKind", KindLabel(kind)),
+                                        size => Loc.Format("DistributionSize", SizeLabel(size)))"
+                                    Description="@Loc.Get("TriageTitle")"
+                                    Height="@HistoryChartHeight"
+                                    Horizontal="true"
+                                    Padding="DistributionPadding"
+                                    BarWidthRatio="0.55"
+                                    ShowLegend="false" />
                     }
                     else
                     {
@@ -364,11 +351,12 @@ else
                 [.. analytics.Weekly.Select(bucket => bucket.Label)])
             : null;
 
-    /// <summary>
-    /// A horizontal chart's height: tall enough for one row per category, and never taller than the
-    /// content needs, so a project with two types does not leave half a panel empty.
-    /// </summary>
-    private static int ChartHeight(int rows) => Math.Max(110, (rows * 32) + 48);
+    /// <summary>Room for dimension labels, including the Russian unsized category.</summary>
+    private const int DistributionPadding = 128;
+
+    /// <summary>Both history charts reserve the same space, with room for every distribution label.</summary>
+    private int HistoryChartHeight => Math.Max(240,
+        (((_analytics?.ByKind.Count ?? 0) + (_analytics?.BySize.Count ?? 0)) * 32) + (2 * DistributionPadding));
 
     /// <summary>
     /// A card type's own name, read from the project's workflows, falling back to the raw value the daemon

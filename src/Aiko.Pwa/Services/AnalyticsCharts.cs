@@ -152,6 +152,23 @@ public static class AnalyticsCharts
     public static ChartData BySize(IReadOnlyList<AnalyticsBucket> bySize, Func<string, string> label) =>
         new([new ChartSeries("cards", Values(bySize))], Labels(bySize, label));
 
+    /// <summary>
+    /// Two independent views of the same cards on one count axis: kinds followed by size steps.
+    /// Dimension labels distinguish names shared by a kind and a size. Counts are not stacked or summed.
+    /// </summary>
+    /// <param name="byKind">Counts by card kind.</param>
+    /// <param name="bySize">Counts by size step, including unsized cards.</param>
+    /// <param name="kindLabel">Names a kind and its dimension in the UI language.</param>
+    /// <param name="sizeLabel">Names a size and its dimension in the UI language.</param>
+    public static ChartData Distribution(
+        IReadOnlyList<AnalyticsBucket> byKind,
+        IReadOnlyList<AnalyticsBucket> bySize,
+        Func<string, string> kindLabel,
+        Func<string, string> sizeLabel) =>
+        new(
+            [new ChartSeries("cards", [.. Values(byKind), .. Values(bySize)])],
+            [.. Labels(byKind, kindLabel), .. Labels(bySize, sizeLabel)]);
+
     private static IReadOnlyList<double> Values(IReadOnlyList<AnalyticsBucket> buckets) =>
         buckets.Select(bucket => (double)bucket.Count).ToArray();
 
