@@ -24,6 +24,26 @@ rate limit) hands off to another agent without losing history.
 
 ---
 
+## Screenshots
+
+Captured from the Aiko project at commit `20d2e19` (development build), with the English interface and
+light **Studio Modern** palette. Project paths are anonymized; card titles retain their original language.
+Click an image to open it at full size.
+
+**Dashboard** — projects, current work and activity across the workspace.
+
+<table><tr><td><a href="assets/screens/dashboard.png"><img src="assets/screens/dashboard.png" alt="Aiko dashboard with project metrics, activity calendar and registered projects" width="1200" /></a></td></tr></table>
+
+**Kanban board** — the Aiko task pipeline, active runs and cards across stages.
+
+<table><tr><td><a href="assets/screens/board.png"><img src="assets/screens/board.png" alt="Aiko Kanban board filtered to tasks, with active runs and workflow columns" width="1200" /></a></td></tr></table>
+
+**Project overview** — activity, pipeline velocity, card distribution and cumulative flow.
+
+<table><tr><td><a href="assets/screens/project.png"><img src="assets/screens/project.png" alt="Aiko project overview with activity, weekly velocity, card distribution and cumulative flow charts" width="1200" /></a></td></tr></table>
+
+---
+
 ## Features
 
 - **Local daemon, one per user** - a single ASP.NET Core process serves every registered project:
