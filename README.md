@@ -26,8 +26,9 @@ rate limit) hands off to another agent without losing history.
 
 ## Screenshots
 
-Captured from the Aiko project at commit `20d2e19` (development build), with the English interface and
-light **Studio Modern** palette. Project paths are anonymized; card titles retain their original language.
+Captured from the Aiko project: dashboard and board at commit `20d2e19`; project overview, card and
+project settings at `51e8340`. These development builds use the English interface and light
+**Studio Modern** palette. Project paths are anonymized; card titles retain their original language.
 Click an image to open it at full size.
 
 **Dashboard** — projects, current work and activity across the workspace.
@@ -41,6 +42,14 @@ Click an image to open it at full size.
 **Project overview** — activity, pipeline velocity, card distribution and cumulative flow.
 
 <table><tr><td><a href="assets/screens/project.png"><img src="assets/screens/project.png" alt="Aiko project overview with activity, weekly velocity, card distribution and cumulative flow charts" width="1200" /></a></td></tr></table>
+
+**Card page** — requirements, declared scope, execution status and scoring for a real Aiko task.
+
+<table><tr><td><a href="assets/screens/card.png"><img src="assets/screens/card.png" alt="Aiko task card with requirements, scope files, stage status, agent commands and scoring" width="1200" /></a></td></tr></table>
+
+**Project settings** — workspace policies, priority formula and scoring criteria.
+
+<table><tr><td><a href="assets/screens/project-settings.png"><img src="assets/screens/project-settings.png" alt="Aiko project settings with workspace, scope, commit and push policies, priority weights and scoring criteria" width="1200" /></a></td></tr></table>
 
 ---
 
