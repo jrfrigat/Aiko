@@ -1327,6 +1327,48 @@ public sealed class RazorMarkupSpecs
         }
     }
 
+    [Fact]
+    public void The_artifact_tab_has_markdown_explorer_and_editor_buttons_beside_refresh()
+    {
+        var root = FindRepositoryRoot();
+        var editor = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "ArtifactEditor.razor"));
+
+        // The rendered Markdown is a toggle, and the button says which surface is showing.
+        Assert.Contains("<FlareMarkdown Value=\"@_content\"", editor, StringComparison.Ordinal);
+        Assert.Contains("AriaPressed=\"@_preview\"", editor, StringComparison.Ordinal);
+        Assert.Contains("_preview = !_preview", editor, StringComparison.Ordinal);
+        // It is offered for a Markdown document - which every artifact in the list already is - and a document
+        // opens in the editor again.
+        Assert.Contains("Disabled=\"@(!IsMarkdownPath(path))\"", editor, StringComparison.Ordinal);
+        Assert.Contains("_preview = false", editor, StringComparison.Ordinal);
+
+        // The two opens ask the daemon, because the browser cannot start a local program.
+        Assert.Contains("MaterialDesign3Icons.Regular.FolderOpen", editor, StringComparison.Ordinal);
+        Assert.Contains("MaterialDesign3Icons.Regular.Code", editor, StringComparison.Ordinal);
+        Assert.Contains(
+            "OpenArtifactAsync(path, ArtifactOpenTarget.Explorer)",
+            editor,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "OpenArtifactAsync(path, ArtifactOpenTarget.VisualStudioCode)",
+            editor,
+            StringComparison.Ordinal);
+        Assert.Contains("/artifact/open", editor, StringComparison.Ordinal);
+
+        // Every caption the row uses exists in both languages.
+        string[] keys = ["MarkdownPreview", "OpenInExplorer", "OpenInVisualStudio", "OpenArtifactFailed"];
+        foreach (var resource in new[] { "Loc.resx", "Loc.ru.resx" })
+        {
+            var resx = File.ReadAllText(
+                Path.Combine(root, "src", "Aiko.Pwa", "Resources", resource));
+            foreach (var key in keys)
+            {
+                Assert.Contains($"name=\"{key}\"", resx, StringComparison.Ordinal);
+            }
+        }
+    }
+
     /// <summary>
     /// Walks up from this assembly to the solution file, the same way the daemon fixture does.
     /// </summary>

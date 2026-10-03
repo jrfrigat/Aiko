@@ -99,6 +99,7 @@ builder.Services.AddSingleton<IProjectLinkStore, FileProjectLinkStore>();
 builder.Services.AddSingleton<ICardStore, FileCardStore>();
 builder.Services.AddSingleton<ICardBlockers, CardBlockerReader>();
 builder.Services.AddSingleton<ICardArtifactStore, FileCardArtifactStore>();
+builder.Services.AddSingleton<IArtifactOpener, ProcessArtifactOpener>();
 builder.Services.AddSingleton<IRelationStore, FileRelationStore>();
 builder.Services.AddSingleton<IMemoryStore, FileMemoryStore>();
 builder.Services.AddSingleton<IProjectReindexer, ProjectReindexer>();

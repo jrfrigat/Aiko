@@ -73,6 +73,7 @@ namespace Aiko.Pwa.Services;
 [JsonSerializable(typeof(IReadOnlyList<ArchiveRefusal>))]
 [JsonSerializable(typeof(UpdateCardRequest))]
 [JsonSerializable(typeof(UpdateArtifactRequest))]
+[JsonSerializable(typeof(OpenArtifactRequest))]
 [JsonSerializable(typeof(UpdateWorkflowRequest))]
 [JsonSerializable(typeof(CreateWorkflowRequest))]
 [JsonSerializable(typeof(LinkProjectRequest))]

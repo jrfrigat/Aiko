@@ -1,6 +1,5 @@
 using System.Security.Cryptography;
 using System.Text;
-using Aiko.Infrastructure.Storage;
 using Aiko.Application.Contracts;
 using Aiko.Domain.Cards;
 using Aiko.Infrastructure.Threading;
@@ -30,7 +29,7 @@ public sealed class FileCardArtifactStore(
         CardReference card,
         CancellationToken cancellationToken)
     {
-        var cardDirectory = await FindCardDirectoryAsync(card, cancellationToken);
+        var cardDirectory = await CardArtifactPaths.FindCardDirectoryAsync(projects, cards, card, cancellationToken);
         if (!Directory.Exists(cardDirectory))
         {
             return [];
@@ -61,9 +60,9 @@ public sealed class FileCardArtifactStore(
         string path,
         CancellationToken cancellationToken)
     {
-        var cardDirectory = await FindCardDirectoryAsync(card, cancellationToken);
-        var artifactPath = ResolveArtifactPath(cardDirectory, path);
-        EnsureNoReparsePoints(cardDirectory, artifactPath);
+        var cardDirectory = await CardArtifactPaths.FindCardDirectoryAsync(projects, cards, card, cancellationToken);
+        var artifactPath = CardArtifactPaths.ResolveArtifactPath(cardDirectory, path);
+        CardArtifactPaths.EnsureNoReparsePoints(cardDirectory, artifactPath);
         if (!File.Exists(artifactPath))
         {
             return null;
@@ -72,7 +71,7 @@ public sealed class FileCardArtifactStore(
         var content = await File.ReadAllTextAsync(artifactPath, cancellationToken);
         var info = new FileInfo(artifactPath);
         return new CardArtifactDocument(
-            NormalizeRelativePath(path),
+            CardArtifactPaths.NormalizeRelativePath(path),
             content,
             ComputeVersion(content),
             info.LastWriteTimeUtc);
@@ -94,13 +93,13 @@ public sealed class FileCardArtifactStore(
                 nameof(content));
         }
 
-        var cardDirectory = await FindCardDirectoryAsync(card, cancellationToken);
-        var artifactPath = ResolveArtifactPath(cardDirectory, path);
-        var lockKey = $"{card.ProjectId}/{card.CardId}/{NormalizeRelativePath(path)}";
+        var cardDirectory = await CardArtifactPaths.FindCardDirectoryAsync(projects, cards, card, cancellationToken);
+        var artifactPath = CardArtifactPaths.ResolveArtifactPath(cardDirectory, path);
+        var lockKey = $"{card.ProjectId}/{card.CardId}/{CardArtifactPaths.NormalizeRelativePath(path)}";
 
         using (await locks.LockAsync(lockKey, cancellationToken))
         {
-            EnsureNoReparsePoints(cardDirectory, artifactPath);
+            CardArtifactPaths.EnsureNoReparsePoints(cardDirectory, artifactPath);
             var existingContent = File.Exists(artifactPath)
                 ? await File.ReadAllTextAsync(artifactPath, cancellationToken)
                 : null;
@@ -111,80 +110,14 @@ public sealed class FileCardArtifactStore(
             }
 
             Directory.CreateDirectory(Path.GetDirectoryName(artifactPath)!);
-            EnsureNoReparsePoints(cardDirectory, artifactPath);
+            CardArtifactPaths.EnsureNoReparsePoints(cardDirectory, artifactPath);
             await WriteAtomicallyAsync(artifactPath, content, cancellationToken);
             var info = new FileInfo(artifactPath);
             return new CardArtifactDocument(
-                NormalizeRelativePath(path),
+                CardArtifactPaths.NormalizeRelativePath(path),
                 content,
                 ComputeVersion(content),
                 info.LastWriteTimeUtc);
-        }
-    }
-
-    private async ValueTask<string> FindCardDirectoryAsync(
-        CardReference reference,
-        CancellationToken cancellationToken)
-    {
-        var project = await projects.FindAsync(reference.ProjectId, cancellationToken)
-            ?? throw new KeyNotFoundException($"Unknown Aiko project: {reference.ProjectId}");
-        _ = await cards.FindAsync(reference, cancellationToken)
-            ?? throw new KeyNotFoundException($"Unknown Aiko card: {reference.CardId}");
-        // Beside the card where it actually is - not where its type's name says it should be, which after a
-        // rename is another collection and would split the card's directory in two.
-        var directory = FileCardStore.FindCardDirectory(project.RootPath, reference.CardId)
-            ?? throw new KeyNotFoundException($"Unknown Aiko card: {reference.CardId}");
-        // The check below the card directory covers the artifact's own path; this one covers the way to the
-        // card directory itself, from .aiko down, where a linked collection would lead writes elsewhere.
-        return PathConfinement.Resolve(AikoProjectPaths.DataRoot(project.RootPath), directory);
-    }
-
-    private static string ResolveArtifactPath(string cardDirectory, string path)
-    {
-        var normalized = NormalizeRelativePath(path);
-        var root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(cardDirectory));
-        var target = Path.GetFullPath(Path.Combine(root, normalized.Replace('/', Path.DirectorySeparatorChar)));
-        var prefix = root + Path.DirectorySeparatorChar;
-        if (!target.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-        {
-            throw new ArgumentException("Artifact path must stay inside the card directory.", nameof(path));
-        }
-
-        return target;
-    }
-
-    private static string NormalizeRelativePath(string path)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        var normalized = path.Replace('\\', '/').Trim('/');
-        var segments = normalized.Split('/', StringSplitOptions.RemoveEmptyEntries);
-        if (Path.IsPathRooted(path) ||
-            segments.Length == 0 ||
-            segments.Any(segment => segment is "." or "..") ||
-            !StringComparer.OrdinalIgnoreCase.Equals(Path.GetExtension(normalized), ".md"))
-        {
-            throw new ArgumentException(
-                "Artifact path must be a relative Markdown path inside the card directory.",
-                nameof(path));
-        }
-
-        return string.Join('/', segments);
-    }
-
-    private static void EnsureNoReparsePoints(string cardDirectory, string artifactPath)
-    {
-        var relative = Path.GetRelativePath(cardDirectory, artifactPath);
-        var current = cardDirectory;
-        foreach (var segment in relative.Split(
-                     Path.DirectorySeparatorChar,
-                     StringSplitOptions.RemoveEmptyEntries))
-        {
-            current = Path.Combine(current, segment);
-            if ((File.Exists(current) || Directory.Exists(current)) &&
-                File.GetAttributes(current).HasFlag(FileAttributes.ReparsePoint))
-            {
-                throw new IOException($"Artifact path crosses a reparse point: {relative}");
-            }
         }
     }
 

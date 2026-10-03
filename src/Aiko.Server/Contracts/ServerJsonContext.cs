@@ -87,6 +87,7 @@ namespace Aiko.Server.Contracts;
 [JsonSerializable(typeof(PairRequest))]
 [JsonSerializable(typeof(PairResponse))]
 [JsonSerializable(typeof(UpdateArtifactRequest))]
+[JsonSerializable(typeof(OpenArtifactRequest))]
 [JsonSerializable(typeof(GitStatus))]
 [JsonSerializable(typeof(GitCommit))]
 [JsonSerializable(typeof(IReadOnlyList<GitCommit>))]

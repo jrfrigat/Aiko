@@ -149,6 +149,14 @@ internal sealed record UpdateArtifactRequest(
     string? ExpectedVersion);
 
 /// <summary>
+/// Asks the daemon to open the artifact in a program on its own machine - the file manager at the file's
+/// folder, or VS Code with the file. The browser cannot start a local program, so the daemon does it.
+/// </summary>
+internal sealed record OpenArtifactRequest(
+    string Path,
+    ArtifactOpenTarget Target);
+
+/// <summary>
 /// Replaces the stages of a workflow, and its own presentation - the card type's name, description,
 /// icon and colour.
 /// </summary>

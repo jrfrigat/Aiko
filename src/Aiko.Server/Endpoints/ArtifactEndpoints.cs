@@ -57,5 +57,21 @@ internal static class ArtifactEndpoints
                     request.ExpectedVersion,
                     cancellationToken));
             });
+        app.MapPost(
+            "/api/v1/projects/{projectId}/cards/{cardId}/artifact/open",
+            async (
+                string projectId,
+                string cardId,
+                OpenArtifactRequest request,
+                IArtifactOpener opener,
+                CancellationToken cancellationToken) =>
+            {
+                await opener.OpenAsync(
+                    new CardReference(projectId, cardId),
+                    request.Path,
+                    request.Target,
+                    cancellationToken);
+                return Results.NoContent();
+            });
     }
 }

@@ -252,6 +252,18 @@
   <data name="Refresh" xml:space="preserve">
     <value>Refresh</value>
   </data>
+  <data name="MarkdownPreview" xml:space="preserve">
+    <value>Markdown preview</value>
+  </data>
+  <data name="OpenInExplorer" xml:space="preserve">
+    <value>Open in Explorer</value>
+  </data>
+  <data name="OpenInVisualStudio" xml:space="preserve">
+    <value>Open in VS Code</value>
+  </data>
+  <data name="OpenArtifactFailed" xml:space="preserve">
+    <value>Could not open the artifact: {0}</value>
+  </data>
   <data name="Workflow" xml:space="preserve">
     <value>Workflow</value>
   </data>
