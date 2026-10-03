@@ -114,6 +114,9 @@ namespace Aiko.Server.Contracts;
 [JsonSerializable(typeof(MemoryDocumentSummary))]
 [JsonSerializable(typeof(IReadOnlyList<MemoryDocumentSummary>))]
 [JsonSerializable(typeof(StoreMemoryRequest))]
+// The memory proposal queue: the candidate an agent proposes and the decision a person makes on it.
+[JsonSerializable(typeof(MemoryCandidate))]
+[JsonSerializable(typeof(IReadOnlyList<MemoryCandidate>))]
 [JsonSerializable(typeof(ActivityDay))]
 [JsonSerializable(typeof(IReadOnlyList<ActivityDay>))]
 [JsonSerializable(typeof(WorkshopDiagnostics))]

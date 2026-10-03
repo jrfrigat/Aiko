@@ -102,6 +102,9 @@ builder.Services.AddSingleton<ICardArtifactStore, FileCardArtifactStore>();
 builder.Services.AddSingleton<IArtifactOpener, ProcessArtifactOpener>();
 builder.Services.AddSingleton<IRelationStore, FileRelationStore>();
 builder.Services.AddSingleton<IMemoryStore, FileMemoryStore>();
+// The queue of memory proposals: an agent proposes, a person decides, and only an approval reaches the
+// memory store above.
+builder.Services.AddSingleton<IMemoryCandidateStore, FileMemoryCandidateStore>();
 builder.Services.AddSingleton<IProjectReindexer, ProjectReindexer>();
 builder.Services.AddSingleton<IAppSettingsStore, FileAppSettingsStore>();
 builder.Services.AddSingleton<IAppSettingsService, AppSettingsService>();
@@ -127,6 +130,8 @@ builder.Services
     .WithTools<CardTools>()
     .WithTools<ExecutionTools>()
     .WithTools<MemoryTools>()
+    // The queue of memory proposals: an agent proposes, a person decides, and only an approval is stored.
+    .WithTools<MemoryCandidateTools>()
     // The command queue and the board are the agent's half of the two channels a screen writes to, so a
     // tool type left out here is a screen whose request no agent can ever read. The MCP suite lists every
     // one of them, which is what keeps a missing registration from passing unnoticed.

@@ -50,7 +50,9 @@ aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<handle>
   пользователю, остаётся за пользователем: инструмента одобрения коммита нет, запуск, ждущий решения
   пользователя о коммите или scope, агент не возобновляет и не завершает, а `aiko_update_settings` отказывает в
   смене политик исполнения.
-- **Память** - `aiko_search_memory`, `aiko_store_memory`.
+- **Память** - `aiko_search_memory`, `aiko_store_memory`, и очередь предложений `aiko_propose_memory`,
+  `aiko_list_memory_candidates`, `aiko_resolve_memory_candidate`: предлагает агент, решает человек, и
+  предложенный документ попадает в память только после подтверждения.
 - **Daemon (глобальные)** - `aiko_init_project`, `aiko_list_projects`, `aiko_list_templates`,
   `aiko_create_card_in_project`, `aiko_link_project`, `aiko_unlink_project`, `aiko_doctor`, `aiko_reindex`, `aiko_get_settings`, `aiko_token`,
   `aiko_backup`.
