@@ -43,7 +43,9 @@ aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<handle>
   (`issue.md`, `analysis.md`, `implementation.md`, ...). `aiko_get_card` уже несёт список путей и текст
   `issue.md`, поэтому обычное чтение — один вызов.
 - **Очередь команд** - `aiko_list_commands`, `aiko_claim_command`, `aiko_finish_command`: просьбы, которые
-  экран поставил агенту. Не путать с `aiko_list_work_queue` — это очередь карточек к работе.
+  экран поставил агенту. Не путать с `aiko_list_work_queue` — это очередь карточек к работе. Очередь работ
+  также называет идущие прогоны, чьи файлы пересекаются с карточкой, и удерживает её, только пока политика
+  пересечения scope не `Allow`.
 - **Execution** - `aiko_start_stage`, `aiko_report_progress`, `aiko_request_scope_expansion`,
   `aiko_complete_stage`, `aiko_pause_execution`, `aiko_handoff_execution`,
   `aiko_resume_execution`, `aiko_report_agent_state`, `aiko_report_commit`. Что проект оставляет

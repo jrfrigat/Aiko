@@ -123,6 +123,22 @@ public sealed class SqliteExecutionCoordinator(
     }
 
     /// <inheritdoc />
+    public async ValueTask<IReadOnlyList<RunningScope>> ReadRunningScopesAsync(
+        string projectId,
+        CancellationToken cancellationToken)
+    {
+        var project = await projects.FindAsync(projectId, cancellationToken)
+            ?? throw new KeyNotFoundException($"Unknown Aiko project: {projectId}");
+        var running = await ListRunningExecutionsAsync(project.Id, cancellationToken);
+        return
+        [
+            .. running.Select(execution => new RunningScope(
+                execution.Card.CardId,
+                execution.DeclaredScopeFiles))
+        ];
+    }
+
+    /// <inheritdoc />
     public async ValueTask<StageExecution> StartAsync(
         CardReference card,
         string stageId,

@@ -34,6 +34,19 @@ public interface IExecutionCoordinator
         CancellationToken cancellationToken);
 
     /// <summary>
+    /// The stage executions running right now, with the scope their cards declared.
+    /// </summary>
+    /// <remarks>
+    /// The same facts the start gate weighs when it refuses an overlapping start, so a caller can tell what
+    /// may run beside what without re-deriving the overlap rule.
+    /// </remarks>
+    /// <param name="projectId">Project to read, by id or by its readable handle.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    ValueTask<IReadOnlyList<RunningScope>> ReadRunningScopesAsync(
+        string projectId,
+        CancellationToken cancellationToken);
+
+    /// <summary>
     /// Starts a new stage execution of the card for the given agent;
     /// parallel active executions of one card are rejected.
     /// </summary>

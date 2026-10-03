@@ -31,6 +31,15 @@ namespace Aiko.Application.Contracts;
 /// True when the card reached the last stage of its own pipeline and that stage has a finished run - the
 /// point past which there is nothing left to work.
 /// </param>
+/// <param name="ScopeConflictCardIds">
+/// The cards whose stage is running right now and whose declared scope overlaps this card's, from the same
+/// rule the start gate applies. Empty when nothing running overlaps it.
+/// </param>
+/// <param name="ScopeOverlapBlocked">
+/// True when this card cannot start now because of that overlap: conflicts exist and the project's
+/// <c>scopeOverlapPolicy</c> is not <c>Allow</c>. With <c>Allow</c> the overlap is reported but does not hold
+/// the card back, exactly as the start gate lets it through with a warning.
+/// </param>
 public sealed record WorkQueueEntry(
     string CardId,
     string Title,
@@ -43,4 +52,6 @@ public sealed record WorkQueueEntry(
     decimal EffectivePriority,
     IReadOnlyList<CardBlocker> BlockedBy,
     string StageState,
-    bool Finished);
+    bool Finished,
+    IReadOnlyList<string> ScopeConflictCardIds,
+    bool ScopeOverlapBlocked);

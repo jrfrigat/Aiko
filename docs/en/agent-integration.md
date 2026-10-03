@@ -42,7 +42,9 @@ aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<handle>
   (`issue.md`, `analysis.md`, `implementation.md`, ...). `aiko_get_card` already carries the list of paths and
   the text of `issue.md`, so the common read is one call.
 - **Queue** - `aiko_list_commands`, `aiko_claim_command`, `aiko_finish_command`: the requests a screen placed
-  for an agent, not to be confused with `aiko_list_work_queue`, which is the cards to work.
+  for an agent, not to be confused with `aiko_list_work_queue`, which is the cards to work. The work queue
+  also names the running cards whose files overlap an entry, and holds that entry back only while the
+  project's scope-overlap policy is not `Allow`.
 - **Execution** - `aiko_start_stage`, `aiko_report_progress`, `aiko_request_scope_expansion`,
   `aiko_complete_stage`, `aiko_pause_execution`, `aiko_handoff_execution`,
   `aiko_resume_execution`, `aiko_report_agent_state`, `aiko_report_commit`. What the project leaves to the

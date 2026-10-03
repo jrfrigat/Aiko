@@ -2,6 +2,8 @@ using System.ComponentModel;
 using System.Text.Json;
 using Aiko.Application.Contracts;
 using Aiko.Application.Prioritization;
+using Aiko.Domain.Cards;
+using Aiko.Domain.Execution;
 using Aiko.Domain.Workflow;
 using Aiko.Server.Contracts;
 using ModelContextProtocol.Server;
@@ -37,7 +39,9 @@ internal sealed class WorkQueueTools(
     [Description(
         "Lists the cards to work, in the order the board ranks them: effective priority first, then the card "
         + "id. Each entry carries the card's type, stage, size and scores, the cards that block it, the state "
-        + "of its current stage and whether it is finished. Read this instead of assembling an order from "
+        + "of its current stage and whether it is finished. Each entry also names the running cards whose scope "
+        + "overlaps it (ScopeConflictCardIds) and whether that overlap holds a start back now "
+        + "(ScopeOverlapBlocked). Read this instead of assembling an order from "
         + "aiko_list_board: the priority blend and the blocking rule are applied here, by the code that owns "
         + "them. This is the queue of cards, not the queue of commands a screen placed (aiko_list_commands).")]
     public async Task<string> ListWorkQueueAsync(
@@ -67,6 +71,12 @@ internal sealed class WorkQueueTools(
         var runsByCard = (await executions.ReadStageRunsAsync(projectId, cancellationToken))
             .GroupBy(run => run.CardId, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.Ordinal);
+        // What is running right now, and the overlap policy: the same two facts the start gate weighs, so the
+        // queue can say "parallel is fine here" without deriving the rule a second time.
+        var runningScopes = await executions.ReadRunningScopesAsync(projectId, cancellationToken);
+        var overlapBlocks =
+            (await settings.GetEffectiveExecutionAsync(projectId, cancellationToken)).ScopeOverlapPolicy
+            != ActionPolicy.Allow;
 
         var wantedKind = string.IsNullOrWhiteSpace(kind) ? null : ParseCardKind(kind);
         var entries = new List<WorkQueueEntry>();
@@ -96,6 +106,7 @@ internal sealed class WorkQueueTools(
                 continue;
             }
 
+            var scopeConflicts = ScopeConflicts(card, runningScopes);
             entries.Add(new WorkQueueEntry(
                 card.Reference.CardId,
                 card.Title,
@@ -118,7 +129,9 @@ internal sealed class WorkQueueTools(
                             StringComparer.Ordinal.Equals(run.StageId, blocker.StageId))?.StateValue
                         : null),
                 currentRun?.State ?? "Pending",
-                finished));
+                finished,
+                scopeConflicts,
+                scopeConflicts.Count > 0 && overlapBlocks));
         }
 
         var ordered = entries
@@ -128,5 +141,32 @@ internal sealed class WorkQueueTools(
         return JsonSerializer.Serialize(
             ordered,
             ServerJsonContext.Default.IReadOnlyListWorkQueueEntry);
+    }
+
+    /// <summary>
+    /// The running cards this card shares files with, by the same overlap rule the start gate applies - one
+    /// expression, asked by both, so the queue cannot disagree with the gate about what overlaps what.
+    /// </summary>
+    private static IReadOnlyList<string> ScopeConflicts(
+        Card card,
+        IReadOnlyList<RunningScope> runningScopes)
+    {
+        var conflicts = new List<string>();
+        foreach (var scope in runningScopes)
+        {
+            if (StringComparer.Ordinal.Equals(scope.CardId, card.Reference.CardId))
+            {
+                continue;
+            }
+
+            if (card.DeclaredScopeFiles.Any(pattern =>
+                    scope.DeclaredScopeFiles.Any(running =>
+                        ScopeMatcher.Overlaps(pattern, running))))
+            {
+                conflicts.Add(scope.CardId);
+            }
+        }
+
+        return conflicts;
     }
 }
