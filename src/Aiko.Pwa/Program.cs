@@ -15,8 +15,9 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddFlare(options =>
 {
-    // The app's own theme package: the cockpit design language with the Aiko palette. No built-in
-    // theme is registered, so nothing can fall back to Material's look at runtime.
+    // The app's own theme package: the cockpit design language with the Aiko palette. It is the only
+    // theme set, so nothing can fall back to Material's look at runtime - Flare 0.43 registers no theme
+    // unless one is named, and names no built-in theme at all.
     options.DefaultTheme = StitchFlowTheme.Create();
     // Three places have to agree on the mode a fresh visitor gets, and all three are needed: this
     // default, the data-default-mode attribute the bootstrap script paints the first frame from, and
@@ -26,7 +27,6 @@ builder.Services.AddFlare(options =>
     // "Auto" is the default because this is a workspace on someone's machine, not a brand: it should
     // look like the rest of the machine until the person says otherwise.
     options.DefaultMode = ThemeMode.Auto;
-    options.RegisterAllBuiltInThemes = false;
 });
 // X-Aiko-Request says a write comes from the daemon's own page: the daemon refuses a write its session
 // cookie authenticates without it, because a form on another local page could send one.
