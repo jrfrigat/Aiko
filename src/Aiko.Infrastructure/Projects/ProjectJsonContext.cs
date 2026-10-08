@@ -24,6 +24,8 @@ namespace Aiko.Infrastructure.Projects;
 [JsonSerializable(typeof(CardRelation))]
 [JsonSerializable(typeof(RelationDocument))]
 [JsonSerializable(typeof(ProjectLinkDocument))]
+[JsonSerializable(typeof(IntegrityManifestDocument))]
+[JsonSerializable(typeof(IntegrityEntry))]
 [JsonSerializable(typeof(DiscussionDocument))]
 [JsonSerializable(typeof(CommandDocument))]
 [JsonSerializable(typeof(StageExecution))]

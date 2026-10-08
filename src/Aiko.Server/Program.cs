@@ -13,6 +13,7 @@ using Aiko.Infrastructure.Events;
 using Aiko.Infrastructure.Git;
 using Aiko.Infrastructure.Logging;
 using Aiko.Infrastructure.Memory;
+using Aiko.Infrastructure.Models;
 using Aiko.Infrastructure.Projects;
 using Aiko.Infrastructure.Release;
 using Aiko.Infrastructure.Releases;
@@ -66,6 +67,7 @@ builder.Services.AddSingleton<AikoDatabase>();
 builder.Services.AddSingleton<IProjectCatalog, SqliteProjectCatalog>();
 builder.Services.AddSingleton<IDirectoryBrowser, DirectoryBrowser>();
 builder.Services.AddSingleton<IWorkshopDiagnostics, WorkshopDoctor>();
+builder.Services.AddSingleton<IProjectIntegrityCheck, FileProjectIntegrity>();
 builder.Services.AddSingleton<IProjectInitializer, ProjectInitializer>();
 builder.Services.AddSingleton<IProjectTemplateStore, FileProjectTemplateStore>();
 builder.Services.AddSingleton<IProjectTemplateApplier, ProjectTemplateApplier>();
@@ -108,6 +110,11 @@ builder.Services.AddSingleton<IMemoryCandidateStore, FileMemoryCandidateStore>()
 builder.Services.AddSingleton<IProjectReindexer, ProjectReindexer>();
 builder.Services.AddSingleton<IAppSettingsStore, FileAppSettingsStore>();
 builder.Services.AddSingleton<IAppSettingsService, AppSettingsService>();
+// The semantic memory module: off unless a project turns it on in its settings, and it loads a model only when
+// it is about to embed something, so a machine that never enables it never pays for a session or a download.
+builder.Services.AddSingleton<BuiltInEmbeddingModelCatalog>();
+builder.Services.AddSingleton<IEmbeddingProviderFactory, OnnxEmbeddingProviderFactory>();
+builder.Services.AddSingleton<IMemorySemanticSearch, MemorySemanticSearch>();
 builder.Services.AddSingleton<AikoEventBroadcaster>();
 builder.Services.AddSingleton<IAikoEventPublisher, SqliteAikoEventPublisher>();
 builder.Services.AddSingleton<IAikoEventStore, SqliteAikoEventStore>();
@@ -138,6 +145,8 @@ builder.Services
     .WithTools<CommandTools>()
     .WithTools<BoardTools>()
     .WithTools<WorkQueueTools>()
+    // The federated view across the projects this one is linked to.
+    .WithTools<LinkedWorkTools>()
     // Reading the release history and recording a release: the procedure a project's scheme describes ends in
     // a record, and the next release reads it to see what has shipped since.
     .WithTools<ReleaseTools>()

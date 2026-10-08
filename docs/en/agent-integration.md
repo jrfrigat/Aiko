@@ -55,8 +55,9 @@ aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<handle>
   `aiko_list_memory_candidates`, `aiko_resolve_memory_candidate`: an agent proposes and a person decides, and
   a proposed document reaches the memory only once approved.
 - **Daemon (global)** - `aiko_init_project`, `aiko_list_projects`, `aiko_list_templates`,
-  `aiko_create_card_in_project`, `aiko_link_project`, `aiko_unlink_project`, `aiko_doctor`,
-  `aiko_reindex`, `aiko_get_settings`, `aiko_token`, `aiko_backup`.
+  `aiko_create_card_in_project`, `aiko_list_linked_work` (what the linked projects hold for this one),
+  `aiko_link_project`, `aiko_unlink_project`, `aiko_doctor`,
+  `aiko_verify_project`, `aiko_reindex`, `aiko_get_settings`, `aiko_token`, `aiko_backup`.
 
 Tool descriptions instruct agents to fetch the project context first; the installed skills and
 rules reinforce this per agent.
@@ -282,6 +283,7 @@ over is therefore the same address the UI links to itself, not a second form of 
 | Change settings | `/aiko-settings` | `aiko_update_settings` | Settings page |
 | Rebuild projections | — | `aiko_reindex` | — (`aiko reindex`) |
 | Diagnose the installation | `/aiko-doctor` | `aiko_doctor` | — (`aiko doctor`) |
+| Verify a project's data | — | `aiko_verify_project` | — (`aiko verify`; `--seal` records the baseline, and only the user runs it) |
 | Repair the installation | `/aiko-repair` | — | — (`aiko repair --fix`) |
 | Update the installed Aiko | `/aiko-update` | — (`aiko update`, `aiko install --from`: resolve, verify, stage, replace, roll back, record; the installer is one caller of it) | — (`aiko update [--check]`) |
 | Back up a project | `/aiko-backup` | `aiko_backup` | — |

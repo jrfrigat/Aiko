@@ -2529,4 +2529,28 @@
   <data name="DistributionSize" xml:space="preserve">
     <value>Size: {0}</value>
   </data>
+  <data name="MemorySearchTitle" xml:space="preserve">
+    <value>Semantic memory search</value>
+  </data>
+  <data name="MemorySearchHint" xml:space="preserve">
+    <value>Off by default. When it is on, memory is also ranked by meaning - that needs a model, which is a separate download, and building the index takes a pass over every memory document.</value>
+  </data>
+  <data name="MemorySearchModel" xml:space="preserve">
+    <value>Model</value>
+  </data>
+  <data name="MemorySearchModelHint" xml:space="preserve">
+    <value>Identifier of the embedding model; leave it empty for the one Aiko uses by default. Install it with `aiko model download`.</value>
+  </data>
+  <data name="MemorySearchOffTitle" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="MemorySearchOffHint" xml:space="preserve">
+    <value>Only the full-text search is used. No model is loaded and no vectors are stored.</value>
+  </data>
+  <data name="MemorySearchOnTitle" xml:space="preserve">
+    <value>On</value>
+  </data>
+  <data name="MemorySearchOnHint" xml:space="preserve">
+    <value>Search can also rank by meaning. Needs the model installed and a reindex to build the vectors.</value>
+  </data>
 </root>

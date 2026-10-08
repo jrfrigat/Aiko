@@ -48,7 +48,9 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         "aiko_list_links",
         "aiko_list_templates",
         "aiko_create_card_in_project",
+        "aiko_list_linked_work",
         "aiko_doctor",
+        "aiko_verify_project",
         "aiko_reindex",
         "aiko_backup",
         "aiko_token",
@@ -128,6 +130,36 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         await File.WriteAllTextAsync(
             Path.Combine(root, ".aiko", "settings.json"),
             JsonSerializer.Serialize(document));
+    }
+
+    /// <summary>
+    /// Replaces the cross-project section of a project's settings, leaving every other section as it stands.
+    /// </summary>
+    /// <remarks>
+    /// Unlike <see cref="WriteCrossProjectPolicyAsync"/>, which writes the whole document for a throwaway project,
+    /// this keeps the other settings of a project a test did not create - resetting them would make the test
+    /// change a project it only meant to read.
+    /// </remarks>
+    private static async Task SetCrossProjectPolicyAsync(string root, string policy, string[]? targets)
+    {
+        var path = Path.Combine(root, ".aiko", "settings.json");
+        var document = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+        if (File.Exists(path))
+        {
+            using var existing = JsonDocument.Parse(await File.ReadAllTextAsync(path));
+            foreach (var property in existing.RootElement.EnumerateObject())
+            {
+                document[property.Name] = property.Value.Clone();
+            }
+        }
+
+        using var replacement = JsonDocument.Parse(JsonSerializer.Serialize(new
+        {
+            writePolicy = policy,
+            allowedTargetProjects = targets
+        }));
+        document["crossProject"] = replacement.RootElement.Clone();
+        await File.WriteAllTextAsync(path, JsonSerializer.Serialize(document));
     }
 
     /// <summary>Creates a card in the fixture's project on behalf of <paramref name="originProjectId"/>.</summary>
@@ -1980,6 +2012,125 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
                 item.GetProperty("type").GetString(),
                 "cross-project.card-created",
                 StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task The_linked_work_tool_reads_what_the_neighbours_hold()
+    {
+        await using var client = await ConnectAsync();
+
+        // A neighbour this project is linked to. The link is where the federated read starts: an unlinked
+        // project's board is none of this project's business.
+        var (neighbourId, neighbourRoot) = await InitProjectAsync(client, "Linked neighbour");
+        var link = await client.CallToolAsync(
+            "aiko_link_project",
+            new Dictionary<string, object?>
+            {
+                ["projectId"] = fixture.ProjectId,
+                ["targetProjectId"] = neighbourId,
+                ["description"] = "Holds the work this project hands over."
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.False(link.IsError == true, FirstText(link));
+
+        // Both sides allow the hand-over: this project may send, and the neighbour may send back.
+        await SetCrossProjectPolicyAsync(fixture.ProjectRoot, "Allow", targets: null);
+        await SetCrossProjectPolicyAsync(neighbourRoot, "Allow", targets: null);
+
+        // One card handed over and still sitting in the neighbour, ...
+        var handedOver = await client.CallToolAsync(
+            "aiko_create_card_in_project",
+            new Dictionary<string, object?>
+            {
+                ["projectId"] = neighbourId,
+                ["kind"] = "task",
+                ["title"] = "Handed over",
+                ["ownPriority"] = 2,
+                ["originProjectId"] = fixture.ProjectId,
+                ["originCardId"] = "TASK-LINK-SOURCE"
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.False(handedOver.IsError == true, FirstText(handedOver));
+
+        // ... one the neighbour made itself and owes nobody, ...
+        var own = await client.CallToolAsync(
+            "aiko_create_card_in_project",
+            new Dictionary<string, object?>
+            {
+                ["projectId"] = neighbourId,
+                ["kind"] = "task",
+                ["title"] = "The neighbour's own",
+                ["ownPriority"] = 1
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.False(own.IsError == true, FirstText(own));
+
+        // ... and one that came the other way and lives here.
+        var received = await client.CallToolAsync(
+            "aiko_create_card_in_project",
+            new Dictionary<string, object?>
+            {
+                ["projectId"] = fixture.ProjectId,
+                ["cardId"] = "TASK-LINK-BACK",
+                ["kind"] = "task",
+                ["title"] = "Came back",
+                ["workflowId"] = "task",
+                ["ownPriority"] = 3,
+                ["originProjectId"] = neighbourId
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.False(received.IsError == true, FirstText(received));
+
+        var listed = await client.CallToolAsync(
+            "aiko_list_linked_work",
+            cancellationToken: CancellationToken.None);
+        Assert.False(listed.IsError == true, FirstText(listed));
+        var entries = JsonDocument.Parse(FirstText(listed)!).RootElement.EnumerateArray().ToArray();
+
+        var entry = entries.FirstOrDefault(item =>
+            item.GetProperty("projectId").GetString() == neighbourId);
+        Assert.NotEqual(JsonValueKind.Undefined, entry.ValueKind);
+
+        // The policy is the sender's, and it is read out with the work so a caller sees whether a hand-over is
+        // allowed before it tries one.
+        Assert.Equal("allow", entry.GetProperty("writePolicy").GetString());
+        Assert.True(entry.GetProperty("writeAllowed").GetBoolean());
+
+        // Sent is what left this project and is still there; received is what came from the neighbour. The
+        // neighbour's own card is in neither, because it never crossed the boundary.
+        var sentCard = Assert.Single(entry.GetProperty("sent").EnumerateArray());
+        Assert.Equal("Handed over", sentCard.GetProperty("title").GetString());
+        Assert.Equal(fixture.ProjectId, sentCard.GetProperty("originProjectId").GetString());
+        Assert.Equal("TASK-LINK-SOURCE", sentCard.GetProperty("originCardId").GetString());
+        Assert.False(string.IsNullOrWhiteSpace(sentCard.GetProperty("stageTitle").GetString()));
+        Assert.False(sentCard.GetProperty("finished").GetBoolean());
+
+        var receivedCard = Assert.Single(entry.GetProperty("received").EnumerateArray());
+        Assert.Equal("TASK-LINK-BACK", receivedCard.GetProperty("cardId").GetString());
+        Assert.Equal(neighbourId, receivedCard.GetProperty("originProjectId").GetString());
+
+        // Denying the hand-over is visible without trying one: the work stays listed, the permission does not.
+        await SetCrossProjectPolicyAsync(fixture.ProjectRoot, "Deny", targets: null);
+        var denied = await client.CallToolAsync(
+            "aiko_list_linked_work",
+            cancellationToken: CancellationToken.None);
+        Assert.False(denied.IsError == true, FirstText(denied));
+        var deniedEntry = JsonDocument.Parse(FirstText(denied)!).RootElement.EnumerateArray()
+            .First(item => item.GetProperty("projectId").GetString() == neighbourId);
+        Assert.Equal("deny", deniedEntry.GetProperty("writePolicy").GetString());
+        Assert.False(deniedEntry.GetProperty("writeAllowed").GetBoolean());
+
+        // The link this spec added is taken back: the fixture project is shared with the other specs, and a link
+        // left behind would change what the next one reads.
+        var unlinked = await client.CallToolAsync(
+            "aiko_unlink_project",
+            new Dictionary<string, object?>
+            {
+                ["projectId"] = fixture.ProjectId,
+                ["targetProjectId"] = neighbourId
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.False(unlinked.IsError == true, FirstText(unlinked));
     }
 
     [Fact]

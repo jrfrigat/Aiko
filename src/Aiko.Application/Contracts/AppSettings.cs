@@ -13,7 +13,8 @@ public sealed record AppSettings(
     ExecutionSettings? Execution = null,
     PrioritySettings? Priority = null,
     CrossProjectSettings? CrossProject = null,
-    ReleaseSettings? Release = null)
+    ReleaseSettings? Release = null,
+    MemorySearchSettings? MemorySearch = null)
 {
     /// <summary>
     /// Schema version written by the current application version.

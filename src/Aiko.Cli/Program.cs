@@ -16,9 +16,14 @@ using Aiko.Infrastructure.Commands;
 using Aiko.Infrastructure.Diagnostics;
 using Aiko.Infrastructure.Execution;
 using Aiko.Infrastructure.Installation;
+using Aiko.Infrastructure.Models;
 using Aiko.Infrastructure.Projects;
 using Aiko.Infrastructure.Settings;
 using Aiko.Infrastructure.Storage;
+
+// Where Aiko's own releases live. The bootstrap script names the same two, and the two copies are the point:
+// a script cannot read a constant compiled into this program, and this program must not ask a script. The exe
+// host used to hold a third copy; TASK-270 removes it.
 
 var command = args.Length == 0 ? "help" : args[0];
 
@@ -35,6 +40,8 @@ var exitCode = command switch
     "agent" => await AgentAsync(args),
     "token" => await TokenAsync(),
     "reindex" => await ReindexAsync(args),
+    "model" => await ModelAsync(args),
+    "verify" => await VerifyAsync(args),
     "commands" => await CommandsAsync(args),
     "uninstall" => await UninstallAsync(args),
     "autostart" => Autostart(args),
@@ -118,6 +125,19 @@ static int Help()
           --version                                     Print the installed version, or this build's when
                                                         nothing is installed
           reindex <projectId>                           Rebuild a project's SQLite projections
+          model list                                    The embedding models Aiko can use, and whether
+                                                        each one is installed
+          model status [<modelId>]                      Whether the model is present, and whether its
+                                                        files match their recorded checksums
+          model download [<modelId>] [--source release|external]
+                                                        Fetch the model's files into the data directory
+                                                        and verify them. Nothing is downloaded until
+                                                        this is run; release is the default path
+          model remove [<modelId>]                      Delete the model's files and free the space
+          verify [--project <id>] [--seal]              Check a project's .aiko: is every document
+                                                        readable, and is anything different from the
+                                                        baseline. Changes nothing; --seal records the
+                                                        state it finds as that baseline
           commands [--project <id>] [--card <id>] [--state <s>]
                                                         Show the commands a screen placed for an agent;
                                                         --state is open (default), all, or one state
@@ -2109,6 +2129,210 @@ static async Task<int> ReindexAsync(string[] args)
     return 0;
 }
 
+// `aiko verify` reads a project's own data - the files under .aiko - and reports what does not hold: a document
+// nothing can parse, a file the baseline lists that is gone, a file that differs from it, and a file that
+// appeared since it. It changes nothing. `--seal` is its one write, and it is what accepts a change: after a
+// person edits a file by hand, sealing says the new content is the state to compare against from now on.
+static async Task<int> VerifyAsync(string[] args)
+{
+    var database = new AikoDatabase(AikoDataPaths.FromEnvironment());
+    await database.InitializeAsync();
+    var catalog = new SqliteProjectCatalog(database);
+    var requested = ReadOption(args, "--project");
+    var projects = (await catalog.ListAsync(CancellationToken.None))
+        .Where(project =>
+            requested is not { Length: > 0 } ||
+            StringComparer.Ordinal.Equals(project.Id, requested) ||
+            StringComparer.Ordinal.Equals(project.Slug, requested))
+        .ToArray();
+    if (projects.Length == 0)
+    {
+        // The empty case is said in words, including the one that is not a mistake: nothing is registered yet.
+        if (requested is { Length: > 0 })
+        {
+            Console.Error.WriteLine($"No registered project with id {requested}. `aiko doctor` lists them.");
+            return 2;
+        }
+
+        Console.WriteLine("No projects are registered yet: `aiko init <path>` registers one.");
+        return 0;
+    }
+
+    var integrity = new FileProjectIntegrity(catalog);
+    var seal = HasFlag(args, "--seal");
+    var problems = false;
+    foreach (var project in projects)
+    {
+        var report = seal
+            ? await integrity.SealAsync(project.Id, CancellationToken.None)
+            : await integrity.VerifyAsync(project.Id, CancellationToken.None);
+        PrintIntegrity(report);
+        problems |= report.HasProblems;
+    }
+
+    if (problems)
+    {
+        Console.WriteLine("Problems found.");
+        return 1;
+    }
+
+    Console.WriteLine(seal
+        ? "Sealed: this is the baseline later checks compare against."
+        : "Everything looks intact.");
+    return 0;
+}
+
+// One project's report: its name, then one line per finding. The path comes first so a long report reads as a
+// list of files, and a project with nothing to report says how many files matched rather than printing
+// nothing - silence would read as a command that did not run.
+static void PrintIntegrity(ProjectIntegrityReport report)
+{
+    Console.WriteLine($"{report.ProjectName} ({report.ProjectHandle})");
+    foreach (var finding in report.Findings)
+    {
+        var marker = finding.Severity switch
+        {
+            DiagnosticSeverity.Error => "error  ",
+            DiagnosticSeverity.Warning => "warning",
+            _ => "ok     "
+        };
+        Console.WriteLine($"{marker} {finding.Path} - {finding.Summary}");
+    }
+
+    if (!report.HasProblems)
+    {
+        Console.WriteLine($"        {report.ComparedFiles} file(s) match the baseline sealed {report.SealedAt:u}.");
+    }
+}
+
+// `aiko model` fetches the embedding model Aiko uses for semantic memory search. The model is not part of the
+// installation, so nothing is downloaded until this is asked for, and `--source` picks which of the two
+// recorded paths fetches it: the release channel (the same one that carries an update, so a mirror works) or
+// the pinned address the registry records. The file is verified against the registry before it lands.
+static async Task<int> ModelAsync(string[] args)
+{
+    var action = args.Length > 1 ? args[1].ToLowerInvariant() : "status";
+    if (action is not ("list" or "status" or "download" or "remove"))
+    {
+        Console.Error.WriteLine(
+            $"Unknown argument for `aiko model`: {action}. Use list, status, download or remove.");
+        return 2;
+    }
+
+    var sourceName = ReadOption(args, "--source") ?? "release";
+    if (!Enum.TryParse<EmbeddingModelSource>(sourceName, ignoreCase: true, out var source))
+    {
+        Console.Error.WriteLine($"Unknown model source: {sourceName}. Use release or external.");
+        return 2;
+    }
+
+    var requested = ReadModelArgument(args);
+    var installer = CreateModelInstaller();
+    if (ModelOrNull(installer, requested) is not { } model)
+    {
+        return 2;
+    }
+
+    if (action == "list")
+    {
+        foreach (var entry in installer.Models)
+        {
+            var status = await installer.InspectAsync(entry.Id, CancellationToken.None);
+            Console.WriteLine(
+                $"{entry.Id}  {entry.SizeBytes / 1024 / 1024} MB  {entry.License}  " +
+                $"{(status.Present ? "installed" : "not installed")}");
+        }
+
+        Console.WriteLine($"Models are kept in {AikoDataPaths.FromEnvironment().ModelsRoot}.");
+        return 0;
+    }
+
+    if (action == "status")
+    {
+        var status = await installer.InspectAsync(model.Id, CancellationToken.None);
+        Console.WriteLine($"{model.Id}  {model.License}  {model.Files.Count} file(s)");
+        Console.WriteLine($"          {status.Detail}");
+        Console.WriteLine($"          {AikoDataPaths.FromEnvironment().ModelDirectory(model.Id)}");
+        return 0;
+    }
+
+    if (action == "remove")
+    {
+        var removed = await installer.RemoveAsync(model.Id, CancellationToken.None);
+        Console.WriteLine($"          {removed.Detail}");
+        return 0;
+    }
+
+    try
+    {
+        var installation = await installer.EnsureAsync(model.Id, source, CancellationToken.None);
+        Console.WriteLine($"          {installation.Detail}");
+        return installation.Present ? 0 : 1;
+    }
+    catch (Exception exception) when (exception is InvalidOperationException or HttpRequestException
+        or IOException or TaskCanceledException)
+    {
+        // Said in words rather than as a stack trace: a machine without a network, or one whose release
+        // channel does not carry the model yet, is a state to explain and not a crash.
+        Console.Error.WriteLine($"Could not fetch the model: {exception.Message}");
+        if (source == EmbeddingModelSource.Release)
+        {
+            Console.Error.WriteLine(
+                "The release channel may not carry the model yet. Try `aiko model download --source external`.");
+        }
+
+        return 1;
+    }
+}
+
+// The model a command is about: the one named, or the only registered model when none was named. Once there is
+// more than one, the name is asked for rather than guessed - "whichever is first" would install a model nobody
+// chose.
+static string? ReadModelArgument(string[] args) =>
+    args.Length > 2 && !args[2].StartsWith("--", StringComparison.Ordinal) ? args[2] : null;
+
+static EmbeddingModel? ModelOrNull(IEmbeddingModelInstaller installer, string? requested)
+{
+    if (requested is { Length: > 0 })
+    {
+        var named = installer.Models.FirstOrDefault(
+            model => string.Equals(model.Id, requested, StringComparison.Ordinal));
+        if (named is not null)
+        {
+            return named;
+        }
+
+        Console.Error.WriteLine($"No model is registered as {requested}. `aiko model list` shows them.");
+        return null;
+    }
+
+    if (installer.Models.Count == 1)
+    {
+        return installer.Models[0];
+    }
+
+    Console.Error.WriteLine("Name the model: " + string.Join(", ", installer.Models.Select(model => model.Id)));
+    return null;
+}
+
+// The two delivery paths, wired the way the rest of the CLI wires the release channel: AIKO_RELEASE_FEED points
+// at a mirror when one is configured, and otherwise the releases come from GitHub.
+static IEmbeddingModelInstaller CreateModelInstaller()
+{
+    IReleaseSource releases = ReadReleaseFeed() is { } feed
+        ? new LocalReleaseSource(feed)
+        : new GitHubReleaseSource(new HttpClient(), ReleaseIdentity.Owner, ReleaseIdentity.Repository);
+
+    // A hundred megabytes over a slow link outlives any sensible default timeout, and the only timeout that
+    // means something here is the caller's own cancellation.
+    var external = new HttpClient { Timeout = Timeout.InfiniteTimeSpan };
+
+    return new EmbeddingModelInstaller(
+        AikoDataPaths.FromEnvironment(),
+        new BuiltInEmbeddingModelCatalog().Models,
+        [new ReleaseChannelModelDownloader(releases), new ExternalModelDownloader(external)]);
+}
+
 static string? ReadOption(string[] args, string name)
 {
     for (var index = 0; index < args.Length - 1; index++)
@@ -2286,17 +2510,11 @@ static async ValueTask<IInstallationEngine> CreateInstallationEngineAsync()
             database,
             new AppSettingsService(new FileAppSettingsStore(catalog))));
 
-    // Where Aiko's own releases live. The bootstrap script names the same two, and the two copies are the
-    // point: a script cannot read a constant compiled into this program, and this program must not ask a
-    // script. The exe host used to hold a third copy; TASK-270 removes it.
-    const string ReleaseOwner = "jrfrigat";
-    const string Repository = "Aiko";
-
     // AIKO_RELEASE_FEED points at a directory laid out like a release feed, which is what a mirror - or a
     // machine that has to install without a network - needs. Without it the releases come from GitHub.
     IReleaseSource source = ReadReleaseFeed() is { } feed
         ? new LocalReleaseSource(feed)
-        : new GitHubReleaseSource(new HttpClient(), ReleaseOwner, Repository);
+        : new GitHubReleaseSource(new HttpClient(), ReleaseIdentity.Owner, ReleaseIdentity.Repository);
 
     return new InstallationEngine(source, new DaemonLifecycle(dataPaths), repair, diagnostics);
 }
@@ -2351,4 +2569,22 @@ static void PrintInstallationReport(InstallationReport report)
     {
         Console.WriteLine($"available: {available.Tag}");
     }
+}
+
+/// <summary>
+/// Where Aiko's own releases live.
+/// </summary>
+/// <remarks>
+/// Named once for the whole host, because the release channel is asked for in more than one place - the update
+/// engine and the model installer both fetch assets from it, and two spellings of the repository would be two
+/// answers to the same question. The bootstrap script names the same two, and that copy is the point: a script
+/// cannot read a constant compiled into this program, and this program must not ask a script.
+/// </remarks>
+internal static class ReleaseIdentity
+{
+    /// <summary>Owner of the repository the releases are published in.</summary>
+    internal const string Owner = "jrfrigat";
+
+    /// <summary>Repository the releases are published in.</summary>
+    internal const string Repository = "Aiko";
 }

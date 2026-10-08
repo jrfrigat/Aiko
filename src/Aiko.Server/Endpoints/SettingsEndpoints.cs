@@ -31,7 +31,8 @@ internal static class SettingsEndpoints
         "execution",
         "priority",
         "crossProject",
-        "release"
+        "release",
+        "memorySearch"
     };
 
     /// <summary>
@@ -156,8 +157,8 @@ internal static class SettingsEndpoints
                 {
                     return (null,
                         $"Unknown settings field '{property.Name}'. A document states schemaVersion, "
-                        + "execution, priority, crossProject and release; the resolved view is read from "
-                        + "GET /settings and is not a document.");
+                        + "execution, priority, crossProject, release and memorySearch; the resolved view is "
+                        + "read from GET /settings and is not a document.");
                 }
             }
 

@@ -37,8 +37,10 @@ internal static class MemoryEndpoints
                 string projectId,
                 string? q,
                 int? limit,
+                string? mode,
                 IProjectCatalog projects,
                 IMemoryStore memory,
+                IMemorySemanticSearch semantic,
                 CancellationToken cancellationToken) =>
             {
                 var id = await ResolveProjectIdAsync(projects, projectId, cancellationToken);
@@ -47,11 +49,30 @@ internal static class MemoryEndpoints
                     return Results.BadRequest(new ErrorResponse("A search needs the text to look for in 'q'."));
                 }
 
-                return Results.Ok(await memory.SearchAsync(
-                    id,
-                    q,
-                    Math.Clamp(limit ?? 20, 1, MaximumSearchResults),
-                    cancellationToken));
+                var bounded = Math.Clamp(limit ?? 20, 1, MaximumSearchResults);
+
+                // Semantic search refuses rather than falls back: a caller who asked for meaning and silently got
+                // word matches would draw the wrong conclusion about what was searched.
+                if (string.Equals(mode, "semantic", StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        return Results.Ok(await semantic.SearchAsync(id, q, bounded, cancellationToken));
+                    }
+                    catch (Exception exception) when (exception is InvalidOperationException or FileNotFoundException)
+                    {
+                        return Results.BadRequest(new ErrorResponse(exception.Message));
+                    }
+                }
+
+                if (!string.IsNullOrWhiteSpace(mode) &&
+                    !string.Equals(mode, "fts", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Results.BadRequest(
+                        new ErrorResponse($"Unknown search mode '{mode}'. Use 'fts' or 'semantic'."));
+                }
+
+                return Results.Ok(await memory.SearchAsync(id, q, bounded, cancellationToken));
             });
 
         app.MapGet(

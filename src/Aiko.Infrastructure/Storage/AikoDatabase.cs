@@ -166,6 +166,27 @@ public sealed class AikoDatabase(AikoDataPaths paths)
                 project_id UNINDEXED,
                 updated_utc UNINDEXED);
 
+            -- The vector side of the memory search: derived, rebuilt by a reindex, and beside memory_fts rather
+            -- than under .aiko for the same reason - no vector is ever the user's own file.
+            CREATE TABLE IF NOT EXISTS memory_vectors (
+                project_id TEXT NOT NULL,
+                path TEXT NOT NULL,
+                chunk_index INTEGER NOT NULL,
+                content TEXT NOT NULL,
+                content_hash TEXT NOT NULL,
+                model_id TEXT NOT NULL,
+                dimensions INTEGER NOT NULL,
+                vector BLOB NOT NULL,
+                updated_utc TEXT NOT NULL,
+                PRIMARY KEY(project_id, path, chunk_index)
+            );
+
+            CREATE INDEX IF NOT EXISTS ix_memory_vectors_project_model
+            ON memory_vectors(project_id, model_id);
+
+            INSERT OR IGNORE INTO schema_migrations(version, applied_utc)
+            VALUES (9, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+
             CREATE TABLE IF NOT EXISTS events (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 project_id TEXT NOT NULL,

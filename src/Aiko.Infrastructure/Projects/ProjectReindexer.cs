@@ -14,7 +14,8 @@ namespace Aiko.Infrastructure.Projects;
 /// </summary>
 public sealed class ProjectReindexer(
     IProjectCatalog projects,
-    AikoDatabase database) : IProjectReindexer
+    AikoDatabase database,
+    IMemorySemanticSearch? semanticSearch = null) : IProjectReindexer
 {
     /// <inheritdoc />
     public async ValueTask<ReindexResult> ReindexAsync(
@@ -56,6 +57,14 @@ public sealed class ProjectReindexer(
         }
 
         await transaction.CommitAsync(cancellationToken);
+
+        // The vector index is rebuilt after the transaction rather than inside it: it writes through its own
+        // connection, and a second writer would contend with the one still holding the transaction.
+        if (semanticSearch is not null)
+        {
+            await semanticSearch.RebuildAsync(project.Id, memory, cancellationToken);
+        }
+
         return new ReindexResult(cards.Count, relations.Count, memory.Count);
     }
 

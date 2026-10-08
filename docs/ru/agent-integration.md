@@ -56,8 +56,9 @@ aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<handle>
   `aiko_list_memory_candidates`, `aiko_resolve_memory_candidate`: предлагает агент, решает человек, и
   предложенный документ попадает в память только после подтверждения.
 - **Daemon (глобальные)** - `aiko_init_project`, `aiko_list_projects`, `aiko_list_templates`,
-  `aiko_create_card_in_project`, `aiko_link_project`, `aiko_unlink_project`, `aiko_doctor`, `aiko_reindex`, `aiko_get_settings`, `aiko_token`,
-  `aiko_backup`.
+  `aiko_create_card_in_project`, `aiko_list_linked_work` (что связанные проекты держат для этого),
+  `aiko_link_project`, `aiko_unlink_project`, `aiko_doctor`, `aiko_verify_project`, `aiko_reindex`,
+  `aiko_get_settings`, `aiko_token`, `aiko_backup`.
 
 Описания инструментов требуют сначала читать контекст проекта; установленные скиллы и правила
 подкрепляют это для каждого агента.
@@ -285,6 +286,7 @@ UI пока нет, таблица говорит это прямо, а не д�
 | Изменить настройки | `/aiko-settings` | `aiko_update_settings` | Страница Settings |
 | Перестроить проекции | — | `aiko_reindex` | — (`aiko reindex`) |
 | Диагностика установки | `/aiko-doctor` | `aiko_doctor` | — (`aiko doctor`) |
+| Проверка целостности данных проекта | — | `aiko_verify_project` | — (`aiko verify`; `--seal` записывает базу сравнения, и его выполняет только пользователь) |
 | Починка установки | `/aiko-repair` | — | — (`aiko repair --fix`) |
 | Обновить установленный Aiko | `/aiko-update` | — (`aiko update`, `aiko install --from`: найти, сверить, разложить, заменить, откатить, записать; установщик - один из вызывающих) | — (`aiko update [--check]`) |
 | Резервная копия проекта | `/aiko-backup` | `aiko_backup` | — |

@@ -49,6 +49,27 @@ public sealed record AikoDataPaths(string DatabasePath)
     public string TemplateDirectory(string templateId) => Path.Combine(TemplatesRoot, templateId);
 
     /// <summary>
+    /// Root of the models fetched on demand, next to the database.
+    /// </summary>
+    /// <remarks>
+    /// Installation data rather than project data: a model serves every project of this machine, and it is not
+    /// part of the installation either - it arrives when someone asks for it, and deleting this directory is a
+    /// legitimate way to get the space back.
+    /// </remarks>
+    public string ModelsRoot => Path.Combine(DataDirectory, "models");
+
+    /// <summary>
+    /// Directory holding one model's files.
+    /// </summary>
+    /// <param name="modelId">Model identifier, also its directory name.</param>
+    public string ModelDirectory(string modelId) => Path.Combine(ModelsRoot, modelId);
+
+    /// <summary>Directory the daemon's own data lives in.</summary>
+    private string DataDirectory =>
+        Path.GetDirectoryName(DatabasePath)
+            ?? throw new InvalidOperationException("The database path must include a directory.");
+
+    /// <summary>
     /// Reads the database path from the AIKO_DATABASE environment variable
     /// or falls back to %LocalAppData%/Aiko/aiko.db.
     /// </summary>

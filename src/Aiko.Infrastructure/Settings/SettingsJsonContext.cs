@@ -12,4 +12,5 @@ namespace Aiko.Infrastructure.Settings;
     WriteIndented = true,
     UseStringEnumConverter = true)]
 [JsonSerializable(typeof(AppSettings))]
+[JsonSerializable(typeof(MemorySearchSettings))]
 internal sealed partial class SettingsJsonContext : JsonSerializerContext;

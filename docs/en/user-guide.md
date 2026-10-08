@@ -239,6 +239,47 @@ aiko backup --project aiko
 aiko restore --archive "$env:LOCALAPPDATA\Aiko\backups\aiko-20260921T090000.zip" --project aiko
 ```
 
+## Verifying the project's data
+
+`aiko verify` reads the project's `.aiko` and reports what does not hold: a document nothing can parse, a file
+the baseline lists that is gone, a file that differs from it, and a file that appeared since it. It changes
+nothing on disk and exits `1` when it found something, so a script can ask the question:
+
+```powershell
+aiko verify --project aiko
+aiko verify --project aiko --seal   # record the current state as the baseline
+```
+
+The baseline is `.aiko/manifest.json`, written only by `--seal`. Sealing is how you accept an edit you made by
+hand - a memory file, a title in a card - and from then on the new content is what the next check compares
+against. A file that only appeared is listed and is not a problem. `projections/` and `runtime/` are left out:
+they are rebuilt and rewritten while the daemon works. The same check is `aiko_verify_project` for an agent, and
+an agent never seals.
+
+## The embedding model
+
+Semantic search over the project's memory needs an embedding model, and the model is not part of Aiko: it is a
+separate download of about 135 MB that arrives when you ask for it, and it is kept in the data directory, where
+deleting it costs nothing.
+
+```powershell
+aiko model list                           # what Aiko can use, and whether it is installed
+aiko model status                         # whether the files are there and match their checksums
+aiko model download                       # fetch them, verify them, done
+aiko model download --source external     # the same files, from the pinned address
+aiko model remove                         # give the space back
+```
+
+Nothing is downloaded until `download` is run, so a machine that never turns semantic search on never needs the
+network for it. Every file is checked against the size and SHA-256 the registry records **before** it is put in
+place, so a truncated or substituted download leaves no model rather than a wrong one - and asking again when
+the model is already there downloads nothing. The two sources deliver the same files: `release` fetches them
+from Aiko's own release channel (so a mirror configured through `AIKO_RELEASE_FEED` works), `external` from the
+pinned address recorded with the model.
+
+Until the model's assets are published under the release tag the registry names, `--source release` refuses and
+says so, and `--source external` is the path that works.
+
 ## Logs
 
 `aiko logs` prints the tail of the daemon's own log - what it said on its way out, which is what "it stopped by
@@ -399,6 +440,27 @@ procedure repeats it.
 Durable project memory lives in `.aiko/memory` as Markdown and is full-text searchable. Use
 `aiko_search_memory` / `aiko_store_memory` (or `/aiko-memory`) for decisions, conventions and
 lessons.
+
+### Searching by meaning
+
+Full-text search matches words. Semantic search ranks by meaning instead, which finds a passage
+described in different words - useful once memory has grown past the point where you remember what
+you wrote. It is a module, off by default, turned on per project on the settings page (**Semantic
+memory search**); nothing is loaded and no vectors are stored while it is off.
+
+Turning it on asks for two more things:
+
+- **A model.** It is separate from Aiko and downloaded on demand with `aiko model download` (about
+  118 MB). Until it is installed, a semantic search refuses and says so rather than quietly falling
+  back to the word search.
+- **A reindex.** `aiko reindex` (or the settings screen's reindex action) splits every memory
+  document into its sections and stores one vector per section beside the full-text index. Run it
+  after enabling the module and after editing memory by hand, so the index matches the files.
+
+When it is not worth it: on a small, single-language memory the word search is faster, needs no
+download and answers just as well. Semantic search costs disk for the model and the vectors, and a
+reindex pass over every memory document, and it pays off when the wording of a query and the wording
+of a note rarely match.
 
 ## Cross-project cards
 

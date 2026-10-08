@@ -2529,4 +2529,28 @@
   <data name="DistributionSize" xml:space="preserve">
     <value>Размер: {0}</value>
   </data>
+  <data name="MemorySearchTitle" xml:space="preserve">
+    <value>Семантический поиск по памяти</value>
+  </data>
+  <data name="MemorySearchHint" xml:space="preserve">
+    <value>По умолчанию выключен. Когда включён, память ищется ещё и по смыслу — для этого нужна модель (отдельное скачивание) и пересборка индекса по всем документам памяти.</value>
+  </data>
+  <data name="MemorySearchModel" xml:space="preserve">
+    <value>Модель</value>
+  </data>
+  <data name="MemorySearchModelHint" xml:space="preserve">
+    <value>Идентификатор модели эмбеддингов; пусто — модель по умолчанию. Установка: `aiko model download`.</value>
+  </data>
+  <data name="MemorySearchOffTitle" xml:space="preserve">
+    <value>Выключено</value>
+  </data>
+  <data name="MemorySearchOffHint" xml:space="preserve">
+    <value>Работает только полнотекстовый поиск. Модель не загружается, векторы не хранятся.</value>
+  </data>
+  <data name="MemorySearchOnTitle" xml:space="preserve">
+    <value>Включено</value>
+  </data>
+  <data name="MemorySearchOnHint" xml:space="preserve">
+    <value>Поиск умеет ранжировать по смыслу. Нужна установленная модель и переиндексация для сборки векторов.</value>
+  </data>
 </root>

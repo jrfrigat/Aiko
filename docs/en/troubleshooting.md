@@ -195,6 +195,56 @@ aiko reindex <projectId>
 Deleting the database is safe - `aiko init` (or `POST /api/v1/projects/initialize`) and
 `aiko reindex` rebuild everything from `.aiko`.
 
+## The project data was changed outside Aiko
+
+`.aiko` is meant to be read and edited without Aiko, so changing a memory file or adding one by hand is normal
+rather than a mistake. `aiko verify` answers the question that follows it - is anything different from what you
+last accepted, and can everything still be read:
+
+```powershell
+aiko verify --project <projectId>
+aiko verify --project <projectId> --seal   # accept the current state as the baseline
+```
+
+The check changes nothing on disk and exits `1` when it found something. It reports a document that no longer
+parses, a file the baseline lists and the disk no longer has, one that differs from it, and one that appeared
+since it. The first baseline is recorded by `--seal`, and sealing again is how you accept a change: from then on
+the new content is what the next check compares against. The baseline is `.aiko/manifest.json` - deleting that
+file puts the project back to "not verified yet". An agent runs the same check as `aiko_verify_project`; only you
+seal.
+
+A file that merely appeared is listed and is not a problem: adding to a project's data is what files are for. A
+file that differs or is gone is a warning, because Aiko cannot tell whether you changed it or something else
+did. `projections/` and `runtime/` are left out - they are rebuilt and rewritten while the daemon works.
+
+## The embedding model will not download
+
+`aiko model download` fetches the model from Aiko's release channel first, and that channel only carries it once
+the model's assets are published under the tag the registry names. Until then the command refuses and says the
+release does not exist - the address recorded with the model is the path that works:
+
+```powershell
+aiko model download --source external
+```
+
+A download that does not verify leaves nothing behind, deliberately: a file whose size or SHA-256 does not match
+the registry never reaches the place a later run would read as the model, so `aiko model status` keeps saying the
+model is missing - which is the truth. Check the machine can reach the source, run the command once, and look in
+the data directory's `models` folder for the result.
+
+## Semantic memory search refuses or finds nothing
+
+The refusal names the reason, so read it first.
+
+- *"Semantic memory search is off for this project."* The module is not enabled. Turn it on in the
+  project's settings (**Semantic memory search**), then run a reindex.
+- *"The embedding model ... is not installed."* The module is on but its model is not there. Install it
+  with `aiko model download` (see the section above if the download itself fails), then run a reindex.
+- *The search runs but returns nothing.* Either no reindex has run since the module was enabled, or
+  memory changed after the last one. Run `aiko reindex`: it rebuilds the vectors from `.aiko/memory`,
+  and a document that was edited or removed stops ranking with its old vector. The full-text search
+  keeps working throughout, so `mode=fts` is always an answer.
+
 ## A project is registered with the wrong path
 
 Unregister it - the files on disk are kept:

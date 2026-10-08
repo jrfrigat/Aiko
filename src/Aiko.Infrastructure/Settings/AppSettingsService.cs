@@ -84,6 +84,18 @@ public sealed class AppSettingsService(IAppSettingsStore store) : IAppSettingsSe
     }
 
     /// <inheritdoc />
+    public async ValueTask<MemorySearchSettings> GetEffectiveMemorySearchAsync(
+        string projectId,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
+        // Read through the store, like the other single-section reads: a project that states no section gets
+        // the safe default, and the safe default here is "off".
+        var project = await store.ReadProjectAsync(projectId, cancellationToken);
+        return project?.MemorySearch ?? MemorySearchSettings.SafeDefault;
+    }
+
+    /// <inheritdoc />
     public ValueTask SaveProjectAsync(
         string projectId,
         AppSettings settings,

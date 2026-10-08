@@ -296,9 +296,9 @@ public sealed class ProjectInitializer(
         string[] relativePaths =
         [
             AikoProjectPaths.WorkflowsDirectoryName,
-            "projections",
+            AikoProjectPaths.ProjectionsDirectoryName,
             "memory",
-            "runtime"
+            AikoProjectPaths.RuntimeDirectoryName
         ];
 
         Directory.CreateDirectory(stitchRoot);

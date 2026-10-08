@@ -2,7 +2,7 @@
   "id": "default",
   "name": "Default",
   "description": "The set Aiko starts from: epic, story and task pipelines with their statuses, artifacts and per-status instructions, the app point / user point / complete scoring criteria, the epics / stories / tasks board projections and the empty project memory.",
-  "version": 5,
+  "version": 6,
   "settings": {
     "schemaVersion": 1,
     "execution": {
@@ -113,7 +113,8 @@
       ]
     },
     "crossProject": null,
-    "release": null
+    "release": null,
+    "memorySearch": null
   },
   "workflows": [
     {

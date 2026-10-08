@@ -1076,6 +1076,55 @@ public class RestApiSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerF
     }
 
     [Fact]
+    public async Task A_semantic_memory_search_is_refused_while_the_module_is_off()
+    {
+        using var http = CreateClient();
+        var root = Path.Combine(Path.GetTempPath(), "Aiko.Specs", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var project = await InitializeProjectAsync(http, root);
+
+            // A project states nothing about semantic search, so it is off - and asking for it is answered with a
+            // refusal naming the reason, never with the word matches of the full-text search.
+            using var refused = await http.GetAsync(
+                $"api/v1/projects/{project}/memory/search?q=roof&mode=semantic");
+
+            Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
+            var refusal = await refused.Content.ReadFromJsonAsync<JsonElement>();
+            Assert.Contains("off", refusal.GetProperty("message").GetString()!, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
+    public async Task An_unknown_memory_search_mode_is_refused()
+    {
+        using var http = CreateClient();
+        var root = Path.Combine(Path.GetTempPath(), "Aiko.Specs", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var project = await InitializeProjectAsync(http, root);
+
+            using var refused = await http.GetAsync(
+                $"api/v1/projects/{project}/memory/search?q=roof&mode=bogus");
+
+            Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
+            var refusal = await refused.Content.ReadFromJsonAsync<JsonElement>();
+            Assert.Contains(
+                "Unknown search mode", refusal.GetProperty("message").GetString()!, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
     public async Task Putting_the_resolved_view_back_is_refused_and_leaves_the_settings_alone()
     {
         using var http = CreateClient();

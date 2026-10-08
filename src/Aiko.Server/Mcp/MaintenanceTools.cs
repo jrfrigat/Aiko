@@ -25,6 +25,7 @@ internal sealed class MaintenanceTools(
     IProjectTemplateStore templates,
     AikoDataPaths dataPaths,
     IWorkshopDiagnostics diagnostics,
+    IProjectIntegrityCheck integrity,
     AccessTokenStore tokenStore)
 {
     [McpServerTool(Name = "aiko_doctor", Title = "Diagnose Aiko")]
@@ -58,6 +59,39 @@ internal sealed class MaintenanceTools(
         summary.AppendLine(report.HasProblems
             ? "Problems found. Agent configurations are repaired with `aiko repair --fix`."
             : "Everything looks healthy.");
+        return summary.ToString();
+    }
+
+    [McpServerTool(Name = "aiko_verify_project", Title = "Verify Aiko project data")]
+    [Description(
+        "Checks a project's .aiko data: whether every document can be read at all, and whether any file " +
+        "differs from the baseline the user sealed, is gone, or appeared since. Reports the project as intact " +
+        "or lists every path with the reason. Read-only - nothing on disk changes, and sealing a new baseline " +
+        "is `aiko verify --seal`, which only the user runs.")]
+    public async Task<string> VerifyProjectAsync(
+        [Description("Project id.")]
+        string projectId,
+        CancellationToken cancellationToken)
+    {
+        var report = await integrity.VerifyAsync(projectId, cancellationToken);
+
+        var summary = new StringBuilder();
+        foreach (var finding in report.Findings)
+        {
+            summary.Append(finding.Severity switch
+            {
+                DiagnosticSeverity.Error => "error   ",
+                DiagnosticSeverity.Warning => "warning ",
+                _ => "ok      "
+            });
+            summary.AppendLine($"{finding.Path} - {finding.Summary}");
+        }
+
+        summary.AppendLine(report.HasProblems
+            ? $"Problems found in {report.ProjectName}. Report them to the user; only the user seals a new " +
+              "baseline, with `aiko verify --seal`."
+            : $"{report.ProjectName} is intact: {report.ComparedFiles} file(s) match the baseline sealed " +
+              $"{report.SealedAt:u}.");
         return summary.ToString();
     }
 

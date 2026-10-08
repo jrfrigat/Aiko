@@ -114,9 +114,19 @@ namespace Aiko.Server.Contracts;
 [JsonSerializable(typeof(MemoryDocumentSummary))]
 [JsonSerializable(typeof(IReadOnlyList<MemoryDocumentSummary>))]
 [JsonSerializable(typeof(StoreMemoryRequest))]
+// The semantic side of the memory search: the settings section and the hits a semantic search answers with.
+[JsonSerializable(typeof(MemorySearchSettings))]
+[JsonSerializable(typeof(MemorySearchMode))]
+[JsonSerializable(typeof(MemorySearchHit))]
+[JsonSerializable(typeof(IReadOnlyList<MemorySearchHit>))]
 // The memory proposal queue: the candidate an agent proposes and the decision a person makes on it.
 [JsonSerializable(typeof(MemoryCandidate))]
 [JsonSerializable(typeof(IReadOnlyList<MemoryCandidate>))]
+// The federated view of the linked projects: what sits there for this project and what came from it.
+[JsonSerializable(typeof(LinkedWorkItem))]
+[JsonSerializable(typeof(IReadOnlyList<LinkedWorkItem>))]
+[JsonSerializable(typeof(LinkedProjectWork))]
+[JsonSerializable(typeof(IReadOnlyList<LinkedProjectWork>))]
 [JsonSerializable(typeof(ActivityDay))]
 [JsonSerializable(typeof(IReadOnlyList<ActivityDay>))]
 [JsonSerializable(typeof(WorkshopDiagnostics))]

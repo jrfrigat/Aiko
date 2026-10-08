@@ -176,6 +176,7 @@ By default the installer adds `/.aiko/` to `.gitignore`. The user can choose ano
     conventions.md
     lessons.md
   commands.json            # the queue of commands a screen placed for an agent
+  manifest.json            # checksums of a sealed baseline, for `aiko verify`
   runtime/                 # always local, never committed
 ```
 
@@ -191,7 +192,10 @@ shape rather than a list of names: a `.json` **file** is a workflow definition, 
 collection of that type's cards. A project may therefore name a type anything at all, including after a
 service directory. Cards of a project made before they were filed this way are moved under `workflows/` when
 the daemon starts, or by `aiko repair --fix`; until then they are read where they are. `commands.json`
-appears with the first command a screen places for an agent (see 12.2).
+appears with the first command a screen places for an agent (see 12.2). `manifest.json` appears only when
+someone seals a baseline with `aiko verify --seal`: it records the checksum of every file above except
+`projections/` and `runtime/`, which are service state rather than project data, and it is what `aiko verify`
+compares the tree against (see 23).
 
 ### 7.3 Global SQLite
 
@@ -744,7 +748,14 @@ A single `MemoryService`:
 - durable Markdown in `.aiko/memory`;
 - SQLite FTS and a graph index;
 - provenance: source, card, execution, agent and timestamp;
-- a vector backend is an optional module of a future version.
+- a vector backend is a module: off unless the project's `memorySearch` section turns it on, and then
+  a `memory_vectors` table beside `memory_fts` holds one vector per Markdown section, rebuilt from
+  `.aiko/memory` by the same reindex that rebuilds the full-text index. `aiko_search_memory` and
+  `GET /memory/search` take `mode=fts` (the default) or `mode=semantic`; a semantic request on a
+  project with the module off, or without its model installed, is refused with the reason rather than
+  answered from the word index. The model is fetched on demand (`aiko model download`) and never
+  bundled, so an installation that never enables the module carries no model and opens no runtime
+  session.
 
 `CLAUDE.md`, `AGENTS.md`, ZCode/Cursor rules direct the agent to the Aiko MCP and memory but do
 not duplicate it. When closing a card, the agent proposes durable conclusions; saving is governed
@@ -824,6 +835,11 @@ and warnings by adapter; one adapter's failure does not hide the results of the 
 - Log rotation is configurable.
 - Repair validates JSON schemas, references, `blocks` cycles, lost artifacts and the SQLite
   projection.
+- Project data can be checked against a sealed baseline. `aiko verify` reports a document no reader can
+  parse, a file the baseline lists that is gone, one that differs from it, and one that appeared since it;
+  `aiko_verify_project` is the same check for an agent. The check changes nothing on disk, and sealing is a
+  separate act - `aiko verify --seal`, run by the user - because a baseline that refreshed itself would fold
+  a hand edit into itself and then call the result intact.
 - File formats and APIs have versions and migrations.
 
 ## 24. Configuration

@@ -328,6 +328,30 @@
                                      ValueChanged="value => _crossProjectTargets = value" />
                     </FlareStack>
 
+                    @* The semantic memory module: off by default, and the switch lives here rather than behind a
+                       separate command because turning it on is what downloads a model and builds an index -
+                       a person should see that they are asking for that. *@
+                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.XSmall">
+                        <FlareStack Gap="FlareSpacing.None">
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                                @Loc.Get("MemorySearchTitle")
+                            </FlareText>
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                @Loc.Get("MemorySearchHint")
+                            </FlareText>
+                        </FlareStack>
+                        <div class="aiko-choices">
+                            @foreach (var option in MemorySearchOptions)
+                            {
+                                @MemorySearchChoice(option)
+                            }
+                        </div>
+                        <AikoField Label="@Loc.Get("MemorySearchModel")"
+                                   Hint="@Loc.Get("MemorySearchModelHint")"
+                                   Value="@_memorySearchModelId"
+                                   ValueChanged="value => _memorySearchModelId = value" />
+                    </FlareStack>
+
                     @* The schemes this level holds for conducting a release. It is a list rather than a choice:
                        which one a release follows is named when that release is created, so a project keeps as
                        many orders as it has kinds of release - and the same container on the template's screen
@@ -844,6 +868,13 @@
     /// The cross-project write policy's options: the same three answers the other policies take, read as what
     /// this project allows an agent working in another one to do to it.
     /// </summary>
+    /// <summary>On or off for the semantic memory module: a radio pair, drawn like the policy pickers.</summary>
+    private static readonly PolicyOption[] MemorySearchOptions =
+    [
+        new("false", "MemorySearchOffTitle", "MemorySearchOffHint"),
+        new("true", "MemorySearchOnTitle", "MemorySearchOnHint"),
+    ];
+
     private static readonly PolicyOption[] CrossProjectOptions =
     [
         new(nameof(CrossProjectWritePolicy.Deny), "CrossDenyTitle", "CrossDenyHint"),
@@ -905,6 +936,8 @@
     private ActionPolicy _pushPolicy = ActionPolicy.Deny;
     private CrossProjectWritePolicy _crossProjectPolicy = CrossProjectWritePolicy.Deny;
     private string? _crossProjectTargets;
+    private bool _memorySearchEnabled;
+    private string? _memorySearchModelId;
     private List<SchemeDraft> _schemes = [];
     private List<CriterionDraft> _criteria = [];
     private List<SizeDraft> _sizes = [];
@@ -1016,6 +1049,12 @@
         var crossProject = own?.CrossProject ?? CrossProjectSettings.SafeDefault;
         _crossProjectPolicy = crossProject.WritePolicy;
         _crossProjectTargets = string.Join(Environment.NewLine, crossProject.Targets);
+
+        // The semantic memory module of this level. A project that states nothing has it off; the shipped
+        // default is "no", so the toggle shows off rather than guessing that a model is somewhere.
+        var memorySearch = own?.MemorySearch ?? MemorySearchSettings.SafeDefault;
+        _memorySearchEnabled = memorySearch.Enabled;
+        _memorySearchModelId = memorySearch.ModelId;
 
         // The schemes this level states, and only those. The ones Aiko ships are drawn beside the empty list
         // instead of being copied into it, so a project that never wrote an order of its own keeps following
@@ -1205,7 +1244,15 @@
                         Repository: _view?.Snapshot?.Release?.Repository,
                         Schemes: _schemes.Count == 0
                             ? null
-                            : _schemes.Select(draft => draft.ToScheme()).ToArray())),
+                            : _schemes.Select(draft => draft.ToScheme()).ToArray()),
+                    // The score bar is not edited on this screen, so the stored value is carried through rather
+                    // than reset to the default: a form that shows nothing about it must not change it.
+                    new MemorySearchSettings(
+                        _memorySearchEnabled,
+                        MemorySearchSettings.LocalProvider,
+                        string.IsNullOrWhiteSpace(_memorySearchModelId) ? null : _memorySearchModelId.Trim(),
+                        _view?.Snapshot?.MemorySearch?.MinimumScore
+                            ?? MemorySearchSettings.SafeDefault.MinimumScore)),
                 PwaJson.Options);
             if (!response.IsSuccessStatusCode)
             {
@@ -1488,6 +1535,23 @@
                    value="@option.Value"
                    checked="@(_crossProjectPolicy == Enum.Parse<CrossProjectWritePolicy>(option.Value))"
                    @onchange="() => _crossProjectPolicy = Enum.Parse<CrossProjectWritePolicy>(option.Value)" />
+        </span>
+        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant">
+            @Loc.Get(option.HintKey)
+        </FlareText>
+    </label>;
+
+    /// <summary>The semantic-search switch, shaped like the other choice cards.</summary>
+    private RenderFragment MemorySearchChoice(PolicyOption option) => @<label class="aiko-choice @(_memorySearchEnabled == bool.Parse(option.Value) ? "aiko-choice--on" : null)">
+        <span class="aiko-choice__head">
+            <FlareText Element="span" Typo="TypographyScale.BodySmall" Weight="FontWeight.SemiBold">
+                @Loc.Get(option.TitleKey)
+            </FlareText>
+            <input type="radio"
+                   name="aiko-memory-search"
+                   value="@option.Value"
+                   checked="@(_memorySearchEnabled == bool.Parse(option.Value))"
+                   @onchange="() => _memorySearchEnabled = bool.Parse(option.Value)" />
         </span>
         <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant">
             @Loc.Get(option.HintKey)

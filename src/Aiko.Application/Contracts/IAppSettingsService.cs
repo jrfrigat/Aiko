@@ -50,6 +50,16 @@ public interface IAppSettingsService
         CancellationToken cancellationToken);
 
     /// <summary>
+    /// Returns the effective semantic-search section of a project: whether the module is on, which model it
+    /// embeds with, and the score below which a hit is dropped. A project that states none gets it off.
+    /// </summary>
+    /// <param name="projectId">Project to read.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    ValueTask<MemorySearchSettings> GetEffectiveMemorySearchAsync(
+        string projectId,
+        CancellationToken cancellationToken);
+
+    /// <summary>
     /// Saves the project-local settings.
     /// </summary>
     ValueTask SaveProjectAsync(
