@@ -61,9 +61,10 @@ public static class ReleaseSchemes
            what shipped - but name those cards to the person rather than letting them pass. When no plan covers
            the version, say so and fall back to everything that reached the end of its pipeline since the
            previous record.
-        4. Form the tag. The version is a tag of the shape `v<major>.<minor>.<patch>`, so the command that
-           sets it is `git tag v0.1.3`. Hand it to the person and say plainly that the tag has to be pushed:
-           setting and pushing the tag are the person's steps, and you do not push it yourself.
+        4. Form the tag yourself, and do not push it: with the version a tag of the shape
+           `v<major>.<minor>.<patch>`, run `git tag v0.1.3` in the shared checkout. The tag is yours to make;
+           the push is the person's, and you do not open a branch either. Say plainly that the tag is made
+           and that only the push is left to them.
         5. Wait for the person to push the tag and for the release workflow to publish the release.
         6. Record the release: `aiko_record_release(version, schemeId: "git-release", cards)`, then close the
            version's plan with `aiko_close_release_plan(version, cardsToCarry)`, naming the planned cards that
@@ -90,9 +91,10 @@ public static class ReleaseSchemes
            still holds unclosed does not hold the release back, but name those cards to the person rather than
            letting them pass. When no plan covers the version, say so and fall back to everything that reached
            the end of its pipeline since the previous record.
-        4. Form the tag. The version is a tag of the shape `v<major>.<minor>.<patch>-pre`, so the command that
-           sets it is `git tag v0.1.3-pre`. Hand it to the person and say plainly that the tag has to be
-           pushed: setting and pushing the tag are the person's steps, and you do not push it yourself.
+        4. Form the tag yourself, and do not push it: with the version a tag of the shape
+           `v<major>.<minor>.<patch>-pre`, run `git tag v0.1.3-pre` in the shared checkout. The tag is yours
+           to make; the push is the person's, and you do not open a branch either. Say plainly that the tag
+           is made and that only the push is left to them.
         5. Wait for the person to push the tag and for the release workflow to publish the release. The `-pre`
            suffix marks it as a preliminary one, so it does not become the latest release.
         6. Record the release: `aiko_record_release(version, schemeId: "git-pre-release", cards)`, then close

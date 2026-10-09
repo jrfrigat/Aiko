@@ -57,6 +57,22 @@ public sealed class ReleaseSchemeSpecs
     }
 
     [Fact]
+    public void A_shipped_scheme_has_the_agent_make_the_tag_and_leave_the_push()
+    {
+        // The tag is the agent's to make; the push is the person's. Handing the tag itself to the person is
+        // what this replaced, so no shipped scheme may say it.
+        foreach (var scheme in ReleaseSchemes.BuiltIn)
+        {
+            Assert.Contains("git tag", scheme.Body, StringComparison.Ordinal);
+            Assert.Contains("do not push", scheme.Body, StringComparison.Ordinal);
+            Assert.DoesNotContain(
+                "pushing the tag are the person's steps",
+                scheme.Body,
+                StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
     public void A_level_that_states_nothing_holds_both_shipped_schemes()
     {
         var settings = ReleaseSettings.SafeDefault;
