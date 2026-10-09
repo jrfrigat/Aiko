@@ -791,7 +791,15 @@ public sealed class SqliteExecutionCoordinator(
             executionId,
             async execution =>
             {
-                EnsureNotTerminal(execution);
+                // A finished stage may still be given the commit that belongs to it: reporting what was
+                // already done records a fact, it does not reopen the stage. Cancellation stays out of
+                // reach, because a cancelled run is not the user's to amend.
+                var retroactive = execution.State == StageExecutionState.Completed;
+                if (!retroactive)
+                {
+                    EnsureNotTerminal(execution);
+                }
+
                 var effectiveSettings = settings is null
                     ? ExecutionSettings.SafeDefault
                     : await settings.GetEffectiveExecutionAsync(execution.Card.ProjectId, cancellationToken);
@@ -807,6 +815,18 @@ public sealed class SqliteExecutionCoordinator(
                     ? CommitState.PendingApproval
                     : CommitState.Recorded;
                 var commit = new Commit(commitSha, message, Distinct(files), state, now);
+
+                if (retroactive)
+                {
+                    // The execution already finished: append the commit and leave its state, its attempts
+                    // and the card exactly where they are, so the finish is not undone.
+                    return execution with
+                    {
+                        Commits = execution.Commits.Append(commit).ToArray(),
+                        UpdatedAt = now
+                    };
+                }
+
                 var attempts = policy == ActionPolicy.Ask
                     ? UpdateCurrentAttempt(execution.Attempts, AgentAttemptState.WaitingForUser, "Awaiting commit approval.", null)
                     : execution.Attempts;
@@ -831,7 +851,14 @@ public sealed class SqliteExecutionCoordinator(
             executionId,
             execution =>
             {
-                EnsureNotTerminal(execution);
+                // A commit reported after the stage finished waits on a completed execution: the user's
+                // answer records or rejects it without reopening the stage. Cancellation stays refused.
+                var retroactive = execution.State == StageExecutionState.Completed;
+                if (!retroactive)
+                {
+                    EnsureNotTerminal(execution);
+                }
+
                 var commits = execution.Commits.ToList();
                 var pendingIndex = commits.FindLastIndex(commit => commit.State == CommitState.PendingApproval);
                 if (pendingIndex < 0)
@@ -845,6 +872,16 @@ public sealed class SqliteExecutionCoordinator(
                     State = approved ? CommitState.Recorded : CommitState.Rejected,
                     RecordedAtUtc = now
                 };
+
+                if (retroactive)
+                {
+                    return ValueTask.FromResult(execution with
+                    {
+                        Commits = commits,
+                        UpdatedAt = now
+                    });
+                }
+
                 var attempts = UpdateCurrentAttempt(execution.Attempts, AgentAttemptState.Running, null, null);
                 return ValueTask.FromResult(execution with
                 {

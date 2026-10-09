@@ -2182,6 +2182,59 @@ public class InfrastructureSpecs
     }
 
     [Fact]
+    public async Task Commit_can_be_reported_after_the_stage_completed()
+    {
+        await WithInitializedProjectAsync(async context =>
+        {
+            var settings = new AppSettingsService(new FileAppSettingsStore(context.Catalog));
+            var executions = new SqliteExecutionCoordinator(
+                context.Catalog, context.Cards, context.Database, settings);
+            var card = CreateCard(context.Project.Id, "TASK-COMMIT-LATE", 1);
+            await context.Cards.SaveAsync(card, 0, CancellationToken.None);
+            var started = await executions.StartAsync(
+                card.Reference, "implementation", "claude-code", CancellationToken.None);
+            await EstimateAsync(context, card);
+            var completed = await executions.CompleteAsync(started.Id, [], [], CancellationToken.None);
+            Assert.Equal(StageExecutionState.Completed, completed.State);
+
+            // Allow: the commit that belongs to the finished stage is recorded, and the finish stands - the
+            // state, the attempts and the card are left where they were.
+            await settings.SaveProjectAsync(context.Project.Id,
+                new AppSettings(AppSettings.CurrentSchemaVersion,
+                    new ExecutionSettings(WorkspaceMode.Shared, 1, ActionPolicy.Ask, ActionPolicy.Allow)),
+                CancellationToken.None);
+            var recorded = await executions.ReportCommitAsync(
+                started.Id, "abc1234", "the work", ["src/a.cs"], CancellationToken.None);
+            Assert.Equal(StageExecutionState.Completed, recorded.State);
+            Assert.Equal(CommitState.Recorded, Assert.Single(recorded.Commits).State);
+
+            // Ask: the request waits for the user, and the stage stays finished while it does. The user's
+            // answer records the commit without reopening the stage.
+            await settings.SaveProjectAsync(context.Project.Id,
+                new AppSettings(AppSettings.CurrentSchemaVersion,
+                    new ExecutionSettings(WorkspaceMode.Shared, 1, ActionPolicy.Ask, ActionPolicy.Ask)),
+                CancellationToken.None);
+            var pending = await executions.ReportCommitAsync(
+                started.Id, null, "later", ["src/b.cs"], CancellationToken.None);
+            Assert.Equal(StageExecutionState.Completed, pending.State);
+            Assert.Equal(CommitState.PendingApproval, pending.Commits[^1].State);
+
+            var approved = await executions.ApproveCommitAsync(started.Id, true, CancellationToken.None);
+            Assert.Equal(StageExecutionState.Completed, approved.State);
+            Assert.Equal(CommitState.Recorded, approved.Commits[^1].State);
+
+            // Deny: a commit is the user's to make, so the report is refused exactly as before.
+            await settings.SaveProjectAsync(context.Project.Id,
+                new AppSettings(AppSettings.CurrentSchemaVersion,
+                    new ExecutionSettings(WorkspaceMode.Shared, 1, ActionPolicy.Ask, ActionPolicy.Deny)),
+                CancellationToken.None);
+            await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await executions.ReportCommitAsync(
+                    started.Id, "def", "no", ["src/c.cs"], CancellationToken.None));
+        });
+    }
+
+    [Fact]
     public async Task Scope_expansion_policy_decides_what_a_widening_request_does()
     {
         await WithInitializedProjectAsync(async context =>
