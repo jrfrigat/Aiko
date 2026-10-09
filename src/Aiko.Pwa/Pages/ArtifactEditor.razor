@@ -226,9 +226,11 @@
 
         _addedPaths.Clear();
         _drafts.Clear();
-        _preview = false;
         await LoadListAsync();
         _selectedPath = AvailablePaths.FirstOrDefault();
+        // A document opens the way it is meant to be read: a Markdown artifact shows rendered, and the raw
+        // text is one click away. This editor lists Markdown files only, so that is the default here.
+        _preview = IsMarkdownPath(_selectedPath);
         SyncActiveIndex();
         if (_selectedPath is not null)
         {
@@ -274,8 +276,9 @@
 
         StashSelected();
         _selectedPath = path;
-        // A document opens in the editor; the rendered view is something the person asks for.
-        _preview = false;
+        // A document opens the way it is meant to be read: a Markdown artifact shows rendered, and the raw
+        // text stays one click away.
+        _preview = IsMarkdownPath(path);
         if (_drafts.Remove(path, out var draft))
         {
             (_content, _version, _baseline) = draft;
@@ -352,7 +355,7 @@
         _addedPaths.Add(path);
         _newPath = null;
         _selectedPath = path;
-        _preview = false;
+        _preview = IsMarkdownPath(path);
         SyncActiveIndex();
         _content = $"# {Path.GetFileNameWithoutExtension(path)}{Environment.NewLine}{Environment.NewLine}";
         _baseline = _content;

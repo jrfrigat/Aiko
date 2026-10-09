@@ -1338,10 +1338,11 @@ public sealed class RazorMarkupSpecs
         Assert.Contains("<FlareMarkdown Value=\"@_content\"", editor, StringComparison.Ordinal);
         Assert.Contains("AriaPressed=\"@_preview\"", editor, StringComparison.Ordinal);
         Assert.Contains("_preview = !_preview", editor, StringComparison.Ordinal);
-        // It is offered for a Markdown document - which every artifact in the list already is - and a document
-        // opens in the editor again.
+        // It is offered for a Markdown document - which every artifact in the list already is - and a Markdown
+        // document opens rendered, with the raw text a click away.
         Assert.Contains("Disabled=\"@(!IsMarkdownPath(path))\"", editor, StringComparison.Ordinal);
-        Assert.Contains("_preview = false", editor, StringComparison.Ordinal);
+        Assert.Contains("_preview = IsMarkdownPath(path)", editor, StringComparison.Ordinal);
+        Assert.Contains("_preview = IsMarkdownPath(_selectedPath)", editor, StringComparison.Ordinal);
 
         // The two opens ask the daemon, because the browser cannot start a local program.
         Assert.Contains("MaterialDesign3Icons.Regular.FolderOpen", editor, StringComparison.Ordinal);
