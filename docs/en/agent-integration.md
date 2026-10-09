@@ -83,7 +83,11 @@ card again with `aiko_get_card`); an artifact conflict names both versions.
 
 **One run is one stage.** A request in the chat is not a run: it creates a card in the backlog
 (`aiko_create_card`, or `/aiko-create`) and stops there - the work begins when the user asks for it ("выполни",
-`/aiko-run <cardId>`). An order is still a request: «поправь X» earns a card, not a run. That run performs
+`/aiko-run <cardId>`). An order is still a request: «поправь X» earns a card, not a run. The one exception is a
+request that asked for the card and its work in the same breath - "создай и выполни", `/aiko-create --run`, or
+words to that effect: then the card is not the whole answer, and the agent takes it into its first stage and works
+it as `/aiko-run` does, one stage at a time. Absent such words the agent stops at the card; it never starts a
+stage on its own initiative. That run performs
 exactly one stage: `aiko_start_stage` for the stage the card is in,
 the work, `aiko_complete_stage`, then stop. Running the card again while its stage is unfinished continues
 that same run, so a half-finished stage is never stepped over, and starting the next stage is refused until

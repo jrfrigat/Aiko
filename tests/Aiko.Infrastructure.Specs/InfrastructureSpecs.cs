@@ -874,6 +874,8 @@ public class InfrastructureSpecs
             Assert.Contains("aiko_list_comments", contract, StringComparison.Ordinal);
             Assert.Contains("Read the card's feed", run, StringComparison.Ordinal);
             Assert.Contains("adapter id", run, StringComparison.Ordinal);
+            // The contract carries the one exception too, so it cannot drift from the create procedure.
+            Assert.Contains("The one exception is a request", contract, StringComparison.Ordinal);
 
             // A create procedure can be the only text an agent reads, so it says out loud that the card is the
             // whole answer: a procedure ending at "estimate it" reads as "now do the work".
@@ -881,6 +883,10 @@ public class InfrastructureSpecs
                 Path.Combine(context.Project.RootPath, ".cline", "skills", "aiko-create", "SKILL.md"));
             Assert.Contains("Then stop. Creating the card", create, StringComparison.Ordinal);
             Assert.Contains("aiko-run <cardId>", create, StringComparison.Ordinal);
+            // The one exception: a request that asked for the work in the same breath takes the card into its
+            // first stage, and only such a request does.
+            Assert.Contains("One exception, and only one", create, StringComparison.Ordinal);
+            Assert.Contains("Never do this on your own", create, StringComparison.Ordinal);
         });
     }
 

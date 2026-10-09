@@ -168,6 +168,13 @@ internal static class AgentTemplates
         Then stop. Creating the card, and estimating it, is the whole answer to what the user asked: do not
         start a stage, do not create or change files for the card, and do not begin the work - the user starts
         it with aiko-run <cardId> or "выполни <cardId>".
+
+        One exception, and only one: when the request asked for the card and its work in the same breath -
+        "создай и выполни", "и сразу начни", /aiko-create --run, or words to that effect - the card is not the
+        whole answer. Then, after estimating it, take it into work at once: start its first stage with
+        aiko_start_stage (the stage it landed in), and work it exactly as /aiko-run does - one stage, its
+        instruction, its artifacts, the re-estimate, the feed, aiko_complete_stage. Never do this on your own
+        initiative: the words have to be there.
         """;
 
     /// <summary>
@@ -896,7 +903,10 @@ internal static class AgentTemplates
         asks for starts with a card: create it in Aiko first (aiko_create_card, or /aiko-create), and stop
         there - the card is the answer to the request. An order is still a request: "поправь ...", "исправь ..."
         and "нужно ..." earn a card and nothing more, and the work begins only when the user asks for it
-        (aiko-run <cardId>, or "выполни <cardId>"). A card in its backlog stage has no work in it yet, so never
+        (aiko-run <cardId>, or "выполни <cardId>"). The one exception is a request that asked for the card and
+        its work together - "создай и выполни", /aiko-create --run, or words to that effect: there the card is
+        not the whole answer, and you take it into its first stage as /aiko-run does; without those words you
+        stop at the card. A card in its backlog stage has no work in it yet, so never
         create or change files for a
         card before you have started the stage you are working in with aiko_start_stage - the start moves the
         card into that stage and is what records the work. A card may wait for another one: aiko_get_card lists
