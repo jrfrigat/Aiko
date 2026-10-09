@@ -66,6 +66,12 @@ public sealed class CliInitSpecs
         // A user-scope connection is not tied to a project, so the project cannot be required there.
         Assert.Contains("agent install [--project <id>]", help, StringComparison.Ordinal);
         Assert.Contains("agent uninstall [--project <id>]", help, StringComparison.Ordinal);
+
+        // A project's configuration travels as a template file: the help names the subcommands that carry it.
+        Assert.Contains("template capture --project", help, StringComparison.Ordinal);
+        Assert.Contains("template export --id", help, StringComparison.Ordinal);
+        Assert.Contains("template import --input", help, StringComparison.Ordinal);
+        Assert.Contains("template apply --project", help, StringComparison.Ordinal);
     }
 
     internal static Task<(int ExitCode, string Output)> RunCliAsync(

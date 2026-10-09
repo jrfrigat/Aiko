@@ -15,6 +15,10 @@ namespace Aiko.Cli;
 [JsonSerializable(typeof(WorkflowDefinition))]
 [JsonSerializable(typeof(StageDefinition))]
 [JsonSerializable(typeof(WorkflowUpdate))]
+[JsonSerializable(typeof(TemplateFromProject))]
+[JsonSerializable(typeof(TemplateExport))]
+[JsonSerializable(typeof(TemplateImport))]
+[JsonSerializable(typeof(TemplateApply))]
 [JsonSerializable(typeof(AikoEvent))]
 [JsonSerializable(typeof(IReadOnlyList<AikoEvent>))]
 [JsonSourceGenerationOptions(
@@ -47,3 +51,28 @@ internal sealed record WorkflowUpdate(
     string? Icon = null,
     string? Color = null,
     bool BlendsWithParent = false);
+
+/// <summary>
+/// The body of <c>POST /api/v1/templates/from-project</c>: a project's settings, pipelines, projections and
+/// memory captured as a template, which is what "export a project's configuration" means here.
+/// </summary>
+/// <param name="ProjectId">Project to copy.</param>
+/// <param name="TemplateId">Identifier for the new template.</param>
+/// <param name="Name">Display name, or null for "&lt;project name&gt; template".</param>
+internal sealed record TemplateFromProject(string ProjectId, string TemplateId, string? Name = null);
+
+/// <summary>The body of <c>POST /api/v1/templates/{id}/export</c>: where to write the template's file.</summary>
+/// <param name="Path">Absolute path of the file to write.</param>
+internal sealed record TemplateExport(string Path);
+
+/// <summary>
+/// The body of <c>POST /api/v1/templates/import</c>: the file to read and, optionally, the id to store it
+/// under - null keeps the id the file carries.
+/// </summary>
+/// <param name="Path">Absolute path of the file to read.</param>
+/// <param name="TemplateId">Identifier to store it under, or null for the one the file carries.</param>
+internal sealed record TemplateImport(string Path, string? TemplateId = null);
+
+/// <summary>The body of <c>POST /api/v1/projects/{id}/apply-template</c>: the template to apply.</summary>
+/// <param name="TemplateId">Template to apply.</param>
+internal sealed record TemplateApply(string TemplateId);

@@ -47,6 +47,7 @@ var exitCode = command switch
     "autostart" => Autostart(args),
     "settings" => await SettingsAsync(args),
     "workflow" => await WorkflowAsync(args),
+    "template" => await TemplateAsync(args),
     "backup" => await BackupAsync(args),
     "restore" => await RestoreAsync(args),
     "logs" => await LogsAsync(args),
@@ -71,6 +72,13 @@ static int Help()
                                                         Register a project (.aiko); --id is the readable
                                                         handle used in the UI's URLs
           templates                                     List the project templates to create from
+          template capture --project <id> --id <t> [--name <n>]
+                                                        Capture a project's settings, pipelines and memory
+                                                        as a template
+          template export --id <t> --output <path>      Write a template to a file, to hand to another
+                                                        installation
+          template import --input <path> [--id <t>]     Read a template from a file
+          template apply --project <id> --template <t>  Apply a template to a project that already exists
           project find [path]                           Report which Aiko project owns a folder
           project remove <id> [--yes]                   Unregister a project (keeps its files)
           serve [-d|--detached]                         Start the Aiko daemon: in this terminal by
@@ -178,6 +186,98 @@ static async Task<int> TemplatesAsync()
     Console.WriteLine();
     Console.WriteLine("Pass --template <id> to aiko init to create a project from one of them.");
     return 0;
+}
+
+// The template subcommands: how a project's configuration - its settings, pipelines and memory - travels as a
+// file between installations. Each is a thin wrapper over the daemon's template routes, so the file's format,
+// its validation and its refusal instead of a partial apply all stay the daemon's rather than being restated
+// here. The bodies mirror the daemon's request contracts field for field, like WorkflowUpdate does.
+static async Task<int> TemplateAsync(string[] args)
+{
+    var action = args.Length > 1 ? args[1] : "help";
+    using var http = await CreateDaemonClientAsync(ReadOption(args, "--port"));
+    if (http is null)
+    {
+        return 1;
+    }
+
+    switch (action)
+    {
+        case "capture":
+            {
+                var projectId = ReadOption(args, "--project");
+                var templateId = ReadOption(args, "--id");
+                if (string.IsNullOrWhiteSpace(projectId) || string.IsNullOrWhiteSpace(templateId))
+                {
+                    Console.Error.WriteLine(
+                        "Usage: aiko template capture --project <id> --id <templateId> [--name <n>]");
+                    return 1;
+                }
+
+                var body = JsonSerializer.Serialize(
+                    new TemplateFromProject(projectId, templateId, ReadOption(args, "--name")),
+                    CliJsonContext.Default.TemplateFromProject);
+                return await SendAsync(http, HttpMethod.Post, "api/v1/templates/from-project", body);
+            }
+        case "export":
+            {
+                var templateId = ReadOption(args, "--id");
+                var output = ReadOption(args, "--output");
+                if (string.IsNullOrWhiteSpace(templateId) || string.IsNullOrWhiteSpace(output))
+                {
+                    Console.Error.WriteLine("Usage: aiko template export --id <templateId> --output <path>");
+                    return 1;
+                }
+
+                var body = JsonSerializer.Serialize(
+                    new TemplateExport(output),
+                    CliJsonContext.Default.TemplateExport);
+                return await SendAsync(
+                    http,
+                    HttpMethod.Post,
+                    $"api/v1/templates/{Uri.EscapeDataString(templateId)}/export",
+                    body);
+            }
+        case "import":
+            {
+                var input = ReadOption(args, "--input");
+                if (string.IsNullOrWhiteSpace(input))
+                {
+                    Console.Error.WriteLine("Usage: aiko template import --input <path> [--id <templateId>]");
+                    return 1;
+                }
+
+                var body = JsonSerializer.Serialize(
+                    new TemplateImport(input, ReadOption(args, "--id")),
+                    CliJsonContext.Default.TemplateImport);
+                return await SendAsync(http, HttpMethod.Post, "api/v1/templates/import", body);
+            }
+        case "apply":
+            {
+                var projectId = ReadOption(args, "--project");
+                var templateId = ReadOption(args, "--template");
+                if (string.IsNullOrWhiteSpace(projectId) || string.IsNullOrWhiteSpace(templateId))
+                {
+                    Console.Error.WriteLine(
+                        "Usage: aiko template apply --project <id> --template <id>");
+                    return 1;
+                }
+
+                var body = JsonSerializer.Serialize(
+                    new TemplateApply(templateId),
+                    CliJsonContext.Default.TemplateApply);
+                return await SendAsync(
+                    http,
+                    HttpMethod.Post,
+                    $"api/v1/projects/{Uri.EscapeDataString(projectId)}/apply-template",
+                    body);
+            }
+        default:
+            Console.WriteLine(
+                "Usage: aiko template capture|export|import|apply ... " +
+                "(see `aiko help`)");
+            return 1;
+    }
 }
 
 static async Task<int> InitAsync(string[] args)

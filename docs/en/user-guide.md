@@ -214,7 +214,16 @@ aiko settings set --project aiko --file settings.json
 aiko workflow get --project aiko                       # the pipelines, with their revisions
 aiko workflow get --project aiko --workflow task > task.json
 aiko workflow set --project aiko --file task.json
+aiko template capture --project aiko --id aiko-set --name "Aiko set"  # capture a project as a template
+aiko template export --id aiko-set --output aiko-set.json             # write it to a file
+aiko template import --input aiko-set.json                            # read it into another installation
+aiko template apply --project other --template aiko-set               # apply it to an existing project
 ```
+
+A project's configuration - its settings, its pipelines, its projections and its memory - travels as a
+template file: `capture` takes an existing project as the template, `export`/`import` move that file between
+installations, and `apply` puts it onto a project that already exists. `apply` is refused, rather than
+half-done, when a card would be left in a stage the template does not have.
 
 A command names exactly one target, `--project` or `--template`, because there is no installation-level
 settings document: a project is created from a template and owns its copy from then on, so editing a

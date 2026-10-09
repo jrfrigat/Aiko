@@ -210,7 +210,16 @@ aiko settings set --project aiko --file settings.json
 aiko workflow get --project aiko                       # конвейеры с их версиями
 aiko workflow get --project aiko --workflow task > task.json
 aiko workflow set --project aiko --file task.json
+aiko template capture --project aiko --id aiko-set --name "Aiko set"  # захватить проект в шаблон
+aiko template export --id aiko-set --output aiko-set.json             # выгрузить его в файл
+aiko template import --input aiko-set.json                            # загрузить в другой установке
+aiko template apply --project other --template aiko-set               # применить к существующему проекту
 ```
+
+Конфигурация проекта — настройки, конвейеры, проекции и память — переносится как файл шаблона: `capture`
+берёт существующий проект за шаблон, `export`/`import` переносят этот файл между установками, а `apply`
+накладывает его на уже существующий проект. `apply` отказывает, а не делает половину, если карточка
+осталась бы в этапе, которого в шаблоне нет.
 
 Команда называет ровно одну цель, `--project` или `--template`: документа настроек уровня установки не
 существует — проект создаётся из шаблона и дальше владеет своей копией, поэтому правка шаблона не доходит
