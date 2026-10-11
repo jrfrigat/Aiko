@@ -30,6 +30,9 @@ public sealed class ReleasePlanScreenSpecs
         Assert.Contains("Loc.Get(\"ReleasePlanTitle\")", page, StringComparison.Ordinal);
         // An empty plan is said in words rather than left as a gap.
         Assert.Contains("Loc.Get(\"ReleasePlanEmpty\")", page, StringComparison.Ordinal);
+        // A version that has been recorded is a fact: its plan belongs to the history below, so the panel shows
+        // only the plans still waiting to ship.
+        Assert.Contains("plan.ReleasedAt is null", page, StringComparison.Ordinal);
     }
 
     [Fact]

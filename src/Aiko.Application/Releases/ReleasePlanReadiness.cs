@@ -104,7 +104,8 @@ public sealed class ReleasePlanReadinessProjector(
     IRelationStore relations,
     IProjectDefinitionStore definitions,
     IExecutionCoordinator executions,
-    IReleasePlanStore plans)
+    IReleasePlanStore plans,
+    IReleaseStore releases)
 {
     /// <summary>
     /// Reads the project's plans with the readiness of each.
@@ -121,6 +122,15 @@ public sealed class ReleasePlanReadinessProjector(
             // Nothing is planned, so the cards are not read at all: an empty answer costs nothing.
             return new ReleasePlanDocumentReport([]);
         }
+
+        // A version in the release history is a fact, so its plan is read as released here rather than left
+        // looking like work still ahead: recording the release is what makes it one, and a plan whose closing
+        // step was never taken must not keep reading as planned.
+        var history = await releases.ReadAsync(projectId, cancellationToken);
+        document = document with
+        {
+            Plans = [.. document.Plans.Select(plan => Reconciled(plan, history))]
+        };
 
         var projectCards = await cards.ListAsync(projectId, cancellationToken);
         var projectRelations = await relations.ListAsync(projectId, cancellationToken);
@@ -186,4 +196,16 @@ public sealed class ReleasePlanReadinessProjector(
                 entries.Count(entry => entry.State == ReleasePlanCardState.Missing));
         }
     }
+
+    /// <summary>
+    /// The plan as the release history has it: a version already recorded makes the plan a fact, so it is
+    /// reported released from the moment the release is recorded, not only once its plan is closed. A plan
+    /// that already carries a release time is left exactly as the document holds it.
+    /// </summary>
+    /// <param name="plan">The plan as the store holds it.</param>
+    /// <param name="history">The project's release history.</param>
+    private static ReleasePlan Reconciled(ReleasePlan plan, ReleaseDocument history) =>
+        !plan.IsReleased && history.Find(plan.Version) is { } record
+            ? plan with { ReleasedAt = record.ReleasedAt, IsCurrent = false }
+            : plan;
 }

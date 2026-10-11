@@ -62,7 +62,7 @@
                 </FlareStack>
             </FlareStack>
 
-            @if (_plans.Count == 0)
+            @if (PlannedVersions.Count == 0)
             {
                 <FlareText Element="span" Typo="TypographyScale.BodyMedium" Color="FlareColor.OnSurfaceVariant">
                     @Loc.Get("ReleasePlanEmpty")
@@ -71,7 +71,7 @@
             else
             {
                 <FlareStack Gap="FlareSpacing.Medium">
-                    @foreach (var version in _plans)
+                    @foreach (var version in PlannedVersions)
                     {
                         var plan = version;
                         <FlareStack Gap="FlareSpacing.XSmall">
@@ -236,6 +236,14 @@
     /// tools, and a screen that wrote it would need its own rules beside theirs.
     /// </summary>
     private IReadOnlyList<ReleasePlanView> _plans = [];
+
+    /// <summary>
+    /// The plans still ahead: a version that has been recorded is a fact - its plan is closed on the daemon's
+    /// side as soon as the release is recorded - so it belongs to the history below rather than to this panel,
+    /// and the panel keeps showing only what is still waiting to ship.
+    /// </summary>
+    private IReadOnlyList<ReleasePlanView> PlannedVersions =>
+        [.. _plans.Where(plan => plan.ReleasedAt is null)];
     private IReadOnlyList<ReleaseScheme> _schemes = ReleaseSchemes.BuiltIn;
     private string? _policyId;
     private string? _agentId;

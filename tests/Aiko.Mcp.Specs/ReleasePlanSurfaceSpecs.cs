@@ -239,4 +239,36 @@ public class ReleasePlanSurfaceSpecs(AikoServerFixture fixture) : IClassFixture<
         Assert.True(again.IsError);
         Assert.Contains("closed", FirstText(again) ?? string.Empty, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public async Task Recording_a_release_makes_its_plan_read_as_released_without_closing_it()
+    {
+        await using var client = await ConnectAsync();
+        var cardId = await CreateCardAsync(client, "Ships with a version");
+        var version = UniqueVersion("6");
+
+        await UpdateAsync(client, version, addCards: [cardId]);
+
+        // While the version is only planned, the plan reads as planned.
+        var before = ReportOf(await ReadAsync(client), version).GetProperty("plan");
+        Assert.Equal(JsonValueKind.Null, before.GetProperty("releasedAt").ValueKind);
+
+        // Recording the release is the fact; the plan is deliberately not closed here.
+        var recorded = await client.CallToolAsync(
+            "aiko_record_release",
+            new Dictionary<string, object?>
+            {
+                ["version"] = version,
+                ["schemeId"] = "git-release",
+                ["cards"] = new[] { cardId }
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.NotEqual(true, recorded.IsError);
+
+        // The plan now reads as released, even though aiko_close_release_plan was never called: a released
+        // version must not keep looking like work still ahead.
+        var after = ReportOf(await ReadAsync(client), version).GetProperty("plan");
+        Assert.NotEqual(JsonValueKind.Null, after.GetProperty("releasedAt").ValueKind);
+        Assert.False(after.GetProperty("isCurrent").GetBoolean());
+    }
 }
