@@ -1,3 +1,4 @@
+@using Microsoft.AspNetCore.Components.Web.Virtualization
 @* One board projection, drawn in the cockpit language: a column per workflow stage with the design's
    banner (the stage's name with its WIP chip opposite, then one mono line carrying agents and the
    definition of done) and cards carrying the design's anatomy (mono id, kind and priority tags, title,
@@ -47,7 +48,7 @@
                                 </FlareStack>
                                 @* The column's own count is the stage's work in progress: the card sitting in the
                                    stage is the card being worked, so the banner states it once, as the design does. *@
-                                <span class="aiko-tag aiko-col__wip">WIP: @stageCards.Count</span>
+                                <span class="aiko-tag aiko-col__wip">WIP: @stageCards.Length</span>
                             </FlareStack>
                             @* The banner's second line, as the design draws it: who works the stage on the left and
                                what its definition of done is on the right, in the smallest mono step the theme has. *@
@@ -62,8 +63,11 @@
                         </FlareStack>
 
                         <FlareStack Class="aiko-col__body" Gap="FlareSpacing.XXSmall">
-                            @foreach (var card in stageCards)
-                            {
+                            @* The body is its own scroll container (see .aiko-col__body), so the cards are
+                               virtualized: only the window the reader can see is in the DOM, and a column of
+                               hundreds of cards no longer costs a card per card to lay out. The card's own
+                               mark-up is unchanged - it is drawn inside the virtualized list. *@
+                            <Virtualize TItem="Card" Items="stageCards" Context="card" ItemSize="220" OverscanCount="6">
                                 <FlareDraggable @key="card.Reference.CardId"
                                                 Id="@card.Reference.CardId"
                                                 Payload="@(new BoardCardDrag(card.Reference.CardId, card.StageId))"
@@ -186,7 +190,7 @@
                                         </FlareStack>
                                     </FlareCard>
                                 </FlareDraggable>
-                            }
+                            </Virtualize>
 
                             <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.Center" Class="aiko-col__drop">
                                 <FlareText Element="span" Mono="true" Color="FlareColor.OnSurfaceVariant2">@Loc.Get("DropHere") @stage.Title</FlareText>
@@ -238,6 +242,15 @@
     private IReadOnlyList<StageDefinition> _stages = [];
     private IReadOnlyList<Card> _cards = [];
 
+    // The per-card facts the columns draw, read from the snapshot once per render instead of once per
+    // reference: the mark-up asks for a card's score, state, parent, children and blockers repeatedly, and
+    // a scan of the snapshot's collections for each of those made a board of N cards cost N².
+    private Dictionary<string, Card> _cardById = new(StringComparer.Ordinal);
+    private Dictionary<string, decimal> _priorityByCard = new(StringComparer.Ordinal);
+    private Dictionary<string, StageState> _stateByCard = new(StringComparer.Ordinal);
+    private Dictionary<string, string> _parentIdByCard = new(StringComparer.Ordinal);
+    private Dictionary<string, IReadOnlyList<string>> _childIdsByCard = new(StringComparer.Ordinal);
+
     private string _dragGroup => $"aiko-board-{Kind}";
 
     /// <summary>
@@ -272,10 +285,77 @@
             // only what a project without criteria ranks by. The projector falls back that way itself, so the
             // board and the card page finally show the same number. Only the direction comes from the toolbar.
             .ToList();
+        // Built before the ranking, so the sort reads the same O(1) priorities the mark-up does instead of
+        // scanning the snapshot's priorities on every comparison.
+        BuildIndexes();
         _cards = (SortAscending
                 ? visible.OrderBy(EffectivePriority)
                 : visible.OrderByDescending(EffectivePriority))
             .ToArray();
+    }
+
+    /// <summary>
+    /// Reads the per-card facts out of the snapshot once, so the column mark-up can ask for a card's score,
+    /// state, parent or children without scanning the snapshot's collections again for each of them. A board
+    /// of N cards used to cost N² work on every render; here it costs N.
+    /// </summary>
+    private void BuildIndexes()
+    {
+        // Board and archive together, as <see cref="BoardCards.Find"/> reads them: a parent or a child the
+        // snapshot carries in the archive is still a card the column may name. The first id wins, so the
+        // board's own order is kept where the two overlap.
+        _cardById = new Dictionary<string, Card>(StringComparer.Ordinal);
+        foreach (var card in BoardCards.All(Board))
+        {
+            _cardById.TryAdd(card.Reference.CardId, card);
+        }
+
+        _priorityByCard = new Dictionary<string, decimal>(StringComparer.Ordinal);
+        foreach (var priority in Board.CardPriorities)
+        {
+            _priorityByCard.TryAdd(priority.CardId, priority.Snapshot.EffectivePriority);
+        }
+
+        // The state of the stage a card sits in, asked once per card instead of for every badge that draws
+        // it. A snapshot that says nothing about runs leaves the state pending, which is what StageStateView
+        // answers for a card it does not hold.
+        _stateByCard = new Dictionary<string, StageState>(StringComparer.Ordinal);
+        _parentIdByCard = new Dictionary<string, string>(StringComparer.Ordinal);
+        _childIdsByCard = new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
+        var childIds = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+        foreach (var card in BoardCards.All(Board))
+        {
+            _stateByCard.TryAdd(card.Reference.CardId, StageStateView.Of(Board.StageRuns, card.Reference.CardId, card.StageId));
+        }
+
+        foreach (var relation in Board.Relations)
+        {
+            if (!StringComparer.Ordinal.Equals(relation.Type, RelationTypes.ParentChild))
+            {
+                continue;
+            }
+
+            // Both ends are kept only when the snapshot actually carries the card: a relation to a card
+            // nobody has would otherwise make the column draw a number pointing at nothing.
+            if (!_cardById.ContainsKey(relation.Target.CardId) || !_cardById.ContainsKey(relation.Source.CardId))
+            {
+                continue;
+            }
+
+            _parentIdByCard.TryAdd(relation.Target.CardId, relation.Source.CardId);
+            if (!childIds.TryGetValue(relation.Source.CardId, out var list))
+            {
+                list = [];
+                childIds[relation.Source.CardId] = list;
+            }
+
+            list.Add(relation.Target.CardId);
+        }
+
+        foreach (var (cardId, list) in childIds)
+        {
+            _childIdsByCard[cardId] = list;
+        }
     }
 
     /// <summary>
@@ -291,7 +371,7 @@
         }
     }
 
-    private IReadOnlyList<Card> CardsIn(string stageId) =>
+    private Card[] CardsIn(string stageId) =>
         _cards.Where(card => StringComparer.Ordinal.Equals(card.StageId, stageId)).ToArray();
 
     /// <summary>
@@ -355,11 +435,9 @@
     /// own manual value, which is what a project without criteria ranks by.
     /// </summary>
     private decimal EffectivePriority(Card card) =>
-        Board.CardPriorities
-            .FirstOrDefault(priority => StringComparer.Ordinal.Equals(
-                priority.CardId,
-                card.Reference.CardId))
-            ?.Snapshot.EffectivePriority ?? PriorityCalculator.ManualScore(card.OwnPriority);
+        _priorityByCard.TryGetValue(card.Reference.CardId, out var priority)
+            ? priority
+            : PriorityCalculator.ManualScore(card.OwnPriority);
 
     /// <summary>
     /// The tag's figure: the effective priority on the 0..100 scale the card page prints too, so one glance
@@ -377,7 +455,9 @@
     /// leaves the stage reading as pending, which is what "nothing known" looks like here.
     /// </remarks>
     private StageState StageStateOf(Card card) =>
-        StageStateView.Of(Board.StageRuns, card.Reference.CardId, card.StageId);
+        _stateByCard.TryGetValue(card.Reference.CardId, out var state)
+            ? state
+            : StageStateView.Of(Board.StageRuns, card.Reference.CardId, card.StageId);
 
     private static string DodLine(Card card)
     {
@@ -417,39 +497,25 @@
     /// The card this one belongs to, or null when it belongs to nobody - or when the snapshot does not carry
     /// the parent, in which case a number pointing at a card the board cannot show is worse than no number.
     /// </summary>
-    private Card? ParentOf(Card card)
-    {
-        var id = card.Reference.CardId;
-        var parentId = Board.Relations
-            .Where(relation => StringComparer.Ordinal.Equals(relation.Type, RelationTypes.ParentChild) &&
-                               StringComparer.Ordinal.Equals(relation.Target.CardId, id))
-            .Select(relation => relation.Source.CardId)
-            .FirstOrDefault();
-
-        return parentId is null ? null : CardById(parentId);
-    }
+    private Card? ParentOf(Card card) =>
+        _parentIdByCard.TryGetValue(card.Reference.CardId, out var parentId) ? CardById(parentId) : null;
 
     /// <summary>
     /// The cards that belong to this one. The design counts them rather than listing them, so the board asks
     /// for the whole set and shows its size.
     /// </summary>
-    private IReadOnlyList<Card> ChildrenOf(Card card)
-    {
-        var id = card.Reference.CardId;
-        return Board.Relations
-            .Where(relation => StringComparer.Ordinal.Equals(relation.Type, RelationTypes.ParentChild) &&
-                               StringComparer.Ordinal.Equals(relation.Source.CardId, id))
-            .Select(relation => CardById(relation.Target.CardId))
-            .OfType<Card>()
-            .ToArray();
-    }
+    private IReadOnlyList<Card> ChildrenOf(Card card) =>
+        _childIdsByCard.TryGetValue(card.Reference.CardId, out var children)
+            ? [.. children.Select(CardById).OfType<Card>()]
+            : [];
 
     /// <summary>
     /// The snapshot's own card, live or archived: an archived card is still a card somebody can open, and the
     /// board carries it for exactly that reason. How the two are read together lives in one place
     /// (<see cref="BoardCards.Find"/>), so this panel and the card's own page cannot answer differently.
     /// </summary>
-    private Card? CardById(string cardId) => BoardCards.Find(Board, cardId);
+    private Card? CardById(string cardId) =>
+        _cardById.TryGetValue(cardId, out var card) ? card : BoardCards.Find(Board, cardId);
 
     /// <summary>
     /// The card whose list of children is open, or null when none is: the whole section keeps one popover at
