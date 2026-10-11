@@ -1959,6 +1959,9 @@
   <data name="CardOriginTag" xml:space="preserve">
     <value>Cross-project</value>
   </data>
+  <data name="CommentOriginTag" xml:space="preserve">
+    <value>From another project</value>
+  </data>
   <data name="PriorityFormulaTitle" xml:space="preserve">
     <value>Priority formula</value>
   </data>

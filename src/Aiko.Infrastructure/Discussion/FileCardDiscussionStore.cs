@@ -32,6 +32,7 @@ public sealed class FileCardDiscussionStore(IProjectCatalog projects, ICardStore
         CardReference card,
         string author,
         string body,
+        CardOrigin? origin,
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(body);
@@ -40,7 +41,8 @@ public sealed class FileCardDiscussionStore(IProjectCatalog projects, ICardStore
             Guid.CreateVersion7().ToString("N"),
             string.IsNullOrWhiteSpace(author) ? "you" : author.Trim(),
             trimmed,
-            DateTimeOffset.UtcNow);
+            DateTimeOffset.UtcNow,
+            origin);
 
         await _writeLock.WaitAsync(cancellationToken);
         try

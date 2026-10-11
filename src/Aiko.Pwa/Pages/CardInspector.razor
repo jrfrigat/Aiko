@@ -448,6 +448,30 @@
                                                     @RelativeTime(note.CreatedAtUtc)
                                                 </FlareText>
                                             </FlareStack>
+                                            @* A note written from another project carries its origin: without it
+                                               the feed would read as if a neighbour spoke as this project. The
+                                               link goes to the card the reply answers when the source project is
+                                               registered and that card is named. *@
+                                            @if (note.Origin is { } commentOrigin)
+                                            {
+                                                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall" Wrap="true">
+                                                    <span class="aiko-tag aiko-tag--quiet">@Loc.Get("CommentOriginTag")</span>
+                                                    @if (CommentOriginHref(commentOrigin) is { Length: > 0 } commentHref)
+                                                    {
+                                                        <FlareNavLink Href="@commentHref" Class="aiko-value">
+                                                            @CommentOriginCaption(commentOrigin)
+                                                        </FlareNavLink>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="aiko-value">@CommentOriginCaption(commentOrigin)</span>
+                                                    }
+                                                    @if (commentOrigin.CardId is { Length: > 0 } commentCardId)
+                                                    {
+                                                        <span class="aiko-tag aiko-tag--quiet">@commentCardId</span>
+                                                    }
+                                                </FlareStack>
+                                            }
                                             @* Agents write their notes in markdown. Flare's renderer encodes raw HTML and its
                                                sanitizer stays on: a note comes from outside. *@
                                             <div class="aiko-tile aiko-note">
@@ -1692,13 +1716,17 @@
     /// The project this card was reported from, or null when it came from nowhere and when the daemon does
     /// not know that project any more.
     /// </summary>
+    private RegisteredProject? OriginProject => Card.Origin is { } origin ? ProjectFor(origin) : null;
+
+    /// <summary>
+    /// The project a provenance mark names, or null when the daemon does not know it any more.
+    /// </summary>
     /// <remarks>
-    /// The card keeps the source project's immutable id, while everything the UI links to is addressed by
+    /// The mark keeps the source project's immutable id, while everything the UI links to is addressed by
     /// the readable handle, so the two are matched here instead of in the markup.
     /// </remarks>
-    private RegisteredProject? OriginProject => Card.Origin is { } origin
-        ? State.Projects.FirstOrDefault(project => StringComparer.Ordinal.Equals(project.Id, origin.ProjectId))
-        : null;
+    private RegisteredProject? ProjectFor(CardOrigin origin) =>
+        State.Projects.FirstOrDefault(project => StringComparer.Ordinal.Equals(project.Id, origin.ProjectId));
 
     /// <summary>
     /// The source project as it should be read: its name when it is registered, its id when it is not. An
@@ -1724,6 +1752,23 @@
     private static string OriginDetail(CardOrigin origin) => string.IsNullOrWhiteSpace(origin.AdapterId)
         ? RelativeTime(origin.CreatedAtUtc)
         : $"{origin.AdapterId} · {RelativeTime(origin.CreatedAtUtc)}";
+
+    /// <summary>
+    /// The source project of a cross-project note as it should be read: its name when registered, its id when
+    /// not - an invented name would be worse than an honest id.
+    /// </summary>
+    private string CommentOriginCaption(CardOrigin origin) =>
+        ProjectFor(origin) is { } project ? project.Name : origin.ProjectId;
+
+    /// <summary>
+    /// A link to the card a cross-project note answers, or null when there is nowhere to go: the route is
+    /// <c>/p/{handle}/cards/{id}</c>, and a project nobody registered has no handle while a note filed
+    /// without a source card has no id.
+    /// </summary>
+    private string? CommentOriginHref(CardOrigin origin) =>
+        origin.CardId is { Length: > 0 } cardId && ProjectFor(origin) is { } project
+            ? ProjectRoutes.Card(project.Handle, cardId)
+            : null;
 
     /// <summary>
     /// The state of the stage a related card sits in, or null when the snapshot does not carry that card.

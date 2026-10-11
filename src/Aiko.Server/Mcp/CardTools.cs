@@ -8,6 +8,7 @@ using Aiko.Application.Cards;
 using Aiko.Application.Contracts;
 using Aiko.Application.Releases;
 using Aiko.Domain.Cards;
+using Aiko.Domain.Execution;
 using Aiko.Domain.Prioritization;
 using Aiko.Domain.Workflow;
 using Aiko.Server.Contracts;
@@ -26,6 +27,7 @@ internal sealed class CardTools(
     ICardStore cards,
     IRelationStore relations,
     IProjectDefinitionStore definitions,
+    IProjectLinkStore links,
     ICardDiscussionStore discussion,
     ICardBlockers blockers,
     ICardArtifactStore artifacts,
@@ -73,10 +75,17 @@ internal sealed class CardTools(
     public async Task<string> GetCardAsync(
         [Description("Card id, for example TASK-001.")]
         string cardId,
-        CancellationToken cancellationToken)
+        [Description(
+            "Read the card from this linked project instead of the current one, by its id or handle. Left "
+            + "out, the card is read from the current project.")]
+        string? projectId = null,
+        CancellationToken cancellationToken = default)
     {
+        // A reader may name a linked neighbour: the same card store backs every project, so the card is read
+        // where it lives rather than opened from the neighbour's .aiko files.
+        var (_, target, _) = await ResolveTargetAsync(projectId, cancellationToken);
         var card = await cards.FindAsync(
-            new CardReference(GetProjectId(), cardId),
+            new CardReference(target.Id, cardId),
             cancellationToken);
         if (card is null)
         {
@@ -399,6 +408,7 @@ internal sealed class CardTools(
                 updated.Reference,
                 string.IsNullOrWhiteSpace(author) ? "agent" : author,
                 note,
+                origin: null,
                 cancellationToken);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
@@ -601,7 +611,10 @@ internal sealed class CardTools(
     [Description(
         "Appends a note to a card's discussion, which is the feed its page shows. Post the outcome of a "
         + "stage here - what was done, what was left - so the card that asked for the work explains what "
-        + "came of it instead of leaving the feed empty.")]
+        + "came of it instead of leaving the feed empty. Pass projectId to leave the note in a linked "
+        + "project's card: the note then carries its origin, and the current project's cross-project policy "
+        + "decides whether the write is allowed - 'deny' refuses, 'ask' refuses until you repeat the call "
+        + "with userConfirmed=true, and 'allow' writes it.")]
     public async Task<string> AddCommentAsync(
         [Description("Card id.")]
         string cardId,
@@ -610,13 +623,37 @@ internal sealed class CardTools(
         [Description(
             "Who is writing, for example the agent adapter id; left out, the note is signed 'agent'.")]
         string? author,
-        CancellationToken cancellationToken)
+        [Description(
+            "Write the note into this linked project's card instead of the current project, by its id or "
+            + "handle. Left out, the note goes to the current project.")]
+        string? projectId = null,
+        [Description(
+            "The card in the current project this note answers, recorded on a cross-project note so the "
+            + "neighbour's feed shows where the reply came from. Only used together with projectId.")]
+        string? originCardId = null,
+        [Description(
+            "Set true only after the user agreed to the note, when the current project's policy is 'ask'.")]
+        bool userConfirmed = false,
+        CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(body);
+        var (current, target, cross) = await ResolveTargetAsync(projectId, cancellationToken);
+        CardOrigin? origin = null;
+        if (cross)
+        {
+            await EnsureCrossProjectWriteAsync(current, target, userConfirmed, cancellationToken);
+            origin = new CardOrigin(
+                current.Id,
+                originCardId,
+                string.IsNullOrWhiteSpace(author) ? null : author.Trim(),
+                DateTimeOffset.UtcNow);
+        }
+
         var comment = await discussion.AppendAsync(
-            new CardReference(GetProjectId(), cardId),
+            new CardReference(target.Id, cardId),
             string.IsNullOrWhiteSpace(author) ? "agent" : author,
             body,
+            origin,
             cancellationToken);
         return JsonSerializer.Serialize(comment, ServerJsonContext.Default.CardComment);
     }
@@ -628,14 +665,93 @@ internal sealed class CardTools(
     public async Task<string> ListCommentsAsync(
         [Description("Card id.")]
         string cardId,
-        CancellationToken cancellationToken)
+        [Description(
+            "Read the feed of this linked project's card instead of the current project, by its id or "
+            + "handle. Left out, the current project's card is read.")]
+        string? projectId = null,
+        CancellationToken cancellationToken = default)
     {
+        var (_, target, _) = await ResolveTargetAsync(projectId, cancellationToken);
         var comments = await discussion.ListAsync(
-            new CardReference(GetProjectId(), cardId),
+            new CardReference(target.Id, cardId),
             cancellationToken);
         return JsonSerializer.Serialize(
             comments,
             ServerJsonContext.Default.IReadOnlyListCardComment);
+    }
+
+    /// <summary>
+    /// Resolves the project a read or a note targets: the project this tool's route names when no other is
+    /// asked for, or a linked neighbour otherwise. A project this one is not linked to is refused, so an
+    /// agent only reaches a neighbour the project declared with a link.
+    /// </summary>
+    /// <remarks>
+    /// The neighbour is read and written through the same stores as this project - the daemon knows every
+    /// registered project - so nothing is opened from the neighbour's <c>.aiko</c> directory by hand.
+    /// </remarks>
+    private async ValueTask<(RegisteredProject Current, RegisteredProject Target, bool Cross)> ResolveTargetAsync(
+        string? projectId,
+        CancellationToken cancellationToken)
+    {
+        var current = await GetProjectAsync(cancellationToken);
+        if (string.IsNullOrWhiteSpace(projectId))
+        {
+            return (current, current, false);
+        }
+
+        var target = await ProjectCatalog.FindAsync(projectId, cancellationToken)
+            ?? throw new KeyNotFoundException($"Unknown Aiko project: {projectId}");
+        if (StringComparer.Ordinal.Equals(target.Id, current.Id))
+        {
+            return (current, current, false);
+        }
+
+        var linked = await links.ListAsync(current.Id, cancellationToken);
+        var isLinked = linked.Any(link =>
+            StringComparer.OrdinalIgnoreCase.Equals(link.ProjectId, target.Id) ||
+            StringComparer.OrdinalIgnoreCase.Equals(link.Handle, target.Handle));
+        if (!isLinked)
+        {
+            throw new InvalidOperationException(
+                $"Project {current.Handle} is not linked to {target.Handle}: link it first with "
+                + "aiko_link_project.");
+        }
+
+        return (current, target, true);
+    }
+
+    /// <summary>
+    /// Applies this project's cross-project write policy before a note is written into a neighbour: the same
+    /// reading <c>aiko_create_card_in_project</c> applies to a card. The sending project decides - it may
+    /// refuse, ask the user first, or allow - and the target configures nothing here.
+    /// </summary>
+    private async ValueTask EnsureCrossProjectWriteAsync(
+        RegisteredProject source,
+        RegisteredProject target,
+        bool userConfirmed,
+        CancellationToken cancellationToken)
+    {
+        var policy = await settings.GetEffectiveCrossProjectAsync(source.Id, cancellationToken);
+        if (policy.Targets.Count > 0 &&
+            !policy.Targets.Contains(target.Id, StringComparer.OrdinalIgnoreCase) &&
+            !policy.Targets.Contains(target.Handle, StringComparer.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                $"Project {source.Handle} does not allow writing to {target.Handle}: the target is not in its "
+                + "cross-project list.");
+        }
+
+        switch (policy.WritePolicy)
+        {
+            case CrossProjectWritePolicy.Deny:
+                throw new InvalidOperationException(
+                    $"Cross-project writing is denied by project {source.Handle}: a note cannot be left in "
+                    + $"{target.Handle}.");
+            case CrossProjectWritePolicy.Ask when !userConfirmed:
+                throw new InvalidOperationException(
+                    $"Project {source.Handle} asks before writing to {target.Handle}: ask the user, then call "
+                    + "again with userConfirmed=true.");
+        }
     }
 
     /// <summary>

@@ -321,6 +321,8 @@ internal static class CardEndpoints
                     new CardReference(projectId, cardId),
                     request.Author ?? "you",
                     request.Body,
+                    // The board writes into its own project: a note here came from nowhere else.
+                    origin: null,
                     cancellationToken));
             });
         app.MapGet(
@@ -454,6 +456,7 @@ internal static class CardEndpoints
                     reference,
                     "aiko",
                     $"Estimate requested from {agent}. Run /aiko-estimate {cardId} in its terminal.",
+                    origin: null,
                     cancellationToken);
                 return Results.Ok(updated);
             });
@@ -501,7 +504,7 @@ internal static class CardEndpoints
 
         try
         {
-            await discussion.AppendAsync(updated.Reference, "you", note, cancellationToken);
+            await discussion.AppendAsync(updated.Reference, "you", note, origin: null, cancellationToken);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {

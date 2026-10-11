@@ -9,7 +9,18 @@ namespace Aiko.Application.Contracts;
 /// <param name="Author">Who wrote it - a person's name, or the agent the run belongs to.</param>
 /// <param name="Body">The note itself, as it was typed.</param>
 /// <param name="CreatedAtUtc">When it was written, in UTC.</param>
-public sealed record CardComment(string Id, string Author, string Body, DateTimeOffset CreatedAtUtc);
+/// <param name="Origin">
+/// Where the note came from when it was written into another project's card, or null when it was written
+/// where it lives. A cross-project note carries the reporting project, the card it answers and the adapter,
+/// so the neighbour's feed shows where the reply came from. Optional, so a discussion written before this
+/// field existed reads back as a note that came from nowhere.
+/// </param>
+public sealed record CardComment(
+    string Id,
+    string Author,
+    string Body,
+    DateTimeOffset CreatedAtUtc,
+    CardOrigin? Origin = null);
 
 /// <summary>
 /// The notes left on a card.
@@ -34,11 +45,16 @@ public interface ICardDiscussionStore
     /// <param name="card">Card to write to.</param>
     /// <param name="author">Who wrote it.</param>
     /// <param name="body">The note itself; empty notes are rejected.</param>
+    /// <param name="origin">
+    /// Provenance when the note is written across a project boundary, or null when it is written where the
+    /// card lives.
+    /// </param>
     /// <param name="cancellationToken">Cancellation token.</param>
     ValueTask<CardComment> AppendAsync(
         CardReference card,
         string author,
         string body,
+        CardOrigin? origin,
         CancellationToken cancellationToken);
 }
 

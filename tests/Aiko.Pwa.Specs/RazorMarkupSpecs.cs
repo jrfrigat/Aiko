@@ -212,6 +212,35 @@ public sealed class RazorMarkupSpecs
     }
 
     [Fact]
+    public void A_note_left_from_another_project_shows_where_it_came_from()
+    {
+        var root = FindRepositoryRoot();
+        var cardPage = File.ReadAllText(
+            Path.Combine(root, "src", "Aiko.Pwa", "Pages", "CardInspector.razor"));
+
+        // A cross-project note is drawn with its origin: the feed carries the reply's provenance, not only
+        // its text, so a neighbour's note cannot read as this project's own.
+        Assert.Contains("@if (note.Origin is { } commentOrigin)", cardPage, StringComparison.Ordinal);
+        Assert.Contains("Loc.Get(\"CommentOriginTag\")", cardPage, StringComparison.Ordinal);
+        // A link needs both halves - a registered project and a named source card -, exactly as the card's
+        // own origin block does.
+        Assert.Contains(
+            "CommentOriginHref(commentOrigin) is { Length: > 0 } commentHref",
+            cardPage,
+            StringComparison.Ordinal);
+        Assert.Contains("ProjectRoutes.Card(project.Handle, cardId)", cardPage, StringComparison.Ordinal);
+
+        // The caption is a key both languages carry - an English caption on a Russian screen is the failure
+        // this pair of assertions exists to catch.
+        foreach (var resource in new[] { "Loc.resx", "Loc.ru.resx" })
+        {
+            var resx = File.ReadAllText(
+                Path.Combine(root, "src", "Aiko.Pwa", "Resources", resource));
+            Assert.Contains("name=\"CommentOriginTag\"", resx, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
     public void A_related_card_shows_its_current_status_the_way_the_board_draws_one()
     {
         var root = FindRepositoryRoot();

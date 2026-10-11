@@ -26,12 +26,12 @@ public sealed class CardTypeRenameSpecs
             await context.Cards.SaveAsync(card, 0, CancellationToken.None);
 
             RenameWorkflow(context.ProjectRoot, "task", "Chores");
-            await discussion.AppendAsync(card.Reference, "spec", "first note", CancellationToken.None);
+            await discussion.AppendAsync(card.Reference, "spec", "first note", null, CancellationToken.None);
             card = card with { Revision = 2, Title = "second" };
             await context.Cards.SaveAsync(card, 1, CancellationToken.None);
 
             RenameWorkflow(context.ProjectRoot, "task", "Errands");
-            await discussion.AppendAsync(card.Reference, "spec", "second note", CancellationToken.None);
+            await discussion.AppendAsync(card.Reference, "spec", "second note", null, CancellationToken.None);
             card = card with { Revision = 3, Title = "third" };
             await context.Cards.SaveAsync(card, 2, CancellationToken.None);
 
@@ -61,7 +61,7 @@ public sealed class CardTypeRenameSpecs
             var missing = new CardReference(context.Project.Id, "TASK-404");
 
             await Assert.ThrowsAsync<KeyNotFoundException>(async () =>
-                await discussion.AppendAsync(missing, "spec", "hello", CancellationToken.None));
+                await discussion.AppendAsync(missing, "spec", "hello", null, CancellationToken.None));
             await Assert.ThrowsAsync<KeyNotFoundException>(async () =>
                 await discussion.ListAsync(missing, CancellationToken.None));
 

@@ -20,6 +20,12 @@ internal abstract class ProjectToolBase(
     protected IHttpContextAccessor HttpContextAccessor { get; } = httpContextAccessor;
 
     /// <summary>
+    /// The registry of projects, so a tool can resolve a neighbour named by id or handle - for example a
+    /// linked project a card or a note is read from or written to.
+    /// </summary>
+    protected IProjectCatalog ProjectCatalog { get; } = projects;
+
+    /// <summary>
     /// Resolves the identifier of the current project from the MCP route.
     /// </summary>
     protected string GetProjectId()
@@ -37,7 +43,7 @@ internal abstract class ProjectToolBase(
         CancellationToken cancellationToken)
     {
         var projectId = GetProjectId();
-        return await projects.FindAsync(projectId, cancellationToken)
+        return await ProjectCatalog.FindAsync(projectId, cancellationToken)
             ?? throw new KeyNotFoundException($"Unknown Aiko project: {projectId}");
     }
 

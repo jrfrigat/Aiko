@@ -2134,6 +2134,147 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
     }
 
     [Fact]
+    public async Task A_comment_crosses_to_a_linked_project_with_its_origin_and_the_senders_policy()
+    {
+        await using var client = await ConnectAsync();
+
+        // A neighbour this project links to; the link is the boundary the note may cross.
+        var (neighbourId, _) = await InitProjectAsync(client, "Comment neighbour");
+        var link = await client.CallToolAsync(
+            "aiko_link_project",
+            new Dictionary<string, object?>
+            {
+                ["projectId"] = fixture.ProjectId,
+                ["targetProjectId"] = neighbourId,
+                ["description"] = "A neighbour this project leaves notes in."
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.False(link.IsError == true, FirstText(link));
+
+        // The neighbour holds a card this project did not make.
+        var neighbourCard = await client.CallToolAsync(
+            "aiko_create_card_in_project",
+            new Dictionary<string, object?>
+            {
+                ["projectId"] = neighbourId,
+                ["cardId"] = "TASK-NEIGHBOUR-NOTE",
+                ["kind"] = "task",
+                ["title"] = "Neighbour card",
+                ["workflowId"] = "task",
+                ["ownPriority"] = 1
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.False(neighbourCard.IsError == true, FirstText(neighbourCard));
+
+        // Reading across the link reaches the neighbour's card, so an agent never opens the neighbour's .aiko.
+        var readCard = await client.CallToolAsync(
+            "aiko_get_card",
+            new Dictionary<string, object?>
+            {
+                ["cardId"] = "TASK-NEIGHBOUR-NOTE",
+                ["projectId"] = neighbourId
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.False(readCard.IsError == true, FirstText(readCard));
+        using (var card = JsonDocument.Parse(FirstText(readCard)!))
+        {
+            Assert.Equal("Neighbour card", card.RootElement.GetProperty("title").GetString());
+        }
+
+        // The sender decides the write: deny refuses, and the refusal names what happened.
+        await SetCrossProjectPolicyAsync(fixture.ProjectRoot, "Deny", targets: null);
+        var denied = await client.CallToolAsync(
+            "aiko_add_comment",
+            new Dictionary<string, object?>
+            {
+                ["cardId"] = "TASK-NEIGHBOUR-NOTE",
+                ["body"] = "denied",
+                ["author"] = "cline",
+                ["projectId"] = neighbourId
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.True(denied.IsError);
+        Assert.Contains("denied", FirstText(denied), StringComparison.Ordinal);
+
+        // ask: refused until the agent has the user's word.
+        await SetCrossProjectPolicyAsync(fixture.ProjectRoot, "Ask", targets: null);
+        var asked = await client.CallToolAsync(
+            "aiko_add_comment",
+            new Dictionary<string, object?>
+            {
+                ["cardId"] = "TASK-NEIGHBOUR-NOTE",
+                ["body"] = "asked",
+                ["author"] = "cline",
+                ["projectId"] = neighbourId
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.True(asked.IsError);
+        Assert.Contains("userConfirmed", FirstText(asked), StringComparison.Ordinal);
+
+        // allow: the note is written, and it carries its origin.
+        await SetCrossProjectPolicyAsync(fixture.ProjectRoot, "Allow", targets: null);
+        var posted = await client.CallToolAsync(
+            "aiko_add_comment",
+            new Dictionary<string, object?>
+            {
+                ["cardId"] = "TASK-NEIGHBOUR-NOTE",
+                ["body"] = "a note from a neighbour",
+                ["author"] = "cline",
+                ["projectId"] = neighbourId,
+                ["originCardId"] = "TASK-SOURCE"
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.False(posted.IsError == true, FirstText(posted));
+        using (var comment = JsonDocument.Parse(FirstText(posted)!))
+        {
+            var origin = comment.RootElement.GetProperty("origin");
+            Assert.Equal(fixture.ProjectId, origin.GetProperty("projectId").GetString());
+            Assert.Equal("TASK-SOURCE", origin.GetProperty("cardId").GetString());
+            Assert.Equal("cline", origin.GetProperty("adapterId").GetString());
+        }
+
+        // The neighbour's own feed shows the note and where it came from.
+        var feed = await client.CallToolAsync(
+            "aiko_list_comments",
+            new Dictionary<string, object?>
+            {
+                ["cardId"] = "TASK-NEIGHBOUR-NOTE",
+                ["projectId"] = neighbourId
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.False(feed.IsError == true, FirstText(feed));
+        var entries = JsonDocument.Parse(FirstText(feed)!).RootElement.EnumerateArray().ToArray();
+        var note = Assert.Single(entries);
+        Assert.Equal("a note from a neighbour", note.GetProperty("body").GetString());
+        Assert.Equal(fixture.ProjectId, note.GetProperty("origin").GetProperty("projectId").GetString());
+
+        // A project this one is not linked to is refused, read or write alike.
+        var (strangerId, _) = await InitProjectAsync(client, "Unlinked stranger");
+        var unlinked = await client.CallToolAsync(
+            "aiko_list_comments",
+            new Dictionary<string, object?>
+            {
+                ["cardId"] = "TASK-NEIGHBOUR-NOTE",
+                ["projectId"] = strangerId
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.True(unlinked.IsError);
+        Assert.Contains("not linked", FirstText(unlinked), StringComparison.Ordinal);
+
+        // The link and the policy are taken back: the fixture project is shared with the other specs.
+        await SetCrossProjectPolicyAsync(fixture.ProjectRoot, "Deny", targets: null);
+        var removed = await client.CallToolAsync(
+            "aiko_unlink_project",
+            new Dictionary<string, object?>
+            {
+                ["projectId"] = fixture.ProjectId,
+                ["targetProjectId"] = neighbourId
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.False(removed.IsError == true, FirstText(removed));
+    }
+
+    [Fact]
     public async Task Daemon_endpoint_lists_and_initializes_projects()
     {
         var transport = new HttpClientTransport(new HttpClientTransportOptions
