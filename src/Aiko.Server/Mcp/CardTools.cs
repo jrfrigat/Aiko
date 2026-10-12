@@ -671,6 +671,10 @@ internal sealed class CardTools(
             "Set true only after the user agreed to the note, when the current project's policy is 'ask'.")]
         bool userConfirmed = false,
         [Description(
+            "Answer with the whole comment instead of the compact one. Left out, the answer is the note's id "
+            + "and its timestamp - the body is what the caller just sent, and aiko_list_comments reads it back.")]
+        bool? fullComment = null,
+        [Description(
             "Idempotency key for this call. Pass the same value when repeating a call whose answer was lost: "
             + "the repeat then returns the first note instead of writing a second one.")]
         string? requestId = null,
@@ -700,7 +704,9 @@ internal sealed class CardTools(
             body,
             origin,
             cancellationToken);
-        var answer = JsonSerializer.Serialize(comment, ServerJsonContext.Default.CardComment);
+        var answer = fullComment == true
+            ? JsonSerializer.Serialize(comment, ServerJsonContext.Default.CardComment)
+            : new JsonObject { ["id"] = comment.Id, ["createdAtUtc"] = comment.CreatedAtUtc }.ToJsonString();
         await call.RememberAsync(answer, cancellationToken);
         return answer;
     }
@@ -1040,6 +1046,11 @@ internal sealed class CardTools(
         [Description("Version read with aiko_get_card_artifact, or null when creating a new document.")]
         string? expectedVersion = null,
         [Description(
+            "Answer with the whole document instead of the compact one. Left out, the answer is the document's "
+            + "path and its new version - the content is what the caller just sent. "
+            + "aiko_get_card_artifact reads the document back.")]
+        bool? fullDocument = null,
+        [Description(
             "Idempotency key for this call. Pass the same value when repeating a call whose answer was lost: "
             + "the repeat then returns the first answer instead of writing the document a second time.")]
         string? requestId = null,
@@ -1057,7 +1068,9 @@ internal sealed class CardTools(
             content,
             expectedVersion,
             cancellationToken);
-        var answer = JsonSerializer.Serialize(document, ServerJsonContext.Default.CardArtifactDocument);
+        var answer = fullDocument == true
+            ? JsonSerializer.Serialize(document, ServerJsonContext.Default.CardArtifactDocument)
+            : new JsonObject { ["path"] = document.Path, ["version"] = document.Version }.ToJsonString();
         await call.RememberAsync(answer, cancellationToken);
         return answer;
     }

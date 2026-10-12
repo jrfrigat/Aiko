@@ -2229,7 +2229,10 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
                 ["body"] = "a note from a neighbour",
                 ["author"] = "cline",
                 ["projectId"] = neighbourId,
-                ["originCardId"] = "TASK-SOURCE"
+                ["originCardId"] = "TASK-SOURCE",
+                // The origin is part of the note itself, which the compact answer leaves to
+                // aiko_list_comments; this spec checks what the note carries.
+                ["fullComment"] = true
             },
             cancellationToken: CancellationToken.None);
         Assert.False(posted.IsError == true, FirstText(posted));

@@ -108,6 +108,9 @@ public class IdempotencySpecs(AikoServerFixture fixture) : IClassFixture<AikoSer
                 ["cardId"] = cardId,
                 ["path"] = "analysis.md",
                 ["content"] = content,
+                // The compact answer drops the content (it is what the caller just sent); these specs check
+                // what the document now holds, so they ask for the whole one.
+                ["fullDocument"] = true,
                 ["requestId"] = requestId
             },
             cancellationToken: CancellationToken.None);
@@ -151,7 +154,10 @@ public class IdempotencySpecs(AikoServerFixture fixture) : IClassFixture<AikoSer
         {
             ["cardId"] = cardId,
             ["body"] = body,
-            ["author"] = "idempotency-specs"
+            ["author"] = "idempotency-specs",
+            // The compact answer carries the note's id and timestamp; the body is what the caller just sent,
+            // so a spec that checks the note itself asks for the whole one.
+            ["fullComment"] = true
         };
         if (requestId is not null)
         {

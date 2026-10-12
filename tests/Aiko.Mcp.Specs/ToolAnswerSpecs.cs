@@ -254,6 +254,56 @@ public class ToolAnswerSpecs(AikoServerFixture fixture) : IClassFixture<AikoServ
         }
     }
 
+    [Fact]
+    public async Task The_artifact_and_comment_answers_are_compact()
+    {
+        await using var client = await ConnectToNewProjectAsync();
+        var cardId = await CreateCardIdAsync(client, "A card that takes notes");
+
+        // A document's content and a note's body are what the caller just sent. What the answer owes is the
+        // version the next write must name, and the note's identity - not the kilobytes written back out.
+        var saved = await CallAsync(
+            client,
+            "aiko_save_card_artifact",
+            new() { ["cardId"] = cardId, ["path"] = "analysis.md", ["content"] = new string('x', 3000) });
+        Assert.False(saved.IsError == true, Text(saved));
+        using (var document = JsonDocument.Parse(Text(saved)))
+        {
+            Assert.Equal("analysis.md", document.RootElement.GetProperty("path").GetString());
+            Assert.False(string.IsNullOrWhiteSpace(document.RootElement.GetProperty("version").GetString()));
+            Assert.False(document.RootElement.TryGetProperty("content", out _), Text(saved));
+        }
+
+        Assert.True(Text(saved).Length < 512, $"The artifact answer is {Text(saved).Length} characters");
+
+        var commented = await CallAsync(
+            client,
+            "aiko_add_comment",
+            new() { ["cardId"] = cardId, ["body"] = new string('y', 3000), ["author"] = "cline" });
+        Assert.False(commented.IsError == true, Text(commented));
+        using (var note = JsonDocument.Parse(Text(commented)))
+        {
+            Assert.False(string.IsNullOrWhiteSpace(note.RootElement.GetProperty("id").GetString()));
+            Assert.False(note.RootElement.TryGetProperty("body", out _), Text(commented));
+        }
+
+        Assert.True(Text(commented).Length < 512, $"The comment answer is {Text(commented).Length} characters");
+
+        // ... and the whole document is one flag away, for a caller that wants it immediately.
+        var whole = await CallAsync(
+            client,
+            "aiko_save_card_artifact",
+            new()
+            {
+                ["cardId"] = cardId,
+                ["path"] = "notes.md",
+                ["content"] = "# Whole document",
+                ["fullDocument"] = true
+            });
+        Assert.False(whole.IsError == true, Text(whole));
+        Assert.Contains("# Whole document", Text(whole), StringComparison.Ordinal);
+    }
+
     private static async Task<CallToolResult> CallAsync(
         McpClient client,
         string tool,
