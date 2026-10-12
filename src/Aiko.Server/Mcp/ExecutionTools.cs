@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Runtime.InteropServices;
 using System.Text.Json.Nodes;
 using ModelContextProtocol.Server;
 using Aiko.Application.Contracts;
@@ -18,7 +19,8 @@ internal sealed class ExecutionTools(
     IProjectCatalog projects,
     ICardBlockers blockers,
     ICardStore cards,
-    IExecutionCoordinator executions) : ProjectToolBase(httpContextAccessor, projects)
+    IIdempotencyStore idempotency,
+    IExecutionCoordinator executions) : ProjectToolBase(httpContextAccessor, projects, idempotency)
 {
     [McpServerTool(Name = "aiko_start_stage", Title = "Start Aiko stage")]
     [Description(
@@ -227,15 +229,26 @@ internal sealed class ExecutionTools(
         string message,
         [Description("Files included in the commit.")]
         string[] files,
+        [Description(
+            "Idempotency key for this call. Pass the same value when repeating a call whose answer was lost: "
+            + "the repeat then returns the first answer instead of reporting the commit twice.")]
+        [Optional] string? requestId,
         CancellationToken cancellationToken)
     {
+        if (await RecallAsync("aiko_report_commit", requestId, cancellationToken) is { } remembered)
+        {
+            return remembered;
+        }
+
         var execution = await executions.ReportCommitAsync(
             executionId,
             commitSha,
             message,
             files,
             cancellationToken);
-        return await AnswerAsync(execution, cancellationToken);
+        var answer = await AnswerAsync(execution, cancellationToken);
+        await RememberAsync("aiko_report_commit", requestId, answer, cancellationToken);
+        return answer;
     }
 
     /// <summary>

@@ -12,7 +12,11 @@ namespace Aiko.Server.Mcp;
 /// </summary>
 internal abstract class ProjectToolBase(
     IHttpContextAccessor httpContextAccessor,
-    IProjectCatalog projects)
+    IProjectCatalog projects,
+    // A tool that mutates passes the store, so a repeated call can be answered from its record instead of
+    // doing the work twice. A tool that only reads leaves it out - and a tool that asks for a key without a
+    // store is a programming error rather than a silent downgrade of the guarantee.
+    IIdempotencyStore? idempotency = null)
 {
     /// <summary>
     /// Access to the current HTTP context carrying the projectId route value.
@@ -79,4 +83,43 @@ internal abstract class ProjectToolBase(
     /// </summary>
     protected static string SerializeExecution(StageExecution execution) =>
         JsonSerializer.Serialize(execution, ServerJsonContext.Default.StageExecution);
+
+    /// <summary>
+    /// The result an earlier call of this tool returned for this key, or null when the call is new - and
+    /// null as well when the caller sent no key, which is how a call that will not be repeated is made.
+    /// </summary>
+    protected ValueTask<string?> RecallAsync(
+        string tool,
+        string? requestId,
+        CancellationToken cancellationToken) =>
+        string.IsNullOrWhiteSpace(requestId)
+            ? ValueTask.FromResult<string?>(null)
+            : Store().ReadAsync(Scope(tool), requestId.Trim(), cancellationToken);
+
+    /// <summary>
+    /// Records the result of a call that ran, so a repeat of it can be answered from the record instead of
+    /// doing the work a second time. Called after the work returned: a call that threw is not remembered.
+    /// </summary>
+    protected ValueTask RememberAsync(
+        string tool,
+        string? requestId,
+        string result,
+        CancellationToken cancellationToken) =>
+        string.IsNullOrWhiteSpace(requestId)
+            ? ValueTask.CompletedTask
+            : Store().WriteAsync(Scope(tool), requestId.Trim(), result, cancellationToken);
+
+    /// <summary>
+    /// The tool and the project a key belongs to: the same key in another tool, or in another project,
+    /// names another call.
+    /// </summary>
+    private string Scope(string tool) => $"{tool}|{GetProjectId()}";
+
+    /// <summary>
+    /// The store, or a refusal: a tool that offers a key but cannot remember it would answer a repeat by
+    /// doing the work again, which is worse than saying so.
+    /// </summary>
+    private IIdempotencyStore Store() =>
+        idempotency ?? throw new InvalidOperationException(
+            "This tool was built without an idempotency store, so it cannot answer a repeated call from a key.");
 }

@@ -82,6 +82,7 @@ builder.Services.AddSingleton<IReleaseInfoProvider, ReleaseInfoProvider>();
 builder.Services.AddSingleton<IProjectAnalytics, SqliteProjectAnalytics>();
 builder.Services.AddSingleton<IDaemonTelemetry, SqliteDaemonTelemetry>();
 builder.Services.AddSingleton<ICardDiscussionStore, FileCardDiscussionStore>();
+builder.Services.AddSingleton<IIdempotencyStore, Aiko.Infrastructure.Idempotency.FileIdempotencyStore>();
 builder.Services.AddSingleton<ICardCommandStore, FileCardCommandStore>();
 // The release history is a document of the project rather than a projection of the database: it holds the
 // answer to what went into v0.1.3, which nothing else in Aiko knows, so losing it would lose that answer.

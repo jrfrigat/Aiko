@@ -25,6 +25,7 @@ internal sealed class DaemonTools(
     IProjectDefinitionStore definitions,
     IProjectLinkStore links,
     IAppSettingsService settings,
+    IIdempotencyStore idempotency,
     IAikoEventPublisher events)
 {
     [McpServerTool(Name = "aiko_list_projects", Title = "List Aiko projects")]
@@ -156,9 +157,19 @@ internal sealed class DaemonTools(
         [Description(
             "Set true only after the user agreed to the hand-over, when the source project's policy is 'ask'.")]
         bool userConfirmed = false,
+        [Description(
+            "Idempotency key for this call. Pass the same value when repeating a call whose answer was lost: "
+            + "the repeat then returns the first card instead of filing a second one.")]
+        string? requestId = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(ownPriority);
+        var scope = $"aiko_create_card_in_project|{projectId}";
+        if (!string.IsNullOrWhiteSpace(requestId) &&
+            await idempotency.ReadAsync(scope, requestId.Trim(), cancellationToken) is { } remembered)
+        {
+            return remembered;
+        }
         // The target may be named by its readable handle; the card is filed under the project's own id.
         var project = await catalog.FindAsync(projectId, cancellationToken)
             ?? throw new KeyNotFoundException($"Unknown Aiko project: {projectId}");
@@ -251,7 +262,13 @@ internal sealed class DaemonTools(
                 cancellationToken);
         }
 
-        return JsonSerializer.Serialize(card, ServerJsonContext.Default.Card);
+        var answer = JsonSerializer.Serialize(card, ServerJsonContext.Default.Card);
+        if (!string.IsNullOrWhiteSpace(requestId))
+        {
+            await idempotency.WriteAsync(scope, requestId.Trim(), answer, cancellationToken);
+        }
+
+        return answer;
     }
 
     private static string ParseKind(string value) =>

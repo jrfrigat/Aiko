@@ -33,7 +33,8 @@ internal sealed class CardTools(
     ICardArtifactStore artifacts,
     IExecutionCoordinator executions,
     IAppSettingsService settings,
-    ReleasePlanInflow releasePlanInflow) : ProjectToolBase(httpContextAccessor, projects)
+    IIdempotencyStore idempotency,
+    ReleasePlanInflow releasePlanInflow) : ProjectToolBase(httpContextAccessor, projects, idempotency)
 {
     [McpServerTool(Name = "aiko_list_cards", Title = "List Aiko cards")]
     [Description(
@@ -166,9 +167,18 @@ internal sealed class CardTools(
             "Why the card is kept out of every plan. Required when releasePlan is \"none\": leaving work out of "
             + "a release is a decision somebody has to be able to read.")]
         [Optional] string? releasePlanReason,
+        [Description(
+            "Idempotency key for this call. Pass the same value when repeating a call whose answer was lost: "
+            + "the repeat then returns the first result instead of creating a second card. Leave it out for a "
+            + "call that will not be repeated.")]
+        [Optional] string? requestId,
         CancellationToken cancellationToken)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(ownPriority);
+        if (await RecallAsync("aiko_create_card", requestId, cancellationToken) is { } remembered)
+        {
+            return remembered;
+        }
         // The MCP route may carry the readable handle; the card is filed under the project's own id.
         var project = await GetProjectAsync(cancellationToken);
         var canonicalKind = ParseCardKind(kind);
@@ -221,7 +231,9 @@ internal sealed class CardTools(
             metadata,
             Size: string.IsNullOrWhiteSpace(size) ? null : size.Trim());
         await cards.SaveAsync(card, 0, cancellationToken);
-        return JsonSerializer.Serialize(card, ServerJsonContext.Default.Card);
+        var answer = JsonSerializer.Serialize(card, ServerJsonContext.Default.Card);
+        await RememberAsync("aiko_create_card", requestId, answer, cancellationToken);
+        return answer;
     }
 
     [McpServerTool(Name = "aiko_estimate_card", Title = "Estimate Aiko card")]
@@ -634,9 +646,17 @@ internal sealed class CardTools(
         [Description(
             "Set true only after the user agreed to the note, when the current project's policy is 'ask'.")]
         bool userConfirmed = false,
+        [Description(
+            "Idempotency key for this call. Pass the same value when repeating a call whose answer was lost: "
+            + "the repeat then returns the first note instead of writing a second one.")]
+        string? requestId = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(body);
+        if (await RecallAsync("aiko_add_comment", requestId, cancellationToken) is { } remembered)
+        {
+            return remembered;
+        }
         var (current, target, cross) = await ResolveTargetAsync(projectId, cancellationToken);
         CardOrigin? origin = null;
         if (cross)
@@ -655,7 +675,9 @@ internal sealed class CardTools(
             body,
             origin,
             cancellationToken);
-        return JsonSerializer.Serialize(comment, ServerJsonContext.Default.CardComment);
+        var answer = JsonSerializer.Serialize(comment, ServerJsonContext.Default.CardComment);
+        await RememberAsync("aiko_add_comment", requestId, answer, cancellationToken);
+        return answer;
     }
 
     [McpServerTool(Name = "aiko_list_comments", Title = "Read an Aiko card discussion")]

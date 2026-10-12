@@ -64,6 +64,16 @@ public sealed record AikoDataPaths(string DatabasePath)
     /// <param name="modelId">Model identifier, also its directory name.</param>
     public string ModelDirectory(string modelId) => Path.Combine(ModelsRoot, modelId);
 
+    /// <summary>
+    /// Root of the idempotency records: one file per key a mutating tool call can be answered from
+    /// instead of being executed twice.
+    /// </summary>
+    /// <remarks>
+    /// Daemon data rather than project data: the record is a property of the tool call - which caller
+    /// repeated which call - so it does not belong in a project's own <c>.aiko</c>.
+    /// </remarks>
+    public string IdempotencyRoot => Path.Combine(DataDirectory, "idempotency");
+
     /// <summary>Directory the daemon's own data lives in.</summary>
     private string DataDirectory =>
         Path.GetDirectoryName(DatabasePath)
