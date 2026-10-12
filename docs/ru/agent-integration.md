@@ -38,7 +38,9 @@ aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<handle>
 - **Карточки** - `aiko_list_cards`, `aiko_get_card`, `aiko_create_card`, `aiko_update_card`,
   `aiko_estimate_card`, `aiko_move_card`, `aiko_take_card`, `aiko_link_cards`, `aiko_unlink_cards`,
   `aiko_add_comment`, `aiko_list_comments`. Повторная связь уже связанных карточек возвращает существующую;
-  `aiko_unlink_cards` убирает связь по её id или по концам и типу.
+  `aiko_unlink_cards` убирает связь по её id или по концам и типу. Создание отвечает компактной карточкой —
+  её reference, kind, title, workflow, stage и revision — потому что эхо всей карточки обратно и съедает бюджет
+  сессии, когда разбор делает их десятками; за полной карточкой — `fullCard=true` или `aiko_get_card` в любой момент.
 - **Артефакты карточки** - `aiko_get_card_artifact`, `aiko_save_card_artifact`: Markdown рядом с карточкой
   (`issue.md`, `analysis.md`, `implementation.md`, ...). `aiko_get_card` уже несёт список путей и текст
   `issue.md`, поэтому обычное чтение — один вызов.

@@ -37,7 +37,10 @@ aiko-stdio --url http://127.0.0.1:<port>/mcp/projects/<handle>
 - **Cards** - `aiko_list_cards`, `aiko_get_card`, `aiko_create_card`, `aiko_update_card`,
   `aiko_estimate_card`, `aiko_move_card`, `aiko_take_card`, `aiko_link_cards`, `aiko_unlink_cards`,
   `aiko_add_comment`, `aiko_list_comments`. Linking cards that already have the edge returns the existing link;
-  `aiko_unlink_cards` takes a link back by its id or by its ends and type.
+  `aiko_unlink_cards` takes a link back by its id or by its ends and type. A creation answers with a compact
+  card - its reference, kind, title, workflow, stage and revision - because echoing the whole card back is what a
+  session's budget goes on when a breakdown makes dozens of them; pass `fullCard=true` for the whole card, or read
+  it any time with `aiko_get_card`.
 - **Card artifacts** - `aiko_get_card_artifact`, `aiko_save_card_artifact`: the Markdown beside a card
   (`issue.md`, `analysis.md`, `implementation.md`, ...). `aiko_get_card` already carries the list of paths and
   the text of `issue.md`, so the common read is one call.

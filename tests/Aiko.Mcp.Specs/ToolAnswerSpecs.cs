@@ -89,6 +89,111 @@ public class ToolAnswerSpecs(AikoServerFixture fixture) : IClassFixture<AikoServ
         Assert.Contains("aiko_get_card_artifact", reason, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task A_creation_answers_with_a_compact_card()
+    {
+        await using var client = await ConnectToNewProjectAsync();
+
+        // Five creations in a row, as a breakdown makes them: each answer has to stay the size of the id an
+        // agent acts on, not the size of the requirements it just sent.
+        for (var index = 0; index < 5; index++)
+        {
+            var created = await CallAsync(
+                client,
+                "aiko_create_card",
+                new()
+                {
+                    ["kind"] = "task",
+                    ["title"] = $"Breakdown {index}",
+                    ["ownPriority"] = 1,
+                    ["declaredScopeFiles"] = new[] { "src/**" },
+                    ["requirements"] = new string('x', 4000)
+                });
+
+            Assert.NotEqual(true, created.IsError);
+            var text = Text(created);
+            using var answer = JsonDocument.Parse(text);
+
+            // The answer is the card's identity next to the revision the next call must name - and nothing
+            // else. The texts a creation took in are not echoed back, and the scope is not either.
+            var keys = answer.RootElement.EnumerateObject()
+                .Select(property => property.Name)
+                .OrderBy(name => name, StringComparer.Ordinal)
+                .ToArray();
+            Assert.Equal(
+                ["kind", "reference", "revision", "stageId", "title", "workflowId"],
+                keys);
+            Assert.Equal(1, answer.RootElement.GetProperty("revision").GetInt64());
+            Assert.Equal("backlog", answer.RootElement.GetProperty("stageId").GetString());
+            Assert.StartsWith(
+                "TASK-",
+                answer.RootElement.GetProperty("reference").GetProperty("cardId").GetString(),
+                StringComparison.Ordinal);
+            // An answer an agent reads without spending its budget: one or two screens at most.
+            Assert.True(text.Length < 512, $"The creation answer is {text.Length} characters: {text}");
+        }
+    }
+
+    [Fact]
+    public async Task A_creation_can_answer_with_the_whole_card()
+    {
+        await using var client = await ConnectToNewProjectAsync();
+
+        var created = await CallAsync(
+            client,
+            "aiko_create_card",
+            new()
+            {
+                ["kind"] = "task",
+                ["title"] = "The whole card, please",
+                ["ownPriority"] = 1,
+                ["declaredScopeFiles"] = new[] { "src/**" },
+                ["requirements"] = "Make the dropdown list every value.",
+                ["fullCard"] = true
+            });
+
+        Assert.NotEqual(true, created.IsError);
+        using var answer = JsonDocument.Parse(Text(created));
+
+        // The option restores the whole card: the texts, the scope and the plan attribution a compact
+        // answer leaves to aiko_get_card.
+        Assert.Equal(
+            "Make the dropdown list every value.",
+            answer.RootElement.GetProperty("metadata").GetProperty("requirements").GetString());
+        Assert.Equal(
+            "src/**",
+            answer.RootElement.GetProperty("declaredScopeFiles").EnumerateArray().Single().GetString());
+        Assert.Equal("The whole card, please", answer.RootElement.GetProperty("title").GetString());
+    }
+
+    [Fact]
+    public async Task A_child_can_be_linked_to_its_parent_from_the_compact_answers()
+    {
+        await using var client = await ConnectToNewProjectAsync();
+        var parent = await CreateCardIdAsync(client, "Parent of the child");
+        var child = await CreateCardIdAsync(client, "Child of the parent");
+
+        var linked = await CallAsync(
+            client,
+            "aiko_link_cards",
+            new()
+            {
+                ["sourceCardId"] = parent,
+                ["targetCardId"] = child,
+                ["relationType"] = "parent-child"
+            });
+        Assert.NotEqual(true, linked.IsError);
+
+        // The compact answer carried everything the link needed - the id and nothing more.
+        using var board = JsonDocument.Parse(Text(await CallAsync(client, "aiko_list_board", new())));
+        Assert.Contains(
+            board.RootElement.GetProperty("relations").EnumerateArray(),
+            relation =>
+                relation.GetProperty("source").GetProperty("cardId").GetString() == parent
+                && relation.GetProperty("target").GetProperty("cardId").GetString() == child
+                && relation.GetProperty("type").GetString() == "parent-child");
+    }
+
     private static async Task<CallToolResult> CallAsync(
         McpClient client,
         string tool,
@@ -98,12 +203,16 @@ public class ToolAnswerSpecs(AikoServerFixture fixture) : IClassFixture<AikoServ
     private static string Text(CallToolResult result) =>
         result.Content.OfType<TextContentBlock>().First().Text;
 
-    private static async Task<string> CreateCardAsync(McpClient client)
+    private static Task<string> CreateCardAsync(McpClient client) =>
+        CreateCardIdAsync(client, "Answer me");
+
+    /// <summary>Creates a card and reads its id out of the compact answer a creation gives by default.</summary>
+    private static async Task<string> CreateCardIdAsync(McpClient client, string title)
     {
         var created = await CallAsync(
             client,
             "aiko_create_card",
-            new() { ["kind"] = "task", ["title"] = "Answer me", ["ownPriority"] = 1 });
+            new() { ["kind"] = "task", ["title"] = title, ["ownPriority"] = 1 });
         using var json = JsonDocument.Parse(Text(created));
         return json.RootElement.GetProperty("reference").GetProperty("cardId").GetString()!;
     }

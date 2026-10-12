@@ -158,6 +158,12 @@ internal sealed class DaemonTools(
             "Set true only after the user agreed to the hand-over, when the source project's policy is 'ask'.")]
         bool userConfirmed = false,
         [Description(
+            "Answer with the whole card instead of the compact one. Left out, the answer is the card's "
+            + "reference, kind, title, workflow, stage and revision - which is what linking it to its parent "
+            + "or estimating it next needs. Pass true only when its texts, scope or plan attribution are "
+            + "wanted right away.")]
+        bool? fullCard = null,
+        [Description(
             "Idempotency key for this call. Pass the same value when repeating a call whose answer was lost: "
             + "the repeat then returns the first card instead of filing a second one.")]
         string? requestId = null,
@@ -270,7 +276,7 @@ internal sealed class DaemonTools(
                 cancellationToken);
         }
 
-        var answer = JsonSerializer.Serialize(card, ServerJsonContext.Default.Card);
+        var answer = CardAnswer.For(card, fullCard == true);
         if (!string.IsNullOrWhiteSpace(key))
         {
             await idempotency.WriteAsync(scope, key, answer, cancellationToken);

@@ -168,6 +168,12 @@ internal sealed class CardTools(
             + "a release is a decision somebody has to be able to read.")]
         [Optional] string? releasePlanReason,
         [Description(
+            "Answer with the whole card instead of the compact one. Left out, the answer is the card's "
+            + "reference, kind, title, workflow, stage and revision - which is what linking it to its parent "
+            + "or estimating it next needs. Pass true only when its texts, scope or plan attribution are "
+            + "wanted right away; aiko_get_card reads the whole card at any time.")]
+        [Optional] bool? fullCard,
+        [Description(
             "Idempotency key for this call. Pass the same value when repeating a call whose answer was lost: "
             + "the repeat then returns the first result instead of creating a second card. Leave it out for a "
             + "call that will not be repeated.")]
@@ -232,7 +238,7 @@ internal sealed class CardTools(
             metadata,
             Size: string.IsNullOrWhiteSpace(size) ? null : size.Trim());
         await cards.SaveAsync(card, 0, cancellationToken);
-        var answer = JsonSerializer.Serialize(card, ServerJsonContext.Default.Card);
+        var answer = CardAnswer.For(card, fullCard == true);
         await call.RememberAsync(answer, cancellationToken);
         return answer;
     }

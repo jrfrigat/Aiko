@@ -61,7 +61,10 @@ public class ReleasePlanInflowSpecs(AikoServerFixture fixture) : IClassFixture<A
         {
             ["kind"] = "task",
             ["title"] = title,
-            ["ownPriority"] = 1
+            ["ownPriority"] = 1,
+            // The creation answers with a compact card by default; these specs read the card's plan
+            // attribution, which sits in its metadata, so they ask for the whole card.
+            ["fullCard"] = true
         };
         if (releasePlan is not null)
         {

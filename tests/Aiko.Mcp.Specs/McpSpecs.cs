@@ -1957,7 +1957,10 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
                 ["stageId"] = "backlog",
                 ["ownPriority"] = 3,
                 ["declaredScopeFiles"] = new[] { "lib/**" },
-                ["originProjectId"] = sourceId
+                ["originProjectId"] = sourceId,
+                // The origin is card metadata the compact answer leaves to aiko_get_card, and this spec is
+                // about what the daemon recorded on the card.
+                ["fullCard"] = true
             },
             cancellationToken: CancellationToken.None);
         Assert.NotEqual(true, create.IsError);
