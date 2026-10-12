@@ -2954,6 +2954,14 @@ public class InfrastructureSpecs
             Assert.DoesNotContain("stageId=", story, StringComparison.Ordinal);
             // ...but it does estimate the card in the same pass, so a new card is never left unranked.
             Assert.Contains("aiko_estimate_card", story, StringComparison.Ordinal);
+            // The creation answer already carries the card's revision, so no procedure may send the agent back
+            // to read the card it has just created: that second call was pure cost (EPIC-8 / STORY-41).
+            foreach (var command in new[] { "aiko-create.md", "aiko-create-sub.md", "aiko-create-story.md" })
+            {
+                var text = await File.ReadAllTextAsync(Path.Combine(commands, command));
+                Assert.DoesNotContain("read the card back", text, StringComparison.Ordinal);
+                Assert.DoesNotContain("read it back", text, StringComparison.Ordinal);
+            }
 
             // A sub-card is linked from its parent: the edge the board reads as parent to child.
             var sub = await File.ReadAllTextAsync(Path.Combine(commands, "aiko-create-sub.md"));

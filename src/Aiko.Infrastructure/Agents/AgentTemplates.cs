@@ -206,9 +206,9 @@ internal static class AgentTemplates
         being able to change it once it leaves the backlog. Put what the card is asked to do into requirements
         when it says more than the title: that one describes the work, and it changes as the work is understood.
 
-        Estimate the card in the same pass, unless the user gave the numbers themselves: read the card back to
-        get its revision, judge the size step whose description matches the work and every criterion the
-        project defines, and write them with aiko_estimate_card.
+        Estimate the card in the same pass, unless the user gave the numbers themselves: the creation answer
+        already carries the card's revision, so judge the size step whose description matches the work and
+        every criterion the project defines, and write them with aiko_estimate_card.
 
         Report at the end: the created card id, the size and the scores you wrote, and one line on what the
         card is about.
@@ -241,9 +241,9 @@ internal static class AgentTemplates
         sub-card id as targetCardId and "parent-child" as the relation type. The edge points from the parent
         to the child; the other way round the board would show the sub-card as the parent.
 
-        Finally estimate the new card exactly as the aiko-create procedure does - read it back for its
-        revision, judge the size step and every criterion the project defines, and write them with
-        aiko_estimate_card.
+        Finally estimate the new card exactly as the aiko-create procedure does - the creation answer already
+        carries the card's revision, so judge the size step and every criterion the project defines, and
+        write them with aiko_estimate_card.
 
         Report at the end: the created card id, its parent, and the size and scores you wrote.
         """;
@@ -273,9 +273,9 @@ internal static class AgentTemplates
             context lists the rest of that pipeline if you need it. Put the user's own wording into request and
             what the card is asked to do into requirements when the title alone is not enough.
 
-            Estimate the card in the same pass, unless the user gave the numbers themselves: read it back for
-            its revision, judge the size step and every criterion the project defines, and write them with
-            aiko_estimate_card.
+            Estimate the card in the same pass, unless the user gave the numbers themselves: the creation
+            answer already carries the card's revision, so judge the size step and every criterion the
+            project defines, and write them with aiko_estimate_card.
 
             Report at the end: the created card id, the size and the scores you wrote, and one line on what
             the card is about.
