@@ -175,7 +175,8 @@ internal sealed class CardTools(
         CancellationToken cancellationToken)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(ownPriority);
-        if (await RecallAsync("aiko_create_card", requestId, cancellationToken) is { } remembered)
+        await using var call = await BeginCallAsync("aiko_create_card", requestId, cancellationToken);
+        if (call.Remembered is { } remembered)
         {
             return remembered;
         }
@@ -232,7 +233,7 @@ internal sealed class CardTools(
             Size: string.IsNullOrWhiteSpace(size) ? null : size.Trim());
         await cards.SaveAsync(card, 0, cancellationToken);
         var answer = JsonSerializer.Serialize(card, ServerJsonContext.Default.Card);
-        await RememberAsync("aiko_create_card", requestId, answer, cancellationToken);
+        await call.RememberAsync(answer, cancellationToken);
         return answer;
     }
 
@@ -261,8 +262,18 @@ internal sealed class CardTools(
             "True to replace the card's scores with exactly the ones passed, dropping the rest; left out, the "
             + "passed scores are merged into the stored ones.")]
         [Optional] bool? replaceScores,
+        [Description(
+            "Idempotency key for this call. Pass the same value when repeating a call whose answer was lost: "
+            + "the repeat then returns the first answer instead of estimating the card a second time.")]
+        [Optional] string? requestId,
         CancellationToken cancellationToken)
     {
+        await using var call = await BeginCallAsync("aiko_estimate_card", requestId, cancellationToken);
+        if (call.Remembered is { } remembered)
+        {
+            return remembered;
+        }
+
         var reference = new CardReference(GetProjectId(), cardId);
         var existing = await cards.FindAsync(reference, cancellationToken)
             ?? throw new KeyNotFoundException($"Card '{cardId}' was not found.");
@@ -311,7 +322,9 @@ internal sealed class CardTools(
             Revision = existing.Revision + 1
         };
         await cards.SaveAsync(updated, expectedRevision, cancellationToken);
-        return JsonSerializer.Serialize(updated, ServerJsonContext.Default.Card);
+        var answer = JsonSerializer.Serialize(updated, ServerJsonContext.Default.Card);
+        await call.RememberAsync(answer, cancellationToken);
+        return answer;
     }
 
     [McpServerTool(Name = "aiko_update_card", Title = "Update Aiko card")]
@@ -653,7 +666,8 @@ internal sealed class CardTools(
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(body);
-        if (await RecallAsync("aiko_add_comment", requestId, cancellationToken) is { } remembered)
+        await using var call = await BeginCallAsync("aiko_add_comment", requestId, cancellationToken);
+        if (call.Remembered is { } remembered)
         {
             return remembered;
         }
@@ -676,7 +690,7 @@ internal sealed class CardTools(
             origin,
             cancellationToken);
         var answer = JsonSerializer.Serialize(comment, ServerJsonContext.Default.CardComment);
-        await RememberAsync("aiko_add_comment", requestId, answer, cancellationToken);
+        await call.RememberAsync(answer, cancellationToken);
         return answer;
     }
 
@@ -1011,14 +1025,26 @@ internal sealed class CardTools(
         string content,
         [Description("Version read with aiko_get_card_artifact, or null when creating a new document.")]
         string? expectedVersion = null,
+        [Description(
+            "Idempotency key for this call. Pass the same value when repeating a call whose answer was lost: "
+            + "the repeat then returns the first answer instead of writing the document a second time.")]
+        string? requestId = null,
         CancellationToken cancellationToken = default)
     {
+        await using var call = await BeginCallAsync("aiko_save_card_artifact", requestId, cancellationToken);
+        if (call.Remembered is { } remembered)
+        {
+            return remembered;
+        }
+
         var document = await artifacts.SaveAsync(
             new CardReference(GetProjectId(), cardId),
             path,
             content,
             expectedVersion,
             cancellationToken);
-        return JsonSerializer.Serialize(document, ServerJsonContext.Default.CardArtifactDocument);
+        var answer = JsonSerializer.Serialize(document, ServerJsonContext.Default.CardArtifactDocument);
+        await call.RememberAsync(answer, cancellationToken);
+        return answer;
     }
 }

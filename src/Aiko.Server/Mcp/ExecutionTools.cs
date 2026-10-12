@@ -235,7 +235,8 @@ internal sealed class ExecutionTools(
         [Optional] string? requestId,
         CancellationToken cancellationToken)
     {
-        if (await RecallAsync("aiko_report_commit", requestId, cancellationToken) is { } remembered)
+        await using var call = await BeginCallAsync("aiko_report_commit", requestId, cancellationToken);
+        if (call.Remembered is { } remembered)
         {
             return remembered;
         }
@@ -247,7 +248,7 @@ internal sealed class ExecutionTools(
             files,
             cancellationToken);
         var answer = await AnswerAsync(execution, cancellationToken);
-        await RememberAsync("aiko_report_commit", requestId, answer, cancellationToken);
+        await call.RememberAsync(answer, cancellationToken);
         return answer;
     }
 

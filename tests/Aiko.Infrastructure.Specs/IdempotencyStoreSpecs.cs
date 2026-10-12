@@ -91,6 +91,79 @@ public class IdempotencyStoreSpecs
         Assert.Contains(record, failure.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task The_gate_holds_a_second_call_with_the_same_key_until_the_first_lets_go()
+    {
+        using var directory = new TemporaryDirectory();
+        var store = StoreIn(directory);
+        var steps = new List<string>();
+        var firstIsHolding = new TaskCompletionSource();
+        var firstMayLetGo = new TaskCompletionSource();
+
+        var first = Task.Run(async () =>
+        {
+            await using var gate = await store.EnterAsync(Scope, "key-1", CancellationToken.None);
+            lock (steps)
+            {
+                steps.Add("first holds");
+            }
+
+            firstIsHolding.SetResult();
+            await firstMayLetGo.Task;
+            lock (steps)
+            {
+                steps.Add("first lets go");
+            }
+        });
+        await firstIsHolding.Task;
+
+        var second = Task.Run(async () =>
+        {
+            await using var gate = await store.EnterAsync(Scope, "key-1", CancellationToken.None);
+            lock (steps)
+            {
+                steps.Add("second holds");
+            }
+        });
+        await Task.Delay(100);
+
+        // The second call is waiting on the key, not running beside the first.
+        Assert.Equal(new[] { "first holds" }, steps);
+
+        firstMayLetGo.SetResult();
+        await Task.WhenAll(first, second);
+        Assert.Equal(new[] { "first holds", "first lets go", "second holds" }, steps);
+    }
+
+    [Fact]
+    public async Task Another_key_does_not_wait_for_the_first()
+    {
+        using var directory = new TemporaryDirectory();
+        var store = StoreIn(directory);
+        await using var first = await store.EnterAsync(Scope, "key-1", CancellationToken.None);
+
+        // A different key is a different call: holding one must not hold the other.
+        var other = await store.EnterAsync(Scope, "key-2", CancellationToken.None)
+            .AsTask()
+            .WaitAsync(TimeSpan.FromSeconds(5));
+        await other.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task A_key_is_free_again_once_the_call_that_held_it_let_go()
+    {
+        using var directory = new TemporaryDirectory();
+        var store = StoreIn(directory);
+
+        await using (var gate = await store.EnterAsync(Scope, "key-1", CancellationToken.None))
+        {
+            await store.WriteAsync(Scope, "key-1", "value", CancellationToken.None);
+        }
+
+        await using var next = await store.EnterAsync(Scope, "key-1", CancellationToken.None);
+        Assert.Equal("value", await store.ReadAsync(Scope, "key-1", CancellationToken.None));
+    }
+
     private static FileIdempotencyStore StoreIn(TemporaryDirectory directory) =>
         new(new AikoDataPaths(Path.Combine(directory.Path, "aiko.db")));
 

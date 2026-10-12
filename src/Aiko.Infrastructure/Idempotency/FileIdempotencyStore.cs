@@ -20,6 +20,10 @@ public sealed class FileIdempotencyStore(AikoDataPaths paths) : IIdempotencyStor
 {
     private const int CurrentSchemaVersion = 1;
     private readonly SemaphoreSlim _writeLock = new(1, 1);
+    // The gates of the keys calls are holding right now, one entry per key in flight rather than one per key
+    // that ever was: an entry leaves the table when the last of its holders lets go.
+    private readonly Dictionary<string, GateEntry> _gates = new(StringComparer.Ordinal);
+    private readonly SemaphoreSlim _gatesLock = new(1, 1);
 
     /// <inheritdoc />
     public async ValueTask<string?> ReadAsync(
@@ -92,6 +96,98 @@ public sealed class FileIdempotencyStore(AikoDataPaths paths) : IIdempotencyStor
             _writeLock.Release();
         }
     }
+
+    /// <inheritdoc />
+    public async ValueTask<IAsyncDisposable> EnterAsync(
+        string scope,
+        string requestId,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(scope);
+        ArgumentException.ThrowIfNullOrWhiteSpace(requestId);
+        var identity = Identity(scope, requestId);
+        GateEntry entry;
+        await _gatesLock.WaitAsync(cancellationToken);
+        try
+        {
+            if (!_gates.TryGetValue(identity, out entry!))
+            {
+                entry = new GateEntry();
+                _gates[identity] = entry;
+            }
+
+            // Counted under the table's lock, so a holder can never be holding an entry that was taken out.
+            entry.Holders++;
+        }
+        finally
+        {
+            _gatesLock.Release();
+        }
+
+        try
+        {
+            await entry.Gate.WaitAsync(cancellationToken);
+        }
+        catch
+        {
+            await LeaveAsync(identity, entry);
+            throw;
+        }
+
+        return new Gate(this, identity, entry);
+    }
+
+    /// <summary>
+    /// Lets go of one holder of a key: the gate is handed to the next caller, and the entry leaves the table
+    /// when this was the last holder of it.
+    /// </summary>
+    private async ValueTask LeaveAsync(string identity, GateEntry entry)
+    {
+        entry.Gate.Release();
+        await _gatesLock.WaitAsync();
+        try
+        {
+            entry.Holders--;
+            if (entry.Holders == 0)
+            {
+                _gates.Remove(identity);
+            }
+        }
+        finally
+        {
+            _gatesLock.Release();
+        }
+    }
+
+    /// <summary>One key's gate, and how many calls are holding or waiting for it.</summary>
+    private sealed class GateEntry
+    {
+        public SemaphoreSlim Gate { get; } = new(1, 1);
+
+        public int Holders { get; set; }
+    }
+
+    /// <summary>
+    /// A held gate: letting go of it is what lets the next call with this key in, or lets the entry go.
+    /// </summary>
+    private sealed class Gate(FileIdempotencyStore store, string identity, GateEntry entry) : IAsyncDisposable
+    {
+        private int _released;
+
+        public async ValueTask DisposeAsync()
+        {
+            // A caller that disposes twice releases one holder once: the count is what keeps the table honest.
+            if (Interlocked.Exchange(ref _released, 1) == 0)
+            {
+                await store.LeaveAsync(identity, entry);
+            }
+        }
+    }
+
+    /// <summary>
+    /// What names one key: the scope it belongs to and the caller's own value for it.
+    /// </summary>
+    private static string Identity(string scope, string requestId) => $"{scope}\n{requestId}";
 
     /// <summary>
     /// Where one key's record lives: a hash of the scope and the key under the daemon's idempotency root.

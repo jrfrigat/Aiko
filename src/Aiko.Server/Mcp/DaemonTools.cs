@@ -170,8 +170,14 @@ internal sealed class DaemonTools(
         var project = await catalog.FindAsync(projectId, cancellationToken)
             ?? throw new KeyNotFoundException($"Unknown Aiko project: {projectId}");
         var scope = $"aiko_create_card_in_project|{project.Id}";
-        if (!string.IsNullOrWhiteSpace(requestId) &&
-            await idempotency.ReadAsync(scope, requestId.Trim(), cancellationToken) is { } remembered)
+        // The gate is taken before the record is read and held to the end of this call, which is what keeps two
+        // calls with one key from filing two cards. A caller that sent no key takes nothing.
+        var key = requestId?.Trim();
+        await using var gate = string.IsNullOrWhiteSpace(key)
+            ? NoIdempotencyGate.Instance
+            : await idempotency.EnterAsync(scope, key, cancellationToken);
+        if (!string.IsNullOrWhiteSpace(key) &&
+            await idempotency.ReadAsync(scope, key, cancellationToken) is { } remembered)
         {
             return remembered;
         }
@@ -265,9 +271,9 @@ internal sealed class DaemonTools(
         }
 
         var answer = JsonSerializer.Serialize(card, ServerJsonContext.Default.Card);
-        if (!string.IsNullOrWhiteSpace(requestId))
+        if (!string.IsNullOrWhiteSpace(key))
         {
-            await idempotency.WriteAsync(scope, requestId.Trim(), answer, cancellationToken);
+            await idempotency.WriteAsync(scope, key, answer, cancellationToken);
         }
 
         return answer;
