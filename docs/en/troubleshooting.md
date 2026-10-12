@@ -281,3 +281,32 @@ and how that stage stopped: `still running`, `paused`, `waiting for a user decis
 attention`, `cancelled` or `not started`. What to do: go back to that stage, continue it with
 `aiko_start_stage` or finish it with `aiko_complete_stage`; a card moves on because its stage is completed,
 not because the card was moved on.
+
+## The MCP client refuses a call because its approval review failed
+
+Codex decides on its own whether an MCP tool call may run without asking you, and it can make that
+decision with a model call of its own - an "automatic approval review". When that call is rate limited,
+the tool call never reaches Aiko:
+
+    Automatic approval review failed: exceeded retry limit, last status: 429 Too Many Requests
+
+Two consequences matter when you read this in a session:
+
+- **Aiko is not the source.** Nothing in Aiko answers 429, and Aiko has no approval review. Because the
+  call was never sent, the daemon's journal holds no trace of it - a missing entry there is expected, not
+  lost data.
+- **Nothing Aiko holds was lost.** A stage, its execution and its artifacts live in the project, not in the
+  conversation that was interrupted. An artifact a stage saved is still beside the card, and the execution
+  is still the one to continue.
+
+What to do: repeat the call. `aiko_start_stage` for a stage that is already in progress continues *that*
+execution instead of opening another one, and `aiko_complete_stage` still refuses to close a stage that was
+not re-estimated in the same run, so a stage is never finished on a score nobody refreshed. Do not work
+around the approval check: a review failure is not a verdict that the call is unsafe, and the client says so
+itself. If it keeps happening, the limit is on the client's side - slow the burst of tool calls down or wait.
+
+Before repeating a call that may have executed while its answer was lost, read the board: the project is the
+record, so a card, a comment or a recorded commit that landed is visible there. Aiko's mutating tools carry
+no idempotency key yet, so a blind retry of one can leave a second card, a second comment or a second commit
+behind; the journal records a mutation once it happened, which is what makes the board the place to check.
+
