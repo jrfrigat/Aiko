@@ -114,6 +114,10 @@ namespace Aiko.Pwa.Services;
 [JsonSerializable(typeof(MemoryDocument))]
 [JsonSerializable(typeof(IReadOnlyList<MemoryDocument>))]
 [JsonSerializable(typeof(StoreMemoryRequest))]
+// The new-card form's draft, which the browser keeps between visits. Its shape is the contract: a draft
+// written by an older shape is dropped rather than half-read into the form.
+[JsonSerializable(typeof(NewCardDraft))]
+[JsonSerializable(typeof(Dictionary<string, decimal>))]
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     UseStringEnumConverter = true)]

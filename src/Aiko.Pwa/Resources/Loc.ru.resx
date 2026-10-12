@@ -483,6 +483,57 @@
   <data name="LeaveWithUnsavedEdits" xml:space="preserve">
     <value>Есть несохранённые правки. Уйти и потерять их?</value>
   </data>
+  <data name="ProjectMemoryUnsaved" xml:space="preserve">
+    <value>Не сохранено</value>
+  </data>
+  <data name="ProjectMemoryLeaveTitle" xml:space="preserve">
+    <value>В документе есть несохранённый текст</value>
+  </data>
+  <data name="ProjectMemoryLeaveHint" xml:space="preserve">
+    <value>Сохранение сначала запишет его в память проекта. Отбрасывание продолжит действие и оставит файл как есть.</value>
+  </data>
+  <data name="ProjectMemoryLeaveSave" xml:space="preserve">
+    <value>Сохранить и продолжить</value>
+  </data>
+  <data name="ProjectMemoryLeaveDiscard" xml:space="preserve">
+    <value>Отбросить и продолжить</value>
+  </data>
+  <data name="ProjectMemoryLeaveStay" xml:space="preserve">
+    <value>Остаться здесь</value>
+  </data>
+  <data name="ProjectMemoryDeleteTitle" xml:space="preserve">
+    <value>Удалить этот документ?</value>
+  </data>
+  <data name="ProjectMemoryDeleteWarning" xml:space="preserve">
+    <value>Он уходит из памяти проекта насовсем. Вернуть его с этого экрана нечем, и несохранённый текст в редакторе уйдёт вместе с ним.</value>
+  </data>
+  <data name="ProjectMemoryDeleteKeep" xml:space="preserve">
+    <value>Оставить</value>
+  </data>
+  <data name="ProjectMemoryDeleteConfirm" xml:space="preserve">
+    <value>Удалить</value>
+  </data>
+  <data name="NewCardDraftRestored" xml:space="preserve">
+    <value>Незаконченная карточка вернулась. Карточка из неё не создавалась — создайте, когда будет готова.</value>
+  </data>
+  <data name="NewCardDraftStartOver" xml:space="preserve">
+    <value>Начать заново</value>
+  </data>
+  <data name="NewCardCancelTitle" xml:space="preserve">
+    <value>Уйти с новой карточки?</value>
+  </data>
+  <data name="NewCardCancelHint" xml:space="preserve">
+    <value>Черновик может остаться в этом браузере и вернуться, когда вы снова откроете эту страницу.</value>
+  </data>
+  <data name="NewCardCancelStay" xml:space="preserve">
+    <value>Остаться и продолжить</value>
+  </data>
+  <data name="NewCardCancelKeepDraft" xml:space="preserve">
+    <value>Уйти, сохранив черновик</value>
+  </data>
+  <data name="NewCardCancelDiscard" xml:space="preserve">
+    <value>Уйти и удалить черновик</value>
+  </data>
   <data name="ArtifactModified" xml:space="preserve">
     <value>Изменён</value>
   </data>

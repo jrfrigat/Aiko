@@ -6,6 +6,11 @@
 @inject WorkspaceState State
 @inject IJSRuntime Js
 
+@* Text that is not in the file yet is not left behind by a click: a click inside the page asks with the page's
+   own dialog, and the app's own menu, the browser's back button and a closed tab ask the same way the card
+   inspector and the artifact editor ask. *@
+<NavigationLock ConfirmExternalNavigation="@IsDirty" OnBeforeInternalNavigation="ConfirmNavigationAsync" />
+
 @* The project's durable memory: the Markdown documents under `.aiko/memory` that an agent reads and
    writes with its tools. This screen is the same door a person can use - the list, the search, and the
    document itself - and it writes through the same store, so an agent and a screen never see two memories.
@@ -146,7 +151,13 @@
                         Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small" Wrap="true">
                 <FlareText Element="h3" Typo="TypographyScale.TitleSmall">@Loc.Get("ProjectMemoryEditor")</FlareText>
                 <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
-                    <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm" OnClick="BeginNew">
+                    @* The editor says when its text is not in the file yet, so that leaving it behind is a
+                       choice the reader can see rather than something that happens to them. *@
+                    @if (IsDirty)
+                    {
+                        <span class="aiko-tag aiko-tag--pill">@Loc.Get("ProjectMemoryUnsaved")</span>
+                    }
+                    <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm" OnClick="BeginNewAsync">
                         <ChildContent>@Loc.Get("ProjectMemoryNew")</ChildContent>
                     </FlareButton>
                     <FlareButton Variant="ButtonVariant.Filled"
@@ -158,7 +169,7 @@
                     <FlareButton Variant="ButtonVariant.Outlined"
                                  Size="ButtonSize.Sm"
                                  Disabled="@(!IsOpen)"
-                                 OnClick="DeleteAsync">
+                                 OnClick="AskDelete">
                         <ChildContent>@Loc.Get("ProjectMemoryDelete")</ChildContent>
                     </FlareButton>
                 </FlareStack>
@@ -187,6 +198,66 @@
                          ValueChanged="value => _content = value" />
         </FlareStack>
     </FlarePaper>
+
+    @* A click that would replace the text in the editor asks first, and the answer decides what happens:
+       saving writes the text before the click goes on, discarding lets the click go on without it, and
+       staying lets the click fall - the editor is left exactly as it was. The question is Flare's own dialog,
+       so it is reachable by keyboard and dismissible with Escape. *@
+    <FlareDialog Visible="@(_leaveAction is not null)"
+                 VisibleChanged="value => { if (!value) { CancelLeave(); } }"
+                 Title="@Loc.Get("ProjectMemoryLeaveTitle")">
+        <ChildContent>
+            <FlareText Element="p" Typo="TypographyScale.BodyMedium" Color="FlareColor.OnSurfaceVariant">
+                @Loc.Get("ProjectMemoryLeaveHint")
+            </FlareText>
+        </ChildContent>
+        <ActionsContent>
+            <FlareButton Variant="ButtonVariant.Filled"
+                         Size="ButtonSize.Sm"
+                         Disabled="@(!CanSave)"
+                         Loading="@_leaving"
+                         OnClick="SaveAndLeaveAsync">
+                <ChildContent>@Loc.Get("ProjectMemoryLeaveSave")</ChildContent>
+            </FlareButton>
+            <FlareButton Variant="ButtonVariant.Outlined"
+                         Size="ButtonSize.Sm"
+                         Loading="@_leaving"
+                         OnClick="DiscardAndLeaveAsync">
+                <ChildContent>@Loc.Get("ProjectMemoryLeaveDiscard")</ChildContent>
+            </FlareButton>
+            <FlareButton Variant="ButtonVariant.Text"
+                         Size="ButtonSize.Sm"
+                         OnClick="CancelLeave">
+                <ChildContent>@Loc.Get("ProjectMemoryLeaveStay")</ChildContent>
+            </FlareButton>
+        </ActionsContent>
+    </FlareDialog>
+
+    @* Deleting a document is asked about with the document's own path in the question: the file leaves the
+       memory for good and nothing on this screen brings it back. The safe answer comes first, and Escape
+       takes it too - the dialog closes without a word, and so does a click on the scrim. *@
+    <FlareDialog Visible="@_deleteAsk"
+                 VisibleChanged="value => _deleteAsk = value"
+                 Title="@Loc.Get("ProjectMemoryDeleteTitle")">
+        <ChildContent>
+            <FlareStack Gap="FlareSpacing.Small">
+                <FlareAlert Severity="AlertSeverity.Warning" Variant="AlertVariant.Outlined">
+                    @Loc.Get("ProjectMemoryDeleteWarning")
+                </FlareAlert>
+                <FlareText Element="span" Mono="true" Typo="TypographyScale.LabelMedium" Weight="FontWeight.SemiBold">
+                    @_open?.Path
+                </FlareText>
+            </FlareStack>
+        </ChildContent>
+        <ActionsContent>
+            <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm" OnClick="CancelDelete">
+                <ChildContent>@Loc.Get("ProjectMemoryDeleteKeep")</ChildContent>
+            </FlareButton>
+            <FlareButton Variant="ButtonVariant.Filled" Size="ButtonSize.Sm" OnClick="ConfirmDeleteAsync">
+                <ChildContent>@Loc.Get("ProjectMemoryDeleteConfirm")</ChildContent>
+            </FlareButton>
+        </ActionsContent>
+    </FlareDialog>
 </FlareStack>
 
 @code {
@@ -213,6 +284,31 @@
 
     /// <summary>The path of the new document being written, before it exists in the memory.</summary>
     private string? _newPath;
+
+    /// <summary>
+    /// The text as the daemon last handed it over: what the editor held when the document was opened or
+    /// written. Unsaved means the text differs from this and not that a field was touched, so typing a
+    /// character and deleting it again leaves nothing to lose and the page asks about nothing.
+    /// </summary>
+    private string? _baseline;
+
+    /// <summary>
+    /// What a click asked for, held while the page asks whether the unsaved text may go. A null value is the
+    /// question being closed, so one field answers both "is the question up" and "what happens next".
+    /// </summary>
+    private Func<Task>? _leaveAction;
+
+    /// <summary>Whether an answer is being carried out, so the question's buttons say that they are busy.</summary>
+    private bool _leaving;
+
+    /// <summary>Whether the open document is being asked about before it is deleted.</summary>
+    private bool _deleteAsk;
+
+    /// <summary>
+    /// The project the editor's document came from. Another project is another memory, so the document the
+    /// editor holds is dropped when the route names a different one: one project's file is not another's draft.
+    /// </summary>
+    private string? _loadedProject;
 
     /// <summary>
     /// The spot just above the editor. Opening a document brings the reader here, because the editor sits below
@@ -242,12 +338,34 @@
         !string.IsNullOrWhiteSpace(_content) &&
         (_open is not null || !string.IsNullOrWhiteSpace(_newPath));
 
+    /// <summary>
+    /// Whether the editor holds text the file does not. A document that was opened is measured against what was
+    /// read or written; a new one has nothing to be compared with, so anything typed into it - its text or the
+    /// path it is meant for - is unsaved by definition.
+    /// </summary>
+    private bool IsDirty => _open is not null
+        ? !string.Equals(_content, _baseline, StringComparison.Ordinal)
+        : !string.IsNullOrEmpty(_content) || !string.IsNullOrEmpty(_newPath);
+
     /// <summary>What the editor's header bar names the file: the open path, or the one being written.</summary>
     private string DocumentName => _open?.Path is { Length: > 0 } open ? open : _newPath ?? "memory.md";
 
     protected override async Task OnParametersSetAsync()
     {
         await State.EnsureProjectAsync(ProjectId);
+        if (!string.Equals(_loadedProject, ProjectId, StringComparison.Ordinal))
+        {
+            _loadedProject = ProjectId;
+            _open = null;
+            _content = null;
+            _baseline = null;
+            _newPath = null;
+            _results = [];
+            _searched = false;
+            _message = null;
+            _error = false;
+        }
+
         await LoadAsync();
     }
 
@@ -290,10 +408,13 @@
     }
 
     /// <summary>
-    /// Opens one document by path. A search result and a row of the listing take the same way in, so the
-    /// editor shows what the file holds now rather than what a listing remembered.
+    /// Opens one document by path, once the editor's unsaved text has been answered for. A search result and a
+    /// row of the listing take the same way in, so the editor shows what the file holds now rather than what a
+    /// listing remembered.
     /// </summary>
-    private async Task OpenAsync(string path)
+    private Task OpenAsync(string path) => LeaveAsync(() => OpenDocumentAsync(path));
+
+    private async Task OpenDocumentAsync(string path)
     {
         _message = null;
         _error = false;
@@ -309,6 +430,7 @@
             var document = await response.Content.ReadFromJsonAsync<MemoryDocument>(PwaJson.Options);
             _open = document;
             _content = document?.Content;
+            _baseline = _content;
             _newPath = null;
             // The editor is below the whole listing, so opening reports itself and brings the reader to the
             // document: a change nobody can see is a button that looks broken. Saving and deleting already
@@ -348,22 +470,115 @@
         }
     }
 
-    /// <summary>Empties the editor for a document that does not exist yet.</summary>
-    private void BeginNew()
+    /// <summary>
+    /// Empties the editor for a document that does not exist yet, once the text it held has been answered for.
+    /// </summary>
+    private Task BeginNewAsync() => LeaveAsync(StartNewDocumentAsync);
+
+    private Task StartNewDocumentAsync()
     {
         _open = null;
         _content = string.Empty;
+        _baseline = string.Empty;
         _newPath = string.Empty;
         _message = null;
         _error = false;
+        return Task.CompletedTask;
     }
 
-    private async Task SaveAsync()
+    /// <summary>
+    /// What a click that changes what the editor holds goes through. With nothing unsaved it simply happens;
+    /// with text the file does not have, the question is asked and the click waits for the answer.
+    /// </summary>
+    private async Task LeaveAsync(Func<Task> next)
+    {
+        if (!IsDirty)
+        {
+            await next();
+            return;
+        }
+
+        _leaveAction = next;
+    }
+
+    /// <summary>Asks before the app's own menu, the back button or a closed tab leaves text behind.</summary>
+    /// <remarks>
+    /// The navigation is already on its way when this runs, so the question is the browser's own prompt - the
+    /// one the card inspector and the artifact editor ask with - rather than a dialog the navigation would
+    /// have to wait for. What the prompt cannot offer is saving: the text stays in the editor, and saving is
+    /// the editor's own button.
+    /// </remarks>
+    private async Task ConfirmNavigationAsync(LocationChangingContext context)
+    {
+        if (IsDirty && !await Js.InvokeAsync<bool>("confirm", Loc.Get("LeaveWithUnsavedEdits")))
+        {
+            context.PreventNavigation();
+        }
+    }
+
+    /// <summary>Writes the text and only then carries the click out; a refused save stays where it is.</summary>
+    private async Task SaveAndLeaveAsync() => await AnswerLeaveAsync(save: true);
+
+    /// <summary>Lets the click go on without the text, which is a decision the reader has just made.</summary>
+    private async Task DiscardAndLeaveAsync() => await AnswerLeaveAsync(save: false);
+
+    /// <summary>Closes the question, which is what staying is: the click falls and nothing is lost.</summary>
+    private void CancelLeave() => _leaveAction = null;
+
+    private async Task AnswerLeaveAsync(bool save)
+    {
+        var next = _leaveAction;
+        _leaveAction = null;
+        _leaving = true;
+        try
+        {
+            if (save)
+            {
+                // A refused save closes the question too, so the daemon's own sentence is what the reader sees.
+                // What it must not do is carry the click out: the text the save was meant to keep would go
+                // with it.
+                if (!await SaveCoreAsync())
+                {
+                    return;
+                }
+            }
+            else
+            {
+                // Discarding is a decision and not an assumption: the text stops counting as unsaved, and the
+                // click that follows replaces it. A discarded new document is not a document at all, so its
+                // path goes with the text.
+                _baseline = _content;
+                if (_open is null)
+                {
+                    _newPath = string.Empty;
+                }
+            }
+
+            if (next is not null)
+            {
+                await next();
+            }
+        }
+        finally
+        {
+            _leaving = false;
+        }
+    }
+
+    /// <summary>The Save button's own action: what came of the save is said on the page.</summary>
+    private async Task SaveAsync() => await SaveCoreAsync();
+
+    /// <summary>
+    /// Writes the editor's text into the memory and says whether the daemon took it. The question the page
+    /// asks before a click needs that answer: a save that was refused must not carry the click out, or the
+    /// text the save was meant to keep goes with it.
+    /// </summary>
+    private async Task<bool> SaveCoreAsync()
     {
         var path = _open?.Path ?? _newPath;
         if (string.IsNullOrWhiteSpace(path) || _content is null)
         {
-            return;
+            return false;
         }
 
         _message = null;
@@ -377,20 +592,40 @@
             if (!response.IsSuccessStatusCode)
             {
                 Show(await ReadErrorAsync(response), error: true);
-                return;
+                return false;
             }
 
             var stored = await response.Content.ReadFromJsonAsync<MemoryDocument>(PwaJson.Options);
             _open = stored;
             _content = stored?.Content ?? _content;
+            _baseline = _content;
             _newPath = null;
             await LoadAsync();
             Show(Loc.Format("ProjectMemorySaved", stored?.Path ?? path), error: false);
+            return true;
         }
         catch (Exception exception)
         {
             Show(exception.Message, error: true);
+            return false;
         }
+    }
+
+    /// <summary>
+    /// Asks before the open document leaves the memory: one click is not enough any more, because the file is
+    /// gone for good and nothing on this screen brings it back. What is being asked about is the path the
+    /// editor holds, so the question names exactly the document that would go.
+    /// </summary>
+    private void AskDelete() => _deleteAsk = _open?.Path is { Length: > 0 };
+
+    /// <summary>Closes the question, which is what keeping the document is: nothing is sent.</summary>
+    private void CancelDelete() => _deleteAsk = false;
+
+    /// <summary>Carries the answer out. The delete itself is unchanged - one place still sends it.</summary>
+    private async Task ConfirmDeleteAsync()
+    {
+        _deleteAsk = false;
+        await DeleteAsync();
     }
 
     private async Task DeleteAsync()
@@ -414,6 +649,7 @@
 
             _open = null;
             _content = null;
+            _baseline = null;
             _newPath = null;
             _results = [];
             _searched = false;

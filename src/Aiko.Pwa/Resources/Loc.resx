@@ -483,6 +483,57 @@
   <data name="LeaveWithUnsavedEdits" xml:space="preserve">
     <value>You have unsaved edits. Leave and lose them?</value>
   </data>
+  <data name="ProjectMemoryUnsaved" xml:space="preserve">
+    <value>Unsaved</value>
+  </data>
+  <data name="ProjectMemoryLeaveTitle" xml:space="preserve">
+    <value>This document has unsaved text</value>
+  </data>
+  <data name="ProjectMemoryLeaveHint" xml:space="preserve">
+    <value>Saving writes it into the project's memory first. Discarding goes on and leaves the file as it is.</value>
+  </data>
+  <data name="ProjectMemoryLeaveSave" xml:space="preserve">
+    <value>Save and go on</value>
+  </data>
+  <data name="ProjectMemoryLeaveDiscard" xml:space="preserve">
+    <value>Discard and go on</value>
+  </data>
+  <data name="ProjectMemoryLeaveStay" xml:space="preserve">
+    <value>Stay here</value>
+  </data>
+  <data name="ProjectMemoryDeleteTitle" xml:space="preserve">
+    <value>Delete this document?</value>
+  </data>
+  <data name="ProjectMemoryDeleteWarning" xml:space="preserve">
+    <value>It leaves the project's memory for good. Nothing on this screen brings it back, and unsaved text in the editor goes with it.</value>
+  </data>
+  <data name="ProjectMemoryDeleteKeep" xml:space="preserve">
+    <value>Keep it</value>
+  </data>
+  <data name="ProjectMemoryDeleteConfirm" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="NewCardDraftRestored" xml:space="preserve">
+    <value>Your unfinished card came back. No card was created from it - create it when it is ready.</value>
+  </data>
+  <data name="NewCardDraftStartOver" xml:space="preserve">
+    <value>Start over</value>
+  </data>
+  <data name="NewCardCancelTitle" xml:space="preserve">
+    <value>Leave the new card?</value>
+  </data>
+  <data name="NewCardCancelHint" xml:space="preserve">
+    <value>The draft can stay in this browser and come back the next time you open this page.</value>
+  </data>
+  <data name="NewCardCancelStay" xml:space="preserve">
+    <value>Stay and keep writing</value>
+  </data>
+  <data name="NewCardCancelKeepDraft" xml:space="preserve">
+    <value>Leave, keeping the draft</value>
+  </data>
+  <data name="NewCardCancelDiscard" xml:space="preserve">
+    <value>Leave and discard the draft</value>
+  </data>
   <data name="ArtifactModified" xml:space="preserve">
     <value>Modified</value>
   </data>

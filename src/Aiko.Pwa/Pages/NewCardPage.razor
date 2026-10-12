@@ -3,6 +3,12 @@
 @inject WorkspaceState State
 @implements IAsyncDisposable
 @inject NavigationManager Navigation
+@inject IJSRuntime Js
+
+@* A half-filled card is not thrown away by a click: a click inside the page asks what the draft should do,
+   and leaving the page - the app's own menu, the back button, a reload, a closed tab - asks before the text
+   goes. The draft itself is remembered between visits, so the answer is a choice rather than a loss. *@
+<NavigationLock ConfirmExternalNavigation="@IsDirty" OnBeforeInternalNavigation="ConfirmNavigationAsync" />
 
 @* Creating a card is a page of its own, not a form wedged into the board: it has several fields, a
    per-project priority formula, and it deserves a URL that can be linked and reloaded. *@
@@ -18,11 +24,26 @@
             <span class="aiko-tag aiko-tag--quiet">/</span>
             <span class="aiko-tag aiko-tag--accent">@Loc.Get("CreateCardTitle")</span>
         </FlareStack>
-        <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm" OnClick="Cancel">
+        <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm" OnClick="AskLeave">
             <LeadingIcon><FlareIconView Value="@FlareIcons.Close" /></LeadingIcon>
             <ChildContent>@Loc.Get("Cancel")</ChildContent>
         </FlareButton>
     </FlareStack>
+
+    @* A draft is brought back rather than applied quietly: the person is told that the text in the form is
+       theirs from an earlier visit, and told how to throw it away. *@
+    @if (_draftRestored)
+    {
+        <FlareAlert Severity="AlertSeverity.Info" Variant="AlertVariant.Outlined">
+            <FlareStack Row="true" Align="FlareAlignItems.Center"
+                        Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small" Wrap="true">
+                <span>@Loc.Get("NewCardDraftRestored")</span>
+                <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm" OnClick="StartOverAsync">
+                    <ChildContent>@Loc.Get("NewCardDraftStartOver")</ChildContent>
+                </FlareButton>
+            </FlareStack>
+        </FlareAlert>
+    }
 
     @if (State.Board is not { } board)
     {
@@ -182,7 +203,7 @@
                             <LeadingIcon><FlareIconView Value="@FlareIcons.Add" /></LeadingIcon>
                             <ChildContent>@Loc.Get("Create")</ChildContent>
                         </FlareButton>
-                        <FlareButton FullWidth="true" Variant="ButtonVariant.Text" OnClick="Cancel">
+                        <FlareButton FullWidth="true" Variant="ButtonVariant.Text" OnClick="AskLeave">
                             <ChildContent>@Loc.Get("Cancel")</ChildContent>
                         </FlareButton>
                         <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
@@ -193,6 +214,30 @@
             </FlareStack>
         </div>
     }
+
+    @* Cancelling asks what the draft should do, because the person has just typed it: staying, leaving with
+       it kept for the next visit, or leaving and throwing it away. Staying is the first action, so the safe
+       answer is the one the eye and the keyboard reach first. *@
+    <FlareDialog Visible="@_leaveAsk"
+                 VisibleChanged="value => _leaveAsk = value"
+                 Title="@Loc.Get("NewCardCancelTitle")">
+        <ChildContent>
+            <FlareText Element="p" Typo="TypographyScale.BodyMedium" Color="FlareColor.OnSurfaceVariant">
+                @Loc.Get("NewCardCancelHint")
+            </FlareText>
+        </ChildContent>
+        <ActionsContent>
+            <FlareButton Variant="ButtonVariant.Filled" Size="ButtonSize.Sm" OnClick="StayOnForm">
+                <ChildContent>@Loc.Get("NewCardCancelStay")</ChildContent>
+            </FlareButton>
+            <FlareButton Variant="ButtonVariant.Outlined" Size="ButtonSize.Sm" OnClick="LeaveKeepingDraft">
+                <ChildContent>@Loc.Get("NewCardCancelKeepDraft")</ChildContent>
+            </FlareButton>
+            <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm" OnClick="LeaveAndStartOverAsync">
+                <ChildContent>@Loc.Get("NewCardCancelDiscard")</ChildContent>
+            </FlareButton>
+        </ActionsContent>
+    </FlareDialog>
 </FlareStack>
 
 @code {
@@ -208,13 +253,39 @@
 
     [Parameter] public string ProjectId { get; set; } = string.Empty;
 
+    /// <summary>The priority an untouched form starts on, and the one a card without a number gets.</summary>
+    private const decimal DefaultPriority = 1m;
+
     private string? _newCardKind;
     private string? _newCardTitle;
     private string? _newCardSize;
-    private decimal? _newCardPriority = 1m;
+    private decimal? _newCardPriority = DefaultPriority;
     private string? _newCardRequirements;
     private string? _newCardScope;
     private bool _creating;
+
+    /// <summary>Whether the card was created, so nothing writes a draft for a form that has just become one.</summary>
+    private bool _created;
+
+    /// <summary>Whether this visit's form was filled from a draft, so the page can say so instead of doing it quietly.</summary>
+    private bool _draftRestored;
+
+    /// <summary>Whether the question about cancelling is up.</summary>
+    private bool _leaveAsk;
+
+    /// <summary>
+    /// The project whose draft has been read. Another project is another draft, so the read happens once per
+    /// project rather than on every parameter change.
+    /// </summary>
+    private string? _restoredProject;
+
+    /// <summary>What the form held when it was last written, so a keystroke does not become a write of its own.</summary>
+    private string? _writtenSnapshot;
+
+    private CardDraftStore? _drafts;
+
+    /// <summary>The draft store, built on first use: it needs the JavaScript runtime the page is given.</summary>
+    private CardDraftStore Drafts => _drafts ??= new CardDraftStore(Js);
     private IReadOnlyList<PriorityCriterion> _priorityCriteria = [];
     private readonly Dictionary<string, decimal?> _criterionValues = new(StringComparer.Ordinal);
 
@@ -285,6 +356,33 @@
         {
             _newCardKind = DefaultCardType;
         }
+
+        if (!string.Equals(_restoredProject, ProjectId, StringComparison.Ordinal))
+        {
+            _restoredProject = ProjectId;
+            await RestoreDraftAsync();
+        }
+    }
+
+    /// <summary>
+    /// Remembers what has been typed. A render follows a change, and comparing the form against what was last
+    /// written keeps every keystroke from becoming a write of its own while losing none of them.
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_created || !IsDirty)
+        {
+            return;
+        }
+
+        var snapshot = Snapshot();
+        if (string.Equals(snapshot, _writtenSnapshot, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _writtenSnapshot = snapshot;
+        await Drafts.SaveAsync(ProjectId, CaptureDraft());
     }
 
     /// <summary>The project's scoring criteria decide which fields the form asks for.</summary>
@@ -368,6 +466,11 @@
             response.EnsureSuccessStatusCode();
             // The id is Aiko's, so it comes back from the daemon rather than from the form.
             var created = await response.Content.ReadFromJsonAsync<Card>(PwaJson.Options);
+            // The card exists now, so the draft has done its job and goes before the page leaves. This is the
+            // only place creation is followed by a clear: an attempt that failed never reaches this line and
+            // keeps the text for the retry.
+            _created = true;
+            await Drafts.ClearAsync(ProjectId);
             await State.LoadBoardAsync();
             // Straight to the card: it exists now, and that is what the person came here to fill in.
             var cardId = created?.Reference.CardId;
@@ -385,5 +488,140 @@
         }
     }
 
-    private void Cancel() => Navigation.NavigateTo(BoardHref);
+    /// <summary>
+    /// Whether the form holds something the person put there. An untouched form is not dirty, and neither is
+    /// the type or the priority the form sets for itself.
+    /// </summary>
+    private bool IsDirty =>
+        !string.IsNullOrWhiteSpace(_newCardTitle) ||
+        !string.IsNullOrWhiteSpace(_newCardRequirements) ||
+        !string.IsNullOrWhiteSpace(_newCardScope) ||
+        !string.IsNullOrWhiteSpace(_newCardSize) ||
+        (!string.IsNullOrWhiteSpace(_newCardKind) &&
+            !string.Equals(_newCardKind, DefaultCardType, StringComparison.Ordinal)) ||
+        _newCardPriority != DefaultPriority ||
+        _criterionValues.Values.Any(value => value is not null);
+
+    /// <summary>
+    /// What the form holds right now, as the text a change is measured against. The unit separator is what
+    /// keeps two fields from running into each other when one of them ends where the next begins.
+    /// </summary>
+    private string Snapshot() => string.Join(
+        '\u001f',
+        _newCardTitle,
+        _newCardRequirements,
+        _newCardScope,
+        SelectedKind,
+        _newCardSize,
+        _newCardPriority,
+        string.Join(
+            ',',
+            _criterionValues
+                .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                .Select(pair => $"{pair.Key}={pair.Value}")));
+
+    /// <summary>The draft as it is written: the fields the person filled in, and when.</summary>
+    private NewCardDraft CaptureDraft() => new(
+        _newCardTitle,
+        _newCardRequirements,
+        _newCardScope,
+        SelectedKind,
+        _newCardSize,
+        _newCardPriority,
+        BuildCriterionValues(),
+        DateTimeOffset.UtcNow);
+
+    /// <summary>
+    /// Brings back what an earlier visit left half-filled. The draft is the person's own text, so it is put
+    /// into the form and said out loud rather than applied quietly: the alert names it and offers the one way
+    /// to throw it away. No card is created from it - the Create button does that.
+    /// </summary>
+    private async Task RestoreDraftAsync()
+    {
+        var draft = await Drafts.ReadAsync(ProjectId);
+        _criterionValues.Clear();
+        if (draft is null)
+        {
+            _draftRestored = false;
+            _writtenSnapshot = Snapshot();
+            return;
+        }
+
+        _newCardTitle = draft.Title;
+        _newCardRequirements = draft.Requirements;
+        _newCardScope = draft.Scope;
+        _newCardSize = draft.Size;
+        _newCardPriority = draft.Priority ?? DefaultPriority;
+        _newCardKind = string.IsNullOrWhiteSpace(draft.Kind) ? DefaultCardType : draft.Kind;
+        foreach (var (id, value) in draft.CriterionValues)
+        {
+            _criterionValues[id] = value;
+        }
+
+        _draftRestored = true;
+        _writtenSnapshot = Snapshot();
+    }
+
+    /// <summary>Throws the draft away and empties the form: the one way to say "not this one".</summary>
+    private async Task StartOverAsync()
+    {
+        await Drafts.ClearAsync(ProjectId);
+        _newCardTitle = null;
+        _newCardRequirements = null;
+        _newCardScope = null;
+        _newCardSize = null;
+        _newCardPriority = DefaultPriority;
+        _newCardKind = DefaultCardType;
+        _criterionValues.Clear();
+        _draftRestored = false;
+        _writtenSnapshot = Snapshot();
+    }
+
+    /// <summary>Asks before the app's own menu, the back button, a reload or a closed tab leaves the form.</summary>
+    /// <remarks>
+    /// The navigation is already on its way when this runs, so the question is the browser's own prompt - the
+    /// one the card inspector, the artifact editor and the memory page ask with. What that prompt cannot offer
+    /// is a choice about the draft: saying yes here means "leave", and the draft is kept either way, so the
+    /// Cancel button is where the three-way answer lives.
+    /// </remarks>
+    private async Task ConfirmNavigationAsync(LocationChangingContext context)
+    {
+        if (IsDirty && !await Js.InvokeAsync<bool>("confirm", Loc.Get("LeaveWithUnsavedEdits")))
+        {
+            context.PreventNavigation();
+        }
+    }
+
+    /// <summary>
+    /// What the Cancel button does: with nothing typed it simply leaves, and with text in the form it asks
+    /// what should happen to the draft rather than deciding that on the person's behalf.
+    /// </summary>
+    private void AskLeave()
+    {
+        if (!IsDirty)
+        {
+            Navigation.NavigateTo(BoardHref);
+            return;
+        }
+
+        _leaveAsk = true;
+    }
+
+    /// <summary>Closes the question, which is staying: nothing is sent and nothing is cleared.</summary>
+    private void StayOnForm() => _leaveAsk = false;
+
+    /// <summary>Leaves the draft where it is, to come back the next time this page opens.</summary>
+    private void LeaveKeepingDraft()
+    {
+        _leaveAsk = false;
+        Navigation.NavigateTo(BoardHref);
+    }
+
+    /// <summary>Leaves and throws the draft away, which is the reset the person just asked for.</summary>
+    private async Task LeaveAndStartOverAsync()
+    {
+        _leaveAsk = false;
+        await StartOverAsync();
+        Navigation.NavigateTo(BoardHref);
+    }
 }
