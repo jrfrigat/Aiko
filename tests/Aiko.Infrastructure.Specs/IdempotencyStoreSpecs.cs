@@ -75,6 +75,22 @@ public class IdempotencyStoreSpecs
         Assert.Equal("second", await store.ReadAsync(Scope, "key-1", CancellationToken.None));
     }
 
+    [Fact]
+    public async Task An_unreadable_record_says_where_it_is()
+    {
+        using var directory = new TemporaryDirectory();
+        var store = StoreIn(directory);
+        await store.WriteAsync(Scope, "key-1", "value", CancellationToken.None);
+        var record = Assert.Single(Directory.GetFiles(Path.Combine(directory.Path, "idempotency")));
+        await File.WriteAllTextAsync(record, "{ this is not json");
+
+        // Reading it as "unknown" would run the call a second time; the failure has to name the file.
+        var failure = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => store.ReadAsync(Scope, "key-1", CancellationToken.None).AsTask());
+
+        Assert.Contains(record, failure.Message, StringComparison.Ordinal);
+    }
+
     private static FileIdempotencyStore StoreIn(TemporaryDirectory directory) =>
         new(new AikoDataPaths(Path.Combine(directory.Path, "aiko.db")));
 

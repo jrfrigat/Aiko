@@ -33,8 +33,20 @@ public sealed class FileIdempotencyStore(AikoDataPaths paths) : IIdempotencyStor
             return null;
         }
 
-        var document = JsonNode.Parse(await File.ReadAllTextAsync(path, cancellationToken)) as JsonObject;
-        return document?["result"]?.GetValue<string>();
+        try
+        {
+            var document = JsonNode.Parse(await File.ReadAllTextAsync(path, cancellationToken)) as JsonObject;
+            return document?["result"]?.GetValue<string>();
+        }
+        catch (JsonException exception)
+        {
+            // A record nobody can read is a broken state. Answering it as "unknown" would run a mutating call
+            // a second time - the very thing these records exist to prevent - so say where the file is and let
+            // somebody look at it instead.
+            throw new InvalidOperationException(
+                $"The idempotency record '{path}' cannot be read. Delete it to let the call run again.",
+                exception);
+        }
     }
 
     /// <inheritdoc />

@@ -164,15 +164,17 @@ internal sealed class DaemonTools(
         CancellationToken cancellationToken = default)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(ownPriority);
-        var scope = $"aiko_create_card_in_project|{projectId}";
+        // The target may be named by its readable handle; the card is filed under the project's own id, and
+        // the key is scoped to that id so a repeat naming the same project the other way finds the record
+        // instead of filing a second card.
+        var project = await catalog.FindAsync(projectId, cancellationToken)
+            ?? throw new KeyNotFoundException($"Unknown Aiko project: {projectId}");
+        var scope = $"aiko_create_card_in_project|{project.Id}";
         if (!string.IsNullOrWhiteSpace(requestId) &&
             await idempotency.ReadAsync(scope, requestId.Trim(), cancellationToken) is { } remembered)
         {
             return remembered;
         }
-        // The target may be named by its readable handle; the card is filed under the project's own id.
-        var project = await catalog.FindAsync(projectId, cancellationToken)
-            ?? throw new KeyNotFoundException($"Unknown Aiko project: {projectId}");
 
         // A cross-project call writes into someone else's project, so the project the agent works in decides:
         // it may refuse, ask the user first, or allow it. The target grants nothing and configures nothing -
