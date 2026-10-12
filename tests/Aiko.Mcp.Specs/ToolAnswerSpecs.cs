@@ -304,6 +304,35 @@ public class ToolAnswerSpecs(AikoServerFixture fixture) : IClassFixture<AikoServ
         Assert.Contains("# Whole document", Text(whole), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task A_run_answer_carries_what_the_next_step_needs()
+    {
+        await using var client = await ConnectToNewProjectAsync();
+        var cardId = await CreateCardIdAsync(client, "A card whose stage is started");
+
+        var started = await CallAsync(
+            client,
+            "aiko_start_stage",
+            new() { ["cardId"] = cardId, ["stageId"] = "analysis", ["agentAdapterId"] = "cline" });
+        Assert.False(started.IsError == true, Text(started));
+
+        using var answer = JsonDocument.Parse(Text(started));
+
+        // The run's identity and state, and the card's revision - which the next call has to name.
+        Assert.False(string.IsNullOrWhiteSpace(answer.RootElement.GetProperty("id").GetString()));
+        Assert.Equal("analysis", answer.RootElement.GetProperty("stageId").GetString());
+        Assert.Equal(cardId, answer.RootElement.GetProperty("card").GetProperty("cardId").GetString());
+        Assert.Equal(JsonValueKind.Number, answer.RootElement.GetProperty("cardRevision").ValueKind);
+
+        // The progress notebook stays readable - nothing else reads a run back - while the run's workspace
+        // path and its changed-file lists (the card carries those) do not travel.
+        Assert.True(answer.RootElement.TryGetProperty("completedSteps", out _));
+        Assert.True(answer.RootElement.TryGetProperty("attempts", out _));
+        Assert.False(answer.RootElement.TryGetProperty("workspacePath", out _), Text(started));
+        Assert.False(answer.RootElement.TryGetProperty("actualChangedFiles", out _), Text(started));
+        Assert.False(answer.RootElement.TryGetProperty("outOfScopeFiles", out _), Text(started));
+    }
+
     private static async Task<CallToolResult> CallAsync(
         McpClient client,
         string tool,

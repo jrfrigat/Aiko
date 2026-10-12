@@ -276,13 +276,50 @@ internal sealed class ExecutionTools(
     }
 
     /// <summary>
+    /// The keys a run's answer carries: what the next step works from, and nothing else.
+    /// </summary>
+    /// <remarks>
+    /// A white list rather than a list of fields to strip, so a field added to <see cref="StageExecution"/>
+    /// later does not silently make every run answer heavier. What is left out is either derived
+    /// (<c>outOfScopeFiles</c>, <c>currentAttempt</c>), environmental (<c>workspacePath</c>, the run's
+    /// timestamps) or carried by the card itself (<c>actualChangedFiles</c>). What stays is the run's
+    /// identity and state, the attempts the specs read, and the two things that say a run waits for the
+    /// user - <c>commits</c> and <c>requestedScopeFiles</c> - along with the progress notebook, which has
+    /// no other way of being read back.
+    /// </remarks>
+    private static readonly string[] AnswerKeys =
+    [
+        "id",
+        "card",
+        "stageId",
+        "state",
+        "declaredScopeFiles",
+        "requestedScopeFiles",
+        "attempts",
+        "commits",
+        "artifacts",
+        "progressSummary",
+        "completedSteps",
+        "remainingSteps"
+    ];
+
+    /// <summary>
     /// The execution, and the card as it is after it. Starting, completing and scope requests change the card's
     /// revision, and an agent that only got the execution back named the old one in its next estimate or move -
     /// so the answer carries the revision and the stage the card has now.
     /// </summary>
     private async Task<string> AnswerAsync(StageExecution execution, CancellationToken cancellationToken)
     {
-        var answer = JsonNode.Parse(SerializeExecution(execution))!.AsObject();
+        var full = JsonNode.Parse(SerializeExecution(execution))!.AsObject();
+        var answer = new JsonObject();
+        foreach (var key in AnswerKeys)
+        {
+            if (full.TryGetPropertyValue(key, out var value))
+            {
+                answer[key] = value?.DeepClone();
+            }
+        }
+
         if (await cards.FindAsync(execution.Card, cancellationToken) is { } card)
         {
             answer["cardRevision"] = card.Revision;
