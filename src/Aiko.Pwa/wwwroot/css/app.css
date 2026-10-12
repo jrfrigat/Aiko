@@ -190,7 +190,9 @@ html.flare-mode-dark .splash-mark i {
 .aiko-eyebrow {
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: var(--flare-color-outline);
+    /* A text tone, not a border tone: this is what a person reads, and the palette's own secondary text
+       role is the one whose contrast its light schemes were darkened to reach. */
+    color: var(--flare-color-on-surface-variant);
     font-weight: 600;
     font-size: 0.6875rem;
 }
@@ -238,7 +240,7 @@ html.flare-mode-dark .splash-mark i {
     padding: 0.0625rem 0.25rem;
     border-radius: var(--flare-shape-extra-small);
     background: var(--flare-color-surface-container);
-    color: var(--flare-color-outline-variant);
+    color: var(--flare-color-on-surface-variant-2);
     font-family: var(--aiko-font-mono, monospace);
     font-size: 0.6875rem;
     line-height: 1rem;
@@ -1240,7 +1242,7 @@ html.flare-mode-dark .splash-mark i {
 }
 
 .aiko-field__label {
-    color: var(--flare-color-outline);
+    color: var(--flare-color-on-surface-variant);
     font-family: var(--aiko-font-mono, monospace);
     font-size: 0.6875rem;
     font-weight: 600;
@@ -1401,7 +1403,7 @@ html.flare-mode-dark .splash-mark i {
 
 /* A quiet note at the end of the box: a unit, a format, the range a value is read against. */
 .aiko-field__trailing {
-    color: var(--flare-color-outline-variant);
+    color: var(--flare-color-on-surface-variant-2);
     font-family: var(--aiko-font-mono, monospace);
     font-size: 0.6875rem;
     line-height: 1rem;
@@ -1409,7 +1411,7 @@ html.flare-mode-dark .splash-mark i {
 }
 
 .aiko-field__hint {
-    color: var(--flare-color-outline);
+    color: var(--flare-color-on-surface-variant);
     font-size: 0.6875rem;
     line-height: 1rem;
 }
@@ -1630,3 +1632,17 @@ html.flare-mode-dark .splash-mark i {
     text-decoration: underline;
 }
 
+
+/* Motion here is decoration: the live pulse, the drag affordances and the state transitions all say the
+   same thing without moving, so a reader whose system asks for less motion gets a still interface - the
+   state stays correct and only the movement goes. */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
