@@ -32,7 +32,7 @@
     </div>
     @if (ErrorText is { Length: > 0 } error)
     {
-        <span class="aiko-field__error">@error</span>
+        <span class="aiko-field__error" role="alert">@error</span>
     }
     else if (Hint is { Length: > 0 } hint)
     {

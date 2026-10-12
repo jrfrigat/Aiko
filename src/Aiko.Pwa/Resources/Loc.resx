@@ -534,6 +534,9 @@
   <data name="NewCardCancelDiscard" xml:space="preserve">
     <value>Leave and discard the draft</value>
   </data>
+  <data name="SkipToContent" xml:space="preserve">
+    <value>Skip to content</value>
+  </data>
   <data name="ArtifactModified" xml:space="preserve">
     <value>Modified</value>
   </data>

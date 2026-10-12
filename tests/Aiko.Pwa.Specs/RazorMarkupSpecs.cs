@@ -947,10 +947,15 @@ public sealed class RazorMarkupSpecs
 
         // The name opens the library's repository: a plain anchor in a new tab. FlareNavLink is the app's
         // own route control - it marks the active route, and an address outside the app has none to mark.
-        var link = Regex.Match(
-            layout,
-            @"<a(?<attributes>[^>]*)>(?<content>.*?)</a>",
-            RegexOptions.Singleline);
+        // The layout holds other anchors now - the skip link into the content comes first, because that is
+        // where a keyboard should reach - so the repository's link is found by what it says rather than by
+        // being the only anchor in the file.
+        var link = Regex.Matches(
+                layout,
+                @"<a(?<attributes>[^>]*)>(?<content>.*?)</a>",
+                RegexOptions.Singleline)
+            .FirstOrDefault(match => match.Groups["content"].Value.Contains("Flare.Blazor", StringComparison.Ordinal));
+        Assert.NotNull(link);
         Assert.True(link.Success, "The library's name should be drawn as an anchor.");
         Assert.Contains("Flare.Blazor", link.Groups["content"].Value, StringComparison.Ordinal);
         Assert.Contains("target=\"_blank\"", link.Groups["attributes"].Value, StringComparison.Ordinal);

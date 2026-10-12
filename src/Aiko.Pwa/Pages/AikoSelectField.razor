@@ -5,6 +5,10 @@
 <div class="aiko-field @Class">
     @if (Label is { Length: > 0 } label)
     {
+        @* The control is a Flare component, and an id cannot be pushed into it from here, so the label is not
+           a `for` target: what names the control is the label's own text, handed over as AriaLabel below.
+           A `for` pointing at the wrapper would associate the label with a plain div, which no assistive
+           technology reads as a name at all. *@
         <label class="aiko-field__label">@label</label>
     }
     @* ChildContent travels as a parameter, not as child markup. Blazor compiles markup children into a
@@ -16,7 +20,7 @@
                  Value="@Value"
                  ValueChanged="OnValueChanged"
                  ComponentCssClass="@($"aiko-field__select{(ErrorText is { Length: > 0 } ? " aiko-field__select--error" : string.Empty)}")"
-                 AriaLabel="@AriaLabel"
+                 AriaLabel="@(AriaLabel ?? Label)"
                  Disabled="@Disabled"
                  Items="@Items"
                  ItemLabel="@ItemLabel"
@@ -26,7 +30,7 @@
                  NullOption="@NullOption" />
     @if (ErrorText is { Length: > 0 } error)
     {
-        <span class="aiko-field__error">@error</span>
+        <span class="aiko-field__error" role="alert">@error</span>
     }
     else if (Hint is { Length: > 0 } hint)
     {
@@ -77,7 +81,7 @@
     /// </summary>
     [Parameter] public string? NullOption { get; set; }
 
-    /// <summary>The field's name for a screen reader, when the label is not enough.</summary>
+    /// <summary>The field's name for a screen reader: the caller's own, or the visible label when there is none.</summary>
     [Parameter] public string? AriaLabel { get; set; }
 
     [Parameter] public bool Disabled { get; set; }

@@ -534,6 +534,9 @@
   <data name="NewCardCancelDiscard" xml:space="preserve">
     <value>Уйти и удалить черновик</value>
   </data>
+  <data name="SkipToContent" xml:space="preserve">
+    <value>Перейти к содержимому</value>
+  </data>
   <data name="ArtifactModified" xml:space="preserve">
     <value>Изменён</value>
   </data>

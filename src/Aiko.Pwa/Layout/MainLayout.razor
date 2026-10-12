@@ -19,6 +19,10 @@
    button and a deep link are all the same source of truth. The open project and the open card are
    route segments for the same reason. *@
 <FlareLayout>
+    @* The way into the content without walking the whole rail: the first thing the keyboard reaches, and its
+       destination is the wrapper below, which takes focus so the next Tab starts inside the page rather than
+       back in the chrome. *@
+    <a class="aiko-tag aiko-tag--accent" href="#aiko-main">@Loc.Get("SkipToContent")</a>
     <FlareLayoutAppBar DrawerToggle="true">
         <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small" StretchFirst="true">
             <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small" Wrap="true">
@@ -349,7 +353,11 @@
             }
             else
             {
-                @Body
+                @* The skip link's destination. It has no classes of its own: the pages inside keep the grid
+                   they had, and the wrapper is here so a focused page can be continued from its first line. *@
+                <div id="aiko-main" tabindex="-1">
+                    @Body
+                </div>
             }
         </FlareStack>
     </FlareLayoutContent>
