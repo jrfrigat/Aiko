@@ -194,6 +194,66 @@ public class ToolAnswerSpecs(AikoServerFixture fixture) : IClassFixture<AikoServ
                 && relation.GetProperty("type").GetString() == "parent-child");
     }
 
+    [Fact]
+    public async Task The_other_card_write_tools_answer_with_a_compact_card()
+    {
+        await using var client = await ConnectToNewProjectAsync();
+        var cardId = await CreateCardIdAsync(client, "A card the write tools touch");
+
+        // Each of these used to answer with the whole card - its requirements and all. What the next step
+        // needs is the card's identity and its new revision, plus the small fields the tool is about.
+        // Archive and restore share the same writer as each other and are covered by their own specs.
+        var answers = new (string Tool, CallToolResult Result)[]
+        {
+            ("aiko_estimate_card", await CallAsync(
+                client,
+                "aiko_estimate_card",
+                new()
+                {
+                    ["cardId"] = cardId,
+                    ["expectedRevision"] = 1,
+                    ["size"] = "S",
+                    ["criterionValues"] = new[] { "app-point=3" }
+                })),
+            ("aiko_update_card", await CallAsync(
+                client,
+                "aiko_update_card",
+                new()
+                {
+                    ["cardId"] = cardId,
+                    ["expectedRevision"] = 2,
+                    ["title"] = "Renamed by the spec",
+                    ["ownPriority"] = 1,
+                    ["declaredScopeFiles"] = Array.Empty<string>(),
+                    ["actualChangedFiles"] = Array.Empty<string>()
+                })),
+            ("aiko_move_card", await CallAsync(
+                client,
+                "aiko_move_card",
+                new() { ["cardId"] = cardId, ["stageId"] = "analysis", ["expectedRevision"] = 3 })),
+            ("aiko_take_card", await CallAsync(
+                client,
+                "aiko_take_card",
+                new() { ["cardId"] = cardId, ["agentAdapterId"] = "cline" }))
+        };
+
+        foreach (var (tool, result) in answers)
+        {
+            Assert.False(result.IsError == true, $"{tool} refused: {Text(result)}");
+            var text = Text(result);
+            using var answer = JsonDocument.Parse(text);
+            Assert.Equal(
+                cardId,
+                answer.RootElement.GetProperty("reference").GetProperty("cardId").GetString());
+            Assert.Equal(JsonValueKind.Number, answer.RootElement.GetProperty("revision").ValueKind);
+            // The card's texts are the heavy part and the next step never needs them.
+            Assert.False(
+                answer.RootElement.TryGetProperty("metadata", out _),
+                $"{tool} echoed the card's metadata: {text}");
+            Assert.True(text.Length < 512, $"{tool} answered with {text.Length} characters: {text}");
+        }
+    }
+
     private static async Task<CallToolResult> CallAsync(
         McpClient client,
         string tool,

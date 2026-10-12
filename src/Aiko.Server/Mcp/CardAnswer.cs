@@ -27,11 +27,16 @@ internal static class CardAnswer
         ["reference", "kind", "title", "workflowId", "stageId", "revision"];
 
     /// <summary>
-    /// Answers a creation with the compact card, or with the whole one when <paramref name="fullCard"/> is set.
+    /// Answers with the compact card, or with the whole one when <paramref name="fullCard"/> is set.
     /// </summary>
     /// <param name="card">The card that was just written.</param>
     /// <param name="fullCard">True to answer with the whole card as before.</param>
-    public static string For(Card card, bool fullCard)
+    /// <param name="keys">
+    /// The fields a compact answer carries, when the tool needs a different set from the default: a write tool
+    /// that changed the size and the scores says so, while one that only moved the card says where it went.
+    /// Left empty, the creating set is used.
+    /// </param>
+    public static string For(Card card, bool fullCard, params string[] keys)
     {
         var cardNode = JsonSerializer.SerializeToNode(card, ServerJsonContext.Default.Card)!
             .AsObject();
@@ -41,7 +46,7 @@ internal static class CardAnswer
         }
 
         var compact = new JsonObject();
-        foreach (var key in CompactKeys)
+        foreach (var key in keys.Length == 0 ? CompactKeys : keys)
         {
             if (cardNode.TryGetPropertyValue(key, out var value))
             {

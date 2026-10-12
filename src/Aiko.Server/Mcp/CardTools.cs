@@ -271,6 +271,7 @@ internal sealed class CardTools(
         [Description(
             "Idempotency key for this call. Pass the same value when repeating a call whose answer was lost: "
             + "the repeat then returns the first answer instead of estimating the card a second time.")]
+        [Optional] bool? fullCard,
         [Optional] string? requestId,
         CancellationToken cancellationToken)
     {
@@ -328,7 +329,8 @@ internal sealed class CardTools(
             Revision = existing.Revision + 1
         };
         await cards.SaveAsync(updated, expectedRevision, cancellationToken);
-        var answer = JsonSerializer.Serialize(updated, ServerJsonContext.Default.Card);
+        var answer = CardAnswer.For(
+            updated, fullCard == true, "reference", "revision", "size", "criterionValues");
         await call.RememberAsync(answer, cancellationToken);
         return answer;
     }
@@ -367,6 +369,7 @@ internal sealed class CardTools(
         [Optional] string? requirementsReason,
         [Description("Who is writing, for example the agent adapter id; left out, the note is signed 'agent'.")]
         [Optional] string? author,
+        [Optional] bool? fullCard,
         CancellationToken cancellationToken)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(ownPriority);
@@ -411,7 +414,7 @@ internal sealed class CardTools(
             requirementsReason,
             author,
             cancellationToken);
-        return JsonSerializer.Serialize(updated, ServerJsonContext.Default.Card);
+        return CardAnswer.For(updated, fullCard == true, "reference", "revision", "title", "size", "ownPriority");
     }
 
     /// <summary>
@@ -461,6 +464,7 @@ internal sealed class CardTools(
         string stageId,
         [Description("Revision read by the caller. The saved revision becomes expectedRevision + 1.")]
         long expectedRevision,
+        [Optional] bool? fullCard,
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(stageId);
@@ -507,7 +511,7 @@ internal sealed class CardTools(
 
         var moved = card with { StageId = stage.Id, Revision = card.Revision + 1 };
         await cards.SaveAsync(moved, expectedRevision, cancellationToken);
-        return JsonSerializer.Serialize(moved, ServerJsonContext.Default.Card);
+        return CardAnswer.For(moved, fullCard == true, "reference", "revision", "stageId");
     }
 
     [McpServerTool(Name = "aiko_link_cards", Title = "Link Aiko cards")]
@@ -618,6 +622,7 @@ internal sealed class CardTools(
         string cardId,
         [Description("Agent adapter id, for example claude-code or codex.")]
         string agentAdapterId,
+        [Optional] bool? fullCard,
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(agentAdapterId);
@@ -635,7 +640,7 @@ internal sealed class CardTools(
             Metadata = metadata
         };
         await cards.SaveAsync(updated, card.Revision, cancellationToken);
-        return JsonSerializer.Serialize(updated, ServerJsonContext.Default.Card);
+        return CardAnswer.For(updated, fullCard == true, "reference", "revision");
     }
 
     [McpServerTool(Name = "aiko_add_comment", Title = "Comment on an Aiko card")]
@@ -896,6 +901,7 @@ internal sealed class CardTools(
         string cardId,
         [Description("Revision the card was read at, so a card changed meanwhile is not overwritten.")]
         long expectedRevision,
+        [Optional] bool? fullCard,
         CancellationToken cancellationToken)
     {
         var card = await cards.FindAsync(new CardReference(GetProjectId(), cardId), cancellationToken);
@@ -915,7 +921,7 @@ internal sealed class CardTools(
             return refusal;
         }
 
-        return await SaveArchiveAsync(card, archived: true, cancellationToken);
+        return await SaveArchiveAsync(card, archived: true, fullCard == true, cancellationToken);
     }
 
     [McpServerTool(Name = "aiko_restore_card", Title = "Return an Aiko card from the archive")]
@@ -928,6 +934,7 @@ internal sealed class CardTools(
         string cardId,
         [Description("Revision the card was read at, so a card changed meanwhile is not overwritten.")]
         long expectedRevision,
+        [Optional] bool? fullCard,
         CancellationToken cancellationToken)
     {
         var card = await cards.FindAsync(new CardReference(GetProjectId(), cardId), cancellationToken);
@@ -948,7 +955,7 @@ internal sealed class CardTools(
                 + $"'{card.StageId}'. Nothing was changed.";
         }
 
-        return await SaveArchiveAsync(card, archived: false, cancellationToken);
+        return await SaveArchiveAsync(card, archived: false, fullCard == true, cancellationToken);
     }
 
     /// <summary>
@@ -983,6 +990,7 @@ internal sealed class CardTools(
     private async ValueTask<string> SaveArchiveAsync(
         Card card,
         bool archived,
+        bool fullCard,
         CancellationToken cancellationToken)
     {
         var updated = card with
@@ -991,7 +999,7 @@ internal sealed class CardTools(
             Revision = card.Revision + 1
         };
         await cards.SaveAsync(updated, card.Revision, cancellationToken);
-        return JsonSerializer.Serialize(updated, ServerJsonContext.Default.Card);
+        return CardAnswer.For(updated, fullCard, "reference", "revision");
     }
 
     [McpServerTool(Name = "aiko_get_card_artifact", Title = "Read an Aiko card artifact")]

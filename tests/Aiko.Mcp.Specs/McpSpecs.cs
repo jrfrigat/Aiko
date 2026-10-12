@@ -656,7 +656,10 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
             new Dictionary<string, object?>
             {
                 ["cardId"] = finished,
-                ["expectedRevision"] = await RevisionAsync(client, finished)
+                ["expectedRevision"] = await RevisionAsync(client, finished),
+                // The archive mark lives in the card's metadata, which the compact answer leaves to
+                // aiko_get_card: this spec is about what the card now holds.
+                ["fullCard"] = true
             },
             cancellationToken: CancellationToken.None);
         Assert.False(archived.IsError == true, FirstText(archived));
@@ -707,7 +710,9 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
             new Dictionary<string, object?>
             {
                 ["cardId"] = finished,
-                ["expectedRevision"] = await RevisionAsync(client, finished)
+                ["expectedRevision"] = await RevisionAsync(client, finished),
+                // Same as the archive above: the spec reads the card's own metadata and stage back.
+                ["fullCard"] = true
             },
             cancellationToken: CancellationToken.None);
         Assert.False(restored.IsError == true, FirstText(restored));
