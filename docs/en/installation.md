@@ -187,8 +187,8 @@ installed after Aiko is the ordinary case, and the line says which command conne
 | `AIKO_URL` | Explicit loopback origin (overrides port selection) |
 | `AIKO_DATABASE` | Path to the SQLite database (default `%LOCALAPPDATA%\Aiko\aiko.db`) |
 | `AIKO_LOG_FILE` | File a daemon logs to; set to `<data>\daemon.log` by `aiko serve -d` |
-| `AIKO_TOKEN` | Fixed access token (otherwise generated and persisted in `access-token`) |
-| `AIKO_PAIR_CODE` | Fixed pairing code (used by tests/scripts) |
+| `AIKO_TOKEN` | Fixed access token (otherwise generated and persisted in `access-token`); at least 32 characters - a shorter one stops the daemon instead of protecting nothing |
+| `AIKO_PAIR_CODE` | Fixed pairing code, honoured in a Debug build or beside `AIKO_INSECURE` (used by tests/scripts) |
 | `AIKO_INSECURE` | Set to `1` to disable authentication (local debugging only) |
 | `AIKO_RELEASE_BASE_URL` | Base address `scripts/install.ps1` downloads releases from (default `https://github.com`) - a mirror |
 | `AIKO_RELEASE_FEED` | Directory holding a release feed (`latest.txt`, `<tag>/<archive>`, `<tag>/SHA256SUMS`); `aiko update` and `aiko install --from` read it instead of GitHub |

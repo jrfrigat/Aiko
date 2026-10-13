@@ -74,6 +74,10 @@ internal static class AuthenticationMiddleware
         TokenEquals(cookie, accessToken);
 
     private static bool TokenEquals(string a, string b) =>
+        // An empty token is not the token. Comparing it is what let an empty Authorization header - and an
+        // empty session cookie - through whenever the stored token was empty too: two empty strings are equal
+        // and FixedTimeEquals says so (TASK-159).
+        a.Length > 0 &&
         a.Length == b.Length &&
         CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(a), Encoding.UTF8.GetBytes(b));
 }

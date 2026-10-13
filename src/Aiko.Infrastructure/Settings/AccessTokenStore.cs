@@ -11,13 +11,25 @@ namespace Aiko.Infrastructure.Settings;
 public sealed class AccessTokenStore(AikoDataPaths paths)
 {
     /// <summary>
-    /// Returns the persisted access token or creates and persists a new one.
+    /// The shortest token the daemon accepts. The generated one is longer; the floor exists because a token
+    /// is compared for equality, so a short - or empty - one is not a weaker secret but no secret at all,
+    /// and an empty header would be equal to it (TASK-159).
+    /// </summary>
+    public const int MinimumLength = 32;
+
+    /// <summary>
+    /// Returns the persisted access token or creates and persists a new one. A stored token shorter than
+    /// <see cref="MinimumLength"/> is treated as no token: it is replaced rather than trusted.
     /// </summary>
     public async ValueTask<string> GetOrCreateAsync(CancellationToken cancellationToken = default)
     {
         if (File.Exists(paths.AccessTokenPath))
         {
-            return (await File.ReadAllTextAsync(paths.AccessTokenPath, cancellationToken)).Trim();
+            var stored = (await File.ReadAllTextAsync(paths.AccessTokenPath, cancellationToken)).Trim();
+            if (stored.Length >= MinimumLength)
+            {
+                return stored;
+            }
         }
 
         var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));

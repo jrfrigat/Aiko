@@ -67,7 +67,7 @@ public class BrowserBoundarySpecs(AikoServerFixture fixture) : IClassFixture<Aik
             root,
             ("AIKO_DATABASE", Path.Combine(root, "data", "aiko.db")),
             ("AIKO_PORT", port.ToString(CultureInfo.InvariantCulture)),
-            ("AIKO_TOKEN", "boundary-token-123"),
+            ("AIKO_TOKEN", "boundary-token-0123456789abcdef0123456789"),
             ("AIKO_PAIR_CODE", "boundary-pair"));
         try
         {
@@ -110,7 +110,7 @@ public class BrowserBoundarySpecs(AikoServerFixture fixture) : IClassFixture<Aik
             // An agent with the token needs no such marker.
             using (var agent = new HttpRequestMessage(HttpMethod.Post, "/api/v1/auth/pair-request"))
             {
-                agent.Headers.Authorization = new AuthenticationHeaderValue("Bearer", "boundary-token-123");
+                agent.Headers.Authorization = new AuthenticationHeaderValue("Bearer", "boundary-token-0123456789abcdef0123456789");
                 using var agentClient = new HttpClient { BaseAddress = http.BaseAddress };
                 using var response = await agentClient.SendAsync(agent);
                 Assert.Equal(HttpStatusCode.OK, response.StatusCode);

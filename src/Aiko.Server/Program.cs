@@ -293,13 +293,36 @@ var insecure = string.Equals(
     builder.Configuration["AIKO_INSECURE"],
     "1",
     StringComparison.OrdinalIgnoreCase);
-var accessToken = builder.Configuration["AIKO_TOKEN"]
-    ?? await app.Services.GetRequiredService<AccessTokenStore>().GetOrCreateAsync();
+var configuredToken = builder.Configuration["AIKO_TOKEN"];
+if (!string.IsNullOrWhiteSpace(configuredToken) &&
+    configuredToken.Trim().Length < AccessTokenStore.MinimumLength)
+{
+    // A token that short is not a weaker token but no token: authentication compares for equality, and an
+    // empty header would be equal to an empty token. The daemon does not own the environment, so it cannot
+    // replace the value - refusing to start is the only honest answer (TASK-159).
+    await Console.Error.WriteLineAsync(
+        $"AIKO_TOKEN is shorter than {AccessTokenStore.MinimumLength} characters, which is no protection at " +
+        "all. Unset it to let the daemon keep its own token, or set one of at least that length.");
+    return 1;
+}
+
+var accessToken = string.IsNullOrWhiteSpace(configuredToken)
+    ? await app.Services.GetRequiredService<AccessTokenStore>().GetOrCreateAsync()
+    : configuredToken.Trim();
 // Agent configurations have to carry the token the middleware actually checks, and AIKO_TOKEN can differ
 // from what the token file holds, so the resolved value is handed to the writers.
 app.Services.GetRequiredService<DaemonAccessToken>().Value = accessToken;
 var pairingService = app.Services.GetRequiredService<PairingService>();
-if (builder.Configuration["AIKO_PAIR_CODE"] is { } seededPairingCode)
+// The seeded code is a convenience for tests, so it is honoured in a Debug build or on a daemon that refuses
+// to authenticate anyway. In a release build with authentication on, an environment variable must not be able
+// to open the cockpit: a seeded code would be a code nobody was ever shown (TASK-159).
+var seededPairingAllowed =
+#if DEBUG
+    true;
+#else
+    insecure;
+#endif
+if (seededPairingAllowed && builder.Configuration["AIKO_PAIR_CODE"] is { Length: > 0 } seededPairingCode)
 {
     pairingService.Seed(seededPairingCode);
 }
@@ -416,6 +439,9 @@ app.Lifetime.ApplicationStopping.Register(() =>
     telemetry.StopAsync(CancellationToken.None).AsTask().GetAwaiter().GetResult());
 
 await app.RunAsync();
+// The exit code is stated because one path above refuses to start and returns 1: a top-level program that
+// returns a value on one path has to return one on every path (TASK-159).
+return 0;
 
 // The daemon's own origin: its scheme and port, on any spelling of loopback the browser may use for it.
 static bool IsOwnOrigin(string origin, Uri serverBaseUri) =>

@@ -2327,7 +2327,7 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
             root,
             ("AIKO_DATABASE", Path.Combine(root, "data", "aiko.db")),
             ("AIKO_PORT", port.ToString(CultureInfo.InvariantCulture)),
-            ("AIKO_TOKEN", "test-token-123"),
+            ("AIKO_TOKEN", "test-token-0123456789abcdef0123456789ab"),
             ("AIKO_PAIR_CODE", "pair-123"));
         try
         {
@@ -2357,14 +2357,14 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
 
             using (var authorized = new HttpRequestMessage(HttpMethod.Get, "/api/v1/projects"))
             {
-                authorized.Headers.Authorization = new AuthenticationHeaderValue("Bearer", "test-token-123");
+                authorized.Headers.Authorization = new AuthenticationHeaderValue("Bearer", "test-token-0123456789abcdef0123456789ab");
                 using var response = await httpClient.SendAsync(authorized);
                 Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             }
 
             using (var pairRequest = new HttpRequestMessage(HttpMethod.Post, "/api/v1/auth/pair-request"))
             {
-                pairRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", "test-token-123");
+                pairRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", "test-token-0123456789abcdef0123456789ab");
                 using var pairResponse = await httpClient.SendAsync(pairRequest);
                 Assert.Equal(HttpStatusCode.OK, pairResponse.StatusCode);
             }
@@ -2418,7 +2418,7 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
             using (var stopping = new HttpClient { BaseAddress = baseUrl, Timeout = TimeSpan.FromSeconds(2) })
             {
                 using var stop = new HttpRequestMessage(HttpMethod.Post, "/api/v1/system/shutdown");
-                stop.Headers.Authorization = new AuthenticationHeaderValue("Bearer", "test-token-123");
+                stop.Headers.Authorization = new AuthenticationHeaderValue("Bearer", "test-token-0123456789abcdef0123456789ab");
                 using var stopResponse = await stopping.SendAsync(stop);
                 Assert.Equal(HttpStatusCode.OK, stopResponse.StatusCode);
                 var answer = await stopResponse.Content.ReadFromJsonAsync<JsonElement>();
