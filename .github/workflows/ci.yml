@@ -66,10 +66,20 @@ jobs:
           }
           Write-Host 'Install scripts are clean.'
 
+  # Two configurations, both on purpose. Release is the combat one - release.yml tests a tag with it, and the
+  # installer ships what it builds - while the work itself happens in Debug, where the `#if DEBUG` branches
+  # live. A spec that holds on Debug-only behaviour is green locally and red here, which is how v0.19.0 went
+  # out red: two specs paired with a seeded code that Release does not seed (TASK-350). Running both is what
+  # stops that from depending on anyone remembering (TASK-351).
   build-test:
-    name: Build & test (windows)
+    name: Build & test (windows, ${{ matrix.configuration }})
     runs-on: windows-latest
     timeout-minutes: 30
+    strategy:
+      # Both configurations report: one failing must not hide whether the other did.
+      fail-fast: false
+      matrix:
+        configuration: [ Release, Debug ]
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -84,18 +94,18 @@ jobs:
       - name: Restore
         run: dotnet restore Aiko.slnx
 
-      - name: Build (Release)
-        run: dotnet build Aiko.slnx -c Release --no-restore
+      - name: Build (${{ matrix.configuration }})
+        run: dotnet build Aiko.slnx -c ${{ matrix.configuration }} --no-restore
 
       # The MCP suite boots its own daemon on a random port with an isolated database, so no manual
       # orchestration is needed here.
-      - name: Test
-        run: dotnet test Aiko.slnx -c Release --no-build --logger "trx;LogFileName=test-results.trx"
+      - name: Test (${{ matrix.configuration }})
+        run: dotnet test Aiko.slnx -c ${{ matrix.configuration }} --no-build --logger "trx;LogFileName=test-results-${{ matrix.configuration }}.trx"
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: test-results
+          name: test-results-${{ matrix.configuration }}
           path: '**/*.trx'
           if-no-files-found: ignore
