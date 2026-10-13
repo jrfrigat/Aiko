@@ -14,9 +14,18 @@ namespace Aiko.Infrastructure.Releases;
 /// so two agents planning the same version cannot lose each other's write; and Aiko keeps no second copy in
 /// SQLite, because this is not a projection of anything - a rebuild of the database must not be able to lose
 /// the answer to "what was v0.2.0 waiting for".
+/// <para>
+/// The document is not the whole answer, because a version can be recorded without its plan ever being closed.
+/// Every plan is read through <see cref="ReleasePlans.Reconcile(ReleasePlan, ReleaseDocument)"/> against the
+/// release history, so a plan whose version has been recorded is a released plan for every caller at once -
+/// the plan new cards flow into, the plan that refuses a change, and the plan a screen draws. The file is left
+/// exactly as the person wrote it: a read is not a moment to change their document, and closing a plan stays
+/// the way to make the document itself true.
+/// </para>
 /// </remarks>
 public sealed class FileReleasePlanStore(
     IProjectCatalog projects,
+    IReleaseStore releases,
     IAikoEventPublisher? events = null) : IReleasePlanStore
 {
     private const string FileName = "release-plan.json";
@@ -31,7 +40,11 @@ public sealed class FileReleasePlanStore(
         CancellationToken cancellationToken)
     {
         var project = await FindProjectAsync(projectId, cancellationToken);
-        return await ReadDocumentAsync(project.RootPath, cancellationToken);
+        // Read against the release history rather than handed out as the file holds it: a version that was
+        // recorded is a fact, and a plan nobody closed must not keep reading as work still ahead.
+        return ReleasePlans.Reconcile(
+            await ReadDocumentAsync(project.RootPath, cancellationToken),
+            await releases.ReadAsync(projectId, cancellationToken));
     }
 
     /// <inheritdoc />
@@ -49,13 +62,24 @@ public sealed class FileReleasePlanStore(
             // takes an intent rather than a document: a caller that read first would write back a plan that
             // never saw the change made in between.
             var document = await ReadDocumentAsync(project.RootPath, cancellationToken);
-            var existing = document.Find(update.Version);
+            var history = await releases.ReadAsync(projectId, cancellationToken);
+            // The decision is taken on the plans as the release history has them, the write is applied to the
+            // document as it stands. A version that was recorded refuses a change whether or not its plan was
+            // ever closed, and no plan is closed behind the person's back by a write about another version.
+            var existing = ReleasePlans.Reconcile(document, history).Find(update.Version);
             // A plan is for a version that will be tagged, so it answers to the rule a release answers to -
             // and a plan being created has to say which scheme the version will follow.
             ReleasePlans.Validate(update.Version, update.SchemeId ?? existing?.SchemeId);
             if (ReleasePlans.RefuseUpdate(existing) is { } refusal)
             {
                 throw new InvalidOperationException(refusal);
+            }
+
+            if (existing is null && ReleasePlans.RefusePlanning(update.Version, history) is { } shipped)
+            {
+                // A version in the history with no plan was released without one: planning it now would be
+                // planning work for a version that has already shipped.
+                throw new InvalidOperationException(shipped);
             }
 
             var version = update.Version.Trim();
@@ -148,7 +172,12 @@ public sealed class FileReleasePlanStore(
                     "version has one plan, so closing it twice would give the same question two answers.");
             }
 
+            // Closing works on the document as it stands - it is what makes the document itself true - but the
+            // moment it records is the release's own moment when the version was already recorded, so that the
+            // plan and the history agree about when the version shipped.
+            var history = await releases.ReadAsync(projectId, cancellationToken);
             var now = DateTimeOffset.UtcNow;
+            var releasedAt = history.Find(existing.Version)?.ReleasedAt ?? now;
             var carry = ReleasePlans.NormalizeCards(cardsToCarry)
                 .Where(existing.Names)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -159,7 +188,7 @@ public sealed class FileReleasePlanStore(
             // for it to go.
             var closed = existing with
             {
-                ReleasedAt = now,
+                ReleasedAt = releasedAt,
                 IsCurrent = false,
                 Cards =
                 [
@@ -168,7 +197,7 @@ public sealed class FileReleasePlanStore(
                 ]
             };
 
-            var target = ResolveCarryTarget(document, existing, version, carryIntoVersion, now);
+            var target = ResolveCarryTarget(document, existing, version, carryIntoVersion, now, history);
             if (carry.Length > 0 && target is not null)
             {
                 target = target with
@@ -213,26 +242,35 @@ public sealed class FileReleasePlanStore(
     /// A version named by the caller wins; otherwise the next unreleased plan the project already holds.
     /// When the caller names a version nobody planned, its plan is created carrying the closed plan's scheme
     /// - that is a version the person stated, not one Aiko invented. A version already recorded is refused,
-    /// because its plan is closed and a closed plan takes nothing.
+    /// because it is a released version whether or not its plan was ever closed, and a released version takes
+    /// no work. The plans are read against the release history here for that reason, not as the file holds
+    /// them.
     /// </remarks>
     private static ReleasePlan? ResolveCarryTarget(
         ReleasePlanDocument document,
         ReleasePlan closed,
         string version,
         string? carryIntoVersion,
-        DateTimeOffset now)
+        DateTimeOffset now,
+        ReleaseDocument history)
     {
+        var plans = ReleasePlans.Reconcile(document, history);
         ReleasePlan? target;
         if (!string.IsNullOrWhiteSpace(carryIntoVersion) &&
             !ReleasePlan.Same(carryIntoVersion, version))
         {
             ReleaseRecords.Validate(carryIntoVersion, closed.SchemeId);
-            target = document.Find(carryIntoVersion!)
-                ?? new ReleasePlan(carryIntoVersion!.Trim(), closed.SchemeId, [], false, now, null, null);
+            target = plans.Find(carryIntoVersion!);
+            if (target is null && ReleasePlans.RefusePlanning(carryIntoVersion!, history) is { } shipped)
+            {
+                throw new ArgumentException(shipped, nameof(carryIntoVersion));
+            }
+
+            target ??= new ReleasePlan(carryIntoVersion!.Trim(), closed.SchemeId, [], false, now, null, null);
         }
         else
         {
-            target = document.Next(version);
+            target = plans.Next(version);
         }
 
         if (target is { IsReleased: true })

@@ -271,4 +271,38 @@ public class ReleasePlanSurfaceSpecs(AikoServerFixture fixture) : IClassFixture<
         Assert.NotEqual(JsonValueKind.Null, after.GetProperty("releasedAt").ValueKind);
         Assert.False(after.GetProperty("isCurrent").GetBoolean());
     }
+
+    [Fact]
+    public async Task A_release_recorded_without_closing_its_plan_still_refuses_a_change()
+    {
+        await using var client = await ConnectAsync();
+        var cardId = await CreateCardAsync(client, "Shipped without its plan being closed");
+        var version = UniqueVersion("7");
+
+        await UpdateAsync(client, version, addCards: [cardId]);
+
+        var recorded = await client.CallToolAsync(
+            "aiko_record_release",
+            new Dictionary<string, object?>
+            {
+                ["version"] = version,
+                ["schemeId"] = "git-release",
+                ["cards"] = new[] { cardId }
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.NotEqual(true, recorded.IsError);
+
+        // Nobody closed the plan and the change is refused all the same: the version is a fact, and a plan
+        // that could still take work would be a way to add it to a version that has shipped.
+        var refused = await client.CallToolAsync(
+            "aiko_update_release_plan",
+            new Dictionary<string, object?>
+            {
+                ["version"] = version,
+                ["removeCards"] = new[] { cardId }
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.True(refused.IsError);
+        Assert.Contains("closed", FirstText(refused) ?? string.Empty, StringComparison.Ordinal);
+    }
 }

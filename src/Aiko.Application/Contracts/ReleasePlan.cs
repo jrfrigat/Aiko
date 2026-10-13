@@ -186,6 +186,65 @@ public static class ReleasePlans
         ReleaseRecords.NormalizeCards(cards);
 
     /// <summary>
+    /// The plan as the release history has it: a version that has been recorded makes the plan a fact, so it
+    /// reads as released from the moment the release is recorded, not only once its plan was closed.
+    /// </summary>
+    /// <remarks>
+    /// Stated here, once, because it is a rule about plans rather than about one reader: the plan of a
+    /// recorded version is not work still ahead, is not the version new cards flow into, and may not be
+    /// changed. Every reader of a plan - and the store, which is where a plan is read - asks this and not its
+    /// own copy of it.
+    /// <para>
+    /// A plan that already carries a release time is left exactly as the document holds it: the reading never
+    /// invents a moment, and closing a plan stays what it was - the person saying what shipped and where the
+    /// work that outlived the version goes.
+    /// </para>
+    /// </remarks>
+    /// <param name="plan">The plan as the store holds it.</param>
+    /// <param name="history">The project's release history.</param>
+    public static ReleasePlan Reconcile(ReleasePlan plan, ReleaseDocument history)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+        ArgumentNullException.ThrowIfNull(history);
+        return !plan.IsReleased && history.Find(plan.Version) is { } record
+            ? plan with { ReleasedAt = record.ReleasedAt, IsCurrent = false }
+            : plan;
+    }
+
+    /// <summary>
+    /// Every plan of <paramref name="document"/> as the release history has it, in the order the document
+    /// holds them.
+    /// </summary>
+    /// <param name="document">The document as the store holds it.</param>
+    /// <param name="history">The project's release history.</param>
+    public static ReleasePlanDocument Reconcile(ReleasePlanDocument document, ReleaseDocument history)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(history);
+        return document with { Plans = [.. document.Plans.Select(plan => Reconcile(plan, history))] };
+    }
+
+    /// <summary>
+    /// Why a version may not be planned at all, or null when it may be.
+    /// </summary>
+    /// <remarks>
+    /// Separate from <see cref="RefuseUpdate(ReleasePlan?)"/> because it answers a different question: that one
+    /// is about a plan of a recorded version, this one about a version that was recorded and never planned.
+    /// Work that appears after a version shipped belongs to the next version, so a plan for a release that is
+    /// already a fact would be a plan for a version nobody can change.
+    /// </remarks>
+    /// <param name="version">Version a plan is being asked for.</param>
+    /// <param name="history">The project's release history.</param>
+    public static string? RefusePlanning(string version, ReleaseDocument history)
+    {
+        ArgumentNullException.ThrowIfNull(history);
+        return history.Find(version) is { } record
+            ? $"the version '{record.Version}' was recorded at {record.ReleasedAt:u}, so it is not planned: "
+              + "a released version is a fact and takes no work. Plan this work in another version instead."
+            : null;
+    }
+
+    /// <summary>
     /// Why the plan may not be changed, or null when it may be.
     /// </summary>
     /// <remarks>

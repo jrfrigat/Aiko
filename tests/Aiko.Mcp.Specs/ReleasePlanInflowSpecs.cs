@@ -177,4 +177,40 @@ public class ReleasePlanInflowSpecs(AikoServerFixture fixture) : IClassFixture<A
         Assert.Contains(version, note, StringComparison.Ordinal);
         Assert.Contains("aiko_update_release_plan", note, StringComparison.Ordinal);
     }
+
+    /// <summary>
+    /// A card made after its version shipped does not join that version's plan, even though nobody closed it:
+    /// the inflow asks the release history, so a released version is not where new work goes.
+    /// </summary>
+    [Fact]
+    public async Task A_card_made_after_its_version_shipped_does_not_join_it()
+    {
+        await using var client = await ConnectAsync();
+        var version = UniqueVersion("4");
+        await PlanAsync(client, version);
+
+        var recorded = await client.CallToolAsync(
+            "aiko_record_release",
+            new Dictionary<string, object?>
+            {
+                ["version"] = version,
+                ["schemeId"] = "git-release",
+                ["cards"] = Array.Empty<string>()
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.NotEqual(true, recorded.IsError);
+
+        // The plan reads as a released version rather than as work still ahead, which is why it takes nothing.
+        var plan = await PlanOfAsync(client, version);
+        Assert.NotEqual(JsonValueKind.Null, plan.GetProperty("releasedAt").ValueKind);
+        Assert.False(plan.GetProperty("isCurrent").GetBoolean());
+
+        var card = Created(await CreateAsync(client, "Grew out of a version that shipped"));
+
+        // The card joined another plan or none at all: it must not claim a version nobody can change, because
+        // that claim is one a reader could not tell from a true one.
+        Assert.False(
+            card.GetProperty("metadata").TryGetProperty("release-plan", out var claimed)
+            && claimed.GetString() == version);
+    }
 }

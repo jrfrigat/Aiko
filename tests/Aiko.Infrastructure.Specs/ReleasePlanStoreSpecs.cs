@@ -15,6 +15,10 @@ namespace Aiko.Infrastructure.Specs;
 public sealed class ReleasePlanStoreSpecs
 {
     private static FileReleasePlanStore Store(TestContext context) =>
+        new(context.Catalog, ReleaseStore(context), context.Events);
+
+    /// <summary>The release history a plan is read against: a plan means nothing beside the releases it knows.</summary>
+    private static FileReleaseStore ReleaseStore(TestContext context) =>
         new(context.Catalog, context.Events);
 
     [Fact]
@@ -198,6 +202,164 @@ public sealed class ReleasePlanStoreSpecs
             // The refusal names the reason, which is what lets an agent plan the work in another version
             // instead of insisting.
             Assert.Contains("closed", refused.Message, StringComparison.Ordinal);
+        });
+    }
+
+    /// <summary>
+    /// A version that was recorded makes its plan a fact: reading it does not depend on somebody remembering
+    /// to close the plan, and the reading leaves the person's document exactly as they wrote it.
+    /// </summary>
+    [Fact]
+    public async Task A_recorded_version_reads_as_released_even_when_its_plan_was_never_closed()
+    {
+        await InfrastructureSpecs.WithInitializedProjectAsync(async context =>
+        {
+            var store = Store(context);
+            await store.UpdateAsync(
+                context.Project.Id,
+                new ReleasePlanUpdate("v0.2.0", ReleaseSchemes.GitReleaseId, ["TASK-1"], IsCurrent: true),
+                CancellationToken.None);
+
+            var path = Path.Combine(context.StitchRoot, "release-plan.json");
+            var asWritten = await File.ReadAllTextAsync(path);
+            var recorded = await ReleaseStore(context).RecordAsync(
+                context.Project.Id,
+                new RecordReleaseRequest("v0.2.0", ReleaseSchemes.GitReleaseId, ["TASK-1"]),
+                CancellationToken.None);
+
+            var document = await store.ReadAsync(context.Project.Id, CancellationToken.None);
+            var plan = document.Find("v0.2.0")!;
+            // The moment is the release's own, not the moment somebody read the plan.
+            Assert.Equal(recorded.ReleasedAt, plan.ReleasedAt);
+            // A released version is not the version new cards flow into: its work belongs to the next one.
+            Assert.False(plan.IsCurrent);
+            Assert.Null(document.Current);
+
+            // Reading is not a moment to change the document: the file still holds the plan nobody closed, and
+            // saying what shipped stays the person's statement to make.
+            Assert.Equal(asWritten, await File.ReadAllTextAsync(path));
+        });
+    }
+
+    /// <summary>
+    /// A recorded version refuses a change whether or not its plan was ever closed, and a version recorded
+    /// without a plan is not planned afterwards either.
+    /// </summary>
+    [Fact]
+    public async Task A_recorded_versions_plan_refuses_a_change_without_being_closed()
+    {
+        await InfrastructureSpecs.WithInitializedProjectAsync(async context =>
+        {
+            var store = Store(context);
+            var releases = ReleaseStore(context);
+            await store.UpdateAsync(
+                context.Project.Id,
+                new ReleasePlanUpdate("v0.2.0", ReleaseSchemes.GitReleaseId, ["TASK-1"]),
+                CancellationToken.None);
+            await releases.RecordAsync(
+                context.Project.Id,
+                new RecordReleaseRequest("v0.2.0", ReleaseSchemes.GitReleaseId, ["TASK-1"]),
+                CancellationToken.None);
+            await releases.RecordAsync(
+                context.Project.Id,
+                new RecordReleaseRequest("v0.9.0", ReleaseSchemes.GitReleaseId, ["TASK-2"]),
+                CancellationToken.None);
+
+            // Nobody closed this plan and the change is refused anyway: the version is a fact.
+            var unclosed = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                store.UpdateAsync(
+                    context.Project.Id,
+                    new ReleasePlanUpdate("v0.2.0", AddCards: ["TASK-3"]),
+                    CancellationToken.None).AsTask());
+            Assert.Contains("closed", unclosed.Message, StringComparison.Ordinal);
+
+            // v0.9.0 was released without ever being planned, and planning it now would be planning work for a
+            // version that has already shipped.
+            var neverPlanned = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                store.UpdateAsync(
+                    context.Project.Id,
+                    new ReleasePlanUpdate("v0.9.0", ReleaseSchemes.GitReleaseId, ["TASK-3"]),
+                    CancellationToken.None).AsTask());
+            Assert.Contains("recorded", neverPlanned.Message, StringComparison.Ordinal);
+        });
+    }
+
+    /// <summary>
+    /// Closing still closes: a plan that already reads as released can still be closed by hand, and what it
+    /// records is the release's own moment, so the plan and the history agree about when the version shipped.
+    /// </summary>
+    [Fact]
+    public async Task Closing_a_recorded_versions_plan_keeps_the_releases_own_moment()
+    {
+        await InfrastructureSpecs.WithInitializedProjectAsync(async context =>
+        {
+            var store = Store(context);
+            await store.UpdateAsync(
+                context.Project.Id,
+                new ReleasePlanUpdate("v0.2.0", ReleaseSchemes.GitReleaseId, ["TASK-1", "TASK-2"], IsCurrent: true),
+                CancellationToken.None);
+            await store.UpdateAsync(
+                context.Project.Id,
+                new ReleasePlanUpdate("v0.3.0", ReleaseSchemes.GitReleaseId, ["TASK-3"]),
+                CancellationToken.None);
+
+            var recorded = await ReleaseStore(context).RecordAsync(
+                context.Project.Id,
+                new RecordReleaseRequest("v0.2.0", ReleaseSchemes.GitReleaseId, ["TASK-1"]),
+                CancellationToken.None);
+
+            var closed = await store.CloseAsync(
+                context.Project.Id,
+                "v0.2.0",
+                ["TASK-2"],
+                carryIntoVersion: null,
+                CancellationToken.None);
+
+            Assert.Equal(recorded.ReleasedAt, closed.ReleasedAt);
+            Assert.Equal(new[] { "TASK-1" }, closed.Cards.Select(entry => entry.CardId).ToArray());
+
+            var document = await store.ReadAsync(context.Project.Id, CancellationToken.None);
+            var carried = Assert.Single(document.Find("v0.3.0")!.Cards, entry => entry.CardId == "TASK-2");
+            Assert.Equal("v0.2.0", carried.CarriedFromVersion);
+        });
+    }
+
+    /// <summary>
+    /// Work that outlived a version is not carried into a version that was already released: the only other
+    /// plan is not a place for it, so it stays on the closed plan where a person can see it.
+    /// </summary>
+    [Fact]
+    public async Task Work_is_never_carried_into_a_version_that_was_already_released()
+    {
+        await InfrastructureSpecs.WithInitializedProjectAsync(async context =>
+        {
+            var store = Store(context);
+            await store.UpdateAsync(
+                context.Project.Id,
+                new ReleasePlanUpdate("v0.2.0", ReleaseSchemes.GitReleaseId, ["TASK-1", "TASK-2"], IsCurrent: true),
+                CancellationToken.None);
+            await store.UpdateAsync(
+                context.Project.Id,
+                new ReleasePlanUpdate("v0.3.0", ReleaseSchemes.GitReleaseId, ["TASK-3"], IsCurrent: true),
+                CancellationToken.None);
+
+            // v0.3.0 is the most recently created plan nobody closed, and it is already released: a version
+            // that shipped is not where the work of the next one goes.
+            await ReleaseStore(context).RecordAsync(
+                context.Project.Id,
+                new RecordReleaseRequest("v0.3.0", ReleaseSchemes.GitReleaseId, ["TASK-3"]),
+                CancellationToken.None);
+
+            await store.CloseAsync(
+                context.Project.Id,
+                "v0.2.0",
+                ["TASK-2"],
+                carryIntoVersion: null,
+                CancellationToken.None);
+
+            var document = await store.ReadAsync(context.Project.Id, CancellationToken.None);
+            Assert.Contains(document.Find("v0.2.0")!.Cards, entry => entry.CardId == "TASK-2");
+            Assert.DoesNotContain(document.Find("v0.3.0")!.Cards, entry => entry.CardId == "TASK-2");
         });
     }
 }
