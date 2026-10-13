@@ -3,6 +3,17 @@
     <ProjectReference Include="../../src/Aiko.Infrastructure/Aiko.Infrastructure.csproj" />
     <!-- Built first, not referenced: CliInitSpecs runs the CLI as a person does. -->
     <ProjectReference Include="../../src/Aiko.Cli/Aiko.Cli.csproj" ReferenceOutputAssembly="false" />
+    <!-- The same for the substitute daemon of ServeTimeoutSpecs: it is a program of its own, laid out beside
+         a copy of the CLI so that `aiko serve -d` can start something that never answers (TASK-343). -->
+    <ProjectReference Include="Fixtures/SilentDaemon/SilentDaemon.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- That program lives under this project's own directory, so the framework's globs would otherwise
+         compile it into this assembly - including the attributes its build generates. None of it is here. -->
+    <Compile Remove="Fixtures/**" />
+    <None Remove="Fixtures/**" />
+    <Content Remove="Fixtures/**" />
+    <EmbeddedResource Remove="Fixtures/**" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />

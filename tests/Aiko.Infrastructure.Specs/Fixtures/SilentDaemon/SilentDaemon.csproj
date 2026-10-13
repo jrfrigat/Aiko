@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- A substitute daemon for one spec. It is built but never referenced, exactly like Aiko.Cli: the spec
+       copies this assembly into a CLI layout as `Aiko.Server.dll`, so `aiko serve -d` starts it and gives up
+       on it (TASK-343). Nothing here is part of the product. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+</Project>
