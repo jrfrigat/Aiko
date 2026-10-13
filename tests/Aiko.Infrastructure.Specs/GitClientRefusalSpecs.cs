@@ -44,7 +44,9 @@ public sealed class GitClientRefusalSpecs
                 ]),
                 // Waiting fifteen seconds for a refusal is fifteen seconds this suite does not have, and the
                 // wait is a seam of its own so that a spec can reach the branch without inventing anything.
-                CommandWait = TimeSpan.FromSeconds(5)
+                // Ten rather than five: the substitute has to start PowerShell and write its process id
+                // inside this window, and a runner is slower than a workstation (TASK-353).
+                CommandWait = TimeSpan.FromSeconds(10)
             };
 
             var status = await client.StatusAsync(root, CancellationToken.None);

@@ -30,7 +30,7 @@ public sealed class ServeTimeoutSpecs
 
         // The command says what happened and fails: a "started" that nothing can connect to is not an answer.
         Assert.Equal(1, exitCode);
-        Assert.Contains("did not answer on its port within 1 seconds", output, StringComparison.Ordinal);
+        Assert.Contains("did not answer on its port within 5 seconds", output, StringComparison.Ordinal);
         Assert.Contains("It has been stopped", output, StringComparison.Ordinal);
 
         // The daemon really was started - the substitute writes its own id before it starts waiting - so that
@@ -137,8 +137,10 @@ public sealed class ServeTimeoutSpecs
             startInfo.Environment["AIKO_LOG_FILE"] = _logPath;
             startInfo.Environment["AIKO_SILENT_DAEMON_PID_FILE"] = DaemonPidFile;
             // Thirty seconds of waiting to see a timeout is thirty seconds this suite does not have, and the
-            // knob exists for exactly this (TASK-343).
-            startInfo.Environment["AIKO_SERVE_WAIT_SECONDS"] = "1";
+            // knob exists for exactly this (TASK-343). Five rather than one, because the substitute has to
+            // start and write its process id inside this window, and a runner is slower than a workstation:
+            // the assertion below wants a process that really ran (TASK-353).
+            startInfo.Environment["AIKO_SERVE_WAIT_SECONDS"] = "5";
 
             using var process = Process.Start(startInfo)!;
             var output = process.StandardOutput.ReadToEndAsync();
@@ -199,6 +201,17 @@ public sealed class ServeTimeoutSpecs
             var built = Path.Combine(
                 CliInitSpecs.FindRepositoryRoot(),
                 "tests", "Aiko.Infrastructure.Specs", "Fixtures", "SilentDaemon", "bin", Configuration);
+            if (!Directory.Exists(built))
+            {
+                // Said plainly, because the confusing version of this was a red publication run: a project
+                // that is only referenced is built with the *default* configuration, so building the solution
+                // with -c Release produced no Release binary to find (TASK-343).
+                throw new FileNotFoundException(
+                    $"The substitute daemon is not built for {Configuration}: {built}. "
+                    + $"Build Aiko.slnx in that configuration (it is a project of the solution).",
+                    built);
+            }
+
             var assembly = Directory
                 .EnumerateFiles(built, "SilentDaemon.dll", SearchOption.AllDirectories)
                 .FirstOrDefault()

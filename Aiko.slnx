@@ -9,6 +9,11 @@
   <Project Path="src/Aiko.Cli/Aiko.Cli.csproj" />
   <Project Path="tests/Aiko.Domain.Specs/Aiko.Domain.Specs.csproj" />
   <Project Path="tests/Aiko.Infrastructure.Specs/Aiko.Infrastructure.Specs.csproj" />
+  <!-- The substitute daemon one spec lays out beside a copy of the CLI. It is a program of its own, and it
+       belongs in the solution for a reason that cost a red CI: a project that is only *referenced* is built
+       with the default configuration even when the solution is built with -c Release, so the spec looked for
+       a Release binary the solution never produced (TASK-343, fixed after the v0.20.0 publication run). -->
+  <Project Path="tests/Aiko.Infrastructure.Specs/Fixtures/SilentDaemon/SilentDaemon.csproj" />
   <Project Path="tests/Aiko.Mcp.Specs/Aiko.Mcp.Specs.csproj" />
   <Project Path="tests/Aiko.Pwa.Specs/Aiko.Pwa.Specs.csproj" />
 </Solution>
