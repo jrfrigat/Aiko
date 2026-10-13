@@ -184,9 +184,10 @@ public class ToolAnswerBudgetSpecs(AikoServerFixture fixture, ITestOutputHelper 
     /// marginal cost, which is the same at ten cards as at a thousand: how much one card adds to the answer, and
     /// whether what that card was *asked to do* rides along with it.
     ///
-    /// It prints the number and asserts the shape of the answer only. Asserting the marginal cost is the next
-    /// task's acceptance criterion - today the marginal cost is the whole requirements, and a budget here would be
-    /// a red test for work not yet done. This is the "before" figure, printed where anyone can read it.
+    /// It prints the number and asserts that what a card was *asked to do* does not ride along with it. A hundred
+    /// cards cannot be built inside a run, so the marginal cost is what is measured: it is the same at ten cards as
+    /// at a thousand, and it is the number the epic exists for - 4 470 characters before the thin form, and a
+    /// card's own fields after it.
     /// </remarks>
     [Fact]
     public async Task A_list_answer_grows_with_the_cards_it_lists_and_not_with_their_requirements()
@@ -214,6 +215,13 @@ public class ToolAnswerBudgetSpecs(AikoServerFixture fixture, ITestOutputHelper 
         output.WriteLine(
             $"list_cards: {before} characters for one card, {after} for two - "
             + $"a {requirementsLength}-character requirements added {after - before}.");
+
+        // The card's requirements must not ride along: one more card adds its own fields - its id, type, stage,
+        // size and priority - and not what it was asked to do. The number above is the before/after figure this
+        // epic exists for; this is the budget that keeps it.
+        Assert.True(
+            after - before < 1024,
+            $"A {requirementsLength}-character requirements added {after - before} characters to the list answer");
     }
 
     private static async Task<CallToolResult> CallAsync(

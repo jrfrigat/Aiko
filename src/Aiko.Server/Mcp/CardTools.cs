@@ -49,6 +49,12 @@ internal sealed class CardTools(
             "True to include the cards that were put away. False (the default) lists the board, which is what a "
             + "person sees; a card in the archive is still readable on its own with aiko_get_card.")]
         bool includeArchived = false,
+        [Description(
+            "True to answer with the whole cards instead of the thin ones. False (the default) answers with what "
+            + "an agent needs to find a card and decide about it - its id, type, stage, size and priority - "
+            + "because a list is read far more often than it is acted on, and what every card was asked to do is "
+            + "what such an answer used to cost. Read one card whole with aiko_get_card.")]
+        bool fullCards = false,
         CancellationToken cancellationToken = default)
     {
         var projectId = GetProjectId();
@@ -68,7 +74,7 @@ internal sealed class CardTools(
                 .ToArray();
         }
 
-        return JsonSerializer.Serialize(result, ServerJsonContext.Default.IReadOnlyListCard);
+        return CardAnswer.List(result, fullCards);
     }
 
     [McpServerTool(Name = "aiko_get_card", Title = "Get Aiko card")]

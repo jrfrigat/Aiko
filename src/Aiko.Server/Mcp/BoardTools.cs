@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Aiko.Application.Contracts;
 using Aiko.Application.Prioritization;
 using Aiko.Domain.Workflow;
@@ -34,7 +35,13 @@ internal sealed class BoardTools(
         + "where each stage got to. Read it when the order of the work matters - for example before walking "
         + "the board with /aiko-run-all - because the board's priority is computed from the card and its "
         + "parent, not the card's own score.")]
-    public async Task<string> ListBoardAsync(CancellationToken cancellationToken)
+    public async Task<string> ListBoardAsync(
+        [Description(
+            "True to answer with the whole cards. False (the default) answers with the thin ones - id, type, "
+            + "stage, size and priority - because the board is read to decide what to work on, and not to read "
+            + "what every card on it was asked to do. Read one card whole with aiko_get_card.")]
+        bool fullCards = false,
+        CancellationToken cancellationToken = default)
     {
         var projectId = GetProjectId();
         var project = await GetProjectAsync(cancellationToken);
@@ -54,6 +61,22 @@ internal sealed class BoardTools(
             CardPriorityProjector.Project(boardCards, boardRelations, priority, definition.Workflows),
             await executions.ReadStageRunsAsync(projectId, cancellationToken),
             [.. projectCards.Where(card => card.IsArchived)]);
-        return JsonSerializer.Serialize(snapshot, ServerJsonContext.Default.ProjectBoardSnapshot);
+        var answer = JsonSerializer
+            .SerializeToNode(snapshot, ServerJsonContext.Default.ProjectBoardSnapshot)!.AsObject();
+        if (!fullCards)
+        {
+            // The board's own cards are thinned where they stand: its relations, its priorities and the stage
+            // runs beside them are the board, and only what each card says about itself is what a reader of the
+            // board does not need.
+            foreach (var name in new[] { "cards", "archivedCards" })
+            {
+                if (answer.TryGetPropertyValue(name, out var node) && node is JsonArray cards)
+                {
+                    answer[name] = CardAnswer.Thin(cards);
+                }
+            }
+        }
+
+        return answer.ToJsonString();
     }
 }

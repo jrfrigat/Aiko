@@ -57,4 +57,70 @@ internal static class CardAnswer
 
         return compact.ToJsonString();
     }
+
+    /// <summary>
+    /// The fields a listed card carries: enough to find it, place it and decide about it, and nothing an agent
+    /// would have to read a whole card for.
+    /// </summary>
+    /// <remarks>
+    /// A list is read far more often than it is acted on, and its cost is counted in the cards it holds: the
+    /// requirements of every card in a project used to ride along with a question as small as "what is on the
+    /// board". A field added to <see cref="Card"/> later does not silently make every list heavier either.
+    /// </remarks>
+    private static readonly string[] ListKeys =
+        ["reference", "kind", "title", "workflowId", "stageId", "revision", "size", "ownPriority"];
+
+    /// <summary>Answers with the thin list, or with the whole cards when <paramref name="fullCards"/> is set.</summary>
+    /// <remarks>
+    /// The shape of the answer is unchanged - a bare array of cards either way - so what a reader looks up in it
+    /// (<c>[].reference.cardId</c>) keeps working; only what each card says about itself changes.
+    /// </remarks>
+    public static string List(IReadOnlyList<Card> cards, bool fullCards)
+    {
+        if (fullCards)
+        {
+            return JsonSerializer.Serialize(cards, ServerJsonContext.Default.IReadOnlyListCard);
+        }
+
+        var thin = new JsonArray();
+        foreach (var card in cards)
+        {
+            // The node overload is named explicitly: Add<T> would build a JsonValue by reflection, which this
+            // assembly's trimming analysis refuses at build time.
+            thin.Add((JsonNode)ThinNode(
+                JsonSerializer.SerializeToNode(card, ServerJsonContext.Default.Card)!.AsObject()));
+        }
+
+        return thin.ToJsonString();
+    }
+
+    /// <summary>
+    /// Thins the card nodes of an answer that carries more than cards - the board, where the cards sit beside its
+    /// relations and its priorities. Those neighbours are left exactly as they were.
+    /// </summary>
+    public static JsonArray Thin(JsonArray cards)
+    {
+        var thin = new JsonArray();
+        foreach (var card in cards)
+        {
+            thin.Add(card is JsonObject value ? (JsonNode)ThinNode(value) : card?.DeepClone());
+        }
+
+        return thin;
+    }
+
+    private static JsonObject ThinNode(JsonObject card)
+    {
+        var thin = new JsonObject();
+        foreach (var key in ListKeys)
+        {
+            if (card.TryGetPropertyValue(key, out var value))
+            {
+                // DeepClone because a node already held by the card's object cannot move to another parent.
+                thin[key] = value?.DeepClone();
+            }
+        }
+
+        return thin;
+    }
 }
