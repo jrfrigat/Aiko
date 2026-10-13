@@ -1686,9 +1686,14 @@ html.flare-mode-dark .splash-mark i {
     --aiko-skeleton-calendar-size: 6rem;
     --aiko-skeleton-panel-size: 15.5rem;
     --aiko-skeleton-chart-size: 48rem;
-    --aiko-skeleton-lists-size: 26rem;
+    --aiko-skeleton-rows-size: 24rem;
     --aiko-skeleton-fold-size: calc(100dvh - 9rem);
     --aiko-skeleton-card-panel-size: 40rem;
+}
+
+/* The rows of a list that is still being read: the registered projects, and the agents under them. */
+.aiko-skeleton--rows {
+    min-height: var(--aiko-skeleton-rows-size);
 }
 
 /* The metric grid of a waiting dashboard. A stack centres its children, and a grid that shrinks to its
@@ -1720,11 +1725,6 @@ html.flare-mode-dark .splash-mark i {
 
 .aiko-skeleton--calendar {
     height: var(--aiko-skeleton-calendar-size);
-}
-
-/* The registered projects and the agents under them. */
-.aiko-skeleton--lists {
-    min-height: var(--aiko-skeleton-lists-size);
 }
 
 /* A block or a column whose height follows data nobody has yet: reserved to one screenful, because the

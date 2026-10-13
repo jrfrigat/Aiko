@@ -24,8 +24,10 @@
 
     @if (_loading)
     {
-        @* The dashboard's own shape, drawn from the measured screen: the five tiles, the activity card and the
-           section under them - which used to appear out of nothing, all 418 pixels of it. *@
+        @* The dashboard's own shape, drawn from the measured screen: the five tiles and the activity card.
+           The section under them is the page's own - it is drawn in both states and carries its own
+           heading - so nothing here stands in for it: two panels above that heading read as extra
+           skeletons rather than as a shape. *@
         <AikoSkeletonRegion>
             <FlareStack Gap="FlareSpacing.Medium" Align="FlareAlignItems.Stretch">
                 <div class="aiko-metric-grid aiko-skeleton--metrics">
@@ -36,17 +38,12 @@
                         </div>
                     }
                 </div>
-                <FlareCard Variant="CardVariant.Filled">
+                <FlareCard Variant="CardVariant.Filled" Class="aiko-skeleton--activity">
                     <FlareStack Gap="FlareSpacing.XSmall">
                         <AikoSkeleton Variant="SkeletonVariant.Text" Width="30%" Height="0.9rem" />
                         <AikoSkeleton Class="aiko-skeleton--calendar" />
                     </FlareStack>
                 </FlareCard>
-                <FlareDivider />
-                <FlareStack Gap="FlareSpacing.Small" Class="aiko-skeleton--lists">
-                    <AikoSkeletonPanel Lines="4" />
-                    <AikoSkeletonPanel Lines="4" />
-                </FlareStack>
             </FlareStack>
         </AikoSkeletonRegion>
     }
@@ -270,7 +267,20 @@
             </FlareCard>
         }
 
-        @if (State.Projects.Count == 0)
+        @* The registered projects are read from the daemon, and the shell that carries the list arrives
+           with the rest of the screen: while that read is in flight this section used to say "no projects
+           registered", which is a claim about the workshop rather than about the read. The rows are drawn
+           where the table's own rows will be, inside the section and under its heading. *@
+        @if (_loading)
+        {
+            <FlareStack Gap="FlareSpacing.XXSmall" Class="aiko-skeleton--rows" Align="FlareAlignItems.Stretch">
+                @for (var row = 0; row < 6; row++)
+                {
+                    <AikoSkeleton Height="2.75rem" />
+                }
+            </FlareStack>
+        }
+        else if (State.Projects.Count == 0)
         {
             <FlareEmptyState Compact="true"
                              Title="@Loc.Get("EmptyStateTitle")"

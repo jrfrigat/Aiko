@@ -184,6 +184,25 @@ public sealed class LoadingSkeletonSpecs
             StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void A_screen_does_not_claim_an_empty_answer_while_it_is_still_reading()
+    {
+        var page = Read("src", "Aiko.Pwa", "Pages", "Dashboard.razor");
+
+        // The section under the activity card is drawn by the page in both states and carries its own
+        // heading, so a placeholder above that heading reads as an extra skeleton rather than as a shape.
+        Assert.DoesNotContain("aiko-skeleton--lists", page, StringComparison.Ordinal);
+
+        // And its own answer - "no projects registered" - is the third branch, not the second: reading is
+        // answered first, because an empty workshop and an unanswered read are different facts.
+        Assert.Contains("Class=\"aiko-skeleton--rows\"", page, StringComparison.Ordinal);
+        Assert.Contains("else if (State.Projects.Count == 0)", page, StringComparison.Ordinal);
+
+        var css = Read("src", "Aiko.Pwa", "wwwroot", "css", "app.css");
+        Assert.Contains("--aiko-skeleton-rows-size", css, StringComparison.Ordinal);
+        Assert.DoesNotContain("--aiko-skeleton-lists-size", css, StringComparison.Ordinal);
+    }
+
     private static string Read(params string[] segments) =>
         File.ReadAllText(Path.Combine([FindRepositoryRoot(), .. segments]))
             .Replace("\r\n", "\n", StringComparison.Ordinal);
