@@ -632,8 +632,8 @@ static async Task<int> StartForegroundAsync((string FileName, string Arguments) 
 
 // Starts the daemon with a console of its own that nobody sees (CREATE_NO_WINDOW) and a log file, so closing
 // the terminal that started it - or the Ctrl+C that ends it - no longer takes the daemon with it. Returns the
-// pid, the port and the log path once the daemon answers /health; null when it never did, with the tail of its
-// log printed, because "started" that nothing can connect to is not an answer.
+// pid, the port and the log path once the daemon answers /health; null when it never did, with the process
+// ended and the tail of its log printed, because "started" that nothing can connect to is not an answer.
 static async Task<(int Pid, int Port, string LogPath)?> StartDetachedAsync((string FileName, string Arguments) server)
 {
     var logPath = ResolveLogPath();
@@ -646,14 +646,51 @@ static async Task<(int Pid, int Port, string LogPath)?> StartDetachedAsync((stri
 
     using var process = Process.Start(startInfo)
         ?? throw new InvalidOperationException("Failed to start the Aiko daemon.");
-    if (await WaitForHealthAsync(TimeSpan.FromSeconds(30)) is { } port)
+    var wait = ServeWait();
+    if (await WaitForHealthAsync(wait) is { } port)
     {
         return (process.Id, port, logPath);
     }
 
-    Console.Error.WriteLine($"The daemon (pid {process.Id}) did not answer on its port within 30 seconds.");
+    // A daemon that never answered is not a daemon: leaving it running is how the next `aiko serve` finds its
+    // port taken by a process nobody can name, and `aiko serve stop` cannot reach one that never recorded its
+    // port. What this run started, this run ends - and says so, so nobody goes looking for a live daemon after
+    // being told it never came up (TASK-343).
+    Console.Error.WriteLine(
+        $"The daemon (pid {process.Id}) did not answer on its port within {wait.TotalSeconds:0} seconds.");
+    EndProcess(process);
+    Console.Error.WriteLine("It has been stopped, so it is not holding the port or the installed files.");
     PrintLogTail(logPath);
     return null;
+}
+
+// How long `aiko serve -d` waits for the daemon it started to answer. Thirty seconds is the working default;
+// AIKO_SERVE_WAIT_SECONDS shortens it where waiting that long is not wanted - and lets a spec reach the
+// timeout without spending half a minute on it (TASK-343).
+static TimeSpan ServeWait() =>
+    int.TryParse(Environment.GetEnvironmentVariable("AIKO_SERVE_WAIT_SECONDS"), out var seconds) && seconds > 0
+        ? TimeSpan.FromSeconds(seconds)
+        : TimeSpan.FromSeconds(30);
+
+// Ends the process this run started, and only if it is still there: killing what already exited throws, and
+// that throw would replace a message about a daemon that never answered with one about a process nobody asked
+// about. The whole tree, because the daemon may have started something of its own - the same guard
+// `GitClient.EndProcess` uses for a command nobody waits for any more.
+static void EndProcess(Process process)
+{
+    try
+    {
+        if (!process.HasExited)
+        {
+            process.Kill(entireProcessTree: true);
+            process.WaitForExit(5000);
+        }
+    }
+    catch (Exception exception) when (exception is InvalidOperationException or System.ComponentModel.Win32Exception)
+    {
+        // The process ended between the check and the kill, or the system refused: either way there is
+        // nothing here to wait for, and the answer the caller needs is still the timeout.
+    }
 }
 
 static void PrintStartedInBackground((int Pid, int Port, string LogPath) started)
