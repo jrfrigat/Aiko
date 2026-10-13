@@ -3,6 +3,7 @@
 @using Aiko.Pwa.Contracts
 @using Aiko.Pwa.Services
 @inject HttpClient Http
+@inject WorkspaceState State
 
 @* One release: the tasks that went into it, the scheme it followed and when it was recorded. The record is
    the project's own document, so this page shows what was written down rather than what a probe guesses now -
@@ -159,7 +160,13 @@
         ? record.ReleasedAt.ToLocalTime().ToString("d")
         : Loc.Get("ReleaseRecordMissing");
 
-    protected override async Task OnParametersSetAsync() => await ReloadAsync();
+    protected override async Task OnParametersSetAsync()
+    {
+        // Opening the record opens the project, as on the screen beside it: the rail names what is being
+        // looked at instead of leaving the question open (TASK-336).
+        await State.EnsureProjectAsync(Handle);
+        await ReloadAsync();
+    }
 
     /// <summary>
     /// Reads the record this address names. A version nobody recorded is a 404, which is worth saying plainly:
@@ -167,6 +174,15 @@
     /// </summary>
     private async Task ReloadAsync()
     {
+        // The project did not open, so this record cannot be about anything: the daemon's reason is the
+        // answer, and it is said plainly rather than drawn as a record that is missing (TASK-336).
+        if (State.Board is null && State.Error is { Length: > 0 } refusal)
+        {
+            _record = null;
+            _message = refusal;
+            return;
+        }
+
         _loading = true;
         _message = null;
         try

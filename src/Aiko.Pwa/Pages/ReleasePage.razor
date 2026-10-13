@@ -287,7 +287,14 @@
     /// </summary>
     protected override void OnInitialized() => State.Changed += OnStateChanged;
 
-    protected override async Task OnParametersSetAsync() => await ReloadAsync();
+    protected override async Task OnParametersSetAsync()
+    {
+        // The release screens are project screens like the ones beside them, and opening one opens the
+        // project: the rail then names it and the live stream follows it. Without this the rail said nothing
+        // about a project the person was plainly looking at, because nothing had told it (TASK-336).
+        await State.EnsureProjectAsync(Handle);
+        await ReloadAsync();
+    }
 
     /// <summary>
     /// Reads what this screen shows: the project's release history, and the schemes a release of this project
@@ -296,6 +303,17 @@
     /// </summary>
     private async Task ReloadAsync()
     {
+        // A project that did not open is a refusal before it is a page: the reads below would fail with the
+        // same answer, and the daemon's reason for it belongs on the screen. An address naming a project
+        // nobody has must say so, rather than draw an empty release history that reads as "nothing has been
+        // released yet" (TASK-336).
+        if (State.Board is null && State.Error is { Length: > 0 } refusal)
+        {
+            _hasError = true;
+            _message = refusal;
+            return;
+        }
+
         try
         {
             _history = await Http.GetFromJsonAsync<IReadOnlyList<ReleaseHistoryItem>>(
