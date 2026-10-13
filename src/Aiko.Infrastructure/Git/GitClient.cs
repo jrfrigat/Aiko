@@ -22,6 +22,20 @@ public sealed class GitClient : IGitClient
     internal const string NotARepository = "not a git repository";
     private static readonly TimeSpan CommandTimeout = TimeSpan.FromSeconds(15);
 
+    /// <summary>
+    /// The program each question is asked with, and the arguments that go before the question itself: git,
+    /// with none, in the product. A spec substitutes a command of its own to reach the refusal branch - one
+    /// that never answers - because a real git cannot be made to hang on demand (TASK-349).
+    /// </summary>
+    internal (string FileName, string[] Prefix) Command { get; init; } = ("git", []);
+
+    /// <summary>
+    /// How long a question may take before it counts as unanswered. Fifteen seconds in the product; a spec
+    /// whose command never answers shortens it, so the refusal is reached without waiting a quarter of a
+    /// minute for it (TASK-349).
+    /// </summary>
+    internal TimeSpan CommandWait { get; init; } = CommandTimeout;
+
     /// <inheritdoc />
     public async ValueTask<GitStatus> StatusAsync(string directory, CancellationToken cancellationToken)
     {
@@ -247,20 +261,27 @@ public sealed class GitClient : IGitClient
     /// Runs git and reports what it said. A missing executable, a non-zero exit and a timeout are all
     /// reported as an unsuccessful run rather than thrown.
     /// </summary>
-    private static async Task<GitRun> RunAsync(
+    private async Task<GitRun> RunAsync(
         string directory,
         string[] arguments,
         CancellationToken cancellationToken)
     {
         var startInfo = new ProcessStartInfo
         {
-            FileName = "git",
+            FileName = Command.FileName,
             WorkingDirectory = Directory.Exists(directory) ? directory : Path.GetTempPath(),
             UseShellExecute = false,
             CreateNoWindow = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true
         };
+        // Whatever the command needs before the question: nothing for git, and a substituted command says here
+        // what makes it wait (TASK-349).
+        foreach (var prefix in Command.Prefix)
+        {
+            startInfo.ArgumentList.Add(prefix);
+        }
+
         // -C then the directory, then the command and its arguments, one entry each: no shell, so nothing in
         // them is interpreted.
         startInfo.ArgumentList.Add("-C");
@@ -284,7 +305,7 @@ public sealed class GitClient : IGitClient
             }
 
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeout.CancelAfter(CommandTimeout);
+            timeout.CancelAfter(CommandWait);
             var standardOutput = process.StandardOutput.ReadToEndAsync(timeout.Token);
             var standardError = process.StandardError.ReadToEndAsync(timeout.Token);
             await process.WaitForExitAsync(timeout.Token);
