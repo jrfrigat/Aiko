@@ -1,3 +1,4 @@
+using Aiko.Pwa.Services;
 using Xunit;
 
 namespace Aiko.Pwa.Specs;
@@ -20,8 +21,9 @@ public sealed class SettingsReadGateSpecs
         var editor = Read("src", "Aiko.Pwa", "Pages", "SettingsEditor.razor");
 
         // The gate is the whole fix: what the read is *for* and what it has *produced* are two different
-        // things, and only the second one allows the form on screen.
-        Assert.Contains("@if (_appliedFor != _loadedKey)", editor, StringComparison.Ordinal);
+        // things, and only the second one allows the form on screen. It is asked for by name, so the rule can
+        // be called and covered rather than read off a comparison here (TASK-348).
+        Assert.Contains("@if (!ReadGate.Ready(_loadedKey, _appliedFor))", editor, StringComparison.Ordinal);
 
         // And the wait is answered with this screen's own shape - the two columns it really draws - rather
         // than with a placeholder of another shape that the values then replace.
@@ -81,6 +83,36 @@ public sealed class SettingsReadGateSpecs
         Assert.Contains("Board = null;", switchTo, StringComparison.Ordinal);
         Assert.Contains("SettingsView = null;", switchTo, StringComparison.Ordinal);
         Assert.Contains("ProjectConnections = [];", switchTo, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The gate as a rule rather than a line of markup: every pair below is a state the editor really passes
+    /// through, and the answer says whether the form may be on the screen.
+    /// </summary>
+    /// <remarks>
+    /// What this does not show is the timing - whether anything is painted between two of these states - and
+    /// that needs a rendered component, which the PWA does not have until TASK-216. Read as a proof that the
+    /// flicker cannot happen, this spec would be claiming something it never checked (TASK-348).
+    /// </remarks>
+    [Fact]
+    public void The_gate_answers_for_every_state_the_editor_passes_through()
+    {
+        const string level = "aiko|";
+
+        // Nothing has been asked for: there is nothing to show, and a form of defaults would be an answer.
+        Assert.False(ReadGate.Ready(null, null), "Nothing read and nothing applied is not ready.");
+        Assert.False(ReadGate.Ready(string.Empty, string.Empty), "An empty key names no level.");
+
+        // The read is in flight: the key it started for is known, the values are not.
+        Assert.False(ReadGate.Ready(level, null), "A read that started is not a read that landed.");
+        Assert.False(ReadGate.Ready(level, "other|"), "Another level's values are not this level's answer.");
+
+        // The read ended - with values, or with a failure that cleared them and reported itself - and what is
+        // on the screen is this level's own state, which is the one thing that may be shown for it.
+        Assert.True(ReadGate.Ready(level, level), "This level's own state belongs on screen.");
+
+        // And a level nobody asked for is not ready whatever is left over on the screen from before a switch.
+        Assert.False(ReadGate.Ready(null, level), "Values with nothing asked for are not an answer either.");
     }
 
     private static string Read(params string[] segments) =>

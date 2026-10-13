@@ -10,7 +10,10 @@
    table instead carries the real coefficients - the project's scoring criteria. Everything else
    reports the daemon: the port it holds, the token it checks, the model it ranks the board with, and
    the same findings `aiko doctor` prints. *@
-@if (_appliedFor != _loadedKey)
+@* The one place that decides whether the form may be on the screen. It is a call rather than a comparison so
+   that the rule can be read, called and covered where a comparison in markup cannot: TASK-334 found the
+   flicker, TASK-348 made the rule a thing a spec can hold. *@
+@if (!ReadGate.Ready(_loadedKey, _appliedFor))
 {
     @* Nothing has been read for the level being shown yet. Drawing the form before that read lands is the
        flicker: the fields still hold the defaults, or - after a switch the editor survived - the level read
