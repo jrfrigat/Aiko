@@ -16,4 +16,10 @@
     <PackageReference Include="Flare.Blazor" Version="0.44.0" ExcludeAssets="compile;runtime" />
     <ProjectReference Include="../Aiko.Theme.StitchFlow/Aiko.Theme.StitchFlow.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
+  <!-- The pairing code's window is internal, and the specs are where a rule like that is checked: PairingService
+       already takes a TimeProvider so a spec can move the clock instead of waiting five minutes, and moving it
+       needs to reach the type (TASK-346). -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Aiko.Mcp.Specs" />
+  </ItemGroup>
 </Project>
