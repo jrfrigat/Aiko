@@ -392,7 +392,12 @@ app.MapPost(
 app.MapMcp("/mcp/projects/{projectId}");
 app.MapMcp("/mcp");
 app.Map("/api/{**rest}", () => Results.NotFound());
-app.MapFallbackToFile("index.html");
+// Anything that is not a real file or an endpoint of the daemon's own is the cockpit's page: the fallback
+// is named with an explicit catch-all pattern, because the overload without one - MapFallbackToFile
+// ("index.html") - expands to "{*path:nonfile}", and the nonfile constraint refuses any last segment that
+// looks like a file name. A release is always vX.Y.Z, so that is where it was seen, and it was a 404 there
+// until TASK-335 while its trailing-slash twin answered 200.
+app.MapFallbackToFile("{*path}", "index.html");
 
 app.Urls.Add(serverBaseUri.ToString());
 
