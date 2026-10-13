@@ -274,9 +274,10 @@ public sealed class GitClient : IGitClient
         startInfo.Environment["GIT_TERMINAL_PROMPT"] = "0";
         startInfo.Environment["GIT_OPTIONAL_LOCKS"] = "0";
 
+        Process? process = null;
         try
         {
-            using var process = Process.Start(startInfo);
+            process = Process.Start(startInfo);
             if (process is null)
             {
                 return GitRun.Failed;
@@ -293,8 +294,47 @@ public sealed class GitClient : IGitClient
         catch (Exception)
         {
             // Win32Exception (no git on PATH), InvalidOperationException (no working directory), a timeout
-            // and a cancelled request all mean the same thing here: git did not answer this question.
+            // and a cancelled request all mean the same thing here: git did not answer this question. The
+            // process is ours to end, though: disposing it releases the handle and leaves the command
+            // running, so a git that never answers would stay alive, and every timeout would add another
+            // one (TASK-160).
+            EndProcess(process);
             return GitRun.Failed;
+        }
+        finally
+        {
+            process?.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Ends a git process this client no longer waits for, together with whatever that command started.
+    /// </summary>
+    /// <remarks>
+    /// An already ended process is the ordinary case rather than an error: the command may have exited
+    /// between the check and the kill, and nothing is left to end then. A <c>null</c> is the same story - the
+    /// client could not start anything in the first place (TASK-160).
+    /// </remarks>
+    internal static void EndProcess(Process? process)
+    {
+        if (process is null)
+        {
+            return;
+        }
+
+        try
+        {
+            if (!process.HasExited)
+            {
+                process.Kill(entireProcessTree: true);
+            }
+        }
+        catch (Exception exception) when (
+            exception is InvalidOperationException or
+            NotSupportedException or
+            System.ComponentModel.Win32Exception)
+        {
+            // The process ended while this was being decided: there is nothing to end.
         }
     }
 
