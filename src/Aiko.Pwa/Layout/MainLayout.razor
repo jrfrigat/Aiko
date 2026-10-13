@@ -26,7 +26,11 @@
        and read as debug output rather than as a way in (TASK-339). *@
     <a class="aiko-skip-link aiko-tag aiko-tag--accent" href="#aiko-main">@Loc.Get("SkipToContent")</a>
     <FlareLayoutAppBar DrawerToggle="true">
-        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small" StretchFirst="true">
+        @* The row fills the bar and the action cluster takes what is left of it. The growth belongs to the
+           actions rather than to the brand's group: while the first child was the one that stretched, the
+           cluster sat in the middle and left a third of the bar empty past the repository mark (measured:
+           282 pixels). *@
+        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small" Class="aiko-appbar__row">
             <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small" Wrap="true">
                 @* Brand: the accent tile with the app's initial, the name, and what is running. *@
                 <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
@@ -39,36 +43,18 @@
                         @* Interpolated on purpose: "v@State.System.Version" is Razor's email-looking text,
                            so it renders literally instead of evaluating the expression. *@
                         <span class="aiko-tag aiko-tag--accent">@($"v{system.Version}")</span>
-                        <span class="aiko-tag">@system.Runtime</span>
                     }
                 </FlareStack>
 
-                @* Daemon health: the live dot, the endpoint, the measured round-trip and the stream. *@
-                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XXSmall" Class="aiko-pill aiko-pill--live">
-                    <FlareBadge Dot="true"
-                                Standalone="true"
-                                Color="@(State.EventsConnected ? FlareColor.Tertiary : FlareColor.Warning)" />
-                    <FlareText Element="span" Mono="true"
-                               Color="@(State.EventsConnected ? FlareColor.Tertiary : FlareColor.Warning)">
-                        @(State.EventsConnected ? Loc.Get("SseLive") : Loc.Get("Online"))
-                    </FlareText>
-                    @* Why there is no live stream. Without it the shell said ONLINE and nothing else, so a
-                       board that had stopped receiving events looked like a board with nothing to report. *@
-                    @if (!State.EventsConnected && State.EventsStatusMessage is { Length: > 0 } streamFailure)
-                    {
-                        <span class="aiko-tag aiko-tag--quiet" title="@streamFailure">@streamFailure</span>
-                    }
-                    <span class="aiko-tag aiko-tag--quiet">@State.HostCaption</span>
-                    <span class="aiko-tag aiko-tag--quiet" title="@Loc.Get("DaemonRoundTrip")">@LatencyCaption</span>
-                    @* The daemon serving a newer client than this tab loaded: saying so is the difference between
-                       a live-looking board that ignores events and one that explains itself. *@
-                    @if (State.UpdateAvailable)
-                    {
-                        <button type="button" class="aiko-tag aiko-tag--warn"
-                                title="@Loc.Get("UpdateAvailableHint")"
-                                @onclick="ReloadForUpdate">@Loc.Get("UpdateAvailable")</button>
-                    }
-                </FlareStack>
+                @* The stream's health is said in the rail and the endpoint and the round-trip on the daemon
+                   page, so the bar used to repeat all three of them - which is what made it read as
+                   telemetry rather than as a shell. What stays is the one thing that asks for something: a
+                   board which has stopped receiving events says so, and says nothing at all while it is
+                   well. *@
+                @if (!State.EventsConnected && State.EventsStatusMessage is { Length: > 0 } streamFailure)
+                {
+                    <span class="aiko-tag aiko-tag--warn" title="@streamFailure">@streamFailure</span>
+                }
 
                 @* The open project, and the switch between projects. The rail lists the pages of one
                    project; which project that is belongs here, as the design has it. *@
@@ -114,7 +100,7 @@
                 </FlarePopover>
             </FlareStack>
 
-            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
+            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Class="aiko-appbar__actions">
                 @* Quick search: a real filter over the open board. Enter opens the first match, a click
                    opens the one under the pointer, and Ctrl+K reaches the field from anywhere. *@
                 <FlarePopover Open="@_searchOpen"
@@ -179,6 +165,16 @@
                     </FlareButton>
                 }
 
+                @* The daemon serving a newer client than this tab loaded: saying so is the difference between
+                   a live-looking board that ignores events and one that explains itself. It is an action, so
+                   it stands with the actions, not with the status the bar no longer carries. *@
+                @if (State.UpdateAvailable)
+                {
+                    <button type="button" class="aiko-tag aiko-tag--warn"
+                            title="@Loc.Get("UpdateAvailableHint")"
+                            @onclick="ReloadForUpdate">@Loc.Get("UpdateAvailable")</button>
+                }
+
                 @* The design's end slot holds an identity avatar; this is a local, single-user daemon with
                    no accounts to name, so the slot carries the actions the bar still needs - a reload for
                    when the live stream is down, and the repository mark in the far corner. *@
@@ -187,6 +183,11 @@
                                  AriaLabel="@Loc.Get("Refresh")"
                                  Loading="@(State.Loading || State.Refreshing)"
                                  OnClick="State.ReloadAsync" />
+
+                @* What is left of the row goes between the reload and the repository mark: the mark belongs
+                   in the corner, and it used to stand eight pixels after the reload button with a third of
+                   the bar empty beyond it. *@
+                <FlareSpacer />
 
                 @* Where the product lives, in the corner of the bar. It is drawn with GitHub's own mark
                    rather than a code glyph - the Flare gallery uses the same brand path, because GitHub
@@ -445,11 +446,6 @@
     private string ProjectSwitchCaption => State.SelectedProject is { } project
         ? $"{Loc.Get("ProjectLabel")}: {project.Name} {Loc.Get("ActiveProjectTag")}"
         : Loc.Get("OpenProjectLabel");
-
-    /// <summary>The measured round-trip, or a dash before the daemon has answered once.</summary>
-    private string LatencyCaption => State.DaemonLatencyMs is { } milliseconds
-        ? $"{milliseconds}ms"
-        : "—";
 
     /// <summary>
     /// The component library's version as the rail prints it ("v0.38.0"), or an em dash when the assembly

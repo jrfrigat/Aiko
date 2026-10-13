@@ -266,10 +266,22 @@ html.flare-mode-dark .splash-mark i {
     line-height: 1rem;
 }
 
-/* The quick search occupies a fixed slot in the top bar, as the design's 256px field does. */
+/* The top bar's own layout: the row fills the bar, and what is left of it after the brand and the project
+   belongs to the actions - so the repository mark ends up in the corner instead of eight pixels after the
+   reload button. Both numbers come from the measurement in TASK-340. */
+.aiko-appbar__row {
+    width: 100%;
+}
+
+.aiko-appbar__actions {
+    flex: 1 1 auto;
+}
+
+/* The quick search: the design's 256-pixel slot, widened now that the bar carries no telemetry, and still
+   shrinkable - a narrow window should pay for the wider field out of the field, not out of the actions. */
 .aiko-search {
-    width: 16rem;
-    flex: 0 0 auto;
+    width: 24rem;
+    flex: 0 1 auto;
 }
 
 /* A row of a popover list - the project switch and the quick-search results. FlareMenu renders
