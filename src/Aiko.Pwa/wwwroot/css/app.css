@@ -86,6 +86,26 @@ html.flare-mode-dark .splash-mark i {
  * The .aiko-* layout hooks
  * ------------------------------------------------------------------------------------------- */
 
+/* The way into the content for the keyboard. It is the first thing Tab reaches, and it must not be on the
+   screen while nobody is asking for it: written with the tag's classes alone it stood as a 256-pixel label
+   in the top-left corner of every screen, over the chrome, and read as debug output (TASK-339). Off the
+   left edge and out of the flow until focused, back in the corner when the keyboard arrives.
+
+   The layer is the one above the chrome, named by Flare's own token: the first attempt used a plain 100,
+   tied with the chrome layer the top bar sits in, and lost the tie to the top bar by document order - the
+   measurement caught the top bar sitting on top of the focused link. Above the chrome and below the
+   dropdowns, which is where a way into the page belongs. */
+.aiko-skip-link {
+    position: absolute;
+    top: 0;
+    left: -100vw;
+    z-index: calc(var(--flare-z-chrome, 100) + 1);
+}
+
+.aiko-skip-link:focus {
+    left: 0;
+}
+
 /* Brand tile in the top bar: the accent square holding the app's initial, as the design draws it.
    It used to be an icon tile with an accent glow; the v2 frame drops the glow and letters the tile. */
 .aiko-brand {

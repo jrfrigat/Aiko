@@ -21,8 +21,10 @@
 <FlareLayout>
     @* The way into the content without walking the whole rail: the first thing the keyboard reaches, and its
        destination is the wrapper below, which takes focus so the next Tab starts inside the page rather than
-       back in the chrome. *@
-    <a class="aiko-tag aiko-tag--accent" href="#aiko-main">@Loc.Get("SkipToContent")</a>
+       back in the chrome. It carries a class of its own because it has to be off the screen until it is
+       focused: with only the tag's classes it stood in the top-left corner of every page, over the chrome,
+       and read as debug output rather than as a way in (TASK-339). *@
+    <a class="aiko-skip-link aiko-tag aiko-tag--accent" href="#aiko-main">@Loc.Get("SkipToContent")</a>
     <FlareLayoutAppBar DrawerToggle="true">
         <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small" StretchFirst="true">
             <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small" Wrap="true">

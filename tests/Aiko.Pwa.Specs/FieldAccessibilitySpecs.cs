@@ -60,6 +60,30 @@ public sealed class FieldAccessibilitySpecs
     }
 
     [Fact]
+    public void The_way_into_the_content_is_off_the_screen_until_it_is_focused()
+    {
+        var layout = Read("src", "Aiko.Pwa", "Layout", "MainLayout.razor");
+        Assert.Contains("class=\"aiko-skip-link", layout, StringComparison.Ordinal);
+
+        // The rule is what keeps it out of sight, and it works in two halves: off the left edge while nobody
+        // is asking for it, back in the corner once the keyboard is on it. With the tag's own classes alone -
+        // which is how it was written - it stood as a visible label on every screen (TASK-339).
+        var css = Read("src", "Aiko.Pwa", "wwwroot", "css", "app.css");
+        var rule = Regex.Match(css, @"\.aiko-skip-link\s*\{(?<body>[^}]*)\}", RegexOptions.Singleline);
+        Assert.True(rule.Success, "The skip link needs a rule of its own.");
+        Assert.Contains("position: absolute", rule.Groups["body"].Value, StringComparison.Ordinal);
+        Assert.Contains("left: -100vw", rule.Groups["body"].Value, StringComparison.Ordinal);
+
+        // And it comes back over the chrome rather than under it: a plain number ties with the layer the
+        // top bar sits in, and the tie goes to the top bar - measured, not guessed.
+        Assert.Contains("--flare-z-chrome", rule.Groups["body"].Value, StringComparison.Ordinal);
+
+        var focused = Regex.Match(css, @"\.aiko-skip-link:focus\s*\{(?<body>[^}]*)\}", RegexOptions.Singleline);
+        Assert.True(focused.Success, "Focusing the skip link has to bring it back on screen.");
+        Assert.Contains("left: 0", focused.Groups["body"].Value, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void The_skip_caption_exists_in_both_languages()
     {
         foreach (var file in new[] { "Loc.resx", "Loc.ru.resx" })
