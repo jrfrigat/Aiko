@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using ModelContextProtocol.Client;
@@ -83,5 +84,62 @@ public sealed class ErrorTextSpecs(AikoServerFixture fixture) : IClassFixture<Ai
         Assert.False(string.IsNullOrWhiteSpace(text), "The refusal should say something.");
         Assert.DoesNotContain(SystemFailure, text, StringComparison.Ordinal);
         Assert.DoesNotContain(":\\", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_project_refused_for_a_directory_that_is_not_there_names_no_path()
+    {
+        // The initializer raises a DirectoryNotFoundException whose message carries the path it was given -
+        // "Project directory does not exist: C:\..." - and the endpoint used to hand that message straight to
+        // the caller. The type is the I/O layer's, so the rule decides: the path stays in the daemon and the
+        // answer is the one every system failure gets (TASK-345).
+        var missing = Path.Combine(Path.GetTempPath(), $"aiko-missing-{Guid.NewGuid():N}", "project");
+        using var http = new HttpClient { BaseAddress = fixture.BaseUrl };
+        using var content = new StringContent(
+            JsonSerializer.Serialize(new { rootPath = missing }),
+            Encoding.UTF8,
+            "application/json");
+        using var response = await http.PostAsync("/api/v1/projects/initialize", content);
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Contains(SystemFailure, body, StringComparison.Ordinal);
+        Assert.DoesNotContain(missing, body, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(":\\", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_refusal_about_a_project_still_names_the_value_it_refused()
+    {
+        // The other half of the same rule, on the same endpoint: the id a person chose being taken is Aiko's
+        // own refusal, and it is the answer they need - "the id is already taken, choose another". Replacing it
+        // with the generic text would leave them with a request that fails for no stated reason (TASK-345).
+        var id = $"taken{Guid.NewGuid():N}"[..12];
+        using var http = new HttpClient { BaseAddress = fixture.BaseUrl };
+        var first = Path.Combine(Path.GetTempPath(), $"aiko-taken-a-{Guid.NewGuid():N}");
+        var second = Path.Combine(Path.GetTempPath(), $"aiko-taken-b-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(first);
+        Directory.CreateDirectory(second);
+        try
+        {
+            using var created = await http.PostAsJsonAsync(
+                "/api/v1/projects/initialize",
+                new { rootPath = first, slug = id });
+            Assert.True(created.IsSuccessStatusCode, await created.Content.ReadAsStringAsync());
+
+            using var refused = await http.PostAsJsonAsync(
+                "/api/v1/projects/initialize",
+                new { rootPath = second, slug = id });
+            var body = await refused.Content.ReadAsStringAsync();
+
+            Assert.Equal(HttpStatusCode.Conflict, refused.StatusCode);
+            Assert.Contains(id, body, StringComparison.Ordinal);
+            Assert.DoesNotContain(SystemFailure, body, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(first, recursive: true);
+            Directory.Delete(second, recursive: true);
+        }
     }
 }

@@ -1,6 +1,7 @@
 using Aiko.Application.Contracts;
 using Aiko.Domain.Workflow;
 using Aiko.Server.Contracts;
+using Aiko.Server.ErrorHandling;
 
 namespace Aiko.Server.Endpoints;
 
@@ -34,12 +35,19 @@ internal static class ProjectEndpoints
                 catch (InvalidOperationException exception)
                 {
                     // A project id the user chose is already taken. The answer is a conflict naming the value,
-                    // not a silent rename: the caller typed it and has to learn it was refused.
-                    return Results.Conflict(new ErrorResponse(exception.Message));
+                    // not a silent rename: the caller typed it and has to learn it was refused. The words are
+                    // the daemon's own, so they travel - and they are chosen by the one rule rather than by
+                    // this clause, so a later change to the rule reaches here too (TASK-345).
+                    return Results.Conflict(new ErrorResponse(ErrorText.For(exception)));
                 }
                 catch (Exception exception) when (exception is DirectoryNotFoundException or ArgumentException)
                 {
-                    return Results.BadRequest(new ErrorResponse(exception.Message));
+                    // A directory that is not there is a missing *path*, and a DirectoryNotFoundException is an
+                    // I/O failure however it was raised: the rule decides, not this clause. A message the
+                    // runtime wrote - the one that names the path it could not touch - does not travel; an
+                    // ArgumentException, which Aiko raises to refuse a value, keeps its words (TASK-345; the
+                    // same rule the middleware answers every uncaught failure with, TASK-162).
+                    return Results.BadRequest(new ErrorResponse(ErrorText.For(exception)));
                 }
             });
         // The templates a project can be created from. Read-only: the only one that exists today is the
@@ -73,7 +81,9 @@ internal static class ProjectEndpoints
                 }
                 catch (IOException exception)
                 {
-                    return Results.Conflict(new ErrorResponse(exception.Message));
+                    // An I/O failure describes the machine, so its words are replaced by the rule's own text
+                    // (TASK-345).
+                    return Results.Conflict(new ErrorResponse(ErrorText.For(exception)));
                 }
             });
         // One template in full: its settings and its pipelines. The defaults screen reads this, edits one
@@ -331,7 +341,8 @@ internal static class ProjectEndpoints
                 }
                 catch (IOException exception)
                 {
-                    return Results.Conflict(new ErrorResponse(exception.Message));
+                    // As above: this endpoint answers with what the rule says a client may be told (TASK-345).
+                    return Results.Conflict(new ErrorResponse(ErrorText.For(exception)));
                 }
             });
         // Import is how a starting point travels between installations: the file is the template.
@@ -351,15 +362,18 @@ internal static class ProjectEndpoints
                 }
                 catch (FileNotFoundException exception)
                 {
-                    return Results.NotFound(new ErrorResponse(exception.Message));
+                    // The path is the caller's own - they sent it - and a FileNotFoundException is an I/O
+                    // failure: its message stops here and the status carries the reason instead (TASK-345).
+                    return Results.NotFound(new ErrorResponse(ErrorText.For(exception)));
                 }
                 catch (IOException exception)
                 {
-                    return Results.Conflict(new ErrorResponse(exception.Message));
+                    return Results.Conflict(new ErrorResponse(ErrorText.For(exception)));
                 }
                 catch (InvalidDataException exception)
                 {
-                    return Results.BadRequest(new ErrorResponse(exception.Message));
+                    // What the file was found to contain is Aiko's own answer, so its words travel (TASK-345).
+                    return Results.BadRequest(new ErrorResponse(ErrorText.For(exception)));
                 }
             });
         app.MapPost(
@@ -407,11 +421,14 @@ internal static class ProjectEndpoints
                 }
                 catch (FileNotFoundException exception)
                 {
-                    return Results.NotFound(new ErrorResponse(exception.Message));
+                    // A missing file is the I/O layer's failure, so its words do not travel (TASK-345).
+                    return Results.NotFound(new ErrorResponse(ErrorText.For(exception)));
                 }
                 catch (InvalidOperationException exception)
                 {
-                    return Results.BadRequest(new ErrorResponse(exception.Message));
+                    // The applier's refusal - a card the new pipeline would strand - is Aiko's own answer and
+                    // the one a person acts on, so it travels (TASK-345).
+                    return Results.BadRequest(new ErrorResponse(ErrorText.For(exception)));
                 }
             });
         // The project's derived numbers: stage transitions per week and what the board is made of. Read
