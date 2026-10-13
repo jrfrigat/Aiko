@@ -48,15 +48,17 @@
     @if (State.BoardPending)
     {
         @* The form's own shape: the two columns a new card is filled in - what the card is on the left,
-           where it starts and how it is scored on the right. *@
+           where it starts and how it is scored on the right. The left column is two panels because the real
+           one measured as a first card of 162 and 467 below it, and each number is the one that column
+           measured with the real form (629 and 882) - a form's fields are a known set, not data to come. *@
         <AikoSkeletonRegion>
             <div class="aiko-settings">
                 <FlareStack Class="aiko-card__main" Gap="FlareSpacing.Medium">
-                    <AikoSkeletonPanel Lines="5" />
+                    <AikoSkeletonPanel Lines="4" Height="var(--aiko-skeleton-form-first-size)" />
+                    <AikoSkeletonPanel Lines="6" Height="var(--aiko-skeleton-form-rest-size)" />
                 </FlareStack>
                 <FlareStack Class="aiko-card__side" Gap="FlareSpacing.Medium">
-                    <AikoSkeletonPanel Lines="4" />
-                    <AikoSkeletonPanel Lines="3" />
+                    <AikoSkeletonPanel Lines="4" Height="var(--aiko-skeleton-form-side-size)" />
                 </FlareStack>
             </div>
         </AikoSkeletonRegion>

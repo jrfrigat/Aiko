@@ -9,25 +9,11 @@
 
 @if (State.BoardPending)
 {
-    @* The editor's own shape: the stage sequence across the top and the two columns under it, one for the
-       types and one for the stage being edited. *@
+    @* The editor's own shape: one panel holding the pipeline, from the strip of stages down to the fields
+       of the stage being read. It is one panel because the loaded screen is one panel (795 measured); the
+       stage editor it can open lives in a drawer on a selection and is not a column of this screen. *@
     <AikoSkeletonRegion>
-        <FlareStack Gap="FlareSpacing.Medium">
-            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
-                @for (var stage = 0; stage < 5; stage++)
-                {
-                    <AikoSkeleton Width="7rem" Height="2.25rem" />
-                }
-            </FlareStack>
-            <div class="aiko-settings">
-                <FlareStack Class="aiko-settings__narrow" Gap="FlareSpacing.Medium">
-                    <AikoSkeletonPanel Lines="5" />
-                </FlareStack>
-                <FlareStack Class="aiko-settings__wide" Gap="FlareSpacing.Medium">
-                    <AikoSkeletonPanel Lines="6" />
-                </FlareStack>
-            </div>
-        </FlareStack>
+        <AikoSkeletonPanel Lines="8" Height="var(--aiko-skeleton-editor-size)" />
     </AikoSkeletonRegion>
 }
 else if (State.Board is not { } board)

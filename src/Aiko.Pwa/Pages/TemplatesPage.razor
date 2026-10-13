@@ -113,14 +113,12 @@
 
     @if (_loading)
     {
-        @* The list's own shape: one panel per template, so the wait looks like the list rather than like a
-           spinner with a caption. *@
+        @* The list's own shape: the panel a template is listed as, so the wait looks like the list rather
+           than like a spinner with a caption. Its height is the one the real row measured at (124), which
+           is where the 45-pixel stub comes from. *@
         <AikoSkeletonRegion>
             <FlareStack Gap="FlareSpacing.Small">
-                @for (var panel = 0; panel < 4; panel++)
-                {
-                    <AikoSkeletonPanel Lines="2" />
-                }
+                <AikoSkeletonPanel Lines="2" Height="var(--aiko-skeleton-list-item-size)" />
             </FlareStack>
         </AikoSkeletonRegion>
     }

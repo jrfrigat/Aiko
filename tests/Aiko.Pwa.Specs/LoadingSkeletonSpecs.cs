@@ -162,9 +162,29 @@ public sealed class LoadingSkeletonSpecs
         Assert.Contains("--aiko-skeleton-banner-size", css, StringComparison.Ordinal);
         Assert.Contains("--aiko-skeleton-panel-size", css, StringComparison.Ordinal);
 
-        // A panel placeholder cannot know how tall a real panel is - they measured between 166 and 482 pixels
-        // on one screen - so the page has to say it. A panel drawn without a size is a panel that does not
-        // match, which is the whole card.
+        // A panel placeholder cannot know how tall a real panel is - real ones measured between 124 and 882
+        // pixels across the cockpit - so the component reserves the measured panel height by default, and a
+        // page that knows better says so (TASK-337). Two things could still put a stub back on the screen:
+        // a page naming a size nobody defines, and a panel drawn with an empty Height.
+        Assert.Contains(
+            "Height { get; set; } = \"var(--aiko-skeleton-panel-size)\"",
+            Read("src", "Aiko.Pwa", "Pages", "AikoSkeletonPanel.razor"),
+            StringComparison.Ordinal);
+
+        foreach (var (file, text) in RazorPages())
+        {
+            foreach (Match size in Regex.Matches(text, @"var\((--aiko-skeleton-[a-z-]+)\)"))
+            {
+                Assert.True(
+                    css.Contains(size.Groups[1].Value + ":", StringComparison.Ordinal),
+                    $"{file} reserves {size.Groups[1].Value}, which app.css does not define.");
+            }
+
+            foreach (Match panel in Regex.Matches(text, "<AikoSkeletonPanel[^>]*>"))
+            {
+                Assert.DoesNotContain("Height=\"\"", panel.Value, StringComparison.Ordinal);
+            }
+        }
         foreach (var file in new[] { "CardPage.razor", "ProjectSettingsPage.razor", "StatsPage.razor" })
         {
             var page = Read("src", "Aiko.Pwa", "Pages", file);
@@ -206,6 +226,20 @@ public sealed class LoadingSkeletonSpecs
     private static string Read(params string[] segments) =>
         File.ReadAllText(Path.Combine([FindRepositoryRoot(), .. segments]))
             .Replace("\r\n", "\n", StringComparison.Ordinal);
+
+    /// <summary>
+    /// Every page of the shell, so a guard covers the screens nobody thought of. The paths are relative to
+    /// the repository root and carry Windows separators, which is what the message wants.
+    /// </summary>
+    private static IEnumerable<(string File, string Text)> RazorPages()
+    {
+        var root = FindRepositoryRoot();
+        return Directory
+            .EnumerateFiles(Path.Combine(root, "src", "Aiko.Pwa"), "*.razor", SearchOption.AllDirectories)
+            .Select(path => (
+                Path.GetRelativePath(root, path),
+                File.ReadAllText(path).Replace("\r\n", "\n", StringComparison.Ordinal)));
+    }
 
     /// <summary>Walks up from this assembly to the solution file, as the other specs do.</summary>
     private static string FindRepositoryRoot()

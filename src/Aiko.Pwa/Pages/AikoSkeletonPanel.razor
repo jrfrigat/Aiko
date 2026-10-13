@@ -21,9 +21,11 @@
     [Parameter] public int Lines { get; set; } = 3;
 
     /// <summary>
-    /// How tall the panel reserves its place, as a CSS length, or null for no reservation.
+    /// How tall the panel reserves its place, as a CSS length. Left out, it is the measured panel height:
+    /// a placeholder that reserves nothing is what let six screens draw a 70-pixel stub where their screen
+    /// has a 124- to 882-pixel panel.
     /// </summary>
-    [Parameter] public string? Height { get; set; }
+    [Parameter] public string? Height { get; set; } = "var(--aiko-skeleton-panel-size)";
 
     /// <summary>
     /// How wide one body line is. The three widths repeat, so a panel reads as text of uneven length

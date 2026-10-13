@@ -1674,7 +1674,7 @@ html.flare-mode-dark .splash-mark i {
 
 /* The sizes a placeholder reserves, each one measured off the block it stands in for rather than drawn by
    eye: artifacts/qa-skeleton/measure.mjs reads both states in a headless browser and prints the two
-   columns (TASK-333). The numbers are what that run found at a 725px-wide viewport, and they are what the
+   columns (TASK-333). The numbers are what that run found at a 1440x900 viewport, and they are what the
    shape is drawn from; re-measure with the same tool when a screen changes. A block whose height follows
    its own data instead - a card's artifact, the scoring tables - is reserved to the fold and no further:
    see .aiko-skeleton--fold. */
@@ -1689,6 +1689,12 @@ html.flare-mode-dark .splash-mark i {
     --aiko-skeleton-rows-size: 24rem;
     --aiko-skeleton-fold-size: calc(100dvh - 9rem);
     --aiko-skeleton-card-panel-size: 40rem;
+    --aiko-skeleton-list-item-size: 7.75rem;
+    --aiko-skeleton-form-main-size: 39rem;
+    --aiko-skeleton-form-side-size: 55rem;
+    --aiko-skeleton-form-first-size: 10.125rem;
+    --aiko-skeleton-form-rest-size: 29rem;
+    --aiko-skeleton-editor-size: 49.75rem;
 }
 
 /* The rows of a list that is still being read: the registered projects, and the agents under them. */

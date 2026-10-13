@@ -422,7 +422,8 @@
                             @if (_loadingDiscussion)
                             {
                                 @* The feed's own shape while it is read: one panel per note, which is what the
-                                   reader is about to get. *@
+                                   reader is about to get. Each panel carries the measured panel height by
+                                   default, so a note waits where a note will be. *@
                                 <AikoSkeletonRegion Label="@Loc.Get("LoadingDiscussion")">
                                     <FlareStack Gap="FlareSpacing.Small">
                                         <AikoSkeletonPanel Lines="2" />
