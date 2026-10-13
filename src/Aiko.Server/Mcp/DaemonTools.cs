@@ -38,13 +38,10 @@ internal sealed class DaemonTools(
 
     [McpServerTool(Name = "aiko_link_project", Title = "Link an Aiko project")]
     [Description(
-        "Links a project to another one and records what the linked project is for. That description is what an "
-        + "agent reads when it decides whether a piece of work belongs to the neighbour, so it is required and "
-        + "written in the words of whoever links. Write down where the neighbour's reference lives and when work "
-        + "does and does not belong there as well: a path an agent does not have sends it looking somewhere "
-        + "else, and prose it has to interpret is prose it will interpret differently. Both projects are "
-        + "addressed by id or by the readable handle; linking a project to itself is refused, and so is linking "
-        + "a project nobody has registered.")]
+        "Links a project to another and records what the linked project is for, where its reference lives and "
+        + "when work belongs there. That text is what an agent reads to decide whether a piece of work belongs "
+        + "to the neighbour, so write it in the words of whoever links. Both projects are addressed by id or "
+        + "handle; linking a project to itself, or one nobody registered, is refused.")]
     public async Task<string> LinkProjectAsync(
         [Description("Project whose registry is written, by id or by its readable handle.")]
         string projectId,
@@ -99,11 +96,10 @@ internal sealed class DaemonTools(
     [McpServerTool(Name = "aiko_init_project", Title = "Initialize Aiko project")]
     [Description(
         "Registers a local directory as an Aiko project by copying the chosen template into it: the .aiko "
-        + "structure, the workflows with their stages and artifacts, the board projections, the starting "
-        + "memory and the default settings. A later change to a template does not reach a project created "
-        + "before it. The template may also carry an initialization instruction (for example the structure "
-        + "the project should have): after creating the project, read aiko_get_project_context and carry "
-        + "that instruction out before starting work.")]
+        + "structure, the workflows with their stages and artifacts, the board projections, the starting memory "
+        + "and the default settings. A template's later change does not reach a project created before it. If "
+        + "the template carried an initialization instruction, read aiko_get_project_context and carry it out "
+        + "before starting work.")]
     public async Task<string> InitProjectAsync(
         [Description("Absolute path to the project root directory.")]
         string rootPath,
@@ -128,11 +124,10 @@ internal sealed class DaemonTools(
 
     [McpServerTool(Name = "aiko_create_card_in_project", Title = "Create Aiko card in a project")]
     [Description(
-        "Creates a card of any type the project defines in the given project. The card lands in that "
-        + "project's workflow backlog stage; Aiko names it, so pass no id unless you are importing a card "
-        + "that already has one. Pass originProjectId when reporting from another project - the project you "
-        + "are working in then decides whether the write is allowed: 'deny' refuses, 'ask' refuses until you "
-        + "have asked the user and repeat the call with userConfirmed=true, and 'allow' creates it.")]
+        "Creates a card of any type in the given project, in that project's backlog. Aiko names it, so pass no "
+        + "id unless importing one that already has an id. Pass originProjectId when reporting from another "
+        + "project: the target's cross-project policy decides whether the write is allowed, and 'ask' needs "
+        + "userConfirmed=true.")]
     public async Task<string> CreateCardAsync(
         [Description("Target project id.")]
         string projectId,

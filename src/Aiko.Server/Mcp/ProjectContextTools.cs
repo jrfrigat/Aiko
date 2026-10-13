@@ -30,11 +30,9 @@ internal sealed class ProjectContextTools(
         Name = "aiko_get_project_context",
         Title = "Get Aiko project context")]
     [Description(
-        "Call this first. Returns the current project, every card type it defines with the stages of its "
-        + "pipeline, the projects it is linked to with where each neighbour's reference lives, how its cards "
-        + "are scored and sized, and durable-memory guidance. The answer arrives as one content block per "
-        + "section, so a client that drops a long answer in the middle still shows the rest; pass section to "
-        + "read one of them on its own.")]
+        "Call this first. Returns the current project: every card type with the stages of its pipeline, the "
+        + "linked projects with their references, how cards are scored and sized, and durable-memory guidance. "
+        + "The answer arrives as one content block per section; pass section to read one on its own.")]
     public async Task<CallToolResult> GetProjectContextAsync(
         [Description(
             "Optional section to return on its own: rules, git, links, scoring, types, release or "
@@ -130,14 +128,12 @@ internal sealed class ProjectContextTools(
             recorded there precisely so that an agent does not have to guess where the neighbour's documentation
             lives, and a package installed here is not the same thing as its reference.
 
-            The state of the project is read and written through these tools - the board and the work queue
-            with aiko_list_board and aiko_list_work_queue, the cards with aiko_list_cards and aiko_get_card,
-            what sits beside a card with aiko_get_card_artifact and aiko_save_card_artifact, the settings with
-            aiko_get_settings, the links with aiko_list_links, the discussion with aiko_list_comments, the
-            queue of requests with aiko_list_commands, the memory with aiko_search_memory. Do not open a file
-            under .aiko to find out what the project says: the tools exist so that what you act on is what the
-            daemon knows, and so that a document you edit is the document a person sees. A card whose subject
-            is the .aiko format itself is the exception - there the file is the work, and the card says so.
+            The state of the project is read and written through these tools - the queue with
+            aiko_list_work_queue, a card with aiko_get_card, what sits beside it with aiko_save_card_artifact,
+            the links with aiko_list_links, the discussion with aiko_list_comments. Do not open a file
+            under .aiko to find out what the project says: the tools exist so that what you act on is what
+            the daemon knows. A card whose subject is the .aiko format itself is the exception - there the
+            file is the work, and the card says so.
 
             """;
     }
@@ -181,9 +177,7 @@ internal sealed class ProjectContextTools(
     [McpServerTool(Name = "aiko_list_links", Title = "List linked Aiko projects")]
     [Description(
         "Lists the projects this one is linked to, with what each is for, where its reference lives and when "
-        + "work belongs there. Read this rather than the whole project context when the neighbours are what you "
-        + "need: it is a few lines, so no part of it is lost to a truncated answer, and it can be read again at "
-        + "any point of a run.")]
+        + "work belongs there. Read this rather than the whole project context.")]
     public async Task<string> ListLinksAsync(CancellationToken cancellationToken)
     {
         var project = await GetProjectAsync(cancellationToken);
@@ -384,16 +378,15 @@ internal sealed class ProjectContextTools(
         builder.AppendLine();
         builder.AppendLine(
             "Work that belongs to one of these projects is filed there with aiko_create_card_in_project, passing "
-            + "originProjectId and originCardId so the receiving card remembers where it came from. Read that "
-            + "project's own context first - its card types, its stages and its rules are its own - and keep the "
-            + "description beside each link in front of you: it says when the neighbour is the right place for a "
-            + "piece of work and when it is not.");
+            + "originProjectId and originCardId. Read that project's own context first - its card types, its "
+            + "stages and its rules are its own - and keep each link's description in front of you: it says when "
+            + "the neighbour is the right place for a piece of work and when it is not.");
         builder.AppendLine();
+        // The reading rule itself - the reference an entry names, and the memory to search first - is stated in
+        // the working contract; repeating it here was a second copy that could drift out of step with the first.
         builder.AppendLine(
-            "Before you reach for something a neighbour owns - a library, a component, a pattern - read the "
-            + "reference its entry names rather than inferring it from the packages this project installed, and "
-            + "search this project's memory first. aiko_list_links brings these entries back on their own, so "
-            + "none of this has to be remembered from the whole document.");
+            "aiko_list_links brings these entries back on their own, so none of this has to be remembered from "
+            + "the whole document.");
         builder.AppendLine();
         foreach (var link in links.OrderBy(item => item.Handle, StringComparer.Ordinal))
         {
@@ -593,15 +586,15 @@ internal sealed class ProjectContextTools(
         // without knowing the version being worked on files the work without saying so.
         builder.AppendLine(plannedVersion is null
             ? "No release plan is current, so a card created now joins none. Plan a version with "
-              + "aiko_update_release_plan and the work made while it is being worked on flows into it; "
-              + "aiko_list_release_plans reads the plans and how far each is from being releasable."
+              + "aiko_update_release_plan and the work made while it is being worked on flows into it."
             : $"The version being worked on is {plannedVersion}: a new card joins its plan unless you say "
-              + "otherwise, and saying otherwise means saying why. aiko_list_release_plans reads the plans and "
-              + "how far each is from being releasable.");
+              + "otherwise, and saying otherwise means saying why.");
         builder.AppendLine();
+        // One pointer to the plans and one to the history, instead of the plans being named twice.
         builder.AppendLine(
-            "The history of what this project released is read with aiko_list_releases, and a conducted "
-            + "release is recorded with aiko_record_release(version, schemeId, cards).");
+            "aiko_list_release_plans reads the plans; the history of what this project released is read with "
+            + "aiko_list_releases, and a conducted release is recorded with aiko_record_release(version, "
+            + "schemeId, cards).");
         return builder.ToString().TrimEnd();
     }
 

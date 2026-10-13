@@ -30,9 +30,8 @@ internal sealed class MaintenanceTools(
 {
     [McpServerTool(Name = "aiko_doctor", Title = "Diagnose Aiko")]
     [Description(
-        "Returns a diagnostics report: data, access token, port, registered projects and agent " +
-        "configurations that point at an old endpoint. Pass a projectId to inspect one project. " +
-        "Changes nothing - repairs go through `aiko repair --fix`.")]
+        "Returns a diagnostics report: data, access token, port, registered projects and agent configurations "
+        + "that point at an old endpoint. Pass a projectId to inspect one project. Changes nothing.")]
     public async Task<string> DoctorAsync(
         [Description("Optional project id; omit to inspect every registered project.")]
         [Optional] string? projectId,
@@ -64,10 +63,9 @@ internal sealed class MaintenanceTools(
 
     [McpServerTool(Name = "aiko_verify_project", Title = "Verify Aiko project data")]
     [Description(
-        "Checks a project's .aiko data: whether every document can be read at all, and whether any file " +
-        "differs from the baseline the user sealed, is gone, or appeared since. Reports the project as intact " +
-        "or lists every path with the reason. Read-only - nothing on disk changes, and sealing a new baseline " +
-        "is `aiko verify --seal`, which only the user runs.")]
+        "Checks a project's .aiko data: whether every document can be read, and whether any file differs from "
+        + "the baseline the user sealed, is gone, or appeared since. Read-only; a new baseline is sealed with "
+        + "`aiko verify --seal`, which only the user runs.")]
     public async Task<string> VerifyProjectAsync(
         [Description("Project id.")]
         string projectId,
@@ -146,14 +144,10 @@ internal sealed class MaintenanceTools(
 
     [McpServerTool(Name = "aiko_update_settings", Title = "Update Aiko settings")]
     [Description(
-        "Writes settings. Name exactly one target: `projectId` edits the project's own document - what the " +
-        "project runs with, and what its Settings screen shows; `templateId` edits a settings template - the " +
-        "defaults copied into projects created from it afterwards, which never reaches a project that already " +
-        "took its copy. `settings` is the AppSettings document as JSON; a section it leaves out falls back to " +
-        "the built-in default, and a section it states is written as it stands, so send the fields you mean. " +
-        "A project answers with its effective settings and the source of each value, a template with itself " +
-        "and its new version. The execution policies (scope overlap, commits, pushes, scope expansion) are the " +
-        "user's to set on the Settings screen: a document that changes one is refused.")]
+        "Writes settings. Name exactly one target: `projectId` for the project's own document, `templateId` "
+        + "for the defaults new projects are created from. `settings` is the AppSettings document as JSON; a "
+        + "section left out falls back to the built-in default, and execution policies are the user's to set "
+        + "on the Settings screen.")]
     public async Task<string> UpdateSettingsAsync(
         [Description("Project whose own settings are written; omit when writing a template.")]
         [Optional] string? projectId,

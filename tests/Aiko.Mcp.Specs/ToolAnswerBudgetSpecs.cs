@@ -20,8 +20,8 @@ namespace Aiko.Mcp.Specs;
 /// read-back, an answer without a workspace path. Those numbers came out of answers, not out of a counter.
 ///
 /// The budgets below pin what the epic has already reached, so a change that grows an answer again fails a test
-/// rather than slipping through. The numbers still to *reach* - the marginal cost of a list answer, and the size
-/// of the project context - are printed by the runs here and asserted by the tasks that lower them.
+/// rather than slipping through: the marginal cost of a list answer (STORY-43), and the size of the project
+/// context and of the tool descriptions (STORY-44), are all pinned now.
 /// </remarks>
 public class ToolAnswerBudgetSpecs(AikoServerFixture fixture, ITestOutputHelper output)
     : IClassFixture<AikoServerFixture>
@@ -42,7 +42,13 @@ public class ToolAnswerBudgetSpecs(AikoServerFixture fixture, ITestOutputHelper 
     private const int AShortRun = 1024;
 
     /// <summary>The project context is a document by nature: types, stages, rules, scoring, memory.</summary>
-    private const int ADocument = 32_000;
+    private const int ADocument = 14_500;
+
+    /// <summary>
+    /// The tool list is read at the start of every session, before the agent has asked anything, so every
+    /// description is paid for every time. A budget here keeps the other surface of the epic from growing back.
+    /// </summary>
+    private const int AToolList = 12_000;
 
     [Fact]
     public async Task A_created_card_is_listed_without_carrying_what_it_was_asked_to_do()
@@ -174,6 +180,42 @@ public class ToolAnswerBudgetSpecs(AikoServerFixture fixture, ITestOutputHelper 
         Assert.True(
             SizeOf(context) < ADocument,
             $"The project context answered {SizeOf(context)} characters (budget {ADocument})");
+    }
+
+    /// <summary>
+    /// The context read one section at a time, so a part of the answer that was lost can be read again without
+    /// the whole document. The sizes are printed for the before/after figure the epic exists for; the block
+    /// count is asserted, because a section asked for by name is one block and nothing else.
+    /// </summary>
+    [Fact]
+    public async Task The_project_context_is_measured_section_by_section()
+    {
+        await using var client = await ConnectToNewProjectAsync();
+
+        foreach (var id in new[] { "rules", "git", "links", "scoring", "types", "release", "initialization" })
+        {
+            var section = await CallAsync(client, "aiko_get_project_context", new() { ["section"] = id });
+            Assert.NotEqual(true, section.IsError);
+            Assert.Single(section.Content.OfType<TextContentBlock>());
+            output.WriteLine($"get_project_context[{id}]: {SizeOf(section)}");
+        }
+    }
+
+    /// <summary>
+    /// What the tool list costs: the descriptions an agent reads at the start of a session, before it has asked
+    /// anything. The context is one surface of the epic; the tool list is the other, and this is its meter.
+    /// </summary>
+    [Fact]
+    public async Task The_tool_list_is_measured_and_stays_inside_its_budget()
+    {
+        await using var client = await ConnectToNewProjectAsync();
+
+        var tools = await client.ListToolsAsync(cancellationToken: CancellationToken.None);
+        var total = tools.Sum(tool => tool.Description?.Length ?? 0);
+        output.WriteLine($"tool descriptions: {total} characters across {tools.Count} tools");
+        Assert.True(
+            total < AToolList,
+            $"The tool descriptions answered {total} characters (budget {AToolList})");
     }
 
     /// <summary>

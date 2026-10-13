@@ -22,9 +22,8 @@ internal sealed class ReleaseTools(
 {
     [McpServerTool(Name = "aiko_list_releases", Title = "List Aiko releases")]
     [Description(
-        "Lists the project's release history, newest first: each record carries its version tag, the scheme "
-        + "it followed, when it was recorded and the cards that went into it. Read this before conducting a "
-        + "release - the previous record is what says which cards have shipped since.")]
+        "Lists the project's release history, newest first: each record carries its version tag, the scheme, "
+        + "when it was recorded and the cards that went into it. Read it before conducting a release.")]
     public async Task<string> ListReleasesAsync(CancellationToken cancellationToken = default)
     {
         var document = await releases.ReadAsync(GetProjectId(), cancellationToken);
@@ -33,10 +32,9 @@ internal sealed class ReleaseTools(
 
     [McpServerTool(Name = "aiko_record_release", Title = "Record an Aiko release")]
     [Description(
-        "Records a release: the version tag, the scheme it followed, the cards that went into it and an "
-        + "optional note. The list of cards is explicit - a card is in a release because it is named here, not "
-        + "because of the state it was in that day. A version already recorded is refused rather than "
-        + "overwritten: one version has one record, so \"which cards went into it\" has one answer.")]
+        "Records a release: the version tag, the scheme and the cards that went into it. The list is explicit - "
+        + "a card is in a release because it is named here. A version already recorded is refused rather than "
+        + "overwritten.")]
     public async Task<string> RecordReleaseAsync(
         [Description("Version tag the release was published under, for example v0.1.3 or v0.1.3-pre.")]
         string version,

@@ -38,22 +38,20 @@ internal sealed class CardTools(
 {
     [McpServerTool(Name = "aiko_list_cards", Title = "List Aiko cards")]
     [Description(
-        "Lists cards in the current project. Get project context before taking action. Cards in the archive are "
-        + "left out unless they are asked for by includeArchived, so what an agent sees is what the board shows.")]
+        "Lists cards in the current project. Archived cards are left out unless they are asked for, so what an "
+        + "agent sees is what the board shows.")]
     public async Task<string> ListCardsAsync(
         [Description("Optional card kind: story, task, or any type the project defines. Pass null for all.")]
         string? kind = null,
         [Description("Optional stage id. Pass null for all stages.")]
         string? stageId = null,
         [Description(
-            "True to include the cards that were put away. False (the default) lists the board, which is what a "
-            + "person sees; a card in the archive is still readable on its own with aiko_get_card.")]
+            "True to include the cards that were put away; false (the default) lists the board, which is what a "
+            + "person sees.")]
         bool includeArchived = false,
         [Description(
-            "True to answer with the whole cards instead of the thin ones. False (the default) answers with what "
-            + "an agent needs to find a card and decide about it - its id, type, stage, size and priority - "
-            + "because a list is read far more often than it is acted on, and what every card was asked to do is "
-            + "what such an answer used to cost. Read one card whole with aiko_get_card.")]
+            "True to answer with the whole cards; false (the default) with the thin ones - id, type, stage, "
+            + "size and priority. Read one card whole with aiko_get_card.")]
         bool fullCards = false,
         CancellationToken cancellationToken = default)
     {
@@ -132,11 +130,9 @@ internal sealed class CardTools(
 
     [McpServerTool(Name = "aiko_create_card", Title = "Create Aiko card")]
     [Description(
-        "Creates a card of any type the project defines at revision 1 in the current project. Read "
-        + "aiko_get_project_context to see which types exist. The card lands in its workflow's backlog "
-        + "stage; Aiko names it, so pass no id unless you are importing a card that already has one. "
-        + "Leave size and criterion values out when the person did not set them - run /aiko-estimate "
-        + "afterwards, or estimate them yourself, instead of guessing a number here.")]
+        "Creates a card of any type the project defines at revision 1 in the current project. The card lands in "
+        + "its workflow's backlog, and Aiko names it, so pass no id unless importing one that already has an "
+        + "id. Leave size and criteria out when the person did not set them.")]
     public async Task<string> CreateCardAsync(
         [Description("Card kind: story, task, or any type this project defines.")]
         string kind,
@@ -251,12 +247,10 @@ internal sealed class CardTools(
 
     [McpServerTool(Name = "aiko_estimate_card", Title = "Estimate Aiko card")]
     [Description(
-        "Records an estimate on a card: the size step from the project's grid and the score for every "
-        + "criterion the project defines. Read the card and aiko_get_project_context first - the context "
-        + "carries each criterion's range and each size step's description. Only the fields you pass are "
-        + "written, so an estimate that only sets the size leaves the scores alone, and the scores you pass "
-        + "are merged into the ones the card carries. A score for a criterion the project does not define, "
-        + "or outside that criterion's range, is refused and nothing is written.")]
+        "Records an estimate: the size step and a score for every criterion the project defines. Read the card "
+        + "and aiko_get_project_context first. Only the fields passed are written, so re-scoring readiness "
+        + "alone is enough to close a stage. A criterion the project does not define, or a score outside its "
+        + "range, is refused.")]
     public async Task<string> EstimateCardAsync(
         [Description("Card id to estimate.")]
         string cardId,
@@ -459,10 +453,9 @@ internal sealed class CardTools(
     [McpServerTool(Name = "aiko_move_card", Title = "Move Aiko card")]
     [Description(
         "Moves a card one stage forward in its workflow, or anywhere backwards, validating the stage against "
-        + "the card kind; the card's revision goes up by one. Refused when the target is more than one stage ahead, "
-        + "when the stage being left has an unfinished run (complete or continue it first), and when that stage "
-        + "has no execution: the "
-        + "card moves on because the stage is done, so run it with aiko_start_stage first.")]
+        + "the card kind; the revision goes up by one. Refused when the target is more than one stage ahead, "
+        + "when the stage being left has an unfinished run, or when that stage was never run: start or complete "
+        + "it first.")]
     public async Task<string> MoveCardAsync(
         [Description("Card id.")]
         string cardId,
@@ -560,9 +553,8 @@ internal sealed class CardTools(
 
     [McpServerTool(Name = "aiko_unlink_cards", Title = "Unlink Aiko cards")]
     [Description(
-        "Removes a link between two cards: by its id (from aiko_link_cards or the board), or by its source, "
-        + "target and type. A relates-to link can be named from either end. Removing a blocks link lets the "
-        + "card it held back be started. Returns the removed link; naming a link that is not there is refused.")]
+        "Removes a link between two cards, by its id or by its source, target and type. Removing a blocks link "
+        + "lets the card it held back be started. Naming a link that is not there is refused.")]
     public async Task<string> UnlinkCardsAsync(
         [Description("Id of the link to remove. Leave it out to name the link by its ends and type instead.")]
         [Optional] string? relationId,
@@ -651,12 +643,9 @@ internal sealed class CardTools(
 
     [McpServerTool(Name = "aiko_add_comment", Title = "Comment on an Aiko card")]
     [Description(
-        "Appends a note to a card's discussion, which is the feed its page shows. Post the outcome of a "
-        + "stage here - what was done, what was left - so the card that asked for the work explains what "
-        + "came of it instead of leaving the feed empty. Pass projectId to leave the note in a linked "
-        + "project's card: the note then carries its origin, and the current project's cross-project policy "
-        + "decides whether the write is allowed - 'deny' refuses, 'ask' refuses until you repeat the call "
-        + "with userConfirmed=true, and 'allow' writes it.")]
+        "Appends a note to a card's discussion, which is the feed its page shows. Post the outcome of a stage "
+        + "here - what was done, what was left. Pass projectId to leave the note in a linked project's card: "
+        + "the cross-project policy then decides whether the write is allowed.")]
     public async Task<string> AddCommentAsync(
         [Description("Card id.")]
         string cardId,
@@ -904,10 +893,9 @@ internal sealed class CardTools(
 
     [McpServerTool(Name = "aiko_archive_card", Title = "Put an Aiko card into the archive")]
     [Description(
-        "Puts a card away: it leaves the board, the work queue and the metrics, and nothing about it is deleted - "
-        + "the feed, the artifacts, the runs, the scores and the relations stay and read exactly as they did. "
-        + "Only a card that reached the end of its own pipeline may be put away, and the refusal says what is in "
-        + "the way. aiko_restore_card brings it back.")]
+        "Puts a card away: it leaves the board, the queue and the metrics, and nothing is deleted - the feed, "
+        + "artifacts, runs, scores and relations stay. Only a card that reached the end of its pipeline may be "
+        + "put away; the refusal says what is in the way. aiko_restore_card brings it back.")]
     public async Task<string> ArchiveCardAsync(
         [Description("Card id, for example TASK-001.")]
         string cardId,
@@ -938,8 +926,7 @@ internal sealed class CardTools(
 
     [McpServerTool(Name = "aiko_restore_card", Title = "Return an Aiko card from the archive")]
     [Description(
-        "Brings a card in the archive back to the board. Nothing has to be finished for this and nothing has to "
-        + "be undone: the card is put back with the stage, the feed, the runs, the scores and the relations it "
+        "Brings a card in the archive back to the board with the stage, feed, runs, scores and relations it "
         + "had. A card that is not in the archive is left untouched and the answer says so.")]
     public async Task<string> RestoreCardAsync(
         [Description("Card id, for example TASK-001.")]
@@ -1016,10 +1003,9 @@ internal sealed class CardTools(
 
     [McpServerTool(Name = "aiko_get_card_artifact", Title = "Read an Aiko card artifact")]
     [Description(
-        "Reads one Markdown artifact that sits beside the card - issue.md, analysis.md, implementation.md and "
-        + "the rest - by the relative path aiko_get_card listed. Read them this way rather than opening a file "
-        + "under .aiko by hand: that is Aiko's own data, and the store confines the path to the card's own "
-        + "directory, so nothing else is reachable through it.")]
+        "Reads one Markdown artifact of a card - issue.md, analysis.md, implementation.md and the rest - by the "
+        + "relative path aiko_get_card listed. Read them this way rather than opening a file under .aiko: the "
+        + "store confines the path to the card's own directory.")]
     public async Task<string> GetCardArtifactAsync(
         [Description("Card id, for example TASK-001.")]
         string cardId,
@@ -1039,9 +1025,9 @@ internal sealed class CardTools(
     [McpServerTool(Name = "aiko_save_card_artifact", Title = "Write an Aiko card artifact")]
     [Description(
         "Writes one Markdown artifact of a card - the analysis.md a stage asks for, its implementation.md, its "
-        + "issue.md. Use it instead of writing a file under .aiko by hand, which is Aiko's own data. Pass the "
-        + "version that aiko_get_card_artifact returned, so a document a person edited meanwhile is not "
-        + "overwritten silently; leave it out only when creating one that does not exist yet.")]
+        + "issue.md - instead of writing a file under .aiko by hand. Pass the version that "
+        + "aiko_get_card_artifact returned, so a document a person edited is not overwritten silently; leave it "
+        + "out only when creating a new one.")]
     public async Task<string> SaveCardArtifactAsync(
         [Description("Card id, for example TASK-001.")]
         string cardId,
@@ -1052,9 +1038,8 @@ internal sealed class CardTools(
         [Description("Version read with aiko_get_card_artifact, or null when creating a new document.")]
         string? expectedVersion = null,
         [Description(
-            "Answer with the whole document instead of the compact one. Left out, the answer is the document's "
-            + "path and its new version - the content is what the caller just sent. "
-            + "aiko_get_card_artifact reads the document back.")]
+            "Answer with the whole document instead of the compact one. Left out, the answer is the path and "
+            + "the new version. aiko_get_card_artifact reads the document back.")]
         bool? fullDocument = null,
         [Description(
             "Idempotency key for this call. Pass the same value when repeating a call whose answer was lost: "

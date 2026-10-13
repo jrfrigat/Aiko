@@ -23,9 +23,8 @@ internal sealed class CommandTools(
 {
     [McpServerTool(Name = "aiko_list_commands", Title = "List Aiko commands")]
     [Description(
-        "Lists the commands a screen placed for an agent. These are things the person asked for while no "
-        + "agent was running: the agent takes one with aiko_claim_command, carries it out, and closes it. "
-        + "Read this at the start of a run when the user says the board has work waiting.")]
+        "Lists the commands a screen placed for an agent: what the person asked for while no agent was running. "
+        + "Take one with aiko_claim_command, carry it out and close it.")]
     public async Task<string> ListCommandsAsync(
         [Description(
             "Which commands to read: 'open' (default) for the ones nobody has closed, 'all' for the history "
@@ -61,11 +60,8 @@ internal sealed class CommandTools(
 
     [McpServerTool(Name = "aiko_claim_command", Title = "Take Aiko command")]
     [Description(
-        "Takes one command from the queue for this run. A command another agent already took is refused, and "
-        + "so is one that named a different agent - leave those alone and say so. Read the command's action "
-        + "and carry it out with the tool it names; an action that reads RunBoard asks for the whole board "
-        + "rather than one card, and the /aiko-run-all procedure is what carries that out. Then close it with "
-        + "aiko_finish_command.")]
+        "Takes one command from the queue for this run. A command another agent took, or one that named a "
+        + "different agent, is refused. Carry out the action it names, then close it with aiko_finish_command.")]
     public async Task<string> ClaimCommandAsync(
         [Description("Command id, for example CMD-1.")]
         string commandId,
@@ -83,9 +79,8 @@ internal sealed class CommandTools(
 
     [McpServerTool(Name = "aiko_finish_command", Title = "Close Aiko command")]
     [Description(
-        "Closes a command this run has taken: completed when the work the command asked for has been done, "
-        + "failed when it could not be. Never leave a taken command open - the queue is what the person reads "
-        + "to see whether their request happened, and the message is what they read.")]
+        "Closes a command this run has taken: completed when the work was done, failed when it could not be. "
+        + "Never leave one open - the queue and the message are what the person reads.")]
     public async Task<string> FinishCommandAsync(
         [Description("Command id, for example CMD-1.")]
         string commandId,

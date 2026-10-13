@@ -31,15 +31,13 @@ internal sealed class BoardTools(
 {
     [McpServerTool(Name = "aiko_list_board", Title = "Read the Aiko board")]
     [Description(
-        "Reads the project's board: the cards, their relations, the priority each one is shown with, and "
-        + "where each stage got to. Read it when the order of the work matters - for example before walking "
-        + "the board with /aiko-run-all - because the board's priority is computed from the card and its "
-        + "parent, not the card's own score.")]
+        "Reads the project's board: the cards, their relations, the priority each one is shown with and where "
+        + "each stage got to. Read it when the order of the work matters - the board's priority is computed "
+        + "from the card and its parent, not the card's own score.")]
     public async Task<string> ListBoardAsync(
         [Description(
-            "True to answer with the whole cards. False (the default) answers with the thin ones - id, type, "
-            + "stage, size and priority - because the board is read to decide what to work on, and not to read "
-            + "what every card on it was asked to do. Read one card whole with aiko_get_card.")]
+            "True to answer with the whole cards; false (the default) with the thin ones - id, type, stage, "
+            + "size and priority. Read one card whole with aiko_get_card.")]
         bool fullCards = false,
         CancellationToken cancellationToken = default)
     {

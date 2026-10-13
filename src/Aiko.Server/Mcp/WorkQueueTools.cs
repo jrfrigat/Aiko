@@ -37,13 +37,11 @@ internal sealed class WorkQueueTools(
 {
     [McpServerTool(Name = "aiko_list_work_queue", Title = "Read the Aiko work queue")]
     [Description(
-        "Lists the cards to work, in the order the board ranks them: effective priority first, then the card "
-        + "id. Each entry carries the card's type, stage, size and scores, the cards that block it, the state "
-        + "of its current stage and whether it is finished. Each entry also names the running cards whose scope "
-        + "overlaps it (ScopeConflictCardIds) and whether that overlap holds a start back now "
-        + "(ScopeOverlapBlocked). Read this instead of assembling an order from "
-        + "aiko_list_board: the priority blend and the blocking rule are applied here, by the code that owns "
-        + "them. This is the queue of cards, not the queue of commands a screen placed (aiko_list_commands).")]
+        "Lists the cards to work, board-ranked: effective priority first, then the id. Each entry carries the "
+        + "type, stage, size, scores, the cards that block it, the stage state and whether it is finished, plus "
+        + "the running cards whose scope overlaps it (ScopeConflictCardIds, ScopeOverlapBlocked). Read this "
+        + "rather than aiko_list_board to get an order: the priority blend and the blocking rule are applied "
+        + "here. This is the queue of cards, not of commands (aiko_list_commands).")]
     public async Task<string> ListWorkQueueAsync(
         [Description("Only cards of this type, or null for every type the project defines.")]
         string? kind = null,

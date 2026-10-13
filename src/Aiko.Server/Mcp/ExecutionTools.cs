@@ -25,12 +25,9 @@ internal sealed class ExecutionTools(
     [McpServerTool(Name = "aiko_start_stage", Title = "Start Aiko stage")]
     [Description(
         "Starts a stage execution in the shared project workspace and records the responsible agent. Starting "
-        + "the stage the card is already working in continues that execution - run the card again and the same "
-        + "stage picks up where it stopped. Starting another stage while one is unfinished is refused: finish it "
-        + "with aiko_complete_stage first. The stage must be one of the card's own pipeline, admit the agent, and be "
-        + "the stage the card is in or the next one - a start moves the card, one stage at a time, and only out of a "
-        + "finished stage. A card another card blocks is refused too: name the blocking card to "
-        + "the user and offer that card instead of working this one.")]
+        + "the stage the card is already in continues that run. The stage must be the card's own stage or the "
+        + "next one, admit the agent, and be free of unfinished blockers - a refusal names the blocker, so offer "
+        + "that card instead of working this one.")]
     public async Task<string> StartStageAsync(
         [Description("Card id.")]
         string cardId,
@@ -171,9 +168,8 @@ internal sealed class ExecutionTools(
 
     [McpServerTool(Name = "aiko_resume_execution", Title = "Resume Aiko execution")]
     [Description(
-        "Resumes a paused, waiting or needs-attention execution with a new AgentAttempt. A run that waits for "
-        + "the user's decision - a commit to approve, or scope to grant - is refused: the user answers it on the "
-        + "board, and the agent tells the user and stops.")]
+        "Resumes a paused, waiting or needs-attention execution with a new attempt. A run waiting for the "
+        + "user's decision is refused: the user answers on the board, and the agent tells the user and stops.")]
     public async Task<string> ResumeExecutionAsync(
         [Description("Stage execution id.")]
         string executionId,

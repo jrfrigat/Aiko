@@ -29,11 +29,10 @@ internal sealed class LinkedWorkTools(
 {
     [McpServerTool(Name = "aiko_list_linked_work", Title = "Read the Aiko linked work")]
     [Description(
-        "Lists, for the projects this one is linked to, the cards handed over to a neighbour and still there "
-        + "(sent) and the cards this project received from one (received), each with its stage and the card "
-        + "it came from. Every entry carries the cross-project policy (deny/ask/allow) and whether that policy "
-        + "lets a hand-over to that neighbour, so a caller sees it before it tries one. Read-only, and the "
-        + "neighbours are the projects registered with this daemon.")]
+        "Lists, for the projects this one is linked to, the cards handed over and still there (sent) and the "
+        + "cards received from one (received), each with its stage and the card it came from. Every entry "
+        + "carries the cross-project policy (deny/ask/allow) and whether it lets a hand-over, so a caller sees "
+        + "it before trying one. Read-only.")]
     public async Task<string> ListLinkedWorkAsync(CancellationToken cancellationToken = default)
     {
         var current = await GetProjectAsync(cancellationToken);
