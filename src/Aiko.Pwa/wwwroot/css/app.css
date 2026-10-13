@@ -1633,6 +1633,31 @@ html.flare-mode-dark .splash-mark i {
 }
 
 
+/* The shell's own progress: a narrow bar above the page it is loading, never in place of it. A screen
+   that is still being opened draws its own shape below this, and this line is what says the shell is
+   still working. */
+.aiko-progress {
+    width: 100%;
+}
+
+/* A waiting region. The blocks inside draw a screen's shape, and the region is the one thing assistive
+   technology has to hear, so the announcement belongs here instead of on every block. Being a block
+   element it also keeps its blocks in the page's own flow, so the shape is laid out like the screen it
+   stands in for. */
+.aiko-skeleton-region {
+    display: block;
+    min-width: 0;
+}
+
+/* A row of a list that has not arrived: an id, a title, and the round badge at its end. The grid is the
+   same three columns the loaded rows carry, so the list does not reflow when the data lands. */
+.aiko-skeleton-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--flare-spacing-3, 0.75rem);
+}
+
 /* Motion here is decoration: the live pulse, the drag affordances and the state transitions all say the
    same thing without moving, so a reader whose system asks for less motion gets a still interface - the
    state stays correct and only the movement goes. */

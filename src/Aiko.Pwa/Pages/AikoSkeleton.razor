@@ -1,0 +1,24 @@
+@* One block standing in for content that has not arrived. A screen's placeholder is built from this and
+   from <see cref="AikoSkeletonPanel"/>: the shape belongs to the screen, the block belongs here.
+
+   The animation is the library's pulse rather than its wave. A wave travelling across a dozen blocks
+   reads as motion of its own, and a skeleton is the first thing a project switch draws. *@
+<FlareSkeleton Variant="Variant"
+               Animation="SkeletonAnimation.Pulse"
+               Width="@Width"
+               Height="@Height"
+               Class="@($"aiko-skeleton {Class}")" />
+
+@code {
+    /// <summary>Which shape the block takes: a rectangle, a line of text, or a circle.</summary>
+    [Parameter] public SkeletonVariant Variant { get; set; } = SkeletonVariant.Rect;
+
+    /// <summary>CSS width of the block, so a column of lines is not a stack of equal bars.</summary>
+    [Parameter] public string? Width { get; set; }
+
+    /// <summary>CSS height of the block.</summary>
+    [Parameter] public string? Height { get; set; }
+
+    /// <summary>Extra classes, for a shape the screen styles itself.</summary>
+    [Parameter] public string? Class { get; set; }
+}

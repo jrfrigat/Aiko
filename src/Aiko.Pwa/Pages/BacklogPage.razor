@@ -9,7 +9,29 @@
    to "what can I pick up next" without reading every board. *@
 <PageTitle>@Loc.Get("BacklogTitle")</PageTitle>
 
-@if (State.Board is not { } board)
+@if (State.BoardPending)
+{
+    @* The backlog's own shape: the heading it opens with, then the rows it lists. *@
+    <AikoSkeletonRegion>
+        <FlareStack Gap="FlareSpacing.Medium">
+            <FlareStack Gap="FlareSpacing.XXSmall">
+                <AikoSkeleton Variant="SkeletonVariant.Text" Width="11rem" Height="1.6rem" />
+                <AikoSkeleton Variant="SkeletonVariant.Text" Width="24rem" Height="0.9rem" />
+            </FlareStack>
+            <FlareStack Gap="FlareSpacing.Small">
+                @for (var row = 0; row < 6; row++)
+                {
+                    <div class="aiko-skeleton-row">
+                        <AikoSkeleton Variant="SkeletonVariant.Text" Width="5rem" Height="0.8rem" />
+                        <AikoSkeleton Variant="SkeletonVariant.Text" Width="100%" Height="0.8rem" />
+                        <AikoSkeleton Variant="SkeletonVariant.Circle" Width="1.75rem" Height="1.75rem" />
+                    </div>
+                }
+            </FlareStack>
+        </FlareStack>
+    </AikoSkeletonRegion>
+}
+else if (State.Board is not { } board)
 {
     <FlareAlert Severity="AlertSeverity.Info" Variant="AlertVariant.Text">@Loc.Get("BoardUnavailable")</FlareAlert>
 }

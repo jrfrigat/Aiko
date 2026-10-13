@@ -335,6 +335,15 @@
 
     <FlareLayoutContent>
         <FlareStack Gap="FlareSpacing.Medium">
+            @* The shell's own progress, drawn above the page rather than in place of it. While the first read
+               or a project switch is in flight, the screen being opened stays on screen and draws its own
+               skeleton, and this bar is what says the shell is still working. Replacing the page with a
+               centred spinner is what used to hide every screen's own loading shape. *@
+            @if (State.Loading)
+            {
+                <FlareProgressLinear Class="aiko-progress" />
+            }
+
             @if (State.Error is { Length: > 0 } error)
             {
                 <FlareAlert Severity="AlertSeverity.Error"
@@ -342,23 +351,11 @@
                             Title="@Loc.Get("BoardUpdateFailed")">@error</FlareAlert>
             }
 
-            @if (State.Loading)
-            {
-                <FlareStack Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
-                    <FlareProgressCircular />
-                    <FlareText Element="span" Typo="TypographyScale.BodyMedium" Color="FlareColor.OnSurfaceVariant">
-                        @Loc.Get("LoadingContext")
-                    </FlareText>
-                </FlareStack>
-            }
-            else
-            {
-                @* The skip link's destination. It has no classes of its own: the pages inside keep the grid
-                   they had, and the wrapper is here so a focused page can be continued from its first line. *@
-                <div id="aiko-main" tabindex="-1">
-                    @Body
-                </div>
-            }
+            @* The skip link's destination. It has no classes of its own: the pages inside keep the grid
+               they had, and the wrapper is here so a focused page can be continued from its first line. *@
+            <div id="aiko-main" tabindex="-1">
+                @Body
+            </div>
         </FlareStack>
     </FlareLayoutContent>
 </FlareLayout>

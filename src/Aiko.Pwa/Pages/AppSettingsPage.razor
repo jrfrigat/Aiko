@@ -54,7 +54,19 @@
         }
     </LeadingContent>
     <ExtraNarrowContent>
-        @if (_template is not { } template || template.Workflows.Count == 0)
+        @if (_loading)
+        {
+            @* The column's own shape while the template is read: the one list of pipelines it draws. A
+               template that has not arrived yet is not an unavailable template, and saying so is what this
+               screen used to do. *@
+            <AikoSkeletonRegion>
+                <FlareStack Gap="FlareSpacing.Small">
+                    <AikoSkeletonPanel Lines="3" />
+                    <AikoSkeletonPanel Lines="5" />
+                </FlareStack>
+            </AikoSkeletonRegion>
+        }
+        else if (_template is not { } template || template.Workflows.Count == 0)
         {
             <FlareAlert Severity="AlertSeverity.Info" Variant="AlertVariant.Text">
                 @Loc.Get("WorkflowUnavailable")
@@ -78,6 +90,7 @@
     [Parameter] public string? TemplateId { get; set; }
 
     private ProjectTemplate? _template;
+    private bool _loading = true;
     private string? _initializationInstruction;
     private string? _templateMessage;
     private bool _templateHasError;
@@ -91,6 +104,7 @@
     {
         // The application scope has no project, so the board and the live stream are released.
         await State.ClearProjectAsync();
+        _loading = true;
         try
         {
             await ReloadTemplateAsync();
@@ -98,6 +112,10 @@
         catch (Exception exception)
         {
             await State.ReportErrorAsync(FailureText.Describe(exception));
+        }
+        finally
+        {
+            _loading = false;
         }
     }
 

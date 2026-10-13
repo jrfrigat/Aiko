@@ -7,7 +7,32 @@
 @implements IAsyncDisposable
 @inject NavigationManager Navigation
 
-@if (State.Board is not { } board)
+@if (State.BoardPending)
+{
+    @* The board's own shape while the project opens: the same columns the board draws, so the wait looks
+       like the screen rather than like an empty page or a message about a project that is merely slow. *@
+    <AikoSkeletonRegion>
+        <div class="aiko-board">
+            @for (var column = 0; column < 4; column++)
+            {
+                <div class="aiko-col">
+                    <div class="aiko-col__head">
+                        <AikoSkeleton Variant="SkeletonVariant.Text" Width="55%" Height="0.85rem" />
+                    </div>
+                    <div class="aiko-col__body">
+                        <FlareStack Gap="FlareSpacing.XXSmall">
+                            @for (var card = 0; card < 4; card++)
+                            {
+                                <AikoSkeleton Width="100%" Height="4.5rem" />
+                            }
+                        </FlareStack>
+                    </div>
+                </div>
+            }
+        </div>
+    </AikoSkeletonRegion>
+}
+else if (State.Board is not { } board)
 {
     <FlareAlert Severity="AlertSeverity.Info" Variant="AlertVariant.Text">@Loc.Get("BoardUnavailable")</FlareAlert>
 }

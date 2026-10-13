@@ -1,0 +1,17 @@
+@* A region whose content is still on its way. The blocks inside are decorative, so the announcement is
+   made once here instead of a dozen meaningless boxes being read out: a screen reader hears that the
+   screen is loading, which is what the spinner it replaces used to say.
+
+   The caption is the shell's own "loading" by default; a region that stands for something more specific
+   than the screen - a single block inside an already drawn page - names its own wait instead. *@
+<div class="aiko-skeleton-region" role="status" aria-label="@(Label ?? Loc.Get("LoadingContext"))">
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>The blocks that draw the shape of what is coming.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>What the wait is called, or null for the screen's own loading caption.</summary>
+    [Parameter] public string? Label { get; set; }
+}

@@ -329,12 +329,16 @@
                     <ChildContent>
                         @if (_loadingDiff)
                         {
-                            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
-                                <FlareProgressCircular Size="TrackSize.Xs" />
-                                <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant">
-                                    @Loc.Get("LoadingCodeChanges")
-                                </FlareText>
-                            </FlareStack>
+                            @* The file list's own shape while the patch is read: one collapsed panel per file,
+                               which is exactly what the reader is about to get. *@
+                            <AikoSkeletonRegion Label="@Loc.Get("LoadingCodeChanges")">
+                                <FlareStack Gap="FlareSpacing.XSmall">
+                                    @for (var file = 0; file < 3; file++)
+                                    {
+                                        <AikoSkeleton Width="100%" Height="2.75rem" />
+                                    }
+                                </FlareStack>
+                            </AikoSkeletonRegion>
                         }
                         else if (DiffIsReady)
                         {
@@ -417,12 +421,14 @@
                         <FlareStack Gap="FlareSpacing.Medium">
                             @if (_loadingDiscussion)
                             {
-                                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
-                                    <FlareProgressCircular Size="TrackSize.Xs" />
-                                    <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant">
-                                        @Loc.Get("LoadingDiscussion")
-                                    </FlareText>
-                                </FlareStack>
+                                @* The feed's own shape while it is read: one panel per note, which is what the
+                                   reader is about to get. *@
+                                <AikoSkeletonRegion Label="@Loc.Get("LoadingDiscussion")">
+                                    <FlareStack Gap="FlareSpacing.Small">
+                                        <AikoSkeletonPanel Lines="2" />
+                                        <AikoSkeletonPanel Lines="3" />
+                                    </FlareStack>
+                                </AikoSkeletonRegion>
                             }
                             else if (_discussion.Count == 0)
                             {
@@ -654,12 +660,15 @@
                             <FlareStack Gap="FlareSpacing.Medium">
                             @if (_loadingExecutions)
                             {
-                                <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
-                                    <FlareProgressCircular Size="TrackSize.Xs" />
-                                    <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant">
-                                        @Loc.Get("LoadingHistory")
-                                    </FlareText>
-                                </FlareStack>
+                                @* The history's own shape while it is read: one row per run. *@
+                                <AikoSkeletonRegion Label="@Loc.Get("LoadingHistory")">
+                                    <FlareStack Gap="FlareSpacing.XSmall">
+                                        @for (var run = 0; run < 3; run++)
+                                        {
+                                            <AikoSkeleton Width="100%" Height="2.5rem" />
+                                        }
+                                    </FlareStack>
+                                </AikoSkeletonRegion>
                             }
                             else if (_executions.Count == 0)
                             {

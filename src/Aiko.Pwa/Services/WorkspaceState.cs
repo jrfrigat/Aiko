@@ -119,6 +119,39 @@ internal sealed class WorkspaceState : IAsyncDisposable
     /// </summary>
     public bool Refreshing { get; private set; }
 
+    /// <summary>
+    /// Whether the open project's screen is still waiting for the snapshot it is about: a project is open
+    /// or still being opened, nothing has been read for it yet, and no failure has been recorded.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Board"/> being null cannot answer this on its own - it is null both while the first read
+    /// is in flight and after that read failed - and a screen owes those two different answers: a skeleton
+    /// for the wait, its alert for the failure. <see cref="Loading"/> covers the first load and a project
+    /// switch; <c>_shellLoaded</c> covers the first load specifically, because before it the project is not
+    /// chosen yet either; and <see cref="SelectedProjectId"/> keeps a screen from flashing the alert in the
+    /// moment between the shell arriving and the route's project being taken. A failure is what
+    /// <see cref="Error"/> records - and it is cleared at the end of every read that came back, so a
+    /// recovered screen goes back to waiting rather than staying on a message that is no longer true.
+    /// </remarks>
+    public bool BoardPending =>
+        IsBoardPending(Loading, _shellLoaded, SelectedProjectId, Board is not null, Error is not null);
+
+    /// <summary>
+    /// The rule behind <see cref="BoardPending"/>, over the inputs it reads.
+    /// </summary>
+    /// <remarks>
+    /// A named function rather than an inline expression so the rule can be pinned: the property itself
+    /// needs a live client and a project to say anything, while the question it answers is a question
+    /// about these five facts.
+    /// </remarks>
+    internal static bool IsBoardPending(
+        bool loading,
+        bool shellLoaded,
+        string? selectedProjectId,
+        bool hasBoard,
+        bool hasError) =>
+        !hasBoard && !hasError && (loading || !shellLoaded || selectedProjectId is not null);
+
     /// <summary>Whether the open project's SSE stream is connected, as the browser reported it.</summary>
     public bool EventsConnected { get; private set; }
 

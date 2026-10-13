@@ -113,12 +113,16 @@
 
     @if (_loading)
     {
-        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
-            <FlareProgressCircular Size="TrackSize.Xs" />
-            <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant">
-                @Loc.Get("LoadingContext")
-            </FlareText>
-        </FlareStack>
+        @* The list's own shape: one panel per template, so the wait looks like the list rather than like a
+           spinner with a caption. *@
+        <AikoSkeletonRegion>
+            <FlareStack Gap="FlareSpacing.Small">
+                @for (var panel = 0; panel < 4; panel++)
+                {
+                    <AikoSkeletonPanel Lines="2" />
+                }
+            </FlareStack>
+        </AikoSkeletonRegion>
     }
     else
     {

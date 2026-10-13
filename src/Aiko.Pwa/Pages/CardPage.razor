@@ -8,7 +8,30 @@
    is (kind, stage, size, revision) and where it sits, so the screen says as much as the board does. *@
 <PageTitle>@CardId</PageTitle>
 
-@if (Card is null || State.Board is not { } board)
+@if (State.BoardPending)
+{
+    @* The card page's own shape: the trail and the actions it opens with, the banner, and the two columns
+       the inspector draws under them. *@
+    <AikoSkeletonRegion>
+        <FlareStack Gap="FlareSpacing.Medium">
+            <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small" Wrap="true">
+                <AikoSkeleton Variant="SkeletonVariant.Text" Width="22rem" Height="0.9rem" />
+                <AikoSkeleton Width="16rem" Height="2rem" />
+            </FlareStack>
+            <AikoSkeleton Width="100%" Height="7rem" />
+            <div class="aiko-settings">
+                <FlareStack Class="aiko-card__main" Gap="FlareSpacing.Medium">
+                    <AikoSkeletonPanel Lines="6" />
+                </FlareStack>
+                <FlareStack Class="aiko-card__side" Gap="FlareSpacing.Medium">
+                    <AikoSkeletonPanel Lines="4" />
+                    <AikoSkeletonPanel Lines="3" />
+                </FlareStack>
+            </div>
+        </FlareStack>
+    </AikoSkeletonRegion>
+}
+else if (Card is null || State.Board is not { } board)
 {
     <FlareStack Gap="FlareSpacing.Small">
         <FlareNavLink Href="@BoardHref">

@@ -45,7 +45,23 @@
         </FlareAlert>
     }
 
-    @if (State.Board is not { } board)
+    @if (State.BoardPending)
+    {
+        @* The form's own shape: the two columns a new card is filled in - what the card is on the left,
+           where it starts and how it is scored on the right. *@
+        <AikoSkeletonRegion>
+            <div class="aiko-settings">
+                <FlareStack Class="aiko-card__main" Gap="FlareSpacing.Medium">
+                    <AikoSkeletonPanel Lines="5" />
+                </FlareStack>
+                <FlareStack Class="aiko-card__side" Gap="FlareSpacing.Medium">
+                    <AikoSkeletonPanel Lines="4" />
+                    <AikoSkeletonPanel Lines="3" />
+                </FlareStack>
+            </div>
+        </AikoSkeletonRegion>
+    }
+    else if (State.Board is not { } board)
     {
         <FlareAlert Severity="AlertSeverity.Info" Variant="AlertVariant.Text">@Loc.Get("BoardUnavailable")</FlareAlert>
     }

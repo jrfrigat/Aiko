@@ -1,0 +1,28 @@
+@* A panel-shaped placeholder: the same paper a loaded screen draws, carrying a heading line and a few
+   body lines, so the wait looks like the screen rather than like nothing. This is the shape most of the
+   cockpit's screens have, which is why it is a component and not markup repeated per page. *@
+<FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
+    <FlareStack Gap="FlareSpacing.Small">
+        <AikoSkeleton Variant="SkeletonVariant.Text" Width="38%" Height="1.2rem" />
+        @for (var line = 0; line < Lines; line++)
+        {
+            <AikoSkeleton Variant="SkeletonVariant.Text" Width="@LineWidth(line)" Height="0.8rem" />
+        }
+    </FlareStack>
+</FlarePaper>
+
+@code {
+    /// <summary>How many body lines the placeholder draws. The heading line is always there.</summary>
+    [Parameter] public int Lines { get; set; } = 3;
+
+    /// <summary>
+    /// How wide one body line is. The three widths repeat, so a panel reads as text of uneven length
+    /// rather than as a bar chart.
+    /// </summary>
+    private static string LineWidth(int line) => (line % 3) switch
+    {
+        0 => "100%",
+        1 => "86%",
+        _ => "68%"
+    };
+}

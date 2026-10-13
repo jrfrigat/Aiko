@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Xunit;
 
@@ -47,8 +48,15 @@ public sealed class FieldAccessibilitySpecs
         Assert.Contains("id=\"aiko-main\" tabindex=\"-1\"", layout, StringComparison.Ordinal);
 
         // The target wraps the page rather than standing beside it, and carries no classes: the pages keep
-        // the grid they had.
-        Assert.Contains("<div id=\"aiko-main\" tabindex=\"-1\">\n                    @Body", layout, StringComparison.Ordinal);
+        // the grid they had. The nesting is what is asserted here, not the indentation: pinning the
+        // whitespace is what made this spec fail the moment the shell stopped hiding the page behind a
+        // spinner, which says nothing about the skip link.
+        var target = Regex.Match(
+            layout,
+            "<div id=\"aiko-main\" tabindex=\"-1\">(?<page>.*?)</div>",
+            RegexOptions.Singleline);
+        Assert.True(target.Success, "The skip link's target should be a div the page is drawn inside.");
+        Assert.Contains("@Body", target.Groups["page"].Value, StringComparison.Ordinal);
     }
 
     [Fact]

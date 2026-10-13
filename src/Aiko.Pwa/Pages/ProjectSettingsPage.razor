@@ -8,7 +8,23 @@
    installation's defaults are a separate screen at /settings. *@
 <PageTitle>@Loc.Get("ProjectSettings")</PageTitle>
 
-@if (State.Board is not { } board)
+@if (State.BoardPending)
+{
+    @* The settings screen's own shape: the two columns it draws, the narrow one beside the wide one. *@
+    <AikoSkeletonRegion>
+        <div class="aiko-settings">
+            <FlareStack Class="aiko-settings__narrow" Gap="FlareSpacing.Medium">
+                <AikoSkeletonPanel Lines="4" />
+                <AikoSkeletonPanel Lines="3" />
+            </FlareStack>
+            <FlareStack Class="aiko-settings__wide" Gap="FlareSpacing.Medium">
+                <AikoSkeletonPanel Lines="6" />
+                <AikoSkeletonPanel Lines="5" />
+            </FlareStack>
+        </div>
+    </AikoSkeletonRegion>
+}
+else if (State.Board is not { } board)
 {
     <FlareAlert Severity="AlertSeverity.Info" Variant="AlertVariant.Text">@Loc.Get("BoardUnavailable")</FlareAlert>
 }

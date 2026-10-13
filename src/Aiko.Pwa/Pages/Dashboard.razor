@@ -24,12 +24,20 @@
 
     @if (_loading)
     {
-        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall">
-            <FlareProgressCircular Size="TrackSize.Xs" />
-            <FlareText Element="span" Typo="TypographyScale.BodySmall" Color="FlareColor.OnSurfaceVariant">
-                @Loc.Get("LoadingContext")
-            </FlareText>
-        </FlareStack>
+        @* The dashboard's own shape: the five metric tiles it opens with and the activity panel under them. *@
+        <AikoSkeletonRegion>
+            <FlareStack Gap="FlareSpacing.Medium">
+                <div class="aiko-metric-grid">
+                    @for (var tile = 0; tile < 5; tile++)
+                    {
+                        <div class="aiko-metric">
+                            <AikoSkeleton Variant="SkeletonVariant.Text" Width="62%" Height="0.75rem" />
+                        </div>
+                    }
+                </div>
+                <AikoSkeletonPanel Lines="4" />
+            </FlareStack>
+        </AikoSkeletonRegion>
     }
     else
     {
