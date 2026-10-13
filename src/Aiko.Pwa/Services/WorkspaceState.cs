@@ -277,6 +277,10 @@ internal sealed class WorkspaceState : IAsyncDisposable
         SelectedProjectId = projectId;
         Board = null;
         SettingsView = null;
+        // The connections belong to the project that was open: left in place they were drawn as the new
+        // project's until the read below came back, which is the other half of the settings screen's flicker
+        // (TASK-334). The board and the effective settings are cleared for the same reason.
+        ProjectConnections = [];
         Loading = true;
         await NotifyAsync();
         try
