@@ -161,7 +161,12 @@ public sealed class LocalFeedInstallationSpecs
             Directory.CreateDirectory(DataDirectory);
             File.WriteAllText(Path.Combine(DataDirectory, "settings.json"), "{\"port\":24560}");
             File.WriteAllText(Path.Combine(DataDirectory, "app-settings.json"), "{\"priority\":{}}");
-            File.WriteAllText(Path.Combine(DataDirectory, "access-token"), "the-access-token");
+            // A token long enough to be a token: the access-token store replaces anything shorter than the
+            // floor, and this spec is about an install and an update leaving the data alone - not about a
+            // token the daemon would have to rewrite (TASK-159).
+            File.WriteAllText(
+                Path.Combine(DataDirectory, "access-token"),
+                "the-access-token-0123456789abcdef0123456789");
             Directory.CreateDirectory(Path.Combine(DataDirectory, "backups"));
             File.WriteAllText(Path.Combine(DataDirectory, "backups", "aiko-20260101.zip"), "an archive");
         }
