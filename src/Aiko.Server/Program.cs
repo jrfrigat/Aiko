@@ -33,7 +33,14 @@ var builder = WebApplication.CreateSlimBuilder(new WebApplicationOptions
     ContentRootPath = AppContext.BaseDirectory
 });
 #if DEBUG
-builder.WebHost.UseStaticWebAssets();
+// Serving the cockpit straight from the PWA project's wwwroot is a development convenience, and it must not
+// overrule a web root that was asked for: once the project's static web assets are in the output they win
+// that path, so a caller that supplied its own index.html got the project's file instead - and a spec that
+// asserts on its own marker went red as soon as the solution had been built as a whole (TASK-342).
+if (Environment.GetEnvironmentVariable("ASPNETCORE_WEBROOT") is not { Length: > 0 })
+{
+    builder.WebHost.UseStaticWebAssets();
+}
 #endif
 
 // A daemon started in the background has no console: AIKO_LOG_FILE gives it a file instead, so the
