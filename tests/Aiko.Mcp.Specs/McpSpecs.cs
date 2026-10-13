@@ -2322,13 +2322,15 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         probe.Stop();
         var baseUrl = new Uri($"http://127.0.0.1:{port}");
 
+        // No AIKO_PAIR_CODE here: the daemon only honours that seed in a Debug build, or beside
+        // AIKO_INSECURE, and this spec runs in Release on CI as well. The code is asked for below,
+        // the way the screen asks for it, so the spec says the same thing in either configuration.
         using var server = SpecDaemon.Start(
             serverDll,
             root,
             ("AIKO_DATABASE", Path.Combine(root, "data", "aiko.db")),
             ("AIKO_PORT", port.ToString(CultureInfo.InvariantCulture)),
-            ("AIKO_TOKEN", "test-token-0123456789abcdef0123456789ab"),
-            ("AIKO_PAIR_CODE", "pair-123"));
+            ("AIKO_TOKEN", "test-token-0123456789abcdef0123456789ab"));
         try
         {
             using var httpClient = new HttpClient { BaseAddress = baseUrl };
@@ -2362,12 +2364,18 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
                 Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             }
 
+            string? pairingCode;
             using (var pairRequest = new HttpRequestMessage(HttpMethod.Post, "/api/v1/auth/pair-request"))
             {
                 pairRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", "test-token-0123456789abcdef0123456789ab");
                 using var pairResponse = await httpClient.SendAsync(pairRequest);
                 Assert.Equal(HttpStatusCode.OK, pairResponse.StatusCode);
+
+                using var issued = JsonDocument.Parse(await pairResponse.Content.ReadAsStringAsync());
+                pairingCode = issued.RootElement.GetProperty("code").GetString();
             }
+
+            Assert.False(string.IsNullOrWhiteSpace(pairingCode));
 
             using (var unauthenticatedPairRequest = await httpClient.PostAsync(
                        "/api/v1/auth/pair-request",
@@ -2382,7 +2390,7 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
                 Assert.Equal(HttpStatusCode.Unauthorized, badPairResponse.StatusCode);
             }
 
-            using (var goodPair = new StringContent("{\"code\":\"pair-123\"}", Encoding.UTF8, "application/json"))
+            using (var goodPair = new StringContent($"{{\"code\":\"{pairingCode}\"}}", Encoding.UTF8, "application/json"))
             using (var goodPairResponse = await httpClient.PostAsync("/api/v1/auth/pair", goodPair))
             {
                 Assert.Equal(HttpStatusCode.OK, goodPairResponse.StatusCode);

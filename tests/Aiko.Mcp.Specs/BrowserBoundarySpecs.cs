@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.Json;
 using Xunit;
 
 namespace Aiko.Mcp.Specs;
@@ -62,20 +63,35 @@ public class BrowserBoundarySpecs(AikoServerFixture fixture) : IClassFixture<Aik
         var port = ((IPEndPoint)probe.LocalEndpoint).Port;
         probe.Stop();
 
+        // No AIKO_PAIR_CODE here: the daemon only honours that seed in a Debug build, or beside
+        // AIKO_INSECURE, and this spec runs in Release on CI as well. The code is asked for below.
         using var server = SpecDaemon.Start(
             serverDll,
             root,
             ("AIKO_DATABASE", Path.Combine(root, "data", "aiko.db")),
             ("AIKO_PORT", port.ToString(CultureInfo.InvariantCulture)),
-            ("AIKO_TOKEN", "boundary-token-0123456789abcdef0123456789"),
-            ("AIKO_PAIR_CODE", "boundary-pair"));
+            ("AIKO_TOKEN", "boundary-token-0123456789abcdef0123456789"));
         try
         {
             using var http = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{port}") };
             await WaitForHealthAsync(http);
 
+            // The code comes from the daemon, asked for with the agent's token, rather than from the
+            // AIKO_PAIR_CODE seed - which is honoured in a Debug build only, and CI runs in Release.
+            string pairingCode;
+            using (var issued = new HttpRequestMessage(HttpMethod.Post, "/api/v1/auth/pair-request"))
+            {
+                issued.Headers.Authorization = new AuthenticationHeaderValue("Bearer", "boundary-token-0123456789abcdef0123456789");
+                using var agentClient = new HttpClient { BaseAddress = http.BaseAddress };
+                using var issuedResponse = await agentClient.SendAsync(issued);
+                Assert.Equal(HttpStatusCode.OK, issuedResponse.StatusCode);
+
+                using var payload = JsonDocument.Parse(await issuedResponse.Content.ReadAsStringAsync());
+                pairingCode = payload.RootElement.GetProperty("code").GetString()!;
+            }
+
             // Pairing is how the browser gets its session cookie; the handler keeps it from here on.
-            using (var pair = new StringContent("{\"code\":\"boundary-pair\"}", Encoding.UTF8, "application/json"))
+            using (var pair = new StringContent($"{{\"code\":\"{pairingCode}\"}}", Encoding.UTF8, "application/json"))
             using (var paired = await http.PostAsync("/api/v1/auth/pair", pair))
             {
                 Assert.Equal(HttpStatusCode.OK, paired.StatusCode);
