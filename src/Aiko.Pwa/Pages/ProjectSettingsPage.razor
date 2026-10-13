@@ -10,16 +10,17 @@
 
 @if (State.BoardPending)
 {
-    @* The settings screen's own shape: the two columns it draws, the narrow one beside the wide one. *@
+    @* The settings screen's own shape, drawn from the measured screen: the two columns it draws, the narrow one
+       beside the wide one, each reserved to the fold - how long the scoring tables are depends on the project. *@
     <AikoSkeletonRegion>
         <div class="aiko-settings">
-            <FlareStack Class="aiko-settings__narrow" Gap="FlareSpacing.Medium">
-                <AikoSkeletonPanel Lines="4" />
-                <AikoSkeletonPanel Lines="3" />
+            <FlareStack Class="aiko-settings__narrow" Gap="FlareSpacing.Medium" Align="FlareAlignItems.Stretch">
+                <AikoSkeletonPanel Lines="4" Height="var(--aiko-skeleton-panel-size)" />
+                <AikoSkeletonPanel Lines="3" Height="var(--aiko-skeleton-fold-size)" />
             </FlareStack>
-            <FlareStack Class="aiko-settings__wide" Gap="FlareSpacing.Medium">
-                <AikoSkeletonPanel Lines="6" />
-                <AikoSkeletonPanel Lines="5" />
+            <FlareStack Class="aiko-settings__wide" Gap="FlareSpacing.Medium" Align="FlareAlignItems.Stretch">
+                <AikoSkeletonPanel Lines="6" Height="var(--aiko-skeleton-fold-size)" />
+                <AikoSkeletonPanel Lines="5" Height="var(--aiko-skeleton-panel-size)" />
             </FlareStack>
         </div>
     </AikoSkeletonRegion>

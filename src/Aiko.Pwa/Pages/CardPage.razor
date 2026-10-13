@@ -10,22 +10,24 @@
 
 @if (State.BoardPending)
 {
-    @* The card page's own shape: the trail and the actions it opens with, the banner, and the two columns
-       the inspector draws under them. *@
+    @* The card page's own shape, drawn from the measured screen: the trail and the actions, the banner, and
+       the two columns the inspector draws under them. The columns are reserved to the fold rather than to the
+       card's own height: how long a card is depends on the text in it, and a placeholder cannot know that. *@
     <AikoSkeletonRegion>
-        <FlareStack Gap="FlareSpacing.Medium">
+        <FlareStack Gap="FlareSpacing.Medium" Align="FlareAlignItems.Stretch">
             <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small" Wrap="true">
                 <AikoSkeleton Variant="SkeletonVariant.Text" Width="22rem" Height="0.9rem" />
                 <AikoSkeleton Width="16rem" Height="2rem" />
             </FlareStack>
-            <AikoSkeleton Width="100%" Height="7rem" />
+            <AikoSkeleton Class="aiko-skeleton--banner" />
             <div class="aiko-settings">
-                <FlareStack Class="aiko-card__main" Gap="FlareSpacing.Medium">
-                    <AikoSkeletonPanel Lines="6" />
+                <FlareStack Class="aiko-card__main" Gap="FlareSpacing.Medium" Align="FlareAlignItems.Stretch">
+                    <AikoSkeletonPanel Lines="6" Height="var(--aiko-skeleton-fold-size)" />
                 </FlareStack>
-                <FlareStack Class="aiko-card__side" Gap="FlareSpacing.Medium">
-                    <AikoSkeletonPanel Lines="4" />
-                    <AikoSkeletonPanel Lines="3" />
+                <FlareStack Class="aiko-card__side" Gap="FlareSpacing.Medium" Align="FlareAlignItems.Stretch">
+                    <AikoSkeletonPanel Lines="4" Height="var(--aiko-skeleton-card-panel-size)" />
+                    <AikoSkeletonPanel Lines="4" Height="var(--aiko-skeleton-card-panel-size)" />
+                    <AikoSkeletonPanel Lines="4" Height="var(--aiko-skeleton-card-panel-size)" />
                 </FlareStack>
             </div>
         </FlareStack>

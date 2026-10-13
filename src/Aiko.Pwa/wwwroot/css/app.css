@@ -1641,12 +1641,26 @@ html.flare-mode-dark .splash-mark i {
 }
 
 /* A waiting region. The blocks inside draw a screen's shape, and the region is the one thing assistive
-   technology has to hear, so the announcement belongs here instead of on every block. Being a block
-   element it also keeps its blocks in the page's own flow, so the shape is laid out like the screen it
-   stands in for. */
+   technology has to hear, so the announcement belongs here instead of on every block.
+
+   It stretches on purpose. It used to be a plain block inside a flex column, and a stack aligns its
+   children to the centre by default - so the region shrank to its content and the blocks inside resolved
+   their own widths against that shrunken box. Five metric tiles wrapped into three rows instead of two,
+   which is one of the jumps TASK-333 is about. */
 .aiko-skeleton-region {
     display: block;
+    align-self: stretch;
+    width: 100%;
     min-width: 0;
+}
+
+/* And the blocks inside it fill it: a stack centres its children, so a grid inside a region resolved its
+   columns against a shrunken box and measured 485px where the real one is 725 - the row count changing
+   under the reader. The stretch cannot be a rule here: a stack carries its own alignment as an inline
+   style, which no stylesheet beats, so the screens say `Align="FlareAlignItems.Stretch"` on the stacks
+   that hold their placeholders. */
+.aiko-skeleton-region > * {
+    align-self: stretch;
 }
 
 /* A row of a list that has not arrived: an id, a title, and the round badge at its end. The grid is the
@@ -1656,6 +1670,72 @@ html.flare-mode-dark .splash-mark i {
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
     gap: var(--flare-spacing-3, 0.75rem);
+}
+
+/* The sizes a placeholder reserves, each one measured off the block it stands in for rather than drawn by
+   eye: artifacts/qa-skeleton/measure.mjs reads both states in a headless browser and prints the two
+   columns (TASK-333). The numbers are what that run found at a 725px-wide viewport, and they are what the
+   shape is drawn from; re-measure with the same tool when a screen changes. A block whose height follows
+   its own data instead - a card's artifact, the scoring tables - is reserved to the fold and no further:
+   see .aiko-skeleton--fold. */
+:root {
+    --aiko-skeleton-heading-size: 7.875rem;
+    --aiko-skeleton-banner-size: 10.5rem;
+    --aiko-skeleton-metric-size: 6.25rem;
+    --aiko-skeleton-activity-size: 11rem;
+    --aiko-skeleton-calendar-size: 6rem;
+    --aiko-skeleton-panel-size: 15.5rem;
+    --aiko-skeleton-chart-size: 48rem;
+    --aiko-skeleton-lists-size: 26rem;
+    --aiko-skeleton-fold-size: calc(100dvh - 9rem);
+    --aiko-skeleton-card-panel-size: 40rem;
+}
+
+/* The metric grid of a waiting dashboard. A stack centres its children, and a grid that shrinks to its
+   content wraps its tiles into more rows than the real one: it measured 485px against 725, and five tiles
+   took three rows where the screen takes two. The width is stated here rather than left to the stack. */
+.aiko-skeleton--metrics {
+    width: 100%;
+}
+
+/* A screen's heading block, measured with the tags and the actions it carries. */
+.aiko-skeleton--heading {
+    min-height: var(--aiko-skeleton-heading-size);
+}
+
+/* The banner a card page opens with. */
+.aiko-skeleton--banner {
+    height: var(--aiko-skeleton-banner-size);
+}
+
+/* One metric tile, kept the height of the real one so the grid does not change its row count. */
+.aiko-skeleton--metric {
+    min-height: var(--aiko-skeleton-metric-size);
+}
+
+/* The card the dashboard's activity calendar sits in, and the calendar itself under its heading. */
+.aiko-skeleton--activity {
+    min-height: var(--aiko-skeleton-activity-size);
+}
+
+.aiko-skeleton--calendar {
+    height: var(--aiko-skeleton-calendar-size);
+}
+
+/* The registered projects and the agents under them. */
+.aiko-skeleton--lists {
+    min-height: var(--aiko-skeleton-lists-size);
+}
+
+/* A block or a column whose height follows data nobody has yet: reserved to one screenful, because the
+   first screenful is what a reader sees move. What grows below it is the screen's own length. */
+.aiko-skeleton--fold {
+    min-height: var(--aiko-skeleton-fold-size);
+}
+
+/* A chart panel: the measured pair of charts read as a pair is twice this. */
+.aiko-skeleton--chart {
+    min-height: var(--aiko-skeleton-chart-size);
 }
 
 /* Motion here is decoration: the live pulse, the drag affordances and the state transitions all say the

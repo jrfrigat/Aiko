@@ -13,21 +13,22 @@
 
 @if (State.BoardPending)
 {
-    @* The project page's own shape: the heading it opens with, the activity panel, the two charts read as
-       a pair, and the one wide panel under them. *@
+    @* The project page's own shape, drawn from the measured screen: the heading it opens with, the activity
+       panel, the two charts read as a pair, and the two wide panels under them. *@
     <AikoSkeletonRegion>
-        <FlareStack Gap="FlareSpacing.Medium">
-            <FlareStack Gap="FlareSpacing.XXSmall">
+        <FlareStack Gap="FlareSpacing.Medium" Align="FlareAlignItems.Stretch">
+            <FlareStack Gap="FlareSpacing.XXSmall" Class="aiko-skeleton--heading">
                 <AikoSkeleton Variant="SkeletonVariant.Text" Width="8rem" Height="0.8rem" />
                 <AikoSkeleton Variant="SkeletonVariant.Text" Width="14rem" Height="1.75rem" />
                 <AikoSkeleton Variant="SkeletonVariant.Text" Width="26rem" Height="0.9rem" />
             </FlareStack>
-            <AikoSkeletonPanel Lines="4" />
+            <AikoSkeletonPanel Lines="4" Height="var(--aiko-skeleton-panel-size)" />
             <div class="aiko-panels--split">
-                <AikoSkeletonPanel Lines="4" />
-                <AikoSkeletonPanel Lines="4" />
+                <AikoSkeletonPanel Lines="4" Height="var(--aiko-skeleton-chart-size)" />
+                <AikoSkeletonPanel Lines="4" Height="var(--aiko-skeleton-chart-size)" />
             </div>
-            <AikoSkeletonPanel Lines="6" />
+            <AikoSkeletonPanel Lines="6" Height="27.5rem" />
+            <AikoSkeletonPanel Lines="6" Height="30rem" />
         </FlareStack>
     </AikoSkeletonRegion>
 }

@@ -1,7 +1,12 @@
 @* A panel-shaped placeholder: the same paper a loaded screen draws, carrying a heading line and a few
    body lines, so the wait looks like the screen rather than like nothing. This is the shape most of the
-   cockpit's screens have, which is why it is a component and not markup repeated per page. *@
-<FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
+   cockpit's screens have, which is why it is a component and not markup repeated per page.
+
+   `Height` is what makes it match: real panels were measured between 166 and 482 pixels on the same
+   screen, so one fixed number of body lines cannot stand in for all of them. What is passed here is a CSS
+   length - usually one of the --aiko-skeleton-* sizes, which is where the measurement lives. *@
+<FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel"
+           Style="@(Height is { Length: > 0 } ? $"min-height: {Height}" : null)">
     <FlareStack Gap="FlareSpacing.Small">
         <AikoSkeleton Variant="SkeletonVariant.Text" Width="38%" Height="1.2rem" />
         @for (var line = 0; line < Lines; line++)
@@ -14,6 +19,11 @@
 @code {
     /// <summary>How many body lines the placeholder draws. The heading line is always there.</summary>
     [Parameter] public int Lines { get; set; } = 3;
+
+    /// <summary>
+    /// How tall the panel reserves its place, as a CSS length, or null for no reservation.
+    /// </summary>
+    [Parameter] public string? Height { get; set; }
 
     /// <summary>
     /// How wide one body line is. The three widths repeat, so a panel reads as text of uneven length

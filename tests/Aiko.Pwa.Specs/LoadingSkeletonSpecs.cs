@@ -1,4 +1,5 @@
 using Aiko.Pwa.Services;
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace Aiko.Pwa.Specs;
@@ -143,6 +144,44 @@ public sealed class LoadingSkeletonSpecs
         Assert.Equal(
             expected,
             WorkspaceState.IsBoardPending(loading, shellLoaded, selectedProjectId, hasBoard, hasError));
+    }
+
+    [Fact]
+    public void A_placeholder_reserves_the_size_the_real_block_was_measured_at()
+    {
+        var css = Read("src", "Aiko.Pwa", "wwwroot", "css", "app.css");
+
+        // The region takes the width of what it stands in for. A placeholder that shrinks to its content
+        // reflows its own blocks differently from the screen - five metric tiles wrapped into three rows
+        // instead of two - and that is a jump the measurement caught rather than an opinion.
+        Assert.Contains("align-self: stretch", css, StringComparison.Ordinal);
+
+        // The sizes are named and live together, because they are measurements off the real blocks and they
+        // have to be re-measured together (artifacts/qa-skeleton/measure.mjs).
+        Assert.Contains("--aiko-skeleton-fold-size", css, StringComparison.Ordinal);
+        Assert.Contains("--aiko-skeleton-banner-size", css, StringComparison.Ordinal);
+        Assert.Contains("--aiko-skeleton-panel-size", css, StringComparison.Ordinal);
+
+        // A panel placeholder cannot know how tall a real panel is - they measured between 166 and 482 pixels
+        // on one screen - so the page has to say it. A panel drawn without a size is a panel that does not
+        // match, which is the whole card.
+        foreach (var file in new[] { "CardPage.razor", "ProjectSettingsPage.razor", "StatsPage.razor" })
+        {
+            var page = Read("src", "Aiko.Pwa", "Pages", file);
+            var panels = Regex.Matches(page, "<AikoSkeletonPanel[^>]*>");
+            Assert.NotEmpty(panels);
+            foreach (Match panel in panels)
+            {
+                Assert.Contains("Height=", panel.Value, StringComparison.Ordinal);
+            }
+        }
+
+        // And the tile of the dashboard's metric grid keeps the height of the real one, so the grid does not
+        // change its row count when the data lands.
+        Assert.Contains(
+            "class=\"aiko-metric aiko-skeleton--metric\"",
+            Read("src", "Aiko.Pwa", "Pages", "Dashboard.razor"),
+            StringComparison.Ordinal);
     }
 
     private static string Read(params string[] segments) =>

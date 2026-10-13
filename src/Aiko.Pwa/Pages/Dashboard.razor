@@ -24,18 +24,29 @@
 
     @if (_loading)
     {
-        @* The dashboard's own shape: the five metric tiles it opens with and the activity panel under them. *@
+        @* The dashboard's own shape, drawn from the measured screen: the five tiles, the activity card and the
+           section under them - which used to appear out of nothing, all 418 pixels of it. *@
         <AikoSkeletonRegion>
-            <FlareStack Gap="FlareSpacing.Medium">
-                <div class="aiko-metric-grid">
+            <FlareStack Gap="FlareSpacing.Medium" Align="FlareAlignItems.Stretch">
+                <div class="aiko-metric-grid aiko-skeleton--metrics">
                     @for (var tile = 0; tile < 5; tile++)
                     {
-                        <div class="aiko-metric">
+                        <div class="aiko-metric aiko-skeleton--metric">
                             <AikoSkeleton Variant="SkeletonVariant.Text" Width="62%" Height="0.75rem" />
                         </div>
                     }
                 </div>
-                <AikoSkeletonPanel Lines="4" />
+                <FlareCard Variant="CardVariant.Filled">
+                    <FlareStack Gap="FlareSpacing.XSmall">
+                        <AikoSkeleton Variant="SkeletonVariant.Text" Width="30%" Height="0.9rem" />
+                        <AikoSkeleton Class="aiko-skeleton--calendar" />
+                    </FlareStack>
+                </FlareCard>
+                <FlareDivider />
+                <FlareStack Gap="FlareSpacing.Small" Class="aiko-skeleton--lists">
+                    <AikoSkeletonPanel Lines="4" />
+                    <AikoSkeletonPanel Lines="4" />
+                </FlareStack>
             </FlareStack>
         </AikoSkeletonRegion>
     }
