@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Aiko.Application.Installation;
 using Aiko.Infrastructure.Storage;
 
@@ -17,7 +18,7 @@ namespace Aiko.Infrastructure.Installation;
 /// that protection lives.
 /// </para>
 /// </remarks>
-public sealed class ReleaseStaging(IReleaseSource source)
+public sealed class ReleaseStaging(IReleaseSource source, IInstallationProgress? progress = null)
 {
     /// <summary>
     /// Downloads the release, verifies it against its published checksum and unpacks it into a staging
@@ -38,8 +39,16 @@ public sealed class ReleaseStaging(IReleaseSource source)
         var assetName = ReleaseNaming.AssetNameForTag(tag);
         var version = ReleaseNaming.VersionFromTag(tag);
 
+        // A download is the longest wait a run has, and the one that used to say nothing at all: the phases
+        // around it are what a person watching has to go on (TASK-352).
+        static string DescribeSize(long bytes) =>
+            bytes >= 1024 * 1024
+                ? $"{bytes / (1024.0 * 1024.0):0.#} MB"
+                : $"{bytes / 1024.0:0.#} KB";
+
         // The checksums come first. A release that does not vouch for the archive is refused before it is
         // downloaded: cheaper, and the honest order, because the checksum is the reason to download at all.
+        progress?.Phase("stage", $"Reading the published checksums for {tag}...");
         var checksums = await source.ReadChecksumsAsync(tag, cancellationToken);
         if (!checksums.TryGetValue(assetName, out var expected))
         {
@@ -52,8 +61,15 @@ public sealed class ReleaseStaging(IReleaseSource source)
 
         try
         {
+            progress?.Phase("download", $"Downloading {assetName}...");
+            var startedAt = Stopwatch.GetTimestamp();
             await source.DownloadAssetAsync(tag, assetName, archivePath, cancellationToken);
+            progress?.Phase(
+                "download",
+                $"{assetName}: {DescribeSize(new FileInfo(archivePath).Length)} in " +
+                $"{Stopwatch.GetElapsedTime(startedAt).TotalSeconds:0.#} s.");
 
+            progress?.Phase("verify", $"Checking {assetName} against its published checksum...");
             var actual = await FileHash.Sha256Async(archivePath, cancellationToken);
             if (!string.Equals(actual, expected, StringComparison.OrdinalIgnoreCase))
             {
@@ -65,6 +81,7 @@ public sealed class ReleaseStaging(IReleaseSource source)
             // A staging directory left by an earlier attempt is discarded rather than unpacked into: mixing
             // two attempts would make "what is staged" unanswerable.
             Discard(stagingDirectory);
+            progress?.Phase("unpack", "Unpacking the release beside the installation...");
             await ProjectArchive.ExtractAsync(archivePath, stagingDirectory, cancellationToken);
 
             var missing = MissingEntries(stagingDirectory);

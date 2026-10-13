@@ -123,6 +123,47 @@ public sealed class LocalFeedInstallationSpecs
         Assert.Equal(before, fixture.Fingerprint());
     }
 
+    [Fact]
+    public async Task An_update_names_each_phase_while_it_runs_when_progress_is_asked_for()
+    {
+        using var fixture = new InstalledDataFixture();
+        fixture.Stage();
+        var (initExitCode, initOutput) = await fixture.RunAsync(
+            "init", fixture.ProjectRoot, "--name", InstalledDataFixture.ProjectName);
+        Assert.True(initExitCode == 0, initOutput);
+
+        var (installExitCode, installOutput) = await fixture.RunAsync(
+            "install", "--from", fixture.Staged,
+            "--tag", InstalledDataFixture.FirstTag,
+            "--install-dir", fixture.InstallDirectory,
+            "--no-path", "--no-agents");
+        Assert.True(installExitCode == 0, installOutput);
+
+        // A redirected stream is what a pipeline or a script sees, so the phase lines stay out of it on their
+        // own: the report carries the same phases in a form a caller can parse (TASK-352).
+        Assert.DoesNotContain("  .. ", installOutput, StringComparison.Ordinal);
+
+        fixture.Publish(InstalledDataFixture.SecondTag);
+        var (updateExitCode, updateOutput) = await fixture.RunAsync(
+            new Dictionary<string, string> { ["AIKO_PROGRESS"] = "1" },
+            "update", "--install-dir", fixture.InstallDirectory, "--no-path", "--no-agents");
+
+        Assert.True(updateExitCode == 0, updateOutput);
+        Assert.Contains("  .. resolve: ", updateOutput, StringComparison.Ordinal);
+        Assert.Contains("  .. download: ", updateOutput, StringComparison.Ordinal);
+        Assert.Contains("  .. replace: ", updateOutput, StringComparison.Ordinal);
+        Assert.Contains("  .. repair: ", updateOutput, StringComparison.Ordinal);
+
+        // In the order the run went through them: a name without an order would not say where a run stopped.
+        var resolved = updateOutput.IndexOf("  .. resolve: ", StringComparison.Ordinal);
+        var downloaded = updateOutput.IndexOf("  .. download: ", StringComparison.Ordinal);
+        var replaced = updateOutput.IndexOf("  .. replace: ", StringComparison.Ordinal);
+        var repaired = updateOutput.IndexOf("  .. repair: ", StringComparison.Ordinal);
+        Assert.True(
+            resolved < downloaded && downloaded < replaced && replaced < repaired,
+            updateOutput);
+    }
+
     /// <summary>
     /// An installation, its data directory, its feed and the project it works on - all of it this spec's own,
     /// under one temporary directory that dispose removes.
@@ -253,11 +294,26 @@ public sealed class LocalFeedInstallationSpecs
 
         /// <summary>Runs the built CLI with this fixture's data directory, home and feed.</summary>
         public Task<(int ExitCode, string Output)> RunAsync(params string[] arguments) =>
-            CliInitSpecs.RunCliWithEnvironmentAsync(
-                DatabasePath,
-                Home,
-                new Dictionary<string, string> { ["AIKO_RELEASE_FEED"] = Feed },
-                arguments);
+            RunAsync(null, arguments);
+
+        /// <summary>
+        /// Runs the built CLI with extra environment, for the run that asks for something more than the feed.
+        /// </summary>
+        public Task<(int ExitCode, string Output)> RunAsync(
+            IReadOnlyDictionary<string, string>? extraEnvironment,
+            params string[] arguments)
+        {
+            var environment = new Dictionary<string, string> { ["AIKO_RELEASE_FEED"] = Feed };
+            if (extraEnvironment is not null)
+            {
+                foreach (var pair in extraEnvironment)
+                {
+                    environment[pair.Key] = pair.Value;
+                }
+            }
+
+            return CliInitSpecs.RunCliWithEnvironmentAsync(DatabasePath, Home, environment, arguments);
+        }
 
         public void Dispose() => TempRoot.Delete(Root);
 

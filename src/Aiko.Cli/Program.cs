@@ -2616,7 +2616,12 @@ static async ValueTask<IInstallationEngine> CreateInstallationEngineAsync()
         ? new LocalReleaseSource(feed)
         : new GitHubReleaseSource(new HttpClient(), ReleaseIdentity.Owner, ReleaseIdentity.Repository);
 
-    return new InstallationEngine(source, new DaemonLifecycle(dataPaths), repair, diagnostics);
+    return new InstallationEngine(
+        source,
+        new DaemonLifecycle(dataPaths),
+        repair,
+        diagnostics,
+        new ConsoleInstallationProgress());
 }
 
 static string? ReadReleaseFeed()
@@ -2687,4 +2692,34 @@ internal static class ReleaseIdentity
 
     /// <summary>Repository the releases are published in.</summary>
     internal const string Repository = "Aiko";
+}
+
+/// <summary>
+/// What an installation run says while it runs, on the console.
+/// </summary>
+/// <remarks>
+/// These lines are for a person watching. A pipeline or a script reads the report instead - the same phases,
+/// in a form it can parse - so the lines are written when someone is watching and not into a redirected
+/// stream, where they would be noise among a caller's own output. <c>AIKO_PROGRESS</c> turns them on for a run
+/// that wants its progress in a log (TASK-352).
+/// </remarks>
+internal sealed class ConsoleInstallationProgress : IInstallationProgress
+{
+    /// <inheritdoc />
+    public void Phase(string phase, string detail)
+    {
+        if (Console.IsOutputRedirected && !Requested())
+        {
+            return;
+        }
+
+        // The marker keeps these apart from a report line: a caller reading combined output can tell what a
+        // person saw while waiting from what the run recorded.
+        Console.WriteLine($"  .. {phase}: {detail}");
+    }
+
+    private static bool Requested() =>
+        Environment.GetEnvironmentVariable("AIKO_PROGRESS") is { Length: > 0 } value
+        && value is not "0"
+        && !string.Equals(value, "false", StringComparison.OrdinalIgnoreCase);
 }

@@ -30,7 +30,8 @@ public sealed class InstallationEngine(
     IReleaseSource source,
     IDaemonLifecycle daemon,
     IInstallationRepair repair,
-    IWorkshopDiagnostics diagnostics) : IInstallationEngine
+    IWorkshopDiagnostics diagnostics,
+    IInstallationProgress? progress = null) : IInstallationEngine
 {
     /// <inheritdoc />
     public ValueTask<InstallationReport> InstallAsync(
@@ -59,6 +60,11 @@ public sealed class InstallationEngine(
 
         // The tag is resolved first in every verb, including --check: it is the half of "installed X,
         // available Y" that cannot be read off the disk.
+        progress?.Phase(
+            "resolve",
+            request.Tag is { Length: > 0 } requested
+                ? $"Resolving {requested}..."
+                : "Resolving the latest release...");
         var tag = await source.ResolveTagAsync(request.Tag, cancellationToken);
         var version = ReleaseNaming.VersionFromTag(tag);
         steps.Add(new InstallationStep("resolve", true, $"Resolved {tag}."));
@@ -106,7 +112,7 @@ public sealed class InstallationEngine(
         StagedRelease staged;
         try
         {
-            staged = await new ReleaseStaging(source).PrepareAsync(tag, installDirectory, cancellationToken);
+            staged = await new ReleaseStaging(source, progress).PrepareAsync(tag, installDirectory, cancellationToken);
         }
         catch (InstallationRefusedException refusal)
         {
@@ -195,6 +201,7 @@ public sealed class InstallationEngine(
 
         // A daemon holds the binaries, so it has to be gone before they are renamed. If it will not go, the
         // run refuses: replacing files under a live process is the one thing this step exists to prevent.
+        progress?.Phase("daemon", "Checking whether a daemon is holding the installed files...");
         var wasRunning = await daemon.IsRunningAsync(cancellationToken);
         if (!wasRunning)
         {
@@ -204,6 +211,7 @@ public sealed class InstallationEngine(
         {
             try
             {
+                progress?.Phase("daemon", "Stopping the running daemon before replacing the files...");
                 await daemon.StopAsync(cancellationToken);
                 steps.Add(new InstallationStep(
                     "daemon",
@@ -223,6 +231,7 @@ public sealed class InstallationEngine(
             }
         }
 
+        progress?.Phase("replace", $"Replacing the installed files with {staged.Tag}...");
         ReplacementResult replaced;
         try
         {
@@ -281,10 +290,12 @@ public sealed class InstallationEngine(
                     : "The daemon did not come back up; start it with `aiko serve`."));
         }
 
+        progress?.Phase("repair", "Reindexing the projects and rewriting the agent configurations...");
         steps.AddRange(await repair.RepairAsync(
             new InstallationAgentSelection(request.Agents, request.NoAgents),
             cancellationToken));
 
+        progress?.Phase("doctor", "Checking the installation...");
         steps.Add(await DoctorStepAsync(cancellationToken));
 
         var outcome = installed is null ? InstallationOutcome.Installed : InstallationOutcome.Updated;
