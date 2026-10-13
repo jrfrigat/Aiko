@@ -1,3 +1,7 @@
+using System.Net;
+using System.Net.Http.Headers;
+using Aiko.Infrastructure.Settings;
+using Aiko.Infrastructure.Storage;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
@@ -6,6 +10,36 @@ var endpointValue = ReadEndpoint(args);
 if (!TryValidateEndpoint(endpointValue, out var endpoint, out var error))
 {
     await Console.Error.WriteLineAsync(error);
+    return 2;
+}
+
+// The daemon authenticates every REST and MCP call, and this proxy is a client of it like the CLI is: the
+// token the daemon was started with when AIKO_TOKEN names one, and the stored token - the file beside the
+// daemon's database - otherwise. Without this the proxy answered 401 to everything, and an agent configured
+// to speak to Aiko over stdio simply did not work (TASK-161).
+var dataPaths = AikoDataPaths.FromEnvironment();
+var accessToken = Environment.GetEnvironmentVariable("AIKO_TOKEN");
+if (string.IsNullOrWhiteSpace(accessToken))
+{
+    try
+    {
+        accessToken = (await new AccessTokenStore(dataPaths).GetOrCreateAsync()).Trim();
+    }
+    catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+    {
+        await Console.Error.WriteLineAsync(
+            $"The access token could not be read from {dataPaths.AccessTokenPath}: {exception.Message} " +
+            "Start the daemon once, or run this proxy with AIKO_TOKEN set to the token it was started with.");
+        return 2;
+    }
+}
+
+if (string.IsNullOrWhiteSpace(accessToken))
+{
+    await Console.Error.WriteLineAsync(
+        $"No access token: {dataPaths.AccessTokenPath} is empty and AIKO_TOKEN is not set. " +
+        "Start the daemon once so that it writes one, or run this proxy with AIKO_TOKEN set to the token it " +
+        "was started with.");
     return 2;
 }
 
@@ -27,6 +61,7 @@ try
     {
         Timeout = Timeout.InfiniteTimeSpan
     };
+    httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
     await using var httpTransport = new HttpClientTransport(
         new HttpClientTransportOptions
         {
@@ -60,6 +95,15 @@ try
 catch (OperationCanceledException) when (shutdown.IsCancellationRequested)
 {
     return 0;
+}
+catch (HttpRequestException exception) when (exception.StatusCode == HttpStatusCode.Unauthorized)
+{
+    // The token this proxy holds is not the one the daemon checks. Saying so is the whole point: a 401 from
+    // the transport reads as "the daemon is broken" to whoever configured the agent (TASK-161).
+    await Console.Error.WriteLineAsync(
+        "The daemon refused the access token (401). If it was started with AIKO_TOKEN, run this proxy with the " +
+        $"same value in the environment; otherwise check the stored token at {dataPaths.AccessTokenPath}.");
+    return 1;
 }
 catch (Exception exception)
 {
