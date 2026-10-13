@@ -30,10 +30,18 @@ public sealed class LoadingSkeletonSpecs
 
     /// <summary>
     /// The screens and blocks whose data is their own rather than the board, and which used a bare
-    /// spinner or a message about something that had merely not arrived.
+    /// spinner or a message about something that had merely not arrived. The release screens read a plan and a
+    /// history of their own, and used to state what a project had not done before reading it (TASK-344).
     /// </summary>
     private static readonly string[] SelfLoadingScreenFiles =
-        ["Dashboard.razor", "TemplatesPage.razor", "AppSettingsPage.razor", "CardInspector.razor"];
+    [
+        "Dashboard.razor",
+        "TemplatesPage.razor",
+        "AppSettingsPage.razor",
+        "CardInspector.razor",
+        "ReleasePage.razor",
+        "ReleaseRecordPage.razor"
+    ];
 
     public static IEnumerable<object[]> BoardScreens() =>
         BoardScreenFiles.Select(file => new object[] { file });

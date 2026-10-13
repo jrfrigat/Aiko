@@ -62,7 +62,19 @@
                 </FlareStack>
             </FlareStack>
 
-            @if (PlannedVersions.Count == 0)
+            @if (Waiting)
+            {
+                @* The wait is this panel's own shape: two versions' worth of rows. "No plans" is a statement
+                   about a project's plan, and a plan nobody has read yet is not a project without one, nor is
+                   the previous project's plan this project's answer (TASK-344). *@
+                <AikoSkeletonRegion>
+                    <FlareStack Gap="FlareSpacing.Small" Align="FlareAlignItems.Stretch">
+                        <AikoSkeletonPanel Lines="3" />
+                        <AikoSkeletonPanel Lines="3" />
+                    </FlareStack>
+                </AikoSkeletonRegion>
+            }
+            else if (PlannedVersions.Count == 0)
             {
                 <FlareText Element="span" Typo="TypographyScale.BodyMedium" Color="FlareColor.OnSurfaceVariant">
                     @Loc.Get("ReleasePlanEmpty")
@@ -136,7 +148,19 @@
                 </FlareStack>
             </FlareStack>
 
-            @if (_history.Count > 0)
+            @if (Waiting)
+            {
+                @* One line per release, which is the shape this panel draws. "Nothing recorded" is a fact about a
+                   history that was read, and the previous project's history is not this project's answer
+                   (TASK-344). *@
+                <AikoSkeletonRegion>
+                    <FlareStack Gap="FlareSpacing.Small" Align="FlareAlignItems.Stretch">
+                        <AikoSkeletonPanel Lines="1" Height="var(--aiko-skeleton-list-item-size)" />
+                        <AikoSkeletonPanel Lines="1" Height="var(--aiko-skeleton-list-item-size)" />
+                    </FlareStack>
+                </AikoSkeletonRegion>
+            }
+            else if (_history.Count > 0)
             {
                 <FlareStack Gap="FlareSpacing.XSmall">
                     @foreach (var record in _history)
@@ -252,6 +276,20 @@
     private bool _hasError;
     private bool _placing;
 
+    /// <summary>
+    /// The project this screen's plan and history were read for. A key rather than a flag, because a switch
+    /// leaves the previous project's plan and history in these fields: what a panel says about a project is a
+    /// statement about an answer, and the previous project's answer is not this one's (TASK-344).
+    /// </summary>
+    private string? _loadedFor;
+
+    /// <summary>
+    /// Whether this screen is still waiting for its own answer about the project. The wait and the failure are
+    /// different answers, and neither of them is "this project has no plans": that is said only about an answer
+    /// that landed (TASK-344).
+    /// </summary>
+    private bool Waiting => _loadedFor != Handle;
+
     private string ProjectName => State.SelectedProject?.Name ?? Handle;
 
     /// <summary>
@@ -311,6 +349,9 @@
         {
             _hasError = true;
             _message = refusal;
+            // The refusal is this project's answer, so the panels stop waiting for one - a skeleton under a
+            // reason that has already been given would say the screen is still finding out (TASK-344).
+            _loadedFor = Handle;
             return;
         }
 
@@ -333,11 +374,15 @@
                 PwaJson.Options);
             _schemes = settings?.Snapshot?.Release?.EffectiveSchemes ?? ReleaseSchemes.BuiltIn;
             _policyId ??= _schemes[0].Id;
+            _loadedFor = Handle;
         }
         catch (Exception exception)
         {
             _message = Loc.Format("ReleaseLoadFailed", FailureText.Describe(exception));
             _hasError = true;
+            // A failure ends the wait too: the reason stands above the panels, and the panels are this
+            // project's - empty, and honestly so (TASK-344).
+            _loadedFor = Handle;
         }
     }
 

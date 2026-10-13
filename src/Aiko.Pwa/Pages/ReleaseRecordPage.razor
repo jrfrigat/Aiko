@@ -68,69 +68,84 @@
 
     <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
         <FlareStack Gap="FlareSpacing.Medium">
-            @* Three figures read as one strip, so the tile row keeps them on one line: the base class lays out
-               two columns, and a third tile would drop to a line of its own. *@
-            <div class="aiko-tiles aiko-tiles--three">
-                <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
-                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
-                        @Loc.Get("ReleaseRecordScheme")
-                    </FlareText>
-                    <span class="aiko-value">@(_record?.SchemeId ?? Loc.Get("ReleaseRecordMissing"))</span>
-                </FlareStack>
-                <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
-                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
-                        @Loc.Get("ReleaseRecordDate")
-                    </FlareText>
-                    <span class="aiko-value">@RecordedAt</span>
-                </FlareStack>
-                <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
-                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
-                        @Loc.Get("ReleaseRecordTasks")
-                    </FlareText>
-                    <span class="aiko-value">@(_record?.Cards.Count ?? 0)</span>
-                </FlareStack>
-            </div>
-
-            @if (_record?.Notes is { Length: > 0 } notes)
+            @if (Waiting)
             {
-                <FlareAlert Variant="AlertVariant.Outlined">@notes</FlareAlert>
+                @* The record's own shape while it is being read: the strip of three figures, then the rows under
+                   it. What those figures say - "missing", "0" - is a statement about a record, and one that has
+                   not arrived is not a release with nothing in it (TASK-344). *@
+                <AikoSkeletonRegion>
+                    <FlareStack Gap="FlareSpacing.Medium" Align="FlareAlignItems.Stretch">
+                        <AikoSkeletonPanel Lines="1" Height="var(--aiko-skeleton-metric-size)" />
+                        <AikoSkeletonPanel Lines="3" />
+                    </FlareStack>
+                </AikoSkeletonRegion>
             }
+            else
+            {
+                @* Three figures read as one strip, so the tile row keeps them on one line: the base class lays
+                   out two columns, and a third tile would drop to a line of its own. *@
+                <div class="aiko-tiles aiko-tiles--three">
+                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                            @Loc.Get("ReleaseRecordScheme")
+                        </FlareText>
+                        <span class="aiko-value">@(_record?.SchemeId ?? Loc.Get("ReleaseRecordMissing"))</span>
+                    </FlareStack>
+                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                            @Loc.Get("ReleaseRecordDate")
+                        </FlareText>
+                        <span class="aiko-value">@RecordedAt</span>
+                    </FlareStack>
+                    <FlareStack Class="aiko-tile" Gap="FlareSpacing.XXSmall">
+                        <FlareText Element="span" Typo="TypographyScale.LabelSmall" Weight="FontWeight.SemiBold">
+                            @Loc.Get("ReleaseRecordTasks")
+                        </FlareText>
+                        <span class="aiko-value">@(_record?.Cards.Count ?? 0)</span>
+                    </FlareStack>
+                </div>
 
-            @if (_record is { Cards.Count: > 0 })
-            {
-                @* Every card is a link: the question this page answers is "what went into this release", and the
-                   next question is always "what was that task". *@
-                <FlareStack Gap="FlareSpacing.XSmall">
-                    @foreach (var cardId in _record.Cards)
-                    {
-                        var card = cardId;
-                        @* The title is read from the live card; a card the daemon can no longer find keeps
-                           its bare id, which is still what the release named. *@
-                        var title = _record.CardTitles?.GetValueOrDefault(card);
-                        <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
-                            <FlareNavLink Href="@ProjectRoutes.Card(Handle, card)">
-                                <ChildContent>@card</ChildContent>
-                            </FlareNavLink>
-                            @if (!string.IsNullOrWhiteSpace(title))
-                            {
-                                <FlareText Element="span" Typo="TypographyScale.BodyMedium" Color="FlareColor.OnSurfaceVariant">
-                                    @title
-                                </FlareText>
-                            }
-                        </FlareStack>
-                    }
-                </FlareStack>
-            }
-            else if (_record is not null)
-            {
-                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                    @Loc.Get("ReleaseRecordEmpty")
-                </FlareText>
-            }
+                @if (_record?.Notes is { Length: > 0 } notes)
+                {
+                    <FlareAlert Variant="AlertVariant.Outlined">@notes</FlareAlert>
+                }
 
-            @if (_message is { Length: > 0 } message)
-            {
-                <FlareAlert Severity="AlertSeverity.Error" Variant="AlertVariant.Outlined">@message</FlareAlert>
+                @if (_record is { Cards.Count: > 0 })
+                {
+                    @* Every card is a link: the question this page answers is "what went into this release", and
+                       the next question is always "what was that task". *@
+                    <FlareStack Gap="FlareSpacing.XSmall">
+                        @foreach (var cardId in _record.Cards)
+                        {
+                            var card = cardId;
+                            @* The title is read from the live card; a card the daemon can no longer find keeps
+                               its bare id, which is still what the release named. *@
+                            var title = _record.CardTitles?.GetValueOrDefault(card);
+                            <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.XSmall" Wrap="true">
+                                <FlareNavLink Href="@ProjectRoutes.Card(Handle, card)">
+                                    <ChildContent>@card</ChildContent>
+                                </FlareNavLink>
+                                @if (!string.IsNullOrWhiteSpace(title))
+                                {
+                                    <FlareText Element="span" Typo="TypographyScale.BodyMedium" Color="FlareColor.OnSurfaceVariant">
+                                        @title
+                                    </FlareText>
+                                }
+                            </FlareStack>
+                        }
+                    </FlareStack>
+                }
+                else if (_record is not null)
+                {
+                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                        @Loc.Get("ReleaseRecordEmpty")
+                    </FlareText>
+                }
+
+                @if (_message is { Length: > 0 } message)
+                {
+                    <FlareAlert Severity="AlertSeverity.Error" Variant="AlertVariant.Outlined">@message</FlareAlert>
+                }
             }
         </FlareStack>
     </FlarePaper>
@@ -149,6 +164,21 @@
     private bool _archiving;
     private string? _archiveMessage;
     private int _archiveRefused;
+
+    /// <summary>
+    /// The record this page's values were read for: the release the address names, of the project it names. A
+    /// key rather than a flag, because a switch to another release or another project leaves the previous
+    /// record's scheme and date in these fields (TASK-344).
+    /// </summary>
+    private string? _loadedFor;
+
+    private string ReadKey => $"{Handle}/{Version}";
+
+    /// <summary>
+    /// Whether this page is still waiting for the record it names. Three tiles of figures are a statement about
+    /// the daemon's record, and a record nobody has read yet is not a release with nothing in it (TASK-344).
+    /// </summary>
+    private bool Waiting => _loadedFor != ReadKey;
 
     /// <summary>
     /// Whether this release is a preliminary one, read from the tag's own suffix - the same fact the workflow
@@ -180,6 +210,9 @@
         {
             _record = null;
             _message = refusal;
+            // The refusal is this record's answer, so the page stops waiting for one: a skeleton under a reason
+            // that has already been given would say the page is still finding out (TASK-344).
+            _loadedFor = ReadKey;
             return;
         }
 
@@ -203,6 +236,9 @@
         finally
         {
             _loading = false;
+            // Whatever the read did - a record, a 404 or a failure - it is this page's answer and the wait is
+            // over: a skeleton under a reason would say the page is still finding out (TASK-344).
+            _loadedFor = ReadKey;
         }
     }
 
