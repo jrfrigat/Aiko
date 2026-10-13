@@ -53,11 +53,7 @@ public sealed class CliRepairSpecs
         }
         finally
         {
-            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
-            if (Directory.Exists(root))
-            {
-                Directory.Delete(root, recursive: true);
-            }
+            TempRoot.Delete(root);
         }
     }
 

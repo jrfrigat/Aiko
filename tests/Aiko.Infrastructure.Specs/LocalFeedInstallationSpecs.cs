@@ -62,8 +62,8 @@ public sealed class LocalFeedInstallationSpecs
         Assert.Contains($"{InstalledDataFixture.ProjectName}: ", installOutput, StringComparison.Ordinal);
 
         // The install replaced the binaries and wrote nothing else: not the data, not the project, and - with
-        // --no-path - not the user's PATH.
-        Assert.Equal(beforeInstall, fixture.Fingerprint());
+        // --no-path - not the user's PATH. The comparison names what moved, so a failure here reads as one.
+        Assert.Equal("nothing", fixture.DifferenceFrom(beforeInstall));
         Assert.Equal(pathBefore, fixture.UserPath());
 
         // The update: the feed publishes one more release, and the installed CLI takes it.
@@ -82,7 +82,7 @@ public sealed class LocalFeedInstallationSpecs
 
         // The other half of the promise, and the one the story's own criterion is about: the new release is in
         // place, and what surrounded it is byte for byte what it was.
-        Assert.Equal(beforeUpdate, fixture.Fingerprint());
+        Assert.Equal("nothing", fixture.DifferenceFrom(beforeUpdate));
         Assert.Equal(pathBefore, fixture.UserPath());
 
         // The registration still resolves, which is the database's half of "the data is untouched".
@@ -254,14 +254,19 @@ public sealed class LocalFeedInstallationSpecs
                 new Dictionary<string, string> { ["AIKO_RELEASE_FEED"] = Feed },
                 arguments);
 
-        public void Dispose()
-        {
-            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
-            if (Directory.Exists(Root))
-            {
-                Directory.Delete(Root, recursive: true);
-            }
-        }
+        public void Dispose() => TempRoot.Delete(Root);
+
+        /// <summary>
+        /// What moved between a fingerprint taken earlier and the one now - the entries added, removed or
+        /// changed, or "nothing" when the two are the same.
+        /// </summary>
+        /// <remarks>
+        /// The comparison this replaces printed two long blocks and let the reader work out the difference.
+        /// A failure that names the entry that moved is the difference between a flake nobody can chase and a
+        /// leak somebody can: two full-solution failures of this very test left nothing usable behind
+        /// (TASK-341). What is checked is unchanged - "nothing" is the whole fingerprint being equal.
+        /// </remarks>
+        public string DifferenceFrom(string before) => FingerprintDiff.Between(before, Fingerprint());
 
         private static void AppendTree(StringBuilder builder, string directory, string label)
         {

@@ -237,11 +237,7 @@ public sealed class CliInstallationSpecs
 
         public void Dispose()
         {
-            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
-            if (Directory.Exists(Root))
-            {
-                Directory.Delete(Root, recursive: true);
-            }
+            TempRoot.Delete(Root);
         }
     }
 }

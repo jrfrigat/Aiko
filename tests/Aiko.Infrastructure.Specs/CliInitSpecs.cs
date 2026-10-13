@@ -45,11 +45,7 @@ public sealed class CliInitSpecs
         }
         finally
         {
-            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
-            if (Directory.Exists(root))
-            {
-                Directory.Delete(root, recursive: true);
-            }
+            TempRoot.Delete(root);
         }
     }
 
@@ -123,14 +119,20 @@ public sealed class CliInitSpecs
         {
             await process.WaitForExitAsync().WaitAsync(TimeSpan.FromMinutes(1));
         }
-        catch (TimeoutException)
+        catch (TimeoutException exception)
         {
             // The CLI is this spec's own process: if it hangs, nothing else will end it, and `using` only
             // releases the handle. A run that overran must not leave the process behind for the rest of the
             // session - it would hold the files under src/Aiko.Cli/bin, as the daemons of the MCP suite hold
             // the ones under src/Aiko.Server/bin.
             process.Kill(entireProcessTree: true);
-            throw;
+
+            // A bare timeout says nothing about which command overran or what it had said by then, and that
+            // silence is what two failures of TASK-341 left behind.
+            throw new TimeoutException(
+                $"The CLI did not exit within a minute: {string.Join(' ', arguments)}"
+                + $"{Environment.NewLine}{await output}{await error}",
+                exception);
         }
 
         return (process.ExitCode, await output + await error);
