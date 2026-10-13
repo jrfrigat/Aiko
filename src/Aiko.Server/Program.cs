@@ -166,14 +166,18 @@ builder.Services
     // A tool that throws otherwise reaches the agent as "An error occurred invoking 'aiko_start_stage'",
     // with the real cause left in the daemon's log where the agent cannot see it. Handing the message back
     // as the error result is what lets an agent name the reason - an unknown card, a refused start, a
-    // constraint the store reported - and either act on it or tell the user, instead of guessing.
+    // constraint the store reported - and either act on it or tell the user, instead of guessing. What is
+    // handed back is the daemon's own words only: a message the runtime wrote describes the machine, so that
+    // one is left to the MCP layer, which answers the agent in general terms and records the cause in the
+    // log (TASK-162).
     .WithRequestFilters(filters => filters.AddCallToolFilter(next => async (request, cancellationToken) =>
     {
         try
         {
             return await next(request, cancellationToken);
         }
-        catch (Exception exception) when (exception is not OperationCanceledException)
+        catch (Exception exception) when (
+            exception is not OperationCanceledException && ErrorText.IsOurs(exception))
         {
             return new CallToolResult
             {

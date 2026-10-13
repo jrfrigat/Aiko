@@ -80,12 +80,17 @@ internal static class ApiExceptionMiddleware
 
         if (exception is KeyNotFoundException notFound)
         {
-            return (StatusCodes.Status404NotFound, Error(notFound.Message));
+            return (StatusCodes.Status404NotFound, Error(ErrorText.For(notFound)));
         }
 
         if (exception is ArgumentException or BadHttpRequestException or JsonException or IOException)
         {
-            return (StatusCodes.Status400BadRequest, Error(exception.InnerException?.Message ?? exception.Message));
+            // The message travels when Aiko wrote it and is replaced when the runtime did: an IOException
+            // names the path it could not touch, which is the machine's layout rather than the request, and
+            // the details stay in the log this middleware already writes (TASK-162).
+            return (
+                StatusCodes.Status400BadRequest,
+                Error(ErrorText.For(exception.InnerException ?? exception)));
         }
 
         return (StatusCodes.Status500InternalServerError, Error("Internal server error."));
