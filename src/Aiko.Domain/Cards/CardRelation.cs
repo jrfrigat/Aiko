@@ -30,29 +30,15 @@ public sealed record CardRelation
         CreatedAt = createdAt;
     }
 
-    /// <summary>
-    /// Relation identifier.
-    /// </summary>
     public string Id { get; }
 
-    /// <summary>
-    /// Source card of the relation.
-    /// </summary>
     public CardReference Source { get; }
 
-    /// <summary>
-    /// Target card of the relation.
-    /// </summary>
     public CardReference Target { get; }
 
-    /// <summary>
-    /// Relation type; see <see cref="RelationTypes"/>.
-    /// </summary>
+    /// <summary>Relation type; see <see cref="RelationTypes"/>.</summary>
     public string Type { get; }
 
-    /// <summary>
-    /// UTC timestamp of when the relation was created.
-    /// </summary>
     public DateTimeOffset CreatedAt { get; }
 
     /// <summary>

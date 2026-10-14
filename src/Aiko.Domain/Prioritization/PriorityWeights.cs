@@ -5,14 +5,10 @@ namespace Aiko.Domain.Prioritization;
 /// </summary>
 public sealed record PriorityWeights
 {
-    /// <summary>
-    /// Default weights: 70% own value, 30% maximum parent value.
-    /// </summary>
+    /// <summary>Default weights: 70% own value, 30% maximum parent value.</summary>
     public static PriorityWeights Default { get; } = new(0.7m, 0.3m);
 
-    /// <summary>
-    /// Creates weights; both values are non-negative and at least one is greater than zero.
-    /// </summary>
+    /// <summary>Creates weights; both values are non-negative and at least one is above zero.</summary>
     public PriorityWeights(decimal taskWeight, decimal parentWeight)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(taskWeight);
@@ -27,13 +23,7 @@ public sealed record PriorityWeights
         ParentWeight = parentWeight;
     }
 
-    /// <summary>
-    /// Weight of the task's own value.
-    /// </summary>
     public decimal TaskWeight { get; }
 
-    /// <summary>
-    /// Weight of the maximum parent value.
-    /// </summary>
     public decimal ParentWeight { get; }
 }

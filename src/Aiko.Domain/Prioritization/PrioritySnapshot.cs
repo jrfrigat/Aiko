@@ -1,8 +1,7 @@
 namespace Aiko.Domain.Prioritization;
 
 /// <summary>
-/// A priority snapshot of a task: own value, maximum across parents
-/// and the computed effective priority.
+/// One snapshot of a task's priority, recorded with the formula version that computed it.
 /// </summary>
 public sealed record PrioritySnapshot(
     decimal OwnPriority,

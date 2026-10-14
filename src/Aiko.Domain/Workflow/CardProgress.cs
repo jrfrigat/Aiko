@@ -9,11 +9,10 @@ namespace Aiko.Domain.Workflow;
 /// <remarks>
 /// Aiko cannot see an agent's edits - the agent works on the shared checkout with its own tools - so a stage
 /// execution is the only trace that work happened. Without this rule a card can be declared finished by moving
-/// it, and that is what such a card looks like on the board: it sits in a late stage with an empty runs tab,
-/// no artifacts and no history, as if the pipeline had run itself. A stage that was started and abandoned is
-/// not finished either: leaving it would make the card look worked when the work stopped half way. The rule
-/// lives here rather than inside a tool because it is about the pipeline, not about one caller; whether a
-/// caller applies it is that caller's decision.
+/// it: it sits in a late stage with an empty runs tab, no artifacts and no history, as if the pipeline had run
+/// itself. A stage started and abandoned is not finished either, or the card would look worked where the work
+/// stopped half way. The rule is about the pipeline rather than about one caller, and whether a caller applies
+/// it is that caller's decision.
 /// </remarks>
 public static class CardProgress
 {
@@ -26,7 +25,7 @@ public static class CardProgress
     /// <param name="targetStageId">Stage it would move to.</param>
     /// <param name="stages">The card's workflow stages, in pipeline order.</param>
     /// <param name="runs">
-    /// The card's stage runs, oldest first, so the last run of a stage is the one whose state the message names.
+    /// The card's stage runs, oldest first, so the last run of a stage is the one its state names.
     /// </param>
     public static string? RefuseForwardMove(
         string cardId,
@@ -43,7 +42,7 @@ public static class CardProgress
         var targetIndex = IndexOf(stages, targetStageId);
         if (currentIndex < 0 || targetIndex <= currentIndex)
         {
-            // Backwards, in place, or a stage this pipeline cannot place. Pulling a card back is how rework
+            // Backwards, in place, or a stage this pipeline cannot place: pulling a card back is how rework
             // starts, so it is never this rule's business.
             return null;
         }

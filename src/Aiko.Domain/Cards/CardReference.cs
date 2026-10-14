@@ -5,9 +5,6 @@ namespace Aiko.Domain.Cards;
 /// </summary>
 public sealed record CardReference
 {
-    /// <summary>
-    /// Creates a reference to card <paramref name="cardId"/> in project <paramref name="projectId"/>.
-    /// </summary>
     public CardReference(string projectId, string cardId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
@@ -16,9 +13,6 @@ public sealed record CardReference
         CardId = cardId;
     }
 
-    /// <summary>
-    /// Identifier of the project that owns the card.
-    /// </summary>
     public string ProjectId { get; }
 
     /// <summary>

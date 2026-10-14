@@ -7,30 +7,26 @@ namespace Aiko.Domain.Workflow;
 /// A project workflow: an ordered set of stages with an optimistic revision.
 /// </summary>
 /// <remarks>
-/// A workflow is also the definition of one card type: its stages say what a card of that type must pass
-/// through, and its presentation says how the type is drawn. The type id is the workflow id, so the two are
-/// the same decision rather than two that can disagree.
+/// A workflow is also the definition of one card type: its stages say what such a card passes through, and
+/// the type id is the workflow id - one decision, not two that can disagree.
 /// </remarks>
 /// <param name="Id">Stable ASCII identifier; also the card type id, for example <c>story</c>.</param>
 /// <param name="Title">Display name of the workflow and of the card type it defines.</param>
 /// <param name="Stages">The pipeline stages, in the order they run.</param>
 /// <param name="Revision">Optimistic concurrency revision.</param>
 /// <param name="Description">
-/// What the card type is for, in the words of the project. This is where a user who adds an <c>Epic</c>
-/// type writes "a global card type that groups several stories".
+/// What the card type is for, in the words of the project - where a user who adds an <c>Epic</c> type writes
+/// what it groups.
 /// </param>
 /// <param name="Icon">
-/// Which icon the card type draws, as an id from <see cref="AppearanceCatalog.Icons"/>, or null for the
-/// default of the screen that draws it.
+/// Icon id from <see cref="AppearanceCatalog.Icons"/>, or null for the default of the screen that draws it.
 /// </param>
 /// <param name="Color">
-/// Which accent colour the card type draws, as an id from <see cref="AppearanceCatalog.Colors"/>, or null
-/// for the default.
+/// Accent colour id from <see cref="AppearanceCatalog.Colors"/>, or null for the default.
 /// </param>
 /// <param name="BlendsWithParent">
-/// Whether a card of this type blends its own score with the maximum parent value, or keeps its own score.
-/// The behaviour belongs to the type, so it is declared here as data: a project picks it in the workflow
-/// editor, and the priority projector reads this flag instead of comparing a card's kind to a name.
+/// Whether a card of this type blends its own score with the maximum parent value instead of keeping its own.
+/// Declared here as data, so the projector reads a flag rather than comparing a kind to a name.
 /// </param>
 public sealed record WorkflowDefinition(
     string Id,
@@ -43,23 +39,21 @@ public sealed record WorkflowDefinition(
     bool BlendsWithParent = false)
 {
     /// <summary>
-    /// The id of the stage every workflow starts its cards in. Backlog is not a column a user may remove:
-    /// it is the list of cards that have not been taken into work yet, so a pipeline without it would have
-    /// nowhere to put a new card.
+    /// The stage every workflow starts its cards in. Not a column a user may remove: a pipeline without it
+    /// would have nowhere to put a new card.
     /// </summary>
     public const string BacklogStageId = "backlog";
 
     /// <summary>
-    /// The id of the stage every workflow ends its cards in, and the only stage a card's work may be called
-    /// finished in. It is reserved for the same reason the backlog is: the engine reads the end of a pipeline
-    /// from its own rule rather than from whatever the last stage happens to be called, so a workflow ending
-    /// anywhere else has no end at all.
+    /// The stage every workflow ends its cards in, and the only stage a card's work may be called finished in.
+    /// Reserved like the backlog: the engine reads the end of a pipeline from its own rule, so a workflow
+    /// ending anywhere else has no end at all.
     /// </summary>
     public const string DoneStageId = "done";
 
     /// <summary>
-    /// The card type this workflow defines: the workflow id, capitalised. Derived, so it is not written to
-    /// the document - the id it comes from already is.
+    /// The card type this workflow defines: the workflow id, capitalised. Derived, so it is not written to the
+    /// document.
     /// </summary>
     [JsonIgnore]
     public string CardType => CardKind.FromWorkflowId(Id);
@@ -79,10 +73,8 @@ public sealed record WorkflowDefinition(
     /// </summary>
     /// <remarks>
     /// The end is the reserved <see cref="DoneStageId"/> stage rather than the stage with the greatest order,
-    /// and the workflow must actually carry it - a pipeline that ends somewhere else has no end, which is what
-    /// makes "finished", "archivable" and "no longer blocking" mean the same thing however the pipeline was
-    /// authored. A workflow that violates this is refused when it is written, refused when it is read, and
-    /// repaired by <c>WorkflowStageMigrator</c> where it predates the rule.
+    /// and the workflow has to carry it - which is what makes "finished", "archivable" and "no longer
+    /// blocking" mean the same thing however the pipeline was authored.
     /// </remarks>
     /// <param name="workflow">The workflow to test against.</param>
     /// <param name="stage">The stage to place.</param>
@@ -99,8 +91,8 @@ public sealed record WorkflowDefinition(
     /// with <see cref="DoneStageId"/> - or null when it does not.
     /// </summary>
     /// <remarks>
-    /// The rule is stated once, here, and both the write path and the read path ask it: a message written by the
-    /// daemon and a message written by the store cannot then say different things about the same file.
+    /// Stated once, here, and asked by both the write path and the read path, so the two cannot say different
+    /// things about the same file.
     /// </remarks>
     /// <param name="workflow">The workflow to test.</param>
     public static string? RefuseReservedStages(WorkflowDefinition workflow)

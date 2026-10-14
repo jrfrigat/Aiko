@@ -10,8 +10,8 @@ namespace Aiko.Domain.Prioritization;
 /// <param name="Minimum">Lowest value the criterion accepts; normalization maps it to zero.</param>
 /// <param name="Maximum">Highest value the criterion accepts; normalization maps it to one.</param>
 /// <param name="AiInstruction">
-/// What the agent should do to score this criterion (ТЗ §10). The agent sets the value, so the
-/// instruction is the only thing that makes the number mean anything.
+/// What the agent should do to score this criterion. The agent sets the value, so the instruction is the only
+/// thing that makes the number mean anything.
 /// </param>
 public sealed record PriorityCriterion(
     string Id,
@@ -23,8 +23,8 @@ public sealed record PriorityCriterion(
     string? AiInstruction = null);
 
 /// <summary>
-/// Project priority configuration: the parent-blending weights, the scoring criteria used to compute a
-/// card's own score, and the size grid that multiplies it.
+/// Project priority configuration: the parent-blending weights, the criteria a card is scored against, and the
+/// size grid that multiplies it.
 /// </summary>
 /// <param name="Weights">How a task blends its own score with its parents'.</param>
 /// <param name="Criteria">The criteria a card is scored against.</param>
@@ -49,18 +49,14 @@ public sealed record PrioritySettings(
         new("XL", "XL", "Over a week: do not start until it is split into S and M tasks.", 0.80m),
     ];
 
-    /// <summary>
-    /// Safe default: default blending weights, no criteria and the standard T-shirt grid.
-    /// </summary>
+    /// <summary>Safe default: default blending weights, no criteria and the standard T-shirt grid.</summary>
     /// <remarks>
-    /// The grid is a built-in default rather than template content, for the same reason the weights are:
-    /// it is the policy a project starts from when nothing is configured, and a settings file - global or
-    /// project - replaces it by stating its own. The descriptions are what an agent reads to decide which
-    /// step a card belongs to, so they say what the step means in work rather than in numbers.
+    /// The grid is a built-in default rather than template content, for the same reason the weights are: it is
+    /// the policy a project starts from when nothing is configured, and its descriptions say what each step
+    /// means in work, because that text is what an agent reads to choose one.
     /// <para>
-    /// No criteria on purpose. A project that never opted into scoring keeps the priority a person types,
-    /// and the standard criteria below belong to the default template, which states them explicitly - so an
-    /// existing project is never quietly handed a scoring model by an upgrade.
+    /// No criteria on purpose: the standard ones belong to the default template, which states them explicitly,
+    /// so a project that never opted into scoring is not quietly handed a model by an upgrade.
     /// </para>
     /// </remarks>
     public static PrioritySettings SafeDefault { get; } = new(PriorityWeights.Default, [], DefaultGrid);
@@ -110,8 +106,8 @@ public sealed record PrioritySettings(
     ];
 
     /// <summary>
-    /// The priority model the built-in default template hands to a new project: the standard criteria over
-    /// the standard grid.
+    /// The priority model the default template hands to a new project: the standard criteria over the standard
+    /// grid.
     /// </summary>
     public static PrioritySettings Standard { get; } = new(PriorityWeights.Default, StandardCriteria, DefaultGrid);
 
@@ -120,9 +116,8 @@ public sealed record PrioritySettings(
 
     /// <summary>
     /// Refuses criteria no card could be scored against: a negative weight, a range that is empty or upside
-    /// down, or two criteria under one id (ids are compared without case, the way the settings screen shows
-    /// them). Checked when settings are written; settings read back from disk are clamped by the calculator
-    /// instead, so a hand-edited file slows nothing down but never takes the board with it.
+    /// down, or two criteria under one id (compared without case). Checked when settings are written; settings
+    /// read back from disk are clamped by the calculator instead.
     /// </summary>
     /// <exception cref="ArgumentException">A criterion is impossible; the message names it and why.</exception>
     public void Validate()
@@ -156,8 +151,8 @@ public sealed record PrioritySettings(
     }
 
     /// <summary>
-    /// The multiplier a card of this step gets. A card with no size, or with a step that is no longer in
-    /// the grid (a renamed or removed step), is neutral rather than penalized.
+    /// The multiplier a card of this step gets. A card with no size, or with a step no longer in the grid, is
+    /// neutral rather than penalized.
     /// </summary>
     /// <param name="sizeId">The card's size step, or null.</param>
     public decimal SizeFactor(string? sizeId) =>

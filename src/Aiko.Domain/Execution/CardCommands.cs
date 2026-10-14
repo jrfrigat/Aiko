@@ -5,9 +5,9 @@ namespace Aiko.Domain.Execution;
 /// withdrawn.
 /// </summary>
 /// <remarks>
-/// The same reasoning as <see cref="Workflow.CardBlocking"/>: these are rules about the pipeline, not about
-/// one caller, so they sit where every caller - the REST endpoint, the MCP tool, the CLI - reads them from
-/// one place instead of each remembering them. What a caller then does with a refusal stays its own decision.
+/// The same reasoning as <see cref="Workflow.CardBlocking"/>: rules about the pipeline, not about one caller,
+/// so the REST endpoint, the MCP tool and the CLI read them from one place. What a caller then does with a
+/// refusal stays its own decision.
 /// </remarks>
 public static class CardCommands
 {
@@ -45,9 +45,8 @@ public static class CardCommands
     /// without its card, an action that names no execution, or a pass over the board that names a card.
     /// </summary>
     /// <remarks>
-    /// The board pass is refused a card, a stage and an execution rather than having them quietly ignored:
-    /// a field nobody reads is how a request and its meaning drift apart, and the next reader would believe
-    /// the command said something it did not.
+    /// The board pass is refused a card, a stage and an execution rather than having them ignored: a field
+    /// nobody reads is how a request and its meaning drift apart.
     /// </remarks>
     /// <param name="action">Action the command asks for.</param>
     /// <param name="cardId">Card the command is about, or null for the board pass.</param>
@@ -150,10 +149,9 @@ public static class CardCommands
     /// <param name="command">Command an agent wants to take.</param>
     /// <param name="agentAdapterId">Agent that wants to take it.</param>
     /// <remarks>
-    /// This is the guard that keeps two agents from carrying out one command twice. Whoever loses the race is
-    /// told what happened instead of silently working the same stage again. The second half of the rule is
-    /// the person's own instruction: a command that named an agent is for that agent, and another one taking
-    /// it would be the queue overruling the person who placed the command.
+    /// The guard that keeps two agents from carrying out one command twice: whoever loses the race is told what
+    /// happened. A command that named an agent is for that agent, and another one taking it would overrule the
+    /// person who placed it.
     /// </remarks>
     public static string? RefuseClaim(CardCommand command, string agentAdapterId)
     {
@@ -192,9 +190,9 @@ public static class CardCommands
     /// </summary>
     /// <param name="command">Command a person wants to withdraw.</param>
     /// <remarks>
-    /// Only a command nobody has taken can be withdrawn. One an agent already holds is closed by that agent,
-    /// because a person cannot know whether the work it asked for has happened - and a command that says
-    /// "cancelled" while its stage is being worked is worse than one that says "taken".
+    /// Only a command nobody has taken can be withdrawn: a person cannot know whether the work an agent holds
+    /// has already happened, and a command that says "cancelled" while its stage is being worked is worse than
+    /// one that says "taken".
     /// </remarks>
     public static string? RefuseCancel(CardCommand command)
     {

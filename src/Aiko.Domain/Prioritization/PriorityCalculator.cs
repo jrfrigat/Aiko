@@ -6,13 +6,10 @@ namespace Aiko.Domain.Prioritization;
 public static class PriorityCalculator
 {
     /// <summary>
-    /// Version of the current prioritization formula recorded in <see cref="PrioritySnapshot"/>.
-    /// Version 2 uses the effective (blended) priority of parents instead of their own value.
-    /// Version 3 normalizes a criterion's value by its configured range and multiplies the card's own
-    /// score by its size coefficient (ТЗ §10), so two snapshots computed by different versions are not
-    /// comparable - which is exactly what the version is for. Version 4 reads a manual priority on the
-    /// board's 0..100 scale, so it lands on the same 0..1 scale as a score instead of outranking every scored
-    /// card.
+    /// Version of the current prioritization formula recorded in <see cref="PrioritySnapshot"/>: 2 blends
+    /// parents by their own effective priority, 3 normalizes a criterion by its configured range and applies
+    /// the size coefficient, 4 reads a manual priority on the board's 0..100 scale. Two snapshots from
+    /// different versions are not comparable, which is what the version is for.
     /// </summary>
     public const string CurrentFormulaVersion = "4";
 
@@ -35,13 +32,11 @@ public static class PriorityCalculator
     /// coefficient of its size step.
     /// </summary>
     /// <remarks>
-    /// A card keeps its manually entered priority until its project defines criteria and the card carries
-    /// values for them: an empty criterion set scores nothing, and returning zero there would drop every
-    /// card of a project that never opted into criteria. The manual value is read on the 0..100 scale (see
-    /// <see cref="ManualScore"/>), so both kinds of card rank on one scale. The size still applies in both
-    /// cases, because the size is a statement about the card rather than about the formula. Values are read
-    /// from files a person can edit, so a negative one is clamped rather than refused: one bad card must not
-    /// take the whole board down.
+    /// A card keeps its manually entered priority until its project defines criteria and the card carries values
+    /// for them: an empty criterion set scores nothing, and returning zero there would drop every card of a
+    /// project that never opted into criteria. The size applies either way, because the size is a statement
+    /// about the card rather than about the formula, and a value read from a file that a person can edit is
+    /// clamped rather than refused.
     /// </remarks>
     /// <param name="manualPriority">The card's own priority as stored.</param>
     /// <param name="criterionValues">Per-criterion values on the card, keyed by criterion id.</param>
@@ -93,15 +88,14 @@ public static class PriorityCalculator
     }
 
     /// <summary>
-    /// Computes a card's own priority from its per-criterion values and the project's criteria: each
-    /// value is normalized by the criterion's own range, then the values are averaged by weight (ТЗ §10).
+    /// Computes a card's own priority from its per-criterion values and the project's criteria: each value is
+    /// normalized by the criterion's own range, then the values are averaged by weight.
     /// </summary>
     /// <remarks>
-    /// The average is divided by the sum of the weights of the criteria that have a value. The formula in
-    /// the specification writes the sum alone, which assumes weights that are shares and add up to one; a
-    /// project is free to type 1.4 and 0.9, and dividing keeps the score on the same 0..1 scale either way.
-    /// A criterion whose range is empty scores nothing rather than dividing by zero: the settings screen
-    /// refuses that range, and a hand-edited file must not take the board down.
+    /// The average is divided by the sum of the weights that had a value. The specification writes the sum
+    /// alone, which assumes weights that add up to one; a project is free to type 1.4 and 0.9, and dividing keeps
+    /// the score on the same 0..1 scale either way. A criterion whose range is empty scores nothing rather than
+    /// dividing by zero.
     /// </remarks>
     /// <param name="values">Values keyed by criterion id.</param>
     /// <param name="criteria">The criteria of the project.</param>

@@ -9,8 +9,8 @@ namespace Aiko.Domain.Cards;
 /// </summary>
 /// <param name="Reference">Project-qualified identifier.</param>
 /// <param name="Kind">
-/// Card type id, for example <c>Story</c> or <c>Epic</c>. The type is defined by the workflow of the same
-/// name (<see cref="WorkflowId"/>), so a project can add its own types without a code change.
+/// Card type id, for example <c>Story</c>. The type is defined by the workflow of the same name
+/// (<see cref="WorkflowId"/>), so a project adds its own types without a code change.
 /// </param>
 /// <param name="Title">Human-readable title.</param>
 /// <param name="WorkflowId">Workflow the card moves through.</param>
@@ -23,9 +23,9 @@ namespace Aiko.Domain.Cards;
 /// <param name="Origin">Where a cross-project card came from.</param>
 /// <param name="CriterionValues">Per-criterion values keyed by criterion id, when the project scores by criteria.</param>
 /// <param name="Size">
-/// The size step of the project's grid (ТЗ §10), for example <c>M</c>. Null on cards written before the
-/// grid existed or never sized; an unsized card is neutral in the formula. The agent assigns it from the
-/// grid's descriptions, which is why the grid carries them.
+/// The size step of the project's grid, for example <c>M</c>. Null on cards written before the grid existed or
+/// never sized - an unsized card is neutral in the formula - and the agent assigns it from the grid's own
+/// descriptions.
 /// </param>
 public sealed record Card(
     CardReference Reference,
@@ -46,9 +46,8 @@ public sealed record Card(
     /// The key a card's requirements are stored under in <see cref="Metadata"/>.
     /// </summary>
     /// <remarks>
-    /// Requirements are the free-form answer to "what must this card do?" - the text a person types when
-    /// the title alone is not enough. They are prose rather than structure, so they live in the card's own
-    /// metadata instead of widening every card document with a field most of them leave empty.
+    /// The free-form answer to "what must this card do?" - prose rather than structure, so it lives in the
+    /// card's own metadata instead of widening every card document with a field most of them leave empty.
     /// </remarks>
     public const string RequirementsMetadataKey = "requirements";
 
@@ -57,16 +56,15 @@ public sealed record Card(
     /// the criterion scores were last written.
     /// </summary>
     /// <remarks>
-    /// The scores alone cannot say whether they describe the card as it is now. A stage is closed because its
-    /// work is done, and the readiness score is the only place that fact shows, so completing a stage with a
-    /// score nobody refreshed would record a card that looks less ready than it is. The timestamp is what
-    /// makes "was the card re-estimated in this run?" answerable.
+    /// The scores alone cannot say whether they describe the card as it is now, and a stage closed with a score
+    /// nobody refreshed would record a card less ready than it is. The timestamp makes "was the card
+    /// re-estimated in this run?" answerable.
     /// </remarks>
     public const string EstimatedAtMetadataKey = "estimatedAt";
 
     /// <summary>
-    /// When the card was last estimated in round-trip form, or null when it never was. Unreadable text reads
-    /// as "never estimated", which is the safe answer: a stale score must not look fresh.
+    /// When the card was last estimated in round-trip form, or null when it never was. Unreadable text reads as
+    /// "never estimated": a stale score must not look fresh.
     /// </summary>
     [JsonIgnore]
     public DateTimeOffset? EstimatedAt =>
@@ -81,11 +79,9 @@ public sealed record Card(
     /// </summary>
     /// <remarks>
     /// Being out of the way is a reading of the card rather than a place it is moved to: the files, the feed,
-    /// the runs and the relations stay exactly where they were, and this mark is the only thing that changes.
-    /// That is why it lives in the card's own metadata beside <see cref="EstimatedAtMetadataKey"/> instead of
-    /// becoming a stage - a stage would put an archived card back into the pipeline and make "put away" look
-    /// like "in progress" - and instead of a folder, which Aiko would have to keep in step with its own
-    /// projection and with every path it derives from a card's directory.
+    /// the runs and the relations stay as they were, and this mark is the only thing that changes. A stage
+    /// would put an archived card back into the pipeline; a folder would have to be kept in step with every
+    /// path Aiko derives from a card's directory.
     /// </remarks>
     public const string ArchivedAtMetadataKey = "archivedAt";
 
@@ -105,15 +101,14 @@ public sealed record Card(
     /// </summary>
     /// <remarks>
     /// A mark nobody can parse still means the card was put away, and reading it as "on the board" would hand a
-    /// card back to the queue on the strength of a typo. <see cref="ArchivedAt"/> is the other half of the pair:
-    /// what a screen shows, when there is anything to show.
+    /// card back to the queue on the strength of a typo.
     /// </remarks>
     [JsonIgnore]
     public bool IsArchived => Metadata.ContainsKey(ArchivedAtMetadataKey);
 
     /// <summary>
-    /// The metadata with the archive mark set to <paramref name="at"/>, or with the mark removed when it is
-    /// null. Removing it is what returning a card from the archive does, and it is the only way back.
+    /// The metadata with the archive mark set to <paramref name="at"/>, or with it removed when it is null -
+    /// which is what returning a card from the archive does.
     /// </summary>
     /// <param name="metadata">Metadata to copy.</param>
     /// <param name="at">Moment the card was archived, or null to take it off the archive.</param>
@@ -130,9 +125,8 @@ public sealed record Card(
     /// words of whoever asked, before anyone turned it into a task.
     /// </summary>
     /// <remarks>
-    /// The request is fixed once the card leaves the backlog, because "what was asked" stops being true the
-    /// moment it is edited; what changes as the work is understood is the requirements. Like the requirements it
-    /// is prose, so it lives in the card's own metadata instead of widening every card document.
+    /// Fixed once the card leaves the backlog, because "what was asked" stops being true the moment it is
+    /// edited; what changes as the work is understood is the requirements.
     /// </remarks>
     public const string RequestMetadataKey = "request";
 
@@ -147,7 +141,7 @@ public sealed record Card(
     /// </summary>
     /// <remarks>
     /// A card written before this key existed has no request, and none is invented for it: "not recorded" and
-    /// "nothing was asked" are different facts, and only the first one is true of an old card.
+    /// "nothing was asked" are different facts.
     /// </remarks>
     [JsonIgnore]
     public string? Request => Text(RequestMetadataKey);
@@ -187,10 +181,9 @@ public sealed record Card(
     /// Why the original request may not be changed, or null when it may.
     /// </summary>
     /// <remarks>
-    /// Only the backlog may still be corrected - a typo, a clarification - because nothing has been worked on
-    /// yet. Once the card is in its pipeline the request is a record of what was asked, and the way to say that
-    /// the work changed is the requirements. The rule lives here, next to the metadata it protects, so the HTTP
-    /// path and the MCP path refuse with one voice.
+    /// Only the backlog may still be corrected, because nothing has been worked on yet; after that the request
+    /// is a record of what was asked, and the way to say the work changed is the requirements. Stated next to
+    /// the metadata it protects, so the HTTP path and the MCP path refuse with one voice.
     /// </remarks>
     /// <param name="cardId">Card being changed, for the message.</param>
     /// <param name="stageId">Stage the card is in now.</param>
@@ -205,13 +198,10 @@ public sealed record Card(
                 + "was asked for when the card was written down; say what changed in the requirements instead.";
     }
 
-    /// <summary>
-    /// The note that explains a requirements change, or null when the text did not actually change.
-    /// </summary>
+    /// <summary>The note that explains a requirements change, or null when the text did not change.</summary>
     /// <remarks>
-    /// The feed is where a reader asks "why is this different now?", so a change is explained where it happened
-    /// rather than left to be noticed. Clearing the text counts as a change: the card no longer asks what it
-    /// asked a moment ago.
+    /// The feed is where a reader asks "why is this different now?", so a change is explained where it happened.
+    /// Clearing the text counts as a change: the card no longer asks what it asked a moment ago.
     /// </remarks>
     /// <param name="before">The stored requirements, or null when the card had none.</param>
     /// <param name="after">The requirements as they will be stored, or null when they were cleared.</param>

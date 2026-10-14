@@ -5,14 +5,14 @@ namespace Aiko.Domain.Workflow;
 /// column or a card type may carry.
 /// </summary>
 /// <remarks>
-/// The ids here are deliberately neutral strings, not Flare members: the domain has no UI dependency, and the
-/// same document is written by the daemon, read by the templates and rendered by the PWA. The client maps an
-/// id to its own icon set and to <c>FlareColor</c>; anything outside this list is rejected when a workflow is
-/// saved, so a hand-edited file cannot put an unknown name in front of a renderer that has no fallback.
+/// The ids are neutral strings rather than Flare members: the domain has no UI dependency, and the same document
+/// is written by the daemon, read by the templates and rendered by the PWA. The client maps an id to its own icon
+/// set, and anything outside this list is rejected when a workflow is saved, so a hand-edited file cannot put an
+/// unknown name in front of a renderer that has no fallback.
 /// </remarks>
 public static class AppearanceCatalog
 {
-    /// <summary>The ten icons a status column or a card type may choose from.</summary>
+    /// <summary>The icons a status column or a card type may choose from.</summary>
     public static IReadOnlyList<string> Icons { get; } =
     [
         "inbox",

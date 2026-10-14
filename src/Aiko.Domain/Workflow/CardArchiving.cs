@@ -8,28 +8,18 @@ namespace Aiko.Domain.Workflow;
 /// card in the archive is not worked.
 /// </summary>
 /// <remarks>
-/// The archive is a reading of a card rather than a stage it moves to, so nothing about the pipeline changes
-/// when a card is put away - which is exactly why the gate has to exist. Without it the archive would accept a
-/// card mid-flight, and the board would lose sight of work someone is in the middle of. The rule lives here
-/// beside <see cref="CardProgress"/> and <see cref="CardBlocking"/>, takes the data it judges and returns the
-/// text of its refusal; whether a caller applies it stays that caller's decision.
-/// <para>
-/// A card in the archive is off the board, so it cannot block anything on it, and the archive does not have to
-/// refuse cards that block others: <see cref="CardBlocking"/> already treats a card at the end of its pipeline
-/// as finished rather than as a blocker, and this gate accepts nothing but such a card. The two rules hold
-/// together, and a test says so.
-/// </para>
+/// The archive is a reading of a card rather than a stage it moves to, which is exactly why the gate has to
+/// exist: without it the archive would accept a card mid-flight and the board would lose sight of work someone
+/// is in the middle of. The rule takes the data it judges and returns the text of its refusal; whether a caller
+/// applies it stays that caller's decision. It holds together with <see cref="CardBlocking"/>: a card at the end
+/// of its pipeline already counts as finished there rather than as a blocker, and this gate accepts nothing else.
 /// </remarks>
 public static class CardArchiving
 {
     /// <summary>
-    /// Whether a stage's latest run left the stage open: someone is working there, or it was left hanging.
+    /// Whether a stage's latest run left the stage open. Judged only on the latest run, so an old failed attempt
+    /// followed by a successful one does not make the archive stricter than the pipeline it is about.
     /// </summary>
-    /// <remarks>
-    /// Judged per stage and only on its latest run. An old failed attempt followed by a successful one leaves a
-    /// stage that <see cref="CardProgress"/> is willing to move on from, and the archive must not be stricter
-    /// than the pipeline it is about.
-    /// </remarks>
     private static bool IsOpen(StageExecutionState state) =>
         state is not (StageExecutionState.Completed or StageExecutionState.Cancelled);
 
@@ -39,8 +29,8 @@ public static class CardArchiving
     /// <param name="card">The card that would be put away.</param>
     /// <param name="workflow">Its workflow, or null when the project has none for its type.</param>
     /// <param name="latestRuns">
-    /// The latest run of each stage of the card, as the coordinator reports them. Stages never started have no
-    /// entry, which is not an open run - nothing was left hanging.
+    /// The latest run of each stage, as the coordinator reports them. A stage never started has no entry, which
+    /// is not an open run.
     /// </param>
     public static string? Refuse(
         Card card,
@@ -50,8 +40,8 @@ public static class CardArchiving
         ArgumentNullException.ThrowIfNull(card);
         ArgumentNullException.ThrowIfNull(latestRuns);
 
-        // Answered first, and on purpose: a card already in the archive is finished by definition, so every
-        // other check would answer a repeated action with the wrong reason.
+        // Answered first: a card already in the archive is finished by definition, so every other check would
+        // answer a repeated action with the wrong reason.
         if (card.IsArchived)
         {
             return $"card '{card.Reference.CardId}' is already in the archive: it is off the board. Return it "
@@ -107,10 +97,9 @@ public static class CardArchiving
     /// The cards a board shows: everything that is not in the archive.
     /// </summary>
     /// <remarks>
-    /// The one place the filter is written. A board, the work queue and the card list an agent reads all ask
-    /// this, so "the archive is off the board" is one expression rather than three that can drift apart. The
-    /// store keeps answering with every card, because the id generator and the doctor must still see what is
-    /// archived - they would hand out a taken id otherwise.
+    /// The one place the filter is written: a board, the work queue and the card list an agent reads all ask it,
+    /// so "the archive is off the board" is one expression rather than three that can drift apart. The store
+    /// keeps answering with every card, because the id generator and the doctor must still see what is archived.
     /// </remarks>
     /// <param name="cards">Every card of the project.</param>
     public static IReadOnlyList<Card> OnBoard(IReadOnlyList<Card> cards)

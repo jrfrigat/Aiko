@@ -33,8 +33,8 @@ public sealed record StageExecution(
             AgentAttemptState.WaitingForUser or AgentAttemptState.Paused);
 
     /// <summary>
-    /// Files changed outside the declared scope (matched no pattern from
-    /// <see cref="DeclaredScopeFiles"/> according to <see cref="ScopeMatcher"/>).
+    /// Files changed outside the declared scope, matched by <see cref="ScopeMatcher"/> against
+    /// <see cref="DeclaredScopeFiles"/>.
     /// </summary>
     public IReadOnlyList<string> OutOfScopeFiles =>
         ActualChangedFiles

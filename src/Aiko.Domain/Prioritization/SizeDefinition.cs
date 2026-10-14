@@ -4,16 +4,15 @@ namespace Aiko.Domain.Prioritization;
 /// One step of a project's size grid (T-shirt sizing).
 /// </summary>
 /// <remarks>
-/// The grid is data rather than an enum, because the project owns it: a step can be added (the design's
-/// own example is one more XL), renamed, or given another coefficient. The description is what an agent
-/// reads when it decides which step a card belongs to, which is why it is part of the model and not a
-/// comment - the agent assigns the size, the table is what it reasons from.
+/// The grid is data rather than an enum, because the project owns it: a step can be added, renamed, or given
+/// another coefficient. The description is part of the model rather than a comment, because the agent assigns
+/// the size and the table is what it reasons from.
 /// </remarks>
 public sealed record SizeDefinition
 {
     /// <summary>
-    /// Creates a step; the identifier must be present and the coefficient positive, because a zero or
-    /// negative coefficient would silently erase a card from the ranking.
+    /// Creates a step; the identifier must be present and the coefficient positive, because zero or negative
+    /// would silently erase a card from the ranking.
     /// </summary>
     /// <param name="id">Stable identifier, for example <c>S</c>. Stored on the card that carries the step.</param>
     /// <param name="title">Display name.</param>

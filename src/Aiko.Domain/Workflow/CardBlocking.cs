@@ -16,16 +16,14 @@ public readonly record struct CardBlocker(string CardId, string Title, string St
 /// The rule that keeps a blocked card from being worked: a card waits for every card that blocks it.
 /// </summary>
 /// <remarks>
-/// <c>blocks</c> is a directed edge and is stored like every other relation, but nothing read it: a blocked card
-/// could be worked exactly as an unblocked one, and the order the user had expressed lived only in a file. The
-/// rule is here rather than inside a tool for the same reason <see cref="CardProgress"/> is - it is about the
-/// pipeline, not about one caller - and whether a caller applies it stays that caller's decision.
+/// <c>blocks</c> is a directed edge stored like every other relation, and the order the user expressed has to be
+/// enforced rather than merely recorded: the rule is about the pipeline, so it lives here, and whether a caller
+/// applies it stays that caller's decision.
 ///
-/// A blocker counts as finished by the one rule every screen asks, <see cref="CardCompletion.IsFinished"/>: it
-/// sits in the last stage of its own pipeline and the latest run there completed. The pipelines differ per
-/// card type, so the last stage is read from the card's workflow instead of being assumed to be called
-/// <c>done</c>. An edge that points at a card the project does not have is not a blocker: the reindexer already
-/// reports that defect, and a gate waiting for a card nobody can finish would stop the work for good.
+/// A blocker counts as finished by the one rule every screen asks, <see cref="CardCompletion.IsFinished"/>, and
+/// the last stage is read from the blocker's own workflow because pipelines differ per card type. An edge that
+/// points at a card the project does not have is not a blocker: the reindexer already reports that defect, and a
+/// gate waiting for a card nobody can finish would stop the work for good.
 /// </remarks>
 public static class CardBlocking
 {
@@ -80,9 +78,8 @@ public static class CardBlocking
                 StringComparer.Ordinal.Equals(candidate.Id, blocker.StageId));
             if (stage is null || CardCompletion.IsFinished(workflow, stage.Id, latestRunState(blocker)))
             {
-                // The blocker finished its pipeline, or sits in a stage this workflow does not have - in the
-                // second case the card is not where its type says it can be, and guessing there would be worse
-                // than not blocking.
+                // The blocker finished its pipeline, or sits in a stage this workflow does not have - and in the
+                // second case guessing where the card is would be worse than not blocking.
                 continue;
             }
 
