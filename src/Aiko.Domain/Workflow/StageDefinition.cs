@@ -15,31 +15,27 @@ namespace Aiko.Domain.Workflow;
 /// <param name="RequiredArtifacts">Artifacts the pipeline expects from this stage.</param>
 /// <param name="ActionPolicies">Policies for dangerous actions at this stage, keyed by action name.</param>
 /// <param name="AllowedAgentAdapterIds">
-/// Adapters allowed to run this stage (ТЗ §11). Null or empty means every discovered adapter is allowed;
-/// a non-empty list restricts the stage, and the default adapter must be one of them.
+/// Adapters allowed to run this stage. Null or empty means every discovered adapter is allowed; a non-empty
+/// list restricts the stage, and the default adapter must be one of them.
 /// </param>
 /// <param name="ValidationCommands">
-/// Commands that verify this stage's outcome (ТЗ §11), for example <c>dotnet test --no-build</c>. They are
-/// recorded and shown to the agent as the stage's own definition of done; Aiko does not run them itself.
+/// Commands that verify this stage's outcome, for example <c>dotnet test --no-build</c>. They are recorded and
+/// shown to the agent as the stage's own definition of done; Aiko does not run them itself.
 /// </param>
 /// <param name="SkillsBeforeInstruction">
-/// Skills the agent should invoke before it reads the instruction, for example a context or search skill
-/// that gathers what the instruction then reasons about. Names only: Aiko records them and hands them to the
-/// agent, it does not resolve or run them.
+/// Skills the agent invokes before it reads the instruction. Names only: Aiko records them and hands them to
+/// the agent, it does not resolve or run them.
 /// </param>
 /// <param name="SkillsAfterInstruction">
-/// Skills the agent should invoke once the instruction is done - reporting, verification or handoff. Kept
-/// apart from <paramref name="SkillsBeforeInstruction"/> because the order is the point: a skill that
-/// gathers input and a skill that publishes output are not interchangeable.
+/// Skills the agent invokes once the instruction is done - reporting, verification or handoff. Kept apart from
+/// <paramref name="SkillsBeforeInstruction"/> because the order is the point.
 /// </param>
 /// <param name="Icon">
-/// Which icon the status column draws, as an id from <see cref="AppearanceCatalog.Icons"/>, or null to keep
-/// the positional default the board falls back to. Null keeps every workflow written before the choice
-/// existed readable, which is why it is optional.
+/// Icon id from <see cref="AppearanceCatalog.Icons"/>, or null for the positional default - which keeps every
+/// workflow written before the choice existed readable.
 /// </param>
 /// <param name="Color">
-/// Which accent colour the status column draws, as an id from <see cref="AppearanceCatalog.Colors"/>, or
-/// null for the positional default.
+/// Accent colour id from <see cref="AppearanceCatalog.Colors"/>, or null for the positional default.
 /// </param>
 public sealed record StageDefinition(
     string Id,
@@ -70,8 +66,8 @@ public sealed record StageDefinition(
     public IReadOnlyList<string> AfterSkills => SkillsAfterInstruction ?? [];
 
     /// <summary>
-    /// Whether an adapter may run this stage. The default adapter of the stage is always allowed, so a
-    /// stage cannot be configured into a state where nothing can start it.
+    /// Whether an adapter may run this stage. The stage's default adapter is always allowed, so a stage cannot
+    /// be configured into a state where nothing can start it.
     /// </summary>
     /// <param name="agentAdapterId">Adapter to test, or null for "any".</param>
     public bool Allows(string? agentAdapterId)

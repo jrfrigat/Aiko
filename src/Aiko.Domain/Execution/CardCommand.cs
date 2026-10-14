@@ -6,17 +6,13 @@ namespace Aiko.Domain.Execution;
 /// One command a screen placed for an agent: what to do with which card, who asked, and where it got to.
 /// </summary>
 /// <remarks>
-/// A command is a durable record rather than a live message, because Aiko does not run agent processes: the
-/// agent is a CLI process that comes and goes, so a request it should have received has to wait for it in a
-/// file. Everything here is therefore data a person may read without Aiko - which is also why the record
-/// carries its own timestamps instead of relying on a log elsewhere.
+/// A durable record rather than a live message: the agent is a CLI process that comes and goes, so a request
+/// has to wait for it in a file - which is also why the record carries its own timestamps.
 /// </remarks>
 /// <param name="Id">Identifier of the command, unique within the project.</param>
 /// <param name="CardId">
-/// Card the command is about, or null for a command about the project as a whole - which the board pass and
-/// a release are. The field is nullable rather than defaulted to some
-/// placeholder card, because a command that pretended to be about a card would show up on that card's
-/// screen and nowhere else.
+/// Card the command is about, or null for one about the project as a whole - the board pass and a release.
+/// Nullable rather than defaulted to a placeholder card, which would show up on that card's screen alone.
 /// </param>
 /// <param name="Action">What to do.</param>
 /// <param name="StageId">Stage to start, for <see cref="CardCommandAction.Start"/>.</param>
@@ -48,9 +44,8 @@ public sealed record CardCommand(
     /// True while the command still asks for work: placed, or taken and not yet closed.
     /// </summary>
     /// <remarks>
-    /// This - and not a filter someone remembers to write - is what the queue screen shows by default: a
-    /// command that has already been carried out is history, and history next to "waiting" reads as work
-    /// still outstanding.
+    /// This, and not a filter a screen remembers to write, is what the queue shows by default: a command
+    /// already carried out is history, and history beside "waiting" reads as outstanding work.
     /// </remarks>
     [JsonIgnore]
     public bool IsOpen => State is CardCommandState.Queued or CardCommandState.Taken;
