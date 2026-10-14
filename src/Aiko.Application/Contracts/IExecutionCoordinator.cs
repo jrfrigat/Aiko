@@ -4,53 +4,71 @@ using Aiko.Domain.Execution;
 namespace Aiko.Application.Contracts;
 
 /// <summary>
-/// Coordinator of stage executions: the StageExecution life cycle, agent attempts, progress, scope expansion
-/// and handoffs.
+/// Coordinator of stage executions: the StageExecution life cycle,
+/// agent attempts, progress, scope expansion and handoffs.
 /// </summary>
 public interface IExecutionCoordinator
 {
-    /// <summary>Returns all stage executions of the card, in creation order.</summary>
+    /// <summary>
+    /// Returns all stage executions of the card in creation order.
+    /// </summary>
     ValueTask<IReadOnlyList<StageExecution>> ListAsync(
         CardReference card,
         CancellationToken cancellationToken);
 
-    /// <summary>Finds an execution by identifier, or null when there is none.</summary>
+    /// <summary>
+    /// Finds an execution by identifier or returns null.
+    /// </summary>
     ValueTask<StageExecution?> FindAsync(
         string executionId,
         CancellationToken cancellationToken);
 
-    /// <summary>Where each stage of each card got to: the latest run per (card, stage) pair, for the screens
-    /// that show a card's progress without loading its whole history.</summary>
+    /// <summary>
+    /// Where each stage of each card got to: the latest run per (card, stage) pair, for the screens that show a
+    /// card's progress without loading its whole history.
+    /// </summary>
+    /// <param name="projectId">Project to read, by id or by its readable handle.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     ValueTask<IReadOnlyList<StageRunSummary>> ReadStageRunsAsync(
         string projectId,
         CancellationToken cancellationToken);
 
     /// <summary>
-    /// The stage executions running right now, with the scope their cards declared: the same facts the start
-    /// gate weighs when it refuses an overlapping start, so a caller can tell what may run beside what without
-    /// re-deriving the overlap rule.
+    /// The stage executions running right now, with the scope their cards declared.
     /// </summary>
+    /// <remarks>
+    /// The same facts the start gate weighs when it refuses an overlapping start, so a caller can tell what
+    /// may run beside what without re-deriving the overlap rule.
+    /// </remarks>
+    /// <param name="projectId">Project to read, by id or by its readable handle.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     ValueTask<IReadOnlyList<RunningScope>> ReadRunningScopesAsync(
         string projectId,
         CancellationToken cancellationToken);
 
-    /// <summary>Starts a new stage execution of the card for the given agent; parallel active executions of one
-    /// card are rejected.</summary>
+    /// <summary>
+    /// Starts a new stage execution of the card for the given agent;
+    /// parallel active executions of one card are rejected.
+    /// </summary>
     ValueTask<StageExecution> StartAsync(
         CardReference card,
         string stageId,
         string agentAdapterId,
         CancellationToken cancellationToken);
 
-    /// <summary>Hands the execution to another agent: writes a handoff document, closes the current attempt and
-    /// opens a new one.</summary>
+    /// <summary>
+    /// Hands the execution to another agent: writes a handoff document,
+    /// closes the current attempt and opens a new one.
+    /// </summary>
     ValueTask<StageExecution> HandoffAsync(
         string executionId,
         string targetAgentAdapterId,
         CancellationToken cancellationToken);
 
-    /// <summary>Records progress: the summary, the completed and remaining steps, and the full list of changed
-    /// files.</summary>
+    /// <summary>
+    /// Records progress: summary, completed and remaining steps,
+    /// and the full list of changed files.
+    /// </summary>
     ValueTask<StageExecution> ReportProgressAsync(
         string executionId,
         string summary,

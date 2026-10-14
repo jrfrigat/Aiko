@@ -8,8 +8,12 @@ namespace Aiko.Application.Releases;
 /// </summary>
 /// <remarks>
 /// Exactly one of the three is normally set: the version the card joined, the reason the caller kept it out, or
-/// the note saying why no plan took it when that was not the caller's decision.
+/// the note saying why no plan took it when that was not the caller's decision. The card's own metadata then
+/// tells a reader what happened without anybody having to reconstruct it.
 /// </remarks>
+/// <param name="PlannedForVersion">The version whose plan took the card, or null.</param>
+/// <param name="ExclusionReason">Why the caller kept the card out of every plan, or null.</param>
+/// <param name="Note">Why no plan took the card, or null.</param>
 public sealed record ReleasePlanAttribution(
     string? PlannedForVersion = null,
     string? ExclusionReason = null,
@@ -45,12 +49,19 @@ public sealed class ReleasePlanInflow(IReleasePlanStore plans)
     /// </summary>
     public const string NoteMetadataKey = "release-plan-note";
 
-    /// <summary>Puts the card into the plan it belongs to and reports what happened.</summary>
-    /// <remarks>
-    /// <paramref name="releasePlan"/> is the version whose plan should take the card, <c>"none"</c> to keep it
-    /// out of every plan, or null to let Aiko choose the version being worked on; <c>"none"</c> requires
-    /// <paramref name="exclusionReason"/> to say why.
-    /// </remarks>
+    /// <summary>
+    /// Puts the card into the plan it belongs to and reports what happened.
+    /// </summary>
+    /// <param name="projectId">Project the card is being created in.</param>
+    /// <param name="cardId">Id the card will be filed under.</param>
+    /// <param name="releasePlan">
+    /// The version whose plan should take the card, <c>"none"</c> to keep it out of every plan, or null to let
+    /// Aiko choose the version being worked on.
+    /// </param>
+    /// <param name="exclusionReason">
+    /// Why the card is kept out; required when <paramref name="releasePlan"/> is <c>"none"</c>.
+    /// </param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <exception cref="ArgumentException">The caller asked for "none" without saying why.</exception>
     public async ValueTask<ReleasePlanAttribution> AttributeAsync(
         string projectId,

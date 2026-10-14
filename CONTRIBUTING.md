@@ -46,8 +46,12 @@ the database.
   would remain true when the implementation is rewritten; anything longer belongs in `.aiko/memory` or
   `docs/`, with a line left behind when a reader needs the pointer. Card ids (`TASK-`, `STORY-`) are not
   mentioned: they mean nothing outside `.aiko`. File-level and type-level summaries are expected;
-  `CS1591` is suppressed for positional record members. In a test the name is the documentation, and a
-  comment earns its place only where the assertion cannot show the reason.
+  `CS1591` is suppressed for positional record members, which says a summary is not *required* there - not
+  that a parameter's documentation may be dropped. `<param>`, `<returns>` and `<exception>` document
+  the contract and are not cut as restating: a `<param>` block, once present, stays complete (CS1573,
+  CS1572), and what a parameter means lives in its `<param>` rather than being folded into the
+  summary. In a test the name is the documentation, and a comment earns its place only where the
+  assertion cannot show the reason.
 - The PWA talks JSON through the source-generated `PwaJsonContext` only: the published client is
   trimmed, where reflection-based serialization fails at runtime. Register every new type the UI
   exchanges, pass `PwaJson.Options` to every `HttpClient` JSON call, and keep client DTOs top-level

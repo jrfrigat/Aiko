@@ -1,15 +1,27 @@
 namespace Aiko.Application.Contracts;
 
 /// <summary>
-/// A named instruction to an agent: how a release of this project is conducted. A document with a name, a
-/// description and a body - not code and not a pipeline: the build pipeline stays the single
-/// <c>release.yml</c>, and a scheme answers "what to do", not "what to build with". The body is instruction
-/// text an agent reads, so it is written in English like every other agent-facing text Aiko ships, while name
-/// and description are the owner's data and are shown as they were written.
+/// A named instruction to an agent: how a release of this project is conducted.
 /// </summary>
+/// <remarks>
+/// A document with a name, a description and a body - the order of steps. Not code and not a pipeline: the
+/// build pipeline stays the single <c>release.yml</c>, and there are as many schemes as a project needs. A
+/// scheme answers "what to do", not "what to build with".
+/// <para>
+/// The body is instruction text an agent reads, so it is written in English like every other agent-facing
+/// text Aiko ships. Name and description are the owner's data rather than interface captions, which is why
+/// they are not localized: a scheme the owner writes is shown as it was written.
+/// </para>
+/// </remarks>
+/// <param name="Id">Stable identifier, also the value a release names to say which scheme it follows.</param>
+/// <param name="Name">Display name.</param>
+/// <param name="Description">What this scheme is for, shown where a scheme is chosen.</param>
+/// <param name="Body">The steps, as the agent reads them.</param>
 public sealed record ReleaseScheme(string Id, string Name, string Description, string Body);
 
-/// <summary>The schemes Aiko ships with, and the vocabulary around them.</summary>
+/// <summary>
+/// The schemes Aiko ships with, and the vocabulary around them.
+/// </summary>
 public static class ReleaseSchemes
 {
     /// <summary>Identifier of the ordinary release scheme.</summary>

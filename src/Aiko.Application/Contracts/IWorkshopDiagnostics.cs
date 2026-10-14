@@ -17,9 +17,11 @@ public enum DiagnosticSeverity
 
 /// <summary>
 /// One line of the workshop report: what was checked, how it came out, and the path it is about.
-/// <c>Area</c> is a coarse group of the check - <c>data</c>, <c>token</c>, <c>endpoint</c>, <c>project</c>,
-/// <c>agent-config</c> - and <c>Detail</c> is the path or value the finding is about.
 /// </summary>
+/// <param name="Area">Coarse group of the check: <c>data</c>, <c>token</c>, <c>endpoint</c>, <c>project</c>, <c>agent-config</c>.</param>
+/// <param name="Severity">How much attention it needs.</param>
+/// <param name="Summary">Human-readable line, including the fix when there is one.</param>
+/// <param name="Detail">The path or value the finding is about, when there is one.</param>
 public sealed record DiagnosticFinding(
     string Area,
     DiagnosticSeverity Severity,
@@ -59,13 +61,20 @@ public sealed record WorkshopDiagnostics(IReadOnlyList<DiagnosticFinding> Findin
 
 /// <summary>
 /// Read-only inspection of a local Aiko installation: the data directory, the access token, the daemon
-/// endpoint, the registered projects and the agent configurations that point at this daemon. Deliberately
-/// split from the repair - <c>aiko doctor</c> changes nothing and <c>aiko repair --fix</c> performs exactly
-/// the actions this names - and the point of the agent check is that an MCP configuration records the
-/// daemon's endpoint, so a moved port leaves those files pointing at nothing and nothing else would notice.
+/// endpoint, the registered projects and the agent configurations that point at this daemon.
 /// </summary>
+/// <remarks>
+/// Deliberately split from the repair: <c>aiko doctor</c> changes nothing, and <c>aiko repair --fix</c>
+/// performs exactly the actions the report names. The interesting check is the last one - an agent's MCP
+/// configuration records the daemon's endpoint, so when the port moves those files silently point at
+/// nothing, and nothing else in the product would notice.
+/// </remarks>
 public interface IWorkshopDiagnostics
 {
-    /// <summary>Inspects the installation, or only the one project when it is named.</summary>
+    /// <summary>
+    /// Inspects the installation, optionally narrowed to one project.
+    /// </summary>
+    /// <param name="projectId">A registered project to inspect, or null for all of them.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     ValueTask<WorkshopDiagnostics> InspectAsync(string? projectId, CancellationToken cancellationToken);
 }

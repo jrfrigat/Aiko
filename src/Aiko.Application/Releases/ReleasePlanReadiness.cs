@@ -58,20 +58,27 @@ public sealed record ReleasePlanReadiness(
     int InWork,
     int Missing)
 {
-    /// <summary>Whether every card the plan names has finished, which is what "this version can go" means.</summary>
+    /// <summary>
+    /// Whether every card the plan names has finished, which is what "this version can go" means.
+    /// </summary>
     /// <remarks>
-    /// A plan with nothing in it is releasable: no card holds the version, and a version whose work is all in
-    /// other versions ships nothing new.
+    /// A plan with nothing in it is releasable: no card holds the version. That is a state worth reading rather
+    /// than an error - a version whose work is all in other versions ships nothing new, and the release record
+    /// has always allowed an empty card list for exactly that.
     /// </remarks>
     public bool IsReleasable => Finished == Cards.Count;
 }
 
 /// <summary>
-/// One plan with how far it is from being releasable, read from the live cards.
+/// One plan with how far it is from being releasable.
 /// </summary>
+/// <param name="Plan">The plan itself.</param>
+/// <param name="Readiness">Where its cards got to, read from the live cards.</param>
 public sealed record ReleasePlanReport(ReleasePlan Plan, ReleasePlanReadiness Readiness);
 
-/// <summary>Every plan of a project with its readiness, which is what the agent reads before a release.</summary>
+/// <summary>
+/// Every plan of a project with its readiness, which is what the agent reads before conducting a release.
+/// </summary>
 /// <param name="Plans">The plans, most recently created first, as the document holds them.</param>
 public sealed record ReleasePlanDocumentReport(IReadOnlyList<ReleasePlanReport> Plans);
 
@@ -94,7 +101,11 @@ public sealed class ReleasePlanReadinessProjector(
     IExecutionCoordinator executions,
     IReleasePlanStore plans)
 {
-    /// <summary>Reads the plans of a project, named by id or by its readable handle, with the readiness of each.</summary>
+    /// <summary>
+    /// Reads the project's plans with the readiness of each.
+    /// </summary>
+    /// <param name="projectId">Project to read, by id or by its readable handle.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     public async ValueTask<ReleasePlanDocumentReport> ReadAsync(
         string projectId,
         CancellationToken cancellationToken)

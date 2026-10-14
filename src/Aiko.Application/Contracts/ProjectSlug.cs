@@ -34,8 +34,11 @@ public static class ProjectSlug
         ['і'] = "i", ['ї'] = "ji", ['є'] = "je", ['ґ'] = "g"
     };
 
-    /// <summary>Builds a slug out of a display name: lower-case, Cyrillic transliterated, everything else that
-    /// is not a latin letter or a digit turned into a single dash.</summary>
+    /// <summary>
+    /// Builds a slug out of a display name: lower-case, Cyrillic transliterated, everything else that is not
+    /// a latin letter or a digit turned into a single dash.
+    /// </summary>
+    /// <param name="name">Display name, for example <c>Мой пеРвыЙ проект</c>.</param>
     public static string Derive(string? name)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -85,8 +88,11 @@ public static class ProjectSlug
             : result[..MaxLength].TrimEnd('-');
     }
 
-    /// <summary>Whether a value may be used as a slug: latin lower-case letters, digits and dashes, not
-    /// starting or ending with one, and short enough for a URL.</summary>
+    /// <summary>
+    /// Whether a value may be used as a slug: latin lower-case letters, digits and dashes, not starting or
+    /// ending with one, and short enough for a URL.
+    /// </summary>
+    /// <param name="slug">Value to check.</param>
     public static bool IsValid(string? slug)
     {
         if (string.IsNullOrWhiteSpace(slug) || slug.Length > MaxLength ||
@@ -101,10 +107,15 @@ public static class ProjectSlug
     }
 
     /// <summary>
-    /// Returns the slug itself when it is free, otherwise the shortest <c>slug-2</c>, <c>slug-3</c>, ... that is
-    /// free. For a slug Aiko derived itself: a user who typed the value gets an error instead, but a user who
-    /// only picked a folder should never be told the project cannot be created because the name is popular.
+    /// Returns the slug itself when it is free, otherwise the shortest <c>slug-2</c>, <c>slug-3</c>, ... that
+    /// is free.
     /// </summary>
+    /// <remarks>
+    /// For a slug Aiko derived itself: a user who typed the value gets an error instead, but a user who only
+    /// picked a folder should never be told their project cannot be created because the name is popular.
+    /// </remarks>
+    /// <param name="slug">Desired slug, normally the result of <see cref="Derive"/>.</param>
+    /// <param name="isTaken">Whether a candidate already belongs to another project.</param>
     public static string MakeUnique(string slug, Func<string, bool> isTaken)
     {
         ArgumentNullException.ThrowIfNull(isTaken);

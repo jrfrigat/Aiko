@@ -26,10 +26,9 @@ public static class AgentSelection
     /// The adapter identifiers to install for: the requested ones when <paramref name="requestedAgents"/> names
     /// any, and otherwise every adapter whose discovery found an installation.
     /// </summary>
-    /// <remarks>
-    /// The adapters are walked in the order the caller wants them acted on; a null or blank
-    /// <paramref name="requestedAgents"/> asks for discovery.
-    /// </remarks>
+    /// <param name="adapters">Adapters Aiko knows, in the order the caller wants them acted on.</param>
+    /// <param name="requestedAgents">Raw <c>--agent</c> value; null or blank asks for discovery.</param>
+    /// <param name="cancellationToken">Cancellation token for the discovery.</param>
     public static async ValueTask<IReadOnlyList<string>> ResolveAsync(
         IEnumerable<IAgentAdapter> adapters,
         string? requestedAgents,
