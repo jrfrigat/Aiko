@@ -67,10 +67,8 @@ public sealed record ReleasePlanReadiness(
 }
 
 /// <summary>
-/// One plan with how far it is from being releasable.
+/// One plan with how far it is from being releasable, read from the live cards.
 /// </summary>
-/// <param name="Plan">The plan itself.</param>
-/// <param name="Readiness">Where its cards got to, read from the live cards.</param>
 public sealed record ReleasePlanReport(ReleasePlan Plan, ReleasePlanReadiness Readiness);
 
 /// <summary>Every plan of a project with its readiness, which is what the agent reads before a release.</summary>

@@ -10,9 +10,6 @@ namespace Aiko.Application.Releases;
 /// Exactly one of the three is normally set: the version the card joined, the reason the caller kept it out, or
 /// the note saying why no plan took it when that was not the caller's decision.
 /// </remarks>
-/// <param name="PlannedForVersion">The version whose plan took the card, or null.</param>
-/// <param name="ExclusionReason">Why the caller kept the card out of every plan, or null.</param>
-/// <param name="Note">Why no plan took the card, or null.</param>
 public sealed record ReleasePlanAttribution(
     string? PlannedForVersion = null,
     string? ExclusionReason = null,

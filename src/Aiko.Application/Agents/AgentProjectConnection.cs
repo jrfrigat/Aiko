@@ -6,9 +6,6 @@ namespace Aiko.Application.Agents;
 /// in a particular project. Derived from the files an install owns rather than recorded in a registry, because
 /// a list would go stale the moment someone deletes a file by hand or copies the project to another machine.
 /// </remarks>
-/// <param name="AdapterId">Adapter identifier, for example <c>claude-code</c>.</param>
-/// <param name="DisplayName">Name to show for the adapter.</param>
-/// <param name="Connected">Whether the files Aiko writes for this adapter are in the project.</param>
 public sealed record AgentProjectConnection(
     string AdapterId,
     string DisplayName,
