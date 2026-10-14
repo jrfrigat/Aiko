@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Globalization;
-using Aiko.Application.Contracts;
 using Aiko.Infrastructure.Git;
 using Xunit;
 
@@ -21,9 +20,26 @@ namespace Aiko.Infrastructure.Specs;
 /// (<see cref="GitClient.CommandWait"/>). The substitute records its own process id and then waits; a
 /// substituted command that never starts would fail the id check below rather than pass quietly.
 /// </para>
+/// <para>
+/// One window used to carry two promises at once: the substitute had to finish starting and record itself,
+/// <em>and</em> the client's patience had to run out. On a fresh, loaded runner the first could take as long as
+/// the second, and the spec failed with "the substitute never recorded its process id" - a red that says
+/// nothing about the client, which is what CI did on a commit whose release run was green (TASK-354). The
+/// substitute's half of the window is settled before the window opens now: the same command is run once with a
+/// one-second wait, which proves the recording works here and warms <c>powershell.exe</c> and its modules. What
+/// the window still measures is the client's patience, and nothing else.
+/// </para>
 /// </remarks>
 public sealed class GitClientRefusalSpecs
 {
+    /// <summary>
+    /// How long a question may take before it counts as unanswered. Five seconds rather than the product's
+    /// fifteen, so the refusal is reached without waiting a quarter of a minute; five rather than one, because
+    /// the window is now margin for a runner that is slow in general rather than a bet on the substitute's cold
+    /// start - which the proof below settles before the window opens (TASK-353, TASK-354).
+    /// </summary>
+    private static readonly TimeSpan ClientWait = TimeSpan.FromSeconds(5);
+
     [Fact]
     public async Task A_command_that_never_answers_is_refused_and_ended()
     {
@@ -32,21 +48,27 @@ public sealed class GitClientRefusalSpecs
         var pidFile = Path.Combine(root, "git.pid");
         try
         {
-            // A "git" of our own: it writes down which process it is and then waits. Everything the client
-            // appends after the command - `-C <dir>`, then the question - lands after the comment marker, so
-            // the substitute is never asked a question it would have to answer (TASK-349).
+            // Settled before the clock starts: this machine starts the substituted command, and the command
+            // writes down which process it is. A failure here is about the machine, not about the client, and
+            // the message says so rather than leaving the reader to guess (TASK-354).
+            var proof = await RecordsItselfAsync(root, Path.Combine(root, "proof.pid"));
+            Assert.True(
+                proof is null,
+                $"The substituted command does not record itself on this machine, so nothing below could be about the client: {proof}");
+
+            // A "git" of our own: it writes down which process it is and then waits without an end, so that
+            // nothing but the kill could have ended it. Everything the client appends after the command -
+            // `-C <dir>`, then the question - lands after the comment marker, so the substitute is never asked a
+            // question it would have to answer (TASK-349).
             var client = new GitClient
             {
                 Command = ("powershell", [
                     "-NoProfile",
                     "-Command",
-                    $"Set-Content -LiteralPath '{pidFile}' -Value $PID; Start-Sleep -Seconds 120; #"
+                    $"Set-Content -LiteralPath '{pidFile}' -Value $PID; "
+                    + "[System.Threading.Thread]::Sleep([System.Threading.Timeout]::Infinite); #"
                 ]),
-                // Waiting fifteen seconds for a refusal is fifteen seconds this suite does not have, and the
-                // wait is a seam of its own so that a spec can reach the branch without inventing anything.
-                // Ten rather than five: the substitute has to start PowerShell and write its process id
-                // inside this window, and a runner is slower than a workstation (TASK-353).
-                CommandWait = TimeSpan.FromSeconds(10)
+                CommandWait = ClientWait
             };
 
             var status = await client.StatusAsync(root, CancellationToken.None);
@@ -56,11 +78,12 @@ public sealed class GitClientRefusalSpecs
             Assert.Equal(GitClient.ClientUnavailable, status.Failure);
             Assert.False(status.IsRepository);
 
-            // The substitute really ran - otherwise "it is gone" would say nothing about the branch - and it
-            // is gone, which is what TASK-160 promised and this card checks.
+            // The substitute really ran - the proof above is about this machine in general, this is the process
+            // of this run - and it is gone, which is what TASK-160 promised and this card checks.
             Assert.True(
                 File.Exists(pidFile),
-                $"The substituted command never recorded its process id in {pidFile}.");
+                $"The substituted command recorded itself in the proof and not within the client's "
+                + $"{ClientWait.TotalSeconds:N0} s window: {pidFile}. Nothing here is about the client.");
             var pid = int.Parse(File.ReadAllText(pidFile).Trim(), CultureInfo.InvariantCulture);
             Assert.True(
                 await EndsAsync(pid),
@@ -68,7 +91,82 @@ public sealed class GitClientRefusalSpecs
         }
         finally
         {
+            EndSubstitute(pidFile);
             TempRoot.Delete(root);
+        }
+    }
+
+    /// <summary>
+    /// Runs the substituted command once, with a one-second wait instead of an endless one, and answers
+    /// <c>null</c> when it recorded its process id - or the reason it did not.
+    /// </summary>
+    /// <remarks>
+    /// Two things at once, and both are needed before the window opens: it proves that this machine starts the
+    /// substitute and that the substitute writes its id, and it warms <c>powershell.exe</c> and its modules,
+    /// whose cold start is the whole of TASK-354.
+    /// </remarks>
+    private static async Task<string?> RecordsItselfAsync(string root, string pidFile)
+    {
+        var startInfo = new ProcessStartInfo("powershell")
+        {
+            WorkingDirectory = root,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+        startInfo.ArgumentList.Add("-NoProfile");
+        startInfo.ArgumentList.Add("-Command");
+        startInfo.ArgumentList.Add($"Set-Content -LiteralPath '{pidFile}' -Value $PID; Start-Sleep -Seconds 1");
+
+        using var process = Process.Start(startInfo);
+        if (process is null)
+        {
+            return "powershell could not be started at all.";
+        }
+
+        var error = process.StandardError.ReadToEndAsync();
+        try
+        {
+            await process.WaitForExitAsync().WaitAsync(TimeSpan.FromMinutes(1));
+        }
+        catch (TimeoutException)
+        {
+            GitClient.EndProcess(process);
+            return "the substituted command did not end within a minute.";
+        }
+
+        return File.Exists(pidFile)
+            ? null
+            : $"it ended with {process.ExitCode} and never wrote {pidFile}: {await error}";
+    }
+
+    /// <summary>
+    /// Ends the substitute of this run if it is still there.
+    /// </summary>
+    /// <remarks>
+    /// Its wait has no end, so a run that fails before the client kills it would leave a process behind for
+    /// good. The same reason <c>ServeTimeoutSpecs</c> disposes the daemon it started: a failing run is not a
+    /// reason to keep something alive on the machine that ran the suite.
+    /// </remarks>
+    private static void EndSubstitute(string pidFile)
+    {
+        if (!File.Exists(pidFile) ||
+            !int.TryParse(File.ReadAllText(pidFile).Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var pid))
+        {
+            return;
+        }
+
+        try
+        {
+            using var substitute = Process.GetProcessById(pid);
+            substitute.Kill(entireProcessTree: true);
+        }
+        catch (Exception exception) when (
+            exception is ArgumentException or InvalidOperationException or NotSupportedException or
+            System.ComponentModel.Win32Exception)
+        {
+            // Ended by itself or by the client between the check and the kill: nothing is left to end.
         }
     }
 
