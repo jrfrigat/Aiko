@@ -1,8 +1,6 @@
 namespace Aiko.Application.Agents;
 
-/// <summary>
-/// Capabilities supported by a specific AI agent adapter.
-/// </summary>
+/// <summary>Capabilities supported by a specific AI agent adapter.</summary>
 [Flags]
 public enum AgentCapabilities
 {

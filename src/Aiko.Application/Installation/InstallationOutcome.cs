@@ -4,9 +4,9 @@ namespace Aiko.Application.Installation;
 /// How an install, an update or a report-only run ended.
 /// </summary>
 /// <remarks>
-/// <see cref="UpToDate"/> is its own outcome rather than a quiet kind of success: an update that found
-/// nothing to do must be tellable from one that refused to act, and a caller that cannot tell them apart
-/// reports a no-op as a failure - or worse, a refusal as success.
+/// <see cref="UpToDate"/> is its own outcome rather than a quiet kind of success: an update that found nothing
+/// to do must be tellable from one that refused to act, or a caller reports a no-op as a failure - and a
+/// refusal as success.
 /// </remarks>
 public enum InstallationOutcome
 {
@@ -24,9 +24,9 @@ public enum InstallationOutcome
     /// what is available.
     /// </summary>
     /// <remarks>
-    /// Its own outcome rather than a quiet kind of <see cref="UpToDate"/>: a report-only run on a machine with
-    /// an update waiting is not up to date, and calling it that would answer the question the person asked
-    /// with the opposite of the truth. It is equally not a refusal - nothing was declined, only not done.
+    /// A report-only run on a machine with an update waiting is not up to date, and calling it that would answer
+    /// the question the person asked with the opposite of the truth. It is equally not a refusal - nothing was
+    /// declined, only not done.
     /// </remarks>
     Reported,
 

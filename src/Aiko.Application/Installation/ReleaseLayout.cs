@@ -4,11 +4,9 @@ namespace Aiko.Application.Installation;
 /// The entry points a release promises to carry.
 /// </summary>
 /// <remarks>
-/// This is the release's own list, not a convenient subset: <c>.github/workflows/release.yml</c> refuses to
-/// publish a release that lacks any of them, so an engine that accepted less would install a release the
-/// release itself considers broken - one without the stdio proxy, which every MCP client needs, or without
-/// the project template. The two lists have to move together: a release may publish more than this, but not
-/// less.
+/// The release's own list, not a convenient subset: <c>.github/workflows/release.yml</c> refuses to publish a
+/// release that lacks any of them, so an engine that accepted less would install a release the release itself
+/// considers broken. The two lists move together: a release may publish more than this, but not less.
 /// </remarks>
 public static class ReleaseLayout
 {

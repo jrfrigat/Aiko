@@ -4,10 +4,9 @@ namespace Aiko.Application.Installation;
 /// A release downloaded, verified and unpacked, ready to replace what is installed.
 /// </summary>
 /// <remarks>
-/// A contract rather than a private step of the downloader, because it now has two producers. The engine
-/// fetches a release itself; on a machine with neither Aiko nor .NET the bootstrap script fetches and unpacks
-/// it, and the freshly unpacked CLI finishes the job. <see cref="IInstallationEngine.FinishAsync"/> is what
-/// takes the result, so the record travels with the interface rather than inside one implementation of it.
+/// A contract rather than a private step of the downloader, because it has two producers: the engine fetches a
+/// release itself, and on a machine with neither Aiko nor .NET the bootstrap script fetches and unpacks it.
+/// <see cref="IInstallationEngine.FinishAsync"/> takes the result.
 /// </remarks>
 /// <param name="Tag">Release tag it came from.</param>
 /// <param name="Version">Version the tag names.</param>

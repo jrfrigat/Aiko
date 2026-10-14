@@ -5,9 +5,8 @@ namespace Aiko.Application.Agents;
 /// into the user's home) is present on this machine.
 /// </summary>
 /// <remarks>
-/// "The agent is installed" and "Aiko is connected to the agent" are independent facts: the executable
-/// comes from the user's PATH, the configuration from Aiko. The dashboard reports both, so a detected
-/// agent that was never connected is no longer mistaken for a missing one.
+/// "The agent is installed" and "Aiko is connected to the agent" are independent facts: the executable comes
+/// from the user's PATH, the configuration from Aiko.
 /// </remarks>
 /// <param name="ConfiguredFiles">How many of the adapter's user-scope files exist.</param>
 /// <param name="ExpectedFiles">How many the adapter would write; zero when it has no user scope.</param>

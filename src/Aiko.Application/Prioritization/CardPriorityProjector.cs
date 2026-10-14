@@ -5,23 +5,18 @@ using Aiko.Domain.Workflow;
 namespace Aiko.Application.Prioritization;
 
 /// <summary>
-/// Projects effective card priorities from cards and their parent-child relations
-/// using <see cref="PriorityCalculator"/>. In a parent-child relation the source card
-/// is treated as the parent.
+/// Projects effective card priorities from cards and their parent-child relations using
+/// <see cref="PriorityCalculator"/>; in that relation the source card is the parent.
 /// </summary>
 public static class CardPriorityProjector
 {
-    /// <summary>
-    /// Computes a <see cref="CardPriority"/> for every card: each card's own score is computed from its
-    /// criterion values and its size (ТЗ §10), then a task blends it with the maximum parent value.
-    /// </summary>
+    /// <summary>Computes a <see cref="CardPriority"/> for every card: the own score, then the blend with its parents.</summary>
     /// <param name="cards">All cards of the board.</param>
     /// <param name="relations">All relations of the board; only parent-child edges are used.</param>
     /// <param name="settings">The project's priority settings: criteria, size grid and blending weights.</param>
     /// <param name="workflows">
     /// The project's card types. A card blends its own score with its parents' only when its type says so
-    /// (<see cref="WorkflowDefinition.BlendsWithParent"/>), so the behaviour is read from data and never from
-    /// the card's kind.
+    /// (<see cref="WorkflowDefinition.BlendsWithParent"/>), never because of its kind.
     /// </param>
     public static IReadOnlyList<CardPriority> Project(
         IReadOnlyList<Card> cards,

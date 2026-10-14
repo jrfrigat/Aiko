@@ -7,18 +7,16 @@ namespace Aiko.Application.Agents;
 /// <remarks>
 /// The rule lives in the contract layer rather than in the CLI because a live
 /// <c>aiko agent install --scope user</c> writes into the user's own agent configuration: the choice has to be
-/// verifiable by a spec that controls discovery, not by a command that touches somebody's home directory.
-/// The discovery is the one the CLI already uses elsewhere (<c>agent list</c>, <c>repair</c>), so "the agent is
-/// installed" keeps a single definition in the codebase.
-/// Finding nobody stays an empty choice: creating a configuration for every adapter Aiko knows is the
-/// behaviour this replaces, and writing files into agents that are not on the machine is exactly what it did
-/// wrong.
+/// verifiable by a spec that controls discovery. The discovery is the one the CLI already uses elsewhere
+/// (<c>agent list</c>, <c>repair</c>).
+/// <para>
+/// Finding nobody stays an empty choice: writing files into agents that are not on the machine is what the
+/// behaviour this replaces did wrong.
+/// </para>
 /// </remarks>
 public static class AgentSelection
 {
-    /// <summary>
-    /// Splits an <c>--agent</c> value into identifiers; empty when the option was absent or blank.
-    /// </summary>
+    /// <summary>Splits an <c>--agent</c> value into identifiers; empty when the option was absent or blank.</summary>
     /// <param name="requestedAgents">Raw <c>--agent</c> value, for example <c>claude-code,codex</c>.</param>
     public static IReadOnlyList<string> Parse(string? requestedAgents) =>
         (requestedAgents ?? string.Empty)
@@ -28,9 +26,10 @@ public static class AgentSelection
     /// The adapter identifiers to install for: the requested ones when <paramref name="requestedAgents"/> names
     /// any, and otherwise every adapter whose discovery found an installation.
     /// </summary>
-    /// <param name="adapters">Adapters Aiko knows, in the order the caller wants them acted on.</param>
-    /// <param name="requestedAgents">Raw <c>--agent</c> value; null or blank asks for discovery.</param>
-    /// <param name="cancellationToken">Cancellation token for the discovery.</param>
+    /// <remarks>
+    /// The adapters are walked in the order the caller wants them acted on; a null or blank
+    /// <paramref name="requestedAgents"/> asks for discovery.
+    /// </remarks>
     public static async ValueTask<IReadOnlyList<string>> ResolveAsync(
         IEnumerable<IAgentAdapter> adapters,
         string? requestedAgents,

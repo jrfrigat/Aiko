@@ -8,8 +8,7 @@ namespace Aiko.Application.Releases;
 /// </summary>
 /// <remarks>
 /// Exactly one of the three is normally set: the version the card joined, the reason the caller kept it out, or
-/// the note saying why no plan took it when that was not the caller's decision. The card's own metadata then
-/// tells a reader what happened without anybody having to reconstruct it.
+/// the note saying why no plan took it when that was not the caller's decision.
 /// </remarks>
 /// <param name="PlannedForVersion">The version whose plan took the card, or null.</param>
 /// <param name="ExclusionReason">Why the caller kept the card out of every plan, or null.</param>
@@ -23,14 +22,14 @@ public sealed record ReleasePlanAttribution(
 /// The inflow of new cards into the version being worked on.
 /// </summary>
 /// <remarks>
-/// Both doors that create a card call this, so the screen's form and the agent cannot disagree about where a
-/// new card goes: a card created while a version is planned joins that version's plan, unless the caller says
-/// otherwise - and saying otherwise means saying why.
+/// Both doors that create a card call this, so the screen and the agent cannot disagree about where a new card
+/// goes: a card created while a version is planned joins that version's plan, unless the caller says otherwise -
+/// and saying otherwise means saying why.
 /// <para>
 /// It never fails a creation and never invents a version. A project that plans nothing, or a version nobody
-/// planned, leaves the card outside every plan and says so in words; a plan that refuses the card - its version
-/// was recorded while this card was being made - leaves the card created and records the reason. Neither is
-/// silence, because "no plan took it" and "nothing needed planning" would otherwise look the same.
+/// planned, leaves the card outside every plan and says so in words; a plan that refuses the card leaves it
+/// created and records the reason. Neither is silence, because "no plan took it" and "nothing needed planning"
+/// would otherwise look the same.
 /// </para>
 /// </remarks>
 public sealed class ReleasePlanInflow(IReleasePlanStore plans)
@@ -49,19 +48,12 @@ public sealed class ReleasePlanInflow(IReleasePlanStore plans)
     /// </summary>
     public const string NoteMetadataKey = "release-plan-note";
 
-    /// <summary>
-    /// Puts the card into the plan it belongs to and reports what happened.
-    /// </summary>
-    /// <param name="projectId">Project the card is being created in.</param>
-    /// <param name="cardId">Id the card will be filed under.</param>
-    /// <param name="releasePlan">
-    /// The version whose plan should take the card, <c>"none"</c> to keep it out of every plan, or null to let
-    /// Aiko choose the version being worked on.
-    /// </param>
-    /// <param name="exclusionReason">
-    /// Why the card is kept out; required when <paramref name="releasePlan"/> is <c>"none"</c>.
-    /// </param>
-    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <summary>Puts the card into the plan it belongs to and reports what happened.</summary>
+    /// <remarks>
+    /// <paramref name="releasePlan"/> is the version whose plan should take the card, <c>"none"</c> to keep it
+    /// out of every plan, or null to let Aiko choose the version being worked on; <c>"none"</c> requires
+    /// <paramref name="exclusionReason"/> to say why.
+    /// </remarks>
     /// <exception cref="ArgumentException">The caller asked for "none" without saying why.</exception>
     public async ValueTask<ReleasePlanAttribution> AttributeAsync(
         string projectId,
@@ -118,13 +110,10 @@ public sealed class ReleasePlanInflow(IReleasePlanStore plans)
         }
     }
 
-    /// <summary>
-    /// The card's metadata with the outcome written into it.
-    /// </summary>
+    /// <summary>The card's metadata with the outcome written into it.</summary>
     /// <remarks>
     /// The outcome travels as metadata rather than as a second answer document, because the tool's answer is the
-    /// card itself: what a creation did is then readable on the card, by a person and by the next agent, and no
-    /// caller's parsing of the answer changes.
+    /// card itself: what a creation did is then readable on the card, by a person and by the next agent.
     /// </remarks>
     /// <param name="metadata">Metadata the card is being built with.</param>
     /// <param name="attribution">What <see cref="AttributeAsync"/> reported.</param>

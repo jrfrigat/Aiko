@@ -4,9 +4,8 @@ namespace Aiko.Application.Installation;
 /// The <c>SHA256SUMS</c> file a release publishes: one line per asset, <c>&lt;sha256&gt;  &lt;name&gt;</c>.
 /// </summary>
 /// <remarks>
-/// A malformed line is refused rather than skipped. Skipping would quietly drop the entry of the asset the
-/// caller is about to verify, and "no checksum for this file" reads exactly like "the release publishes no
-/// checksums" - two different facts, and the second one is a decision only a person may take.
+/// A malformed line is refused rather than skipped: "no checksum for this file" would read exactly like "the
+/// release publishes no checksums" - two different facts, and the second one is a person's decision.
 /// </remarks>
 public static class ChecksumFile
 {

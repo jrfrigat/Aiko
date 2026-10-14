@@ -4,11 +4,10 @@ namespace Aiko.Application.Installation;
 /// How a release tag, its version and its asset are named.
 /// </summary>
 /// <remarks>
-/// The rules come from <c>scripts/install.ps1</c>, which is today the only installation path: the tag is
-/// resolved through the <c>releases/latest</c> redirect, the version is the tag without its leading
-/// <c>v</c> and without build metadata, and the asset is <c>aiko-&lt;version&gt;-win-x64.zip</c>. They live
-/// here rather than in the source that downloads them because the name is also what a person types into a
-/// URL, and one definition is what keeps the two from drifting.
+/// The rules come from <c>scripts/install.ps1</c>: the version is the tag without its leading <c>v</c> and
+/// without build metadata, and the asset is <c>aiko-&lt;version&gt;-win-x64.zip</c>. They live here rather than
+/// in the source that downloads them because the asset name is also what a person types into a URL, and one
+/// definition keeps the two from drifting.
 /// </remarks>
 public static class ReleaseNaming
 {
@@ -17,9 +16,7 @@ public static class ReleaseNaming
 
     private const string AssetSuffix = "-win-x64.zip";
 
-    /// <summary>
-    /// The version a tag names: the tag without its leading <c>v</c> and without <c>+build</c> metadata.
-    /// </summary>
+    /// <summary>The version a tag names: the tag without its leading <c>v</c> and without <c>+build</c> metadata.</summary>
     /// <param name="tag">Release tag, for example <c>v0.9.2</c>.</param>
     /// <exception cref="FormatException">The tag does not name a version.</exception>
     public static string VersionFromTag(string tag)

@@ -16,8 +16,8 @@ public sealed record InstallationAgentSelection(IReadOnlyList<string>? Agents, b
     public static InstallationAgentSelection Configured { get; } = new(null, false);
 
     /// <summary>
-    /// The adapters to re-apply when the run named none: the ones this machine actually has, because
-    /// re-applying an integration to an agent that is not installed writes files nobody reads.
+    /// The adapters to re-apply when the run named none: the ones this machine has, since re-applying writes
+    /// files into an agent that is not there.
     /// </summary>
     /// <param name="installedAdapterIds">Adapters detected on this machine.</param>
     public IReadOnlyList<string> Targets(IReadOnlyList<string> installedAdapterIds)
@@ -38,18 +38,13 @@ public sealed record InstallationAgentSelection(IReadOnlyList<string>? Agents, b
 /// The repair an installation run performs after it replaced the binaries.
 /// </summary>
 /// <remarks>
-/// A seam rather than a call to the reindexer and the agent installer directly, because the engine's subject
-/// is the files it replaced: what a repair consists of - which projects are reindexed, which agent files are
-/// rewritten - is not something it should have to know. The same repair is what <c>aiko repair --fix</c>
-/// performs, and a second spelling of it is how the two come to disagree.
+/// A seam rather than a call to the reindexer and the agent installer directly: what a repair consists of is not
+/// something an engine whose subject is the files it replaced should have to know. The same repair is what
+/// <c>aiko repair --fix</c> performs, and a second spelling of it is how the two come to disagree.
 /// </remarks>
 public interface IInstallationRepair
 {
-    /// <summary>
-    /// Brings the projects and the agent integrations back to the shape this build expects.
-    /// </summary>
-    /// <param name="selection">Which agents to leave connected.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <summary>Brings the projects and the agent integrations back to the shape this build expects.</summary>
     /// <returns>One step per thing that was touched, in the order it happened.</returns>
     ValueTask<IReadOnlyList<InstallationStep>> RepairAsync(
         InstallationAgentSelection selection,

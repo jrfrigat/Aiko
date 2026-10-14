@@ -7,10 +7,10 @@ namespace Aiko.Application.Releases;
 /// What one card of a release plan is doing right now.
 /// </summary>
 /// <remarks>
-/// <see cref="Missing"/> is not in the story's vocabulary and is here on purpose: a plan keeps card ids, and a
-/// card can be gone - deleted, or moved to a project that is not this one. Reporting such a card as
-/// <see cref="InWork"/> would be a wrong answer a reader could not tell from a right one, and a version whose
-/// plan names a card nobody can find must not read as releasable.
+/// <see cref="Missing"/> is here on purpose: a plan keeps card ids, and a card can be gone - deleted, or moved to
+/// a project that is not this one. Reporting such a card as <see cref="InWork"/> would be a wrong answer a reader
+/// could not tell from a right one, and a version whose plan names a card nobody can find must not read as
+/// releasable.
 /// </remarks>
 public enum ReleasePlanCardState
 {
@@ -27,9 +27,7 @@ public enum ReleasePlanCardState
     Missing
 }
 
-/// <summary>
-/// One card of a plan, as the release screen reads it: where it got to, and who holds it.
-/// </summary>
+/// <summary>One card of a plan, as the release screen reads it: where it got to, and who holds it.</summary>
 /// <param name="CardId">Card the plan waits for.</param>
 /// <param name="Title">Its current title, or null when the card is missing.</param>
 /// <param name="State">Where the card got to.</param>
@@ -42,9 +40,7 @@ public sealed record ReleasePlanCardReadiness(
     ReleasePlanCardState State,
     IReadOnlyList<string> BlockedBy);
 
-/// <summary>
-/// How far a version is from being releasable: the state of each planned card, and what the counts make of it.
-/// </summary>
+/// <summary>How far a version is from being releasable: the state of each planned card, and what the counts make of it.</summary>
 /// <remarks>
 /// Derived from the live cards on every read and never stored: a saved status would have to be repaired after
 /// every stage a card enters, and the thing that repairs it would be the thing that already knows - so the
@@ -62,13 +58,10 @@ public sealed record ReleasePlanReadiness(
     int InWork,
     int Missing)
 {
-    /// <summary>
-    /// Whether every card the plan names has finished, which is what "this version can go" means.
-    /// </summary>
+    /// <summary>Whether every card the plan names has finished, which is what "this version can go" means.</summary>
     /// <remarks>
-    /// A plan with nothing in it is releasable: no card holds the version. That is a state worth reading rather
-    /// than an error - a version whose work is all in other versions ships nothing new, and the release record
-    /// has always allowed an empty card list for exactly that.
+    /// A plan with nothing in it is releasable: no card holds the version, and a version whose work is all in
+    /// other versions ships nothing new.
     /// </remarks>
     public bool IsReleasable => Finished == Cards.Count;
 }
@@ -80,9 +73,7 @@ public sealed record ReleasePlanReadiness(
 /// <param name="Readiness">Where its cards got to, read from the live cards.</param>
 public sealed record ReleasePlanReport(ReleasePlan Plan, ReleasePlanReadiness Readiness);
 
-/// <summary>
-/// Every plan of a project with its readiness, which is what the agent reads before conducting a release.
-/// </summary>
+/// <summary>Every plan of a project with its readiness, which is what the agent reads before a release.</summary>
 /// <param name="Plans">The plans, most recently created first, as the document holds them.</param>
 public sealed record ReleasePlanDocumentReport(IReadOnlyList<ReleasePlanReport> Plans);
 
@@ -92,11 +83,10 @@ public sealed record ReleasePlanDocumentReport(IReadOnlyList<ReleasePlanReport> 
 /// <remarks>
 /// It asks the two questions the rest of Aiko already asks - "did this card reach the end of its pipeline"
 /// (<see cref="CardCompletion.IsFinished"/>) and "who holds it" (<see cref="CardBlocking.Unfinished"/>) - rather
-/// than forming a third opinion about a card. A second rule would sooner or later tell a person something about
-/// a card that the work queue beside it contradicts.
+/// than forming a third opinion that could contradict the work queue beside it.
 /// <para>
-/// Everything needed is read once per call and the per-card questions are answered in memory, the way the work
-/// queue does it: a plan of twenty cards must not cost twenty reads of the project.
+/// Everything needed is read once per call and the per-card questions are answered in memory: a plan of twenty
+/// cards must not cost twenty reads of the project.
 /// </para>
 /// </remarks>
 public sealed class ReleasePlanReadinessProjector(
@@ -106,11 +96,7 @@ public sealed class ReleasePlanReadinessProjector(
     IExecutionCoordinator executions,
     IReleasePlanStore plans)
 {
-    /// <summary>
-    /// Reads the project's plans with the readiness of each.
-    /// </summary>
-    /// <param name="projectId">Project to read, by id or by its readable handle.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <summary>Reads the plans of a project, named by id or by its readable handle, with the readiness of each.</summary>
     public async ValueTask<ReleasePlanDocumentReport> ReadAsync(
         string projectId,
         CancellationToken cancellationToken)

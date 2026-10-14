@@ -1,11 +1,9 @@
 namespace Aiko.Application.Installation;
 
-/// <summary>
-/// Files an installation keeps beside its own binaries.
-/// </summary>
+/// <summary>Files an installation keeps beside its own binaries.</summary>
 /// <remarks>
-/// The directory is also on the user's <c>PATH</c>, so what lives in it is both Aiko's and the machine's:
-/// the names here are what an uninstall, a repair and a version report all look for.
+/// The directory is also on the user's <c>PATH</c>, so what lives in it is both Aiko's and the machine's, and
+/// its names are what an uninstall, a repair and a version report all look for.
 /// </remarks>
 public static class InstallationFiles
 {
