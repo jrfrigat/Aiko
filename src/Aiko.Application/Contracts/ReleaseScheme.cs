@@ -1,27 +1,15 @@
 namespace Aiko.Application.Contracts;
 
 /// <summary>
-/// A named instruction to an agent: how a release of this project is conducted.
+/// A named instruction to an agent: how a release of this project is conducted. A document with a name, a
+/// description and a body - not code and not a pipeline: the build pipeline stays the single
+/// <c>release.yml</c>, and a scheme answers "what to do", not "what to build with". The body is instruction
+/// text an agent reads, so it is written in English like every other agent-facing text Aiko ships, while name
+/// and description are the owner's data and are shown as they were written.
 /// </summary>
-/// <remarks>
-/// A document with a name, a description and a body - the order of steps. Not code and not a pipeline: the
-/// build pipeline stays the single <c>release.yml</c>, and there are as many schemes as a project needs. A
-/// scheme answers "what to do", not "what to build with".
-/// <para>
-/// The body is instruction text an agent reads, so it is written in English like every other agent-facing
-/// text Aiko ships. Name and description are the owner's data rather than interface captions, which is why
-/// they are not localized: a scheme the owner writes is shown as it was written.
-/// </para>
-/// </remarks>
-/// <param name="Id">Stable identifier, also the value a release names to say which scheme it follows.</param>
-/// <param name="Name">Display name.</param>
-/// <param name="Description">What this scheme is for, shown where a scheme is chosen.</param>
-/// <param name="Body">The steps, as the agent reads them.</param>
 public sealed record ReleaseScheme(string Id, string Name, string Description, string Body);
 
-/// <summary>
-/// The schemes Aiko ships with, and the vocabulary around them.
-/// </summary>
+/// <summary>The schemes Aiko ships with, and the vocabulary around them.</summary>
 public static class ReleaseSchemes
 {
     /// <summary>Identifier of the ordinary release scheme.</summary>
@@ -31,22 +19,18 @@ public static class ReleaseSchemes
     public const string GitPreReleaseId = "git-pre-release";
 
     /// <summary>
-    /// The suffix that makes a tag a preliminary release - <c>v0.1.2-pre</c> rather than <c>v0.1.2</c>.
+    /// The suffix that makes a tag a preliminary release - <c>v0.1.2-pre</c> rather than <c>v0.1.2</c>. Named
+    /// once because three things read it: the scheme's body, the workflow that decides whether a release
+    /// becomes the latest one, and the screen that marks a release as preliminary or ordinary.
     /// </summary>
-    /// <remarks>
-    /// Named once, here, because three things read it: the scheme's body, the workflow that decides whether
-    /// a release becomes the latest one, and the screen that marks a release as preliminary or ordinary.
-    /// </remarks>
     public const string PreReleaseSuffix = "-pre";
 
     /// <summary>The two schemes every project has without stating any.</summary>
     public static IReadOnlyList<ReleaseScheme> BuiltIn { get; } =
         [GitRelease(), GitPreRelease()];
 
-    /// <summary>
-    /// The scheme an ordinary release follows: the tag names the version, and the release becomes the latest
-    /// one, so a plain install picks it up.
-    /// </summary>
+    /// <summary>The scheme an ordinary release follows: the tag names the version, and the release becomes the
+    /// latest one, so a plain install picks it up.</summary>
     public static ReleaseScheme GitRelease() => new(
         GitReleaseId,
         "Git release",
@@ -73,10 +57,8 @@ public static class ReleaseSchemes
         The result: this release becomes the latest one.
         """);
 
-    /// <summary>
-    /// The scheme a preliminary release follows: the same order, a tag carrying <c>-pre</c>, and a release
-    /// that does not become the latest one.
-    /// </summary>
+    /// <summary>The scheme a preliminary release follows: the same order, a tag carrying <c>-pre</c>, and a
+    /// release that does not become the latest one.</summary>
     public static ReleaseScheme GitPreRelease() => new(
         GitPreReleaseId,
         "Git pre-release",

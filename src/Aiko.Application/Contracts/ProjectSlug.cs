@@ -7,12 +7,11 @@ namespace Aiko.Application.Contracts;
 /// unique among the registered projects.
 /// </summary>
 /// <remarks>
-/// A project has two identifiers and they answer different questions. Its <c>Id</c> is a generated GUID: the
-/// immutable key written into every <c>card.json</c>, every relation and every agent's MCP endpoint, which
-/// is why cross-project references survive anything a user does to the visible name. Its slug is what a
+/// A project has two identifiers that answer different questions: <c>Id</c> is a generated GUID and the
+/// immutable key written into every <c>card.json</c>, relation and MCP endpoint, while the slug is what a
 /// person reads and types - <c>/p/aiko/board</c> instead of <c>/p/01a0b037d5b77a569e83aebe6d29a33a/board</c>.
-/// Because the slug is derived from a name it can collide, so it is checked and, when a value was not typed
-/// by hand, made unique with a numeric suffix rather than refusing to create the project.
+/// A derived slug can collide, so one that was not typed by hand is made unique with a numeric suffix rather
+/// than refused.
 /// </remarks>
 public static class ProjectSlug
 {
@@ -22,11 +21,8 @@ public static class ProjectSlug
     /// <summary>What a name that transliterates to nothing becomes, so a slug is never empty.</summary>
     public const string Fallback = "project";
 
-    /// <summary>
-    /// Cyrillic to Latin, one letter at a time: practically the GOST-style table a Russian reader expects,
-    /// with <c>й</c> written as <c>j</c> (so "Мой" is <c>moj</c>) and the letters that have no sound of
-    /// their own dropped.
-    /// </summary>
+    /// <summary>Cyrillic to Latin, one letter at a time - practically the GOST-style table a Russian reader
+    /// expects, with <c>й</c> written as <c>j</c> and the letters that have no sound of their own dropped.</summary>
     private static readonly Dictionary<char, string> Transliteration = new()
     {
         ['а'] = "a", ['б'] = "b", ['в'] = "v", ['г'] = "g", ['д'] = "d", ['е'] = "e", ['ё'] = "e",
@@ -38,11 +34,8 @@ public static class ProjectSlug
         ['і'] = "i", ['ї'] = "ji", ['є'] = "je", ['ґ'] = "g"
     };
 
-    /// <summary>
-    /// Builds a slug out of a display name: lower-case, Cyrillic transliterated, everything else that is not
-    /// a latin letter or a digit turned into a single dash.
-    /// </summary>
-    /// <param name="name">Display name, for example <c>Мой пеРвыЙ проект</c>.</param>
+    /// <summary>Builds a slug out of a display name: lower-case, Cyrillic transliterated, everything else that
+    /// is not a latin letter or a digit turned into a single dash.</summary>
     public static string Derive(string? name)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -92,11 +85,8 @@ public static class ProjectSlug
             : result[..MaxLength].TrimEnd('-');
     }
 
-    /// <summary>
-    /// Whether a value may be used as a slug: latin lower-case letters, digits and dashes, not starting or
-    /// ending with one, and short enough for a URL.
-    /// </summary>
-    /// <param name="slug">Value to check.</param>
+    /// <summary>Whether a value may be used as a slug: latin lower-case letters, digits and dashes, not
+    /// starting or ending with one, and short enough for a URL.</summary>
     public static bool IsValid(string? slug)
     {
         if (string.IsNullOrWhiteSpace(slug) || slug.Length > MaxLength ||
@@ -111,15 +101,10 @@ public static class ProjectSlug
     }
 
     /// <summary>
-    /// Returns the slug itself when it is free, otherwise the shortest <c>slug-2</c>, <c>slug-3</c>, ... that
-    /// is free.
+    /// Returns the slug itself when it is free, otherwise the shortest <c>slug-2</c>, <c>slug-3</c>, ... that is
+    /// free. For a slug Aiko derived itself: a user who typed the value gets an error instead, but a user who
+    /// only picked a folder should never be told the project cannot be created because the name is popular.
     /// </summary>
-    /// <remarks>
-    /// For a slug Aiko derived itself: a user who typed the value gets an error instead, but a user who only
-    /// picked a folder should never be told their project cannot be created because the name is popular.
-    /// </remarks>
-    /// <param name="slug">Desired slug, normally the result of <see cref="Derive"/>.</param>
-    /// <param name="isTaken">Whether a candidate already belongs to another project.</param>
     public static string MakeUnique(string slug, Func<string, bool> isTaken)
     {
         ArgumentNullException.ThrowIfNull(isTaken);

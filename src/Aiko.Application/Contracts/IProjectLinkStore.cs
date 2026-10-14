@@ -1,45 +1,28 @@
 namespace Aiko.Application.Contracts;
 
 /// <summary>
-/// Store of the projects this one is linked to: <c>.aiko/links.json</c> is the source of truth.
+/// Store of the projects this one is linked to: <c>.aiko/links.json</c> is the source of truth. A registry of
+/// its own rather than a field on the project manifest - a link is written while the project runs and changes
+/// far more often than the manifest, and keeping the two apart means a broken link cannot stop a project from
+/// being read.
 /// </summary>
-/// <remarks>
-/// A registry of its own rather than a field on the project manifest: a link is written while the project runs,
-/// it changes far more often than the manifest, and keeping the two apart means a broken link cannot stop a
-/// project from being read.
-/// </remarks>
 public interface IProjectLinkStore
 {
-    /// <summary>
-    /// Returns the links of a project; the project may be addressed by its id or by its readable handle.
-    /// </summary>
+    /// <summary>Returns the links of a project, addressed by its id or by its readable handle.</summary>
     ValueTask<IReadOnlyList<ProjectLink>> ListAsync(string projectId, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Adds or replaces the link to one project. The target is resolved through the registry of projects, so a
-    /// project nobody has registered cannot be linked, and linking a project to itself is refused.
+    /// Adds or replaces the link to one project, resolving the target through the registry of projects: a
+    /// project nobody registered cannot be linked, and linking a project to itself is refused. The entry is
+    /// replaced whole, so a text left out is cleared - blank and absent mean the same thing on the way in.
     /// </summary>
-    /// <remarks>
-    /// The write replaces the neighbour's entry whole, exactly as the one description used to be replaced: a
-    /// second write that leaves the optional texts out clears them, because a field nobody sent back is a field
-    /// the person emptied. Blank and absent are the same thing on the way in.
-    /// </remarks>
-    /// <param name="projectId">Project whose registry is written.</param>
-    /// <param name="targetProjectId">Id or handle of the project to link.</param>
-    /// <param name="text">What that project is for, where its reference lives and when work belongs there.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
     ValueTask<ProjectLink> SaveAsync(
         string projectId,
         string targetProjectId,
         ProjectLinkText text,
         CancellationToken cancellationToken);
 
-    /// <summary>
-    /// Removes the link to one project; a link that is not there is not an error.
-    /// </summary>
-    /// <param name="projectId">Project whose registry is written.</param>
-    /// <param name="targetProjectId">Id or handle of the linked project.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <summary>Removes the link to one project; a link that is not there is not an error.</summary>
     ValueTask RemoveAsync(
         string projectId,
         string targetProjectId,

@@ -3,18 +3,11 @@ using Aiko.Domain.Cards;
 namespace Aiko.Application.Contracts;
 
 /// <summary>
-/// One note in a card's discussion: who wrote it, what it says and when.
+/// One note in a card's discussion: who wrote it, what it says and when. <c>Origin</c> is set only when the
+/// note was written into another project's card - it then carries the reporting project, the card it answers
+/// and the adapter, so the neighbour's feed shows where the reply came from - and a note written where it
+/// lives has none.
 /// </summary>
-/// <param name="Id">Identifier of the entry.</param>
-/// <param name="Author">Who wrote it - a person's name, or the agent the run belongs to.</param>
-/// <param name="Body">The note itself, as it was typed.</param>
-/// <param name="CreatedAtUtc">When it was written, in UTC.</param>
-/// <param name="Origin">
-/// Where the note came from when it was written into another project's card, or null when it was written
-/// where it lives. A cross-project note carries the reporting project, the card it answers and the adapter,
-/// so the neighbour's feed shows where the reply came from. Optional, so a discussion written before this
-/// field existed reads back as a note that came from nowhere.
-/// </param>
 public sealed record CardComment(
     string Id,
     string Author,
@@ -23,33 +16,21 @@ public sealed record CardComment(
     CardOrigin? Origin = null);
 
 /// <summary>
-/// The notes left on a card.
+/// The notes left on a card: <c>discussion.json</c> inside the card's own folder, next to <c>card.json</c>.
 /// </summary>
 /// <remarks>
-/// A note is authored content, so it lives with the card: <c>discussion.json</c> inside the card's own
-/// folder, next to <c>card.json</c>. Aiko keeps no second copy - an entry the user wrote is not analytics,
-/// and the daemon must not be the only place it exists.
+/// A note is authored content, so it lives with the card and Aiko keeps no second copy: an entry the user
+/// wrote is not analytics, and the daemon must not be the only place it exists.
 /// </remarks>
 public interface ICardDiscussionStore
 {
-    /// <summary>
-    /// Reads a card's notes, oldest first.
-    /// </summary>
-    /// <param name="card">Card to read.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <summary>Reads a card's notes, oldest first.</summary>
     ValueTask<IReadOnlyList<CardComment>> ListAsync(CardReference card, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Appends one note to a card's discussion and returns it.
+    /// Appends one note to a card's discussion and returns it, with the provenance of a cross-project write
+    /// when there is one; an empty note is rejected.
     /// </summary>
-    /// <param name="card">Card to write to.</param>
-    /// <param name="author">Who wrote it.</param>
-    /// <param name="body">The note itself; empty notes are rejected.</param>
-    /// <param name="origin">
-    /// Provenance when the note is written across a project boundary, or null when it is written where the
-    /// card lives.
-    /// </param>
-    /// <param name="cancellationToken">Cancellation token.</param>
     ValueTask<CardComment> AppendAsync(
         CardReference card,
         string author,
@@ -58,16 +39,8 @@ public interface ICardDiscussionStore
         CancellationToken cancellationToken);
 }
 
-/// <summary>
-/// The <c>discussion.json</c> document: the notes of one card.
-/// </summary>
-/// <param name="SchemaVersion">Schema version of the file.</param>
-/// <param name="Entries">The notes, oldest first.</param>
+/// <summary>The <c>discussion.json</c> document: the notes of one card, oldest first.</summary>
 public sealed record DiscussionDocument(int SchemaVersion, IReadOnlyList<CardComment> Entries);
 
-/// <summary>
-/// A note as a client sends it.
-/// </summary>
-/// <param name="Author">Who is writing, or null for the local user.</param>
-/// <param name="Body">The note.</param>
+/// <summary>A note as a client sends it; a null author is the local user.</summary>
 public sealed record AddCommentRequest(string? Author, string Body);
