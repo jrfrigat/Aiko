@@ -9,9 +9,9 @@ namespace Aiko.Infrastructure.Memory;
 /// Loads the provider that turns text into vectors for a named model, or the default one.
 /// </summary>
 /// <remarks>
-/// An interface rather than a direct call to the ONNX provider, because the search around the provider is what
-/// the specs prove and a session with a 118 MB graph is not something a spec may need. A run substitutes a
-/// deterministic provider here; the daemon substitutes the real one.
+/// An interface rather than a direct call to the ONNX provider: the search around the provider is what the
+/// specs prove, and a session with a 118 MB graph is not something a spec may need, so a run substitutes a
+/// deterministic provider here and the daemon the real one.
 /// </remarks>
 public interface IEmbeddingProviderFactory
 {
@@ -30,9 +30,8 @@ public sealed class OnnxEmbeddingProviderFactory(
     BuiltInEmbeddingModelCatalog catalog) : IEmbeddingProviderFactory
 {
     /// <summary>
-    /// Length of the vectors the shipped model produces. Named here rather than read from the registry because
-    /// the registry records files and checksums, not tensor shapes, and the shape of the one model Aiko ships is
-    /// a fact, not a guess.
+    /// Length of the vectors the shipped model produces: named here because the registry records files and
+    /// checksums, not tensor shapes, and the shape of the one model Aiko ships is a fact, not a guess.
     /// </summary>
     public const int DefaultDimensions = 384;
 

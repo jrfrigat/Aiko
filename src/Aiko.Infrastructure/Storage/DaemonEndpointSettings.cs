@@ -13,14 +13,10 @@ namespace Aiko.Infrastructure.Storage;
 /// </param>
 public sealed record DaemonEndpointSettings(int Port, LogRetentionSettings? Logs = null)
 {
-    /// <summary>
-    /// Base URL of the daemon on the loopback interface.
-    /// </summary>
+    /// <summary>Base URL of the daemon on the loopback interface.</summary>
     public Uri BaseUri => new($"http://127.0.0.1:{Port}");
 
-    /// <summary>
-    /// The retention in force: what the file states, or the built-in bounds when it states nothing.
-    /// </summary>
+    /// <summary>The retention in force: what the file states, or the built-in bounds when it states nothing.</summary>
     public LogRetentionSettings EffectiveLogs => Logs ?? LogRetentionSettings.Default;
 }
 

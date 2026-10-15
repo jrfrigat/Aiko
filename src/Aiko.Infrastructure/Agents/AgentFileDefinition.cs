@@ -5,7 +5,7 @@ namespace Aiko.Infrastructure.Agents;
 /// </summary>
 /// <remarks>
 /// The marker is the whole ownership check: a file carrying it may be replaced or deleted, and one without it
-/// never is. It lives beside the definition rather than inside the record because a primary constructor's
+/// never is. It lives beside the definition rather than inside the record, because a primary constructor's
 /// default value cannot reference the record's own members.
 /// </remarks>
 internal static class AgentFileMarkers
@@ -15,8 +15,7 @@ internal static class AgentFileMarkers
 }
 
 /// <summary>
-/// Description of an agent configuration file: path, purpose, integration kind
-/// and desired content.
+/// Description of an agent configuration file: path, purpose, integration kind and desired content.
 /// </summary>
 /// <param name="Path">Absolute path of the file.</param>
 /// <param name="Description">What installing this file does, for the plan output.</param>
@@ -45,9 +44,7 @@ internal sealed record AgentFileDefinition(
     string? McpTransport = null)
 {
 
-    /// <summary>
-    /// Creates a definition for an HTTP MCP server entry in the root mcpServers object.
-    /// </summary>
+    /// <summary>Creates a definition for an HTTP MCP server entry in the root mcpServers object.</summary>
     public static AgentFileDefinition JsonMcp(
         string path,
         string description,
@@ -72,9 +69,7 @@ internal sealed record AgentFileDefinition(
         new(path, description, AgentFileKind.FlatJsonMcp, projectMcpEndpoint, serverKey,
             AccessToken: accessToken, McpTransport: mcpTransport);
 
-    /// <summary>
-    /// Creates a definition for an HTTP MCP server entry in the nested mcp.servers object.
-    /// </summary>
+    /// <summary>Creates a definition for an HTTP MCP server entry in the nested mcp.servers object.</summary>
     public static AgentFileDefinition NestedJsonMcp(
         string path,
         string description,

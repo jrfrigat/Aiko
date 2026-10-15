@@ -4,16 +4,12 @@ namespace Aiko.Infrastructure.Storage;
 /// The daemon's start-at-sign-in entry: one command file in the user's own Startup folder.
 /// </summary>
 /// <remarks>
-/// <para>
-/// A per-user startup folder rather than a registry Run key, for two reasons: the file is plain text the
-/// person can read, and removing it is deleting a file - no registry hive, no separate API, nothing that
-/// only Windows can do. A machine that has no such folder (every platform but Windows) reports itself as
-/// not enabled and refuses to write, instead of failing halfway.
-/// </para>
-/// <para>
-/// Nothing is written without being asked for: the installer offers the choice, defaults to not writing,
-/// and <c>aiko uninstall</c> removes the entry as part of taking the installation off.
-/// </para>
+/// A per-user startup folder rather than a registry Run key: the file is plain text the person can read, and
+/// removing it is deleting a file - no registry hive, no separate API, nothing that only Windows can do. A
+/// machine with no such folder (every platform but Windows) reports itself as not enabled and refuses to
+/// write, instead of failing halfway. Nothing is written without being asked for: the installer offers the
+/// choice, defaults to not writing, and <c>aiko uninstall</c> removes the entry as part of taking the
+/// installation off.
 /// </remarks>
 public sealed class AikoAutostart
 {
@@ -58,8 +54,8 @@ public sealed class AikoAutostart
     /// the writer alone, so what is written can be asserted without running it.
     /// </summary>
     /// <remarks>
-    /// <c>start "" /min</c> is there because the command file runs in the user's session: the CLI starts the
-    /// daemon and exits, and without the window handling that exit is visible on every sign-in.
+    /// <c>start "" /min</c> is there because the command file runs in the user's session: without the window
+    /// handling, the CLI's exit would be visible on every sign-in.
     /// </remarks>
     public string Body =>
         string.Join(
@@ -71,9 +67,7 @@ public sealed class AikoAutostart
                 $"start \"\" /min \"{ExecutablePath}\" {StartArguments}"
             ]) + Environment.NewLine;
 
-    /// <summary>
-    /// Writes the entry, replacing one that is already there.
-    /// </summary>
+    /// <summary>Writes the entry, replacing one that is already there.</summary>
     public void Enable()
     {
         if (!IsSupported)
@@ -87,9 +81,7 @@ public sealed class AikoAutostart
         File.WriteAllText(EntryPath, Body);
     }
 
-    /// <summary>
-    /// Removes the entry.
-    /// </summary>
+    /// <summary>Removes the entry.</summary>
     /// <returns>Whether there was one to remove.</returns>
     public bool Disable()
     {

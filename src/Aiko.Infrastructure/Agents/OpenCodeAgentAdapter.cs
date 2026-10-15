@@ -98,8 +98,8 @@ public sealed class OpenCodeAgentAdapter : BuiltInAgentAdapter
 
     /// <inheritdoc />
     /// <remarks>
-    /// The daemon-level procedures, the ones that belong to no project. They are fixed names, so no sweep is
-    /// needed here; the project's own per-type commands are swept through <see cref="OwnedDirectories"/>.
+    /// The daemon-level procedures, the ones that belong to no project: fixed names, so no sweep is needed here;
+    /// the project's own per-type commands are swept through <see cref="OwnedDirectories"/>.
     /// </remarks>
     private protected override IReadOnlyList<AgentFileDefinition> CreateUserFiles() =>
     [
@@ -135,8 +135,8 @@ public sealed class OpenCodeAgentAdapter : BuiltInAgentAdapter
             content);
 
     /// <summary>
-    /// <c>~/.config/opencode</c>: the directory the client keeps its configuration in, resolved through the
-    /// base helper so a portable install or a spec that moves the home directory sees the change.
+    /// <c>~/.config/opencode</c>: the directory the client keeps its configuration in, resolved through the base
+    /// helper so a portable install or a spec that moves the home directory sees the change.
     /// </summary>
     private static string GlobalDirectory() => UserPath(".config", ConfigurationDirectoryName);
 

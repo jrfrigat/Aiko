@@ -8,14 +8,10 @@ namespace Aiko.Infrastructure.Agents;
 /// <remarks>
 /// This list is a promise the product makes about which agents Aiko connects, and more than one host has to
 /// keep it: the daemon registers an adapter per entry, the CLI builds its installer from them and the
-/// installer executable hands them to the repair. Three copies of five names is how one host comes to miss
-/// an adapter the others have - the screens would offer an agent that the repair never rewrites, or a
-/// command would land in one adapter and not its neighbour - so the list lives here and they all read it.
-/// <para>
-/// Instances rather than types, because the callers differ in what they need: a container takes the type of
-/// each entry, while the installer passes the objects straight to the engine. Deriving the types from the
-/// instances keeps this one list instead of two that could disagree.
-/// </para>
+/// installer executable hands them to the repair. Separate copies of the names are how the screens come to
+/// offer an agent the repair never rewrites, so the list lives here and they all read it. Instances rather
+/// than types, because the callers differ in what they need; deriving one from the other keeps a single list
+/// instead of two that could disagree.
 /// </remarks>
 public static class AgentAdapters
 {
@@ -24,7 +20,7 @@ public static class AgentAdapters
     /// </summary>
     /// <remarks>
     /// A method rather than a cached list: an adapter holds the paths and the detection it derives from the
-    /// machine it runs on, and a host that asks for them asks once, at its own composition time.
+    /// machine it runs on, and a host asks for them once, at its own composition time.
     /// </remarks>
     public static IReadOnlyList<IAgentAdapter> CreateBuiltIn() =>
     [

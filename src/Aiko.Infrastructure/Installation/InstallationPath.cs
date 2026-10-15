@@ -2,25 +2,19 @@ using Aiko.Infrastructure.Storage;
 
 namespace Aiko.Infrastructure.Installation;
 
-/// <summary>
-/// The user <c>PATH</c> entry an installation adds, and the rule for whether it is already there.
-/// </summary>
+/// <summary>The user <c>PATH</c> entry an installation adds, and the rule for whether it is already there.</summary>
 /// <remarks>
-/// A directory the user <c>PATH</c> already names is left exactly as it is: an installer that rewrote the
-/// value every run would reorder a value a person may have edited, and rewriting it identically is still a
-/// change to a machine-wide setting. Adding is therefore conditional, and the condition is decided by the
-/// same rule the removal uses.
+/// A directory the user <c>PATH</c> already names is left exactly as it is: an installer that rewrote the value
+/// every run would reorder a value a person may have edited, and rewriting it identically is still a change to a
+/// machine-wide setting. Adding is conditional, and the condition is the rule the removal uses.
 /// </remarks>
 public static class InstallationPath
 {
-    /// <summary>
-    /// Adds a directory to a PATH value, reporting whether the value changed.
-    /// </summary>
+    /// <summary>Adds a directory to a PATH value, reporting whether the value changed.</summary>
     /// <remarks>
-    /// Whether the directory is already named is answered by <see cref="AikoInstallation.RemovePathEntry"/>:
-    /// it is the one place that knows a trailing separator or another case is still the same directory, and
-    /// asking it is what keeps the project from having two answers to one question. Its returned value is
-    /// dropped - only its answer to "was it there?" is wanted.
+    /// Whether the directory is already named is answered by <see cref="AikoInstallation.RemovePathEntry"/>: it
+    /// is the one place that knows a trailing separator or another case is still the same directory, and asking
+    /// it keeps the project from having two answers to one question. Its returned value is dropped.
     /// </remarks>
     /// <param name="pathValue">Current PATH value, or null when there is none.</param>
     /// <param name="directory">Directory to add.</param>
@@ -43,9 +37,7 @@ public static class InstallationPath
         return trimmed.Length == 0 ? directory : $"{trimmed};{directory}";
     }
 
-    /// <summary>
-    /// Adds the directory to the user <c>PATH</c>, returning whether anything changed.
-    /// </summary>
+    /// <summary>Adds the directory to the user <c>PATH</c>, returning whether anything changed.</summary>
     /// <remarks>
     /// The only part of this type that touches the machine, and deliberately thin: the decision is in
     /// <see cref="AddPathEntry"/>, which is what the specs exercise, because a spec that wrote the user

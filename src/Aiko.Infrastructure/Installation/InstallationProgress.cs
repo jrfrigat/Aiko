@@ -6,8 +6,8 @@ namespace Aiko.Infrastructure.Installation;
 /// <remarks>
 /// Called <b>before</b> the work of a phase, not after it: the point is to say what is being waited for while
 /// it is being waited for, because the longest part of a run - a download - says nothing on its own. The
-/// report an <see cref="InstallationEngine"/> returns stays the record of what happened, in order, and is what
-/// a script reads; this is what a person watching sees (TASK-352).
+/// report an <see cref="InstallationEngine"/> returns stays the record of what happened, in order, and is
+/// what a script reads; this is what a person watching sees.
 /// </remarks>
 public interface IInstallationProgress
 {

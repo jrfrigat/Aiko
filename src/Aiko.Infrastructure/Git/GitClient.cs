@@ -8,13 +8,10 @@ namespace Aiko.Infrastructure.Git;
 /// The git client of the machine, run as a command.
 /// </summary>
 /// <remarks>
-/// One process per question, no shell: the arguments are passed as a list, so a path with spaces or a quote
-/// in it cannot turn into a different command. Every call has a timeout, because a git command waiting for a
-/// credential prompt would otherwise hang the daemon's request thread.
-/// <para>
-/// Nothing here throws for a missing client or for a directory that is not a repository: those are answers a
-/// screen shows ("Git client unavailable"), not failures of the daemon.
-/// </para>
+/// One process per question, no shell: the arguments are passed as a list, so a path with spaces or a quote in
+/// it cannot turn into a different command. Every call has a timeout, because a git command waiting for a
+/// credential prompt would otherwise hang the daemon's request thread. Nothing here throws for a missing client
+/// or for a directory that is not a repository: those are answers a screen shows, not failures of the daemon.
 /// </remarks>
 public sealed class GitClient : IGitClient
 {
@@ -23,16 +20,14 @@ public sealed class GitClient : IGitClient
     private static readonly TimeSpan CommandTimeout = TimeSpan.FromSeconds(15);
 
     /// <summary>
-    /// The program each question is asked with, and the arguments that go before the question itself: git,
-    /// with none, in the product. A spec substitutes a command of its own to reach the refusal branch - one
-    /// that never answers - because a real git cannot be made to hang on demand (TASK-349).
+    /// The program each question is asked with, and the arguments that go before the question itself: git, with
+    /// none, in the product. A spec substitutes a command that never answers, to reach the refusal branch.
     /// </summary>
     internal (string FileName, string[] Prefix) Command { get; init; } = ("git", []);
 
     /// <summary>
-    /// How long a question may take before it counts as unanswered. Fifteen seconds in the product; a spec
-    /// whose command never answers shortens it, so the refusal is reached without waiting a quarter of a
-    /// minute for it (TASK-349).
+    /// How long a question may take before it counts as unanswered. Fifteen seconds in the product; a spec whose
+    /// command never answers shortens it, so the refusal is reached without waiting for it.
     /// </summary>
     internal TimeSpan CommandWait { get; init; } = CommandTimeout;
 
@@ -314,11 +309,9 @@ public sealed class GitClient : IGitClient
         }
         catch (Exception)
         {
-            // Win32Exception (no git on PATH), InvalidOperationException (no working directory), a timeout
-            // and a cancelled request all mean the same thing here: git did not answer this question. The
-            // process is ours to end, though: disposing it releases the handle and leaves the command
-            // running, so a git that never answers would stay alive, and every timeout would add another
-            // one (TASK-160).
+            // Win32Exception (no git on PATH), InvalidOperationException (no working directory), a timeout and a
+            // cancelled request all mean the same thing here: git did not answer this question. The process is
+            // ours to end.
             EndProcess(process);
             return GitRun.Failed;
         }
@@ -332,9 +325,9 @@ public sealed class GitClient : IGitClient
     /// Ends a git process this client no longer waits for, together with whatever that command started.
     /// </summary>
     /// <remarks>
-    /// An already ended process is the ordinary case rather than an error: the command may have exited
-    /// between the check and the kill, and nothing is left to end then. A <c>null</c> is the same story - the
-    /// client could not start anything in the first place (TASK-160).
+    /// An already ended process is the ordinary case rather than an error: the command may have exited between
+    /// the check and the kill, and nothing is left to end then. A <c>null</c> is the same story - the client
+    /// could not start anything in the first place.
     /// </remarks>
     internal static void EndProcess(Process? process)
     {

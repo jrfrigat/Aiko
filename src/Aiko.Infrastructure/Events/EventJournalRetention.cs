@@ -10,22 +10,20 @@ namespace Aiko.Infrastructure.Events;
 /// </summary>
 /// <remarks>
 /// The journal is what replay reads, so its rows disappear only past an age the settings name, and never in
-/// silence: before a project's rows go, a marker event of that project states how many were removed and
-/// over which id range. A replay that then finds a gap can point at the reason instead of at a bug.
+/// silence: before a project's rows go, a marker event states how many were removed and over which id range,
+/// so a replay that finds a gap can point at the reason instead of at a bug.
 /// </remarks>
 public sealed class EventJournalRetention(AikoDatabase database, IAikoEventPublisher events)
 {
     /// <summary>Type of the marker a trim leaves behind.</summary>
     /// <remarks>
-    /// Spelled here rather than in <c>AikoEventTypes</c> because it is not an event a card produced: it is
-    /// the journal talking about itself. A subscriber with no case for the type ignores it, exactly as it
-    /// ignores any other type it does not know.
+    /// Spelled here rather than in <c>AikoEventTypes</c> because it is not an event a card produced: it is the
+    /// journal talking about itself, and a subscriber with no case for the type ignores it like any other type
+    /// it does not know.
     /// </remarks>
     public const string TrimmedEventType = "journal-trimmed";
 
-    /// <summary>
-    /// Removes journal rows older than the retention and leaves one marker per affected project.
-    /// </summary>
+    /// <summary>Removes journal rows older than the retention and leaves one marker per affected project.</summary>
     /// <param name="settings">The retention in force.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     public async ValueTask<EventJournalTrimResult> TrimAsync(

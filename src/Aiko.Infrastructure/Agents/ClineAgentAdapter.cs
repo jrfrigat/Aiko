@@ -3,26 +3,20 @@ using Aiko.Application.Agents;
 namespace Aiko.Infrastructure.Agents;
 
 /// <summary>
-/// Cline adapter.
+/// Connects Cline: its shared configuration files, the workspace rules and skills, and one MCP entry per
+/// project.
 /// </summary>
 /// <remarks>
-/// Cline's configuration is split by scope: <c>~/.cline/</c> is shared by every Cline application (IDE,
-/// CLI, desktop, SDK) and <c>.cline/</c> belongs to one workspace. Two consequences shape this adapter:
-/// <list type="bullet">
-/// <item>project-scoped configuration is files only - a project carries its skills
-/// (<c>.cline/skills</c>) and its rules (<c>.clinerules</c>), and Cline reads no MCP configuration from a
-/// workspace;</item>
-/// <item>the MCP endpoint therefore goes into Cline's global files, one entry per project
-/// (<c>aiko-&lt;handle&gt;</c>), because a single entry cannot name a project. Cline can enable and disable
-/// servers, so several projects can coexist.</item>
-/// </list>
-/// Hooks and plugins are executable code, so Aiko installs neither anywhere.
+/// Cline's configuration is split by scope: <c>~/.cline/</c> is shared by every Cline application (IDE, CLI,
+/// desktop, SDK) and <c>.cline/</c> belongs to one workspace. A workspace carries no MCP configuration, so the
+/// endpoint goes into the global files, one entry per project (<c>aiko-&lt;handle&gt;</c>) - a single entry
+/// could name only one project. Hooks and plugins are executable code, so Aiko installs neither anywhere.
 /// </remarks>
 public sealed class ClineAgentAdapter : BuiltInAgentAdapter
 {
     /// <summary>
-    /// Directory the Cline applications keep their shared configuration in. The desktop app and the IDE
-    /// extension have no executable on PATH, so the directory itself is the sign that Cline is installed.
+    /// Directory the Cline applications keep their shared configuration in: the desktop app and the IDE extension
+    /// have no executable on PATH, so the directory itself is the sign that Cline is installed.
     /// </summary>
     internal const string ConfigurationDirectoryName = ".cline";
 
@@ -53,13 +47,10 @@ public sealed class ClineAgentAdapter : BuiltInAgentAdapter
 
     /// <inheritdoc />
     /// <remarks>
-    /// The workspace half: the project's working contract, its skills, and the MCP entry. The entry goes
-    /// into Cline's global files because a workspace cannot carry one - it is named after the project so
-    /// several projects can be connected at once.
-    /// <para>
-    /// Cline has no slash commands, so the procedures reach it as skills only - one per card type the
-    /// project declares, which is why <paramref name="cardTypes"/> is no longer ignorable here.
-    /// </para>
+    /// The workspace half: the project's working contract, its skills, and the MCP entry - the entry going into
+    /// Cline's global files, because a workspace cannot carry one, and named after the project so several can be
+    /// connected at once. Cline has no slash commands, so the procedures reach it as skills only, one per card
+    /// type the project declares, which is why <paramref name="cardTypes"/> is no longer ignorable here.
     /// </remarks>
     private protected override IReadOnlyList<AgentFileDefinition> CreateFiles(
         string projectRoot,

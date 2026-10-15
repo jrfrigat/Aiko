@@ -8,15 +8,12 @@ namespace Aiko.Infrastructure.Installation;
 /// Prepares a release beside the installation: download, verify, unpack, validate.
 /// </summary>
 /// <remarks>
-/// Everything happens next to the install directory, never inside it, and the order is the guarantee the
-/// story asks for: the checksum is verified and the layout is validated <b>before</b> anything replaces the
-/// installed version, so a download that failed, a substituted archive or an incomplete release leaves the
-/// previous version exactly as it was - without a separate rollback path for it.
-/// <para>
-/// The unpacking itself is not done here: <see cref="ProjectArchive.ExtractAsync"/> already unpacks and
-/// refuses any entry that would land outside its target, and a second unpacker would be a second place where
-/// that protection lives.
-/// </para>
+/// Everything happens next to the install directory, never inside it, and the checksum is verified and the
+/// layout validated <b>before</b> anything replaces the installed version, so a download that failed, a
+/// substituted archive or an incomplete release leaves the previous version exactly as it was - without a
+/// separate rollback path for it. The unpacking itself is <see cref="ProjectArchive.ExtractAsync"/>, which
+/// already refuses any entry that would land outside its target; a second unpacker would be a second place
+/// where that protection lives.
 /// </remarks>
 public sealed class ReleaseStaging(IReleaseSource source, IInstallationProgress? progress = null)
 {
@@ -40,7 +37,7 @@ public sealed class ReleaseStaging(IReleaseSource source, IInstallationProgress?
         var version = ReleaseNaming.VersionFromTag(tag);
 
         // A download is the longest wait a run has, and the one that used to say nothing at all: the phases
-        // around it are what a person watching has to go on (TASK-352).
+        // around it are what a person watching has to go on.
         static string DescribeSize(long bytes) =>
             bytes >= 1024 * 1024
                 ? $"{bytes / (1024.0 * 1024.0):0.#} MB"
