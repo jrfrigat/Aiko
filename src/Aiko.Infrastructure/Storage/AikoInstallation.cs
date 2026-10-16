@@ -5,10 +5,9 @@ namespace Aiko.Infrastructure.Storage;
 /// </summary>
 /// <remarks>
 /// The installer publishes the daemon, the CLI and the stdio proxy into <c>&lt;data&gt;\bin</c> and adds that
-/// directory to the user PATH; everything else Aiko owns lives in the data directory beside it. Undoing that
-/// is three separate questions - the PATH entry, the binaries, and the data - and the data is never removed
-/// without being asked for by name, because it holds every project's registration, the event journal and the
-/// access token.
+/// directory to the user PATH; everything else Aiko owns lives in the data directory beside it. Undoing that is
+/// three separate questions - the PATH entry, the binaries, and the data - and the data is never removed without
+/// being asked for by name.
 /// </remarks>
 public sealed class AikoInstallation(AikoDataPaths paths)
 {
@@ -20,9 +19,7 @@ public sealed class AikoInstallation(AikoDataPaths paths)
         Path.GetDirectoryName(paths.DatabasePath)
         ?? throw new InvalidOperationException("The database path must include a directory.");
 
-    /// <summary>
-    /// Removes one directory entry from a PATH value, keeping every other entry and their order.
-    /// </summary>
+    /// <summary>Removes one directory entry from a PATH value, keeping every other entry and their order.</summary>
     /// <param name="pathValue">PATH value to edit.</param>
     /// <param name="directory">Directory to drop.</param>
     /// <param name="removed">Whether the value named that directory at all.</param>
@@ -36,8 +33,8 @@ public sealed class AikoInstallation(AikoDataPaths paths)
     }
 
     /// <summary>
-    /// Removes the PATH entry an install added, reporting whether there was one. A second run finds nothing
-    /// and leaves the value alone rather than rewriting an identical string.
+    /// Removes the PATH entry an install added, reporting whether there was one: a second run finds nothing and
+    /// leaves the value alone rather than rewriting an identical string.
     /// </summary>
     public bool RemoveFromUserPath()
     {
@@ -66,9 +63,9 @@ public sealed class AikoInstallation(AikoDataPaths paths)
     /// Deletes the published binaries, returning the files that could not be deleted.
     /// </summary>
     /// <remarks>
-    /// The running <c>aiko</c> is one of these files on Windows, so an uninstall started from the installed
-    /// CLI always leaves something behind. That is reported rather than treated as a failure: the caller is
-    /// the process holding the file, and it can say so.
+    /// The running <c>aiko</c> is one of these files on Windows, so an uninstall started from the installed CLI
+    /// always leaves something behind. That is reported rather than treated as a failure: the caller is the
+    /// process holding the file, and it can say so.
     /// </remarks>
     public InstallationRemoval RemoveBinaries()
     {
@@ -103,9 +100,7 @@ public sealed class AikoInstallation(AikoDataPaths paths)
         return new InstallationRemoval(true, blocked);
     }
 
-    /// <summary>
-    /// Deletes the daemon's own data directory - database, settings, token, backed-up archives and templates.
-    /// </summary>
+    /// <summary>Deletes the daemon's own data directory - database, settings, token, archives and templates.</summary>
     /// <returns>What was there and what could not be deleted.</returns>
     public InstallationRemoval RemoveData() => RemoveContents(DataDirectory);
 
@@ -184,15 +179,13 @@ public sealed class AikoInstallation(AikoDataPaths paths)
     }
 }
 
-/// <summary>
-/// What one removal found and what it could not take.
-/// </summary>
+/// <summary>What one removal found and what it could not take.</summary>
 /// <param name="Existed">Whether the thing was on disk at all.</param>
 /// <param name="Blocked">Entries that could not be deleted, by path.</param>
 /// <remarks>
-/// The two together are what an uninstall has to say: a second run removes nothing because nothing is left,
-/// and that is different from a first run that could not remove everything because the running program holds
-/// its own files.
+/// The two together are what an uninstall has to say: a second run removes nothing because nothing is left, and
+/// that is different from a first run that could not remove everything because the running program holds its own
+/// files.
 /// </remarks>
 public sealed record InstallationRemoval(bool Existed, IReadOnlyList<string> Blocked)
 {

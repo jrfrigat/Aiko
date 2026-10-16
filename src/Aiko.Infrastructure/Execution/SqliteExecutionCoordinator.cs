@@ -34,9 +34,8 @@ public sealed class SqliteExecutionCoordinator(
 
     /// <summary>
     /// The one state a run holds a concurrency slot in. Only a working agent occupies a slot, so
-    /// <see cref="StageExecutionState.Running"/> is what <c>maxConcurrentRuns</c> counts and what the scope-overlap
-    /// check weighs: a run that waits for the user, is paused or needs attention frees its slot instead of holding
-    /// it (TASK-89).
+    /// <see cref="StageExecutionState.Running"/> is what <c>maxConcurrentRuns</c> counts and what the
+    /// scope-overlap check weighs: a run that waits for the user, is paused or needs attention frees its slot.
     /// </summary>
     private const string RunningState = nameof(StageExecutionState.Running);
 
@@ -217,7 +216,7 @@ public sealed class SqliteExecutionCoordinator(
             if (runningInProject >= effectiveSettings.MaxConcurrentRuns)
             {
                 // Only a running execution occupies a slot, so the way out is to finish, pause or cancel one -
-                // pausing frees the slot now (TASK-89).
+                // pausing frees the slot now.
                 throw new InvalidOperationException(
                     $"The project allows at most {effectiveSettings.MaxConcurrentRuns} concurrent " +
                     "running stage execution(s). Finish, pause or cancel one of them, or raise " +
@@ -545,8 +544,7 @@ public sealed class SqliteExecutionCoordinator(
                         // The run's own snapshot follows the grant, and it is the run's list that is added to
                         // rather than the card's: a card can be edited while a run is in flight, so taking its
                         // list would let a run's allowance shrink and turn files it had already changed into
-                        // violations. A grant only ever adds. Without this the run kept its start-time snapshot
-                        // and reported the very file the policy had just granted as out-of-scope (TASK-142).
+                        // violations. A grant only ever adds.
                         DeclaredScopeFiles = Distinct(
                             execution.DeclaredScopeFiles.Concat(requestedScopeFiles)),
                         ProgressSummary =
@@ -632,11 +630,10 @@ public sealed class SqliteExecutionCoordinator(
     /// Refuses to complete a stage whose card was not estimated during that run.
     /// </summary>
     /// <remarks>
-    /// The readiness criterion is the one number that says how much of the promised outcome exists, and it is
-    /// the agent's job to keep it describing the card as it is after each change. Nothing used to check that,
-    /// so a card could walk the whole pipeline carrying the score it was created with. The project's criteria
-    /// are what make the check possible: a project without them, or a caller with no settings service, has
-    /// nothing to estimate and completes freely.
+    /// The readiness criterion is the one number that says how much of the promised outcome exists, and the
+    /// agent's job is to keep it describing the card as it is after each change. The project's criteria are what
+    /// make the check possible: a project without them, or a caller with no settings service, has nothing to
+    /// estimate and completes freely.
     /// </remarks>
     private async ValueTask EnsureEstimateAsync(
         StageExecution execution,
@@ -984,9 +981,9 @@ public sealed class SqliteExecutionCoordinator(
     }
 
     /// <summary>
-    /// How many runs are actually running in the project: what <c>maxConcurrentRuns</c> limits. The state is bound
-    /// from the enum rather than written into the SQL, so the query cannot drift from the model while the count
-    /// keeps meaning "an agent is working right now" (TASK-89).
+    /// How many runs are actually running in the project: what <c>maxConcurrentRuns</c> limits. The state is
+    /// bound from the enum rather than written into the SQL, so the query cannot drift from the model while the
+    /// count keeps meaning "an agent is working right now".
     /// </summary>
     private async ValueTask<long> CountRunningExecutionsAsync(
         string projectId,
@@ -1009,7 +1006,7 @@ public sealed class SqliteExecutionCoordinator(
 
     /// <summary>
     /// The runs actually running in the project, for the scope-overlap check: a parked run is not writing files
-    /// while it waits, so it does not conflict with a start (TASK-89).
+    /// while it waits, so it does not conflict with a start.
     /// </summary>
     private async ValueTask<IReadOnlyList<StageExecution>> ListRunningExecutionsAsync(
         string projectId,
