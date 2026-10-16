@@ -270,8 +270,8 @@ public sealed class GitClient : IGitClient
             RedirectStandardOutput = true,
             RedirectStandardError = true
         };
-        // Whatever the command needs before the question: nothing for git, and a substituted command says here
-        // what makes it wait (TASK-349).
+        // Whatever the command needs before the question: nothing for git, and a substituted command says here what
+        // makes it wait.
         foreach (var prefix in Command.Prefix)
         {
             startInfo.ArgumentList.Add(prefix);

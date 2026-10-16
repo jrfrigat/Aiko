@@ -5,29 +5,22 @@ using Aiko.Infrastructure.Storage;
 namespace Aiko.Infrastructure.Projects;
 
 /// <summary>
-/// Brings a project's workflow documents to the reserved-stage rule: every pipeline begins with
-/// <c>backlog</c> and ends with <c>done</c>.
+/// Brings a project's workflow documents to the reserved-stage rule: every pipeline begins with <c>backlog</c>
+/// and ends with <c>done</c>.
 /// </summary>
 /// <remarks>
-/// <para>
-/// The engine reads the end of a pipeline from the reserved <c>done</c> stage rather than from whatever stage
-/// happens to carry the greatest order, and it refuses a document that breaks the rule both when it is written
-/// and when it is read. A project authored before the rule therefore cannot simply be read - which is exactly
-/// why this runs where the other upgrades of older projects run: at daemon startup, before anything reads a
-/// definition, and in <c>aiko repair --fix</c>. It is idempotent: a second run finds nothing left to repair.
-/// </para>
-/// <para>
-/// A missing <c>done</c> stage is added, because a pipeline with no end is a pipeline whose cards can never be
-/// finished. A missing <c>backlog</c> stage is <em>not</em> invented: the backlog is where a card enters its
-/// workflow and what its first stage says is the author's decision, so such a document is reported as not
-/// repaired and named by <c>aiko doctor</c> instead.
-/// </para>
+/// The engine reads the end of a pipeline from the reserved <c>done</c> stage rather than from the greatest order,
+/// and it refuses a document that breaks the rule both when it is written and when it is read - which is why this
+/// runs where the other upgrades of older projects run: at daemon startup, before anything reads a definition, and
+/// in <c>aiko repair --fix</c>. It is idempotent. A missing <c>done</c> stage is added, because a pipeline with no
+/// end can never finish a card; a missing <c>backlog</c> is <em>not</em> invented, because what a card's first
+/// stage says is the author's decision, so such a document is reported as not repaired.
 /// </remarks>
 public static class WorkflowStageMigrator
 {
     /// <summary>
-    /// The workflows of a project that break the reserved-stage rule, split into the ones a repair can bring to
-    /// it and the ones it cannot, so the diagnosis can name both without writing anything.
+    /// The workflows of a project that break the reserved-stage rule, split into the ones a repair can bring to it
+    /// and the ones it cannot, so the diagnosis can name both without writing anything.
     /// </summary>
     public static WorkflowStagePlan Plan(string projectRoot)
     {
@@ -36,9 +29,7 @@ public static class WorkflowStageMigrator
         return new WorkflowStagePlan(scan.Repairable, scan.Unrepairable);
     }
 
-    /// <summary>
-    /// Rewrites the workflows that still break the rule, and reports the ones it could not bring to it.
-    /// </summary>
+    /// <summary>Rewrites the workflows that still break the rule, and reports the ones it could not bring to it.</summary>
     public static WorkflowStageMigration Migrate(string projectRoot)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(projectRoot);
@@ -65,8 +56,8 @@ public static class WorkflowStageMigrator
     }
 
     /// <summary>
-    /// The documents of a project that break the rule, split into the ones a repair can fix and the ones it
-    /// cannot - a file that does not parse, or a pipeline with no <c>backlog</c> stage.
+    /// The documents of a project that break the rule, split into the ones a repair can fix and the ones it cannot -
+    /// a file that does not parse, or a pipeline with no <c>backlog</c> stage.
     /// </summary>
     private static (List<WorkflowDefinition> ToRepair, List<string> Repairable, List<string> Unrepairable) Scan(
         string projectRoot)
@@ -149,8 +140,8 @@ public static class WorkflowStageMigrator
     }
 
     /// <summary>
-    /// The <c>done</c> stage a pipeline that has none is given: it records the outcome and nothing else, so a
-    /// card that reaches it is finished without the migration inventing work for the author.
+    /// The <c>done</c> stage a pipeline that has none is given: it records the outcome and nothing else, so a card
+    /// that reaches it is finished without the migration inventing work for the author.
     /// </summary>
     private static StageDefinition DefaultDoneStage(WorkflowDefinition workflow) =>
         new(
