@@ -25,32 +25,22 @@ public sealed record ReplacementResult(
 /// Puts a staged release in place of what is installed, and can put the previous version back.
 /// </summary>
 /// <remarks>
-/// The directory itself is never recreated: it is on the user's <c>PATH</c>, and an open shell holds the path
-/// it resolved, so the entries inside it are what moves. Renaming inside one volume is cheap and reversible,
-/// which is exactly what makes the rollback possible; replacing the directory would not be.
-/// <para>
-/// One case is not a rename: a release that is the one this process runs from. A process must not be
-/// relocated under itself - the bundle it still reads assemblies from would move with it - so those entries
-/// are copied and the running file stays where it is. That is what <c>aiko install --from</c> reaches, because
-/// the release it installs is the one the bootstrap unpacked and ran.
-/// </para>
-/// <para>
-/// The caller must have stopped a running daemon first. That needs the port from the settings, a health
-/// request and a restart, and it belongs to the verbs that drive an installation, not here.
-/// </para>
+/// The directory itself is never recreated: it is on the user's <c>PATH</c>, so the entries inside it are what
+/// moves, and renaming inside one volume is cheap and reversible - which is what makes the rollback possible.
+/// One case is not a rename: a release that is the one this process runs from, which must not be relocated under
+/// itself, so those entries are copied while the running file stays where it is - that is what
+/// <c>aiko install --from</c> reaches. The caller must have stopped a running daemon first; that belongs to the
+/// verbs that drive an installation, not here.
 /// </remarks>
 /// <param name="runningImagePath">
-/// The file this process was started from. No production caller passes it: the process answers for itself
-/// through <see cref="Environment.ProcessPath"/>. It is a parameter because the branch above - the release
-/// being installed is the one this process runs from - cannot be reached any other way from a spec, where the
-/// running file belongs to the test host rather than to the release under test.
+/// The file this process was started from; no production caller passes it, because the process answers for itself
+/// through <see cref="Environment.ProcessPath"/>. It is a parameter because the branch above cannot be reached
+/// from a spec any other way, where the running file belongs to the test host rather than to the release.
 /// </param>
 public sealed class InstallationReplacement(string? runningImagePath = null)
 {
     private readonly string? runningImage = runningImagePath ?? Environment.ProcessPath;
-    /// <summary>
-    /// Replaces the installation with the staged release.
-    /// </summary>
+    /// <summary>Replaces the installation with the staged release.</summary>
     /// <param name="staged">A verified, unpacked release, as <see cref="ReleaseStaging"/> prepares it.</param>
     /// <param name="installDirectory">Directory the release goes into.</param>
     /// <param name="updatePath">Whether the directory may be added to the user <c>PATH</c>.</param>
@@ -66,9 +56,8 @@ public sealed class InstallationReplacement(string? runningImagePath = null)
         var recovered = RepairInterruptedReplacement(installDirectory);
         Directory.CreateDirectory(installDirectory);
 
-        // Asked before anything moves: whether the installation being replaced is the one this process was
-        // started from decides both how the entries are placed and whether the copy moved aside can be removed
-        // at all - a running executable cannot be deleted.
+        // Asked before anything moves: whether the installation being replaced is the one this process was started
+        // from decides both how the entries are placed and whether the copy moved aside can be removed at all.
         var runningFromInstallation = RunsFrom(installDirectory);
 
         var previous = $"{installDirectory}.previous-{DateTime.UtcNow:yyyyMMddHHmmssfff}";
@@ -111,11 +100,10 @@ public sealed class InstallationReplacement(string? runningImagePath = null)
     /// Why the directory is not the installer's to fill, or null when it is.
     /// </summary>
     /// <remarks>
-    /// A replacement moves every entry of the directory aside and drops them, which is right only for a
-    /// directory that belongs to Aiko: one that does not exist or is empty, one holding an installation
-    /// (<c>aiko.exe</c> or <c>install.json</c>), or one an interrupted replacement left a <c>previous</c> beside.
-    /// Anything else - <c>-InstallDir D:\Tools</c>, or the data directory by mistake - holds someone else's
-    /// files, and emptying it would delete them.
+    /// A replacement moves every entry of the directory aside and drops them, which is right only for a directory
+    /// that belongs to Aiko: one that does not exist or is empty, one holding an installation (<c>aiko.exe</c> or
+    /// <c>install.json</c>), or one an interrupted replacement left a <c>previous</c> beside. Anything else -
+    /// <c>-InstallDir D:\Tools</c>, or the data directory by mistake - holds someone else's files.
     /// </remarks>
     /// <param name="installDirectory">Directory the release would go into.</param>
     public static string? DescribeForeignContent(string installDirectory)
