@@ -15,8 +15,8 @@
     <InternalsVisibleTo Include="Aiko.Pwa.Specs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.12" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.12" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.13" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.13" PrivateAssets="all" />
     <PackageReference Include="Flare.Blazor" Version="0.44.0" />
     <!-- The cockpit's iconography is Material Symbols, which is what the design was drawn with. The
          core Flare.Icons set is the library's own chrome (about a hundred glyphs) and does not carry
