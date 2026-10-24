@@ -11,6 +11,7 @@ namespace Aiko.Infrastructure.Specs;
 /// global <c>~/.config/opencode/opencode.json</c>, where each project gets its own key. The adapter is
 /// exercised through the unified installer, so what is checked is the files a person ends up with.
 /// </summary>
+[Collection(ProcessEnvironmentCollection.Name)]
 public sealed class OpenCodeAdapterSpecs
 {
     [Fact]

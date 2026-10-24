@@ -24,6 +24,8 @@ using Xunit;
 
 namespace Aiko.Infrastructure.Specs;
 
+// Several specs here point PATH and AIKO_USER_HOME elsewhere for their duration.
+[Collection(ProcessEnvironmentCollection.Name)]
 public class InfrastructureSpecs
 {
     [Fact]
