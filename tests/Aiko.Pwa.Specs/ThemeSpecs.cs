@@ -76,6 +76,9 @@ public sealed class ThemeSpecs
         Assert.Equal("0.8125rem", design.Typography.BodyMedium.FontSize);
         // The mono face is the theme's own since Flare 0.38, and every identifier is read in it.
         Assert.Equal(StitchFlowTheme.MonoFontStack, design.Typography.MonoFont);
+        // Bold is the theme's since Flare 0.46, and it has to stand above the 600 every title already uses.
+        Assert.Equal("700", design.Typography.WeightBold);
+        Assert.True(int.Parse(design.Typography.WeightBold) > int.Parse(design.Typography.TitleLarge.FontWeight));
 
         // The shell's three planes and the rail's shadow are the theme's since 0.38, instead of three
         // class-name rules in the stylesheet that repainted what core had decided.
