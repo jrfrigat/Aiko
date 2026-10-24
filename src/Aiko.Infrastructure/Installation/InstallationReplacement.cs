@@ -305,8 +305,10 @@ public sealed class InstallationReplacement(string? runningImagePath = null)
         foreach (var entry in Directory.EnumerateFileSystemEntries(from))
         {
             var destination = Path.Combine(to, Path.GetFileName(entry));
-            MoveEntry(entry, destination);
+            // Before the move, not after it: what the rollback must remove is whatever this attempt may have
+            // put there, and that includes an entry that failed on its way in.
             placed?.Add(destination);
+            MoveEntry(entry, destination);
             moved++;
         }
 
@@ -356,8 +358,10 @@ public sealed class InstallationReplacement(string? runningImagePath = null)
         foreach (var entry in Directory.EnumerateFileSystemEntries(from))
         {
             var destination = Path.Combine(to, Path.GetFileName(entry));
-            CopyEntry(entry, destination);
+            // Before the copy: a directory copy that stops part-way leaves half of itself behind, and an
+            // entry new in this release has no previous namesake whose return would replace that half.
             placed?.Add(destination);
+            CopyEntry(entry, destination);
             copied++;
         }
 

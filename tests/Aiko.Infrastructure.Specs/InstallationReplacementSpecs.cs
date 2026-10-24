@@ -157,6 +157,34 @@ public sealed class InstallationReplacementSpecs
     }
 
     [Fact]
+    public void A_new_entry_copied_half_way_does_not_survive_the_rollback()
+    {
+        // `aiko install --from` copies the release. A directory new in this release stopped half-way: its
+        // first file was copied, the second could not be read. The previous version has no entry of that
+        // name to put back over the half, so the rollback has to know the half is there.
+        using var fixture = new ReplacementFixture();
+        fixture.Install(ReleaseLayout.CliFileName);
+        var staged = fixture.Stage(ReleaseLayout.CliFileName, "dir:new-dir");
+        File.WriteAllText(Path.Combine(fixture.StagedDirectory, "new-dir", "a.txt"), "first");
+        File.WriteAllText(Path.Combine(fixture.StagedDirectory, "new-dir", "zz.txt"), "second");
+        var replacement = fixture.ReplacementRunningFrom(
+            Path.Combine(fixture.StagedDirectory, ReleaseLayout.CliFileName));
+
+        using (new FileStream(
+            Path.Combine(fixture.StagedDirectory, "new-dir", "zz.txt"),
+            FileMode.Open,
+            FileAccess.ReadWrite,
+            FileShare.None))
+        {
+            Assert.ThrowsAny<Exception>(() =>
+                replacement.Apply(staged, fixture.InstallDirectory, updatePath: false));
+        }
+
+        Assert.Equal([ReleaseLayout.CliFileName], fixture.InstalledNames());
+        Assert.Empty(fixture.PreviousDirectories());
+    }
+
+    [Fact]
     public void An_interrupted_replacement_is_repaired_by_the_next_run()
     {
         using var fixture = new ReplacementFixture();
