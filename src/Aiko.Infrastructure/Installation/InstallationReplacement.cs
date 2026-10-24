@@ -134,14 +134,21 @@ public sealed class InstallationReplacement(string? runningImagePath = null)
     /// Deals with a <c>previous</c> directory an earlier run left behind.
     /// </summary>
     /// <remarks>
-    /// Two cases look alike on disk and must not be treated alike. An installation that is not whole - no
-    /// entry point - and has a <c>previous</c> is one whose replacement died between the renames, and the
-    /// previous version is what makes it work again. An installation that <b>is</b> whole and has a
-    /// <c>previous</c> is one whose replacement finished and died during clean-up: putting that version back
-    /// would undo a finished update, so it goes instead.
+    /// Two cases look alike on disk and must not be treated alike. An installation that is not whole - one of
+    /// the release's required entries missing - and has a <c>previous</c> is one whose replacement, or whose
+    /// rollback, died between the renames, and the previous version is what makes it work again. An
+    /// installation that <b>is</b> whole and has a <c>previous</c> is one whose replacement finished and died
+    /// during clean-up: putting that version back would undo a finished update, so it goes instead.
+    /// <para>
+    /// Whole means every required entry, not the entry point alone: a rollback puts the old entries back in
+    /// name order, so one that stopped after <c>aiko.exe</c> left the entry point in place and <c>server</c>
+    /// still beside it, and judging by <c>aiko.exe</c> threw that remainder away. For the same reason a repair
+    /// moves the previous entries over what is there instead of emptying the installation first: what a
+    /// stopped rollback had already returned is no longer in <c>previous</c>, and emptying lost it.
+    /// </para>
     /// </remarks>
     /// <returns>Whether the installation was recovered from a previous version.</returns>
-    private static bool RepairInterruptedReplacement(string installDirectory)
+    internal static bool RepairInterruptedReplacement(string installDirectory)
     {
         var full = Path.GetFullPath(installDirectory);
         var parent = Path.GetDirectoryName(full);
@@ -161,7 +168,7 @@ public sealed class InstallationReplacement(string? runningImagePath = null)
         // about to become the installation.
         Array.Sort(candidates, (left, right) => string.CompareOrdinal(right, left));
 
-        if (Exists(Path.Combine(installDirectory, ReleaseLayout.CliFileName)))
+        if (ReleaseLayout.RequiredEntries.All(entry => Exists(Path.Combine(installDirectory, entry))))
         {
             foreach (var candidate in candidates)
             {
@@ -173,7 +180,9 @@ public sealed class InstallationReplacement(string? runningImagePath = null)
             return false;
         }
 
-        DiscardContents(installDirectory);
+        // Over what is there: an entry the previous version has replaces whatever stands in its place, and
+        // anything else - an old entry a stopped rollback already returned, or a piece of the release that
+        // never finished - stays for the replacement that follows to move aside with the rest.
         MoveEntries(candidates[0], installDirectory);
         foreach (var candidate in candidates)
         {
@@ -395,19 +404,6 @@ public sealed class InstallationReplacement(string? runningImagePath = null)
 
     /// <summary>Whether a path is there at all: an entry point is a file, the template tree a directory.</summary>
     private static bool Exists(string path) => File.Exists(path) || Directory.Exists(path);
-
-    private static void DiscardContents(string directory)
-    {
-        if (!Directory.Exists(directory))
-        {
-            return;
-        }
-
-        foreach (var entry in Directory.EnumerateFileSystemEntries(directory))
-        {
-            Discard(entry);
-        }
-    }
 
     private static void Discard(string path)
     {

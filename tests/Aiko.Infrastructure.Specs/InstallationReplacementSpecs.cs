@@ -210,7 +210,7 @@ public sealed class InstallationReplacementSpecs
     public void A_previous_directory_beside_a_whole_installation_is_discarded_not_restored()
     {
         using var fixture = new ReplacementFixture();
-        fixture.Install(ReleaseLayout.CliFileName);
+        fixture.Install([.. ReleaseLayout.RequiredEntries]);
         fixture.LeavePrevious(ReleaseLayout.CliFileName, "the-old-version.txt");
 
         var result = fixture.Replacement.Apply(
@@ -223,6 +223,45 @@ public sealed class InstallationReplacementSpecs
         Assert.False(result.RecoveredPrevious);
         Assert.Empty(fixture.PreviousDirectories());
         Assert.DoesNotContain("the-old-version.txt", fixture.InstalledNames());
+    }
+
+    [Fact]
+    public void A_rollback_that_stopped_after_the_entry_point_gets_the_rest_of_the_old_version_back()
+    {
+        // The rollback puts the old entries back in name order and stopped after aiko.exe: the entry point is
+        // in place, the daemon's directory and the templates are still beside it. Judged by aiko.exe alone
+        // that looked whole, and the remainder of the old version was thrown away.
+        using var fixture = new ReplacementFixture();
+        fixture.Install(ReleaseLayout.CliFileName, ReleaseLayout.StdioProxyFileName);
+        fixture.LeavePrevious([.. ReleaseLayout.RequiredEntries.Skip(2), "the-old-version.txt"]);
+
+        Assert.True(InstallationReplacement.RepairInterruptedReplacement(fixture.InstallDirectory));
+
+        foreach (var entry in ReleaseLayout.RequiredEntries)
+        {
+            Assert.True(File.Exists(Path.Combine(fixture.InstallDirectory, entry)), entry);
+        }
+
+        Assert.Contains("the-old-version.txt", fixture.InstalledNames());
+        Assert.Empty(fixture.PreviousDirectories());
+    }
+
+    [Fact]
+    public void An_entry_a_stopped_rollback_already_returned_is_not_lost_by_the_repair()
+    {
+        // The rollback stopped after aiko-stdio.exe, the first entry by name: it is back in the installation
+        // and no longer in previous, while aiko.exe is still in previous. Emptying the installation before
+        // the previous version moved in lost the proxy.
+        using var fixture = new ReplacementFixture();
+        fixture.Install(ReleaseLayout.StdioProxyFileName);
+        fixture.LeavePrevious([.. ReleaseLayout.RequiredEntries.Where(e => e != ReleaseLayout.StdioProxyFileName)]);
+
+        Assert.True(InstallationReplacement.RepairInterruptedReplacement(fixture.InstallDirectory));
+
+        foreach (var entry in ReleaseLayout.RequiredEntries)
+        {
+            Assert.True(File.Exists(Path.Combine(fixture.InstallDirectory, entry)), entry);
+        }
     }
 
     [Fact]
@@ -347,6 +386,7 @@ public sealed class InstallationReplacementSpecs
                 var asDirectory = entry.StartsWith("dir:", StringComparison.Ordinal);
                 var name = asDirectory ? entry[4..] : entry;
                 var path = Path.Combine(directory, name);
+                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
                 if (asDirectory)
                 {
                     Directory.CreateDirectory(path);
