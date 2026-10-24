@@ -63,7 +63,7 @@ public sealed class InstallationReplacement(string? runningImagePath = null)
         var previous = $"{installDirectory}.previous-{DateTime.UtcNow:yyyyMMddHHmmssfff}";
         // Copying costs a full copy of the release, so it is done only where it is the difference between an
         // installation and a process that died half-way through one.
-        var replaced = Swap(installDirectory, staged.Directory, previous, RunsFrom(staged.Directory));
+        var swap = Swap(installDirectory, staged.Directory, previous, RunsFrom(staged.Directory));
 
         var version = new InstalledVersion(
             staged.Tag,
@@ -80,7 +80,7 @@ public sealed class InstallationReplacement(string? runningImagePath = null)
         {
             // Recorded before the previous version is dropped, so a failure here can still put it back: while
             // the old entries are on disk, un-doing this is a rename, and afterwards it is nothing.
-            RollBack(installDirectory, previous);
+            RollBack(installDirectory, previous, swap.Placed);
             throw;
         }
 
@@ -93,7 +93,7 @@ public sealed class InstallationReplacement(string? runningImagePath = null)
             InstallationPath.AddToUserPath(installDirectory);
         }
 
-        return new ReplacementResult(version, replaced, recovered, previousKept);
+        return new ReplacementResult(version, swap.MovedAside, recovered, previousKept);
     }
 
     /// <summary>
@@ -195,32 +195,40 @@ public sealed class InstallationReplacement(string? runningImagePath = null)
     /// process that is reading it. What that leaves in the staging directory is the caller's to remove once
     /// this process has ended.
     /// </param>
-    private static int Swap(
+    private static SwapResult Swap(
         string installDirectory,
         string stagedDirectory,
         string previousDirectory,
         bool copyStaged)
     {
-        var movedAside = MoveEntries(installDirectory, previousDirectory);
+        var placed = new List<string>();
+        var movedAside = 0;
         try
         {
+            // Inside the try because it is the half that can stop part-way: an entry a process still holds
+            // refuses to move after its neighbours have already gone, and what has gone is then all there is
+            // to put back.
+            movedAside = MoveEntries(installDirectory, previousDirectory);
             if (copyStaged)
             {
-                CopyEntries(stagedDirectory, installDirectory);
+                CopyEntries(stagedDirectory, installDirectory, placed);
             }
             else
             {
-                MoveEntries(stagedDirectory, installDirectory);
+                MoveEntries(stagedDirectory, installDirectory, placed);
             }
 
-            return movedAside;
+            return new SwapResult(movedAside, placed);
         }
         catch
         {
-            RollBack(installDirectory, previousDirectory);
+            RollBack(installDirectory, previousDirectory, placed);
             throw;
         }
     }
+
+    /// <summary>What a swap did: how much it moved aside, and what it put in before it stopped.</summary>
+    private sealed record SwapResult(int MovedAside, IReadOnlyList<string> Placed);
 
     /// <summary>
     /// Whether this process was started from a file inside that directory.
@@ -266,18 +274,26 @@ public sealed class InstallationReplacement(string? runningImagePath = null)
     /// Puts the moved-aside entries back, leaving no trace of the attempt.
     /// </summary>
     /// <remarks>
-    /// Everything the attempt put in is removed first, so the installation ends up exactly what it was rather
-    /// than a mixture of both versions. An empty directory is the right result when nothing was installed
-    /// before.
+    /// Only what this attempt put in is removed, and then the previous entries go back. Emptying the whole
+    /// directory first - what this used to do - made the rollback fail on exactly the entry the attempt could
+    /// not move: a file a process still holds. The previous version was then left beside the installation
+    /// with nothing on disk to run, which is the half-replaced installation this exists to prevent.
     /// </remarks>
-    private static void RollBack(string installDirectory, string previousDirectory)
+    /// <param name="installDirectory">The installation being put back.</param>
+    /// <param name="previousDirectory">Where the attempt moved the old entries.</param>
+    /// <param name="placed">Entries the attempt put in, as far as it got.</param>
+    private static void RollBack(string installDirectory, string previousDirectory, IReadOnlyList<string> placed)
     {
-        DiscardContents(installDirectory);
+        foreach (var entry in placed)
+        {
+            TryDiscard(entry);
+        }
+
         MoveEntries(previousDirectory, installDirectory);
         Discard(previousDirectory);
     }
 
-    private static int MoveEntries(string from, string to)
+    private static int MoveEntries(string from, string to, List<string>? placed = null)
     {
         if (!Directory.Exists(from))
         {
@@ -288,7 +304,9 @@ public sealed class InstallationReplacement(string? runningImagePath = null)
         var moved = 0;
         foreach (var entry in Directory.EnumerateFileSystemEntries(from))
         {
-            MoveEntry(entry, Path.Combine(to, Path.GetFileName(entry)));
+            var destination = Path.Combine(to, Path.GetFileName(entry));
+            MoveEntry(entry, destination);
+            placed?.Add(destination);
             moved++;
         }
 
@@ -326,7 +344,7 @@ public sealed class InstallationReplacement(string? runningImagePath = null)
     /// it may still reach for. What the copy costs is a second full copy of the release, which is why it
     /// happens only for the release this process is running from.
     /// </remarks>
-    private static int CopyEntries(string from, string to)
+    private static int CopyEntries(string from, string to, List<string>? placed = null)
     {
         if (!Directory.Exists(from))
         {
@@ -337,7 +355,9 @@ public sealed class InstallationReplacement(string? runningImagePath = null)
         var copied = 0;
         foreach (var entry in Directory.EnumerateFileSystemEntries(from))
         {
-            CopyEntry(entry, Path.Combine(to, Path.GetFileName(entry)));
+            var destination = Path.Combine(to, Path.GetFileName(entry));
+            CopyEntry(entry, destination);
+            placed?.Add(destination);
             copied++;
         }
 

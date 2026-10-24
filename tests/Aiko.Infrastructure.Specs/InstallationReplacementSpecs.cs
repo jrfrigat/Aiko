@@ -131,6 +131,32 @@ public sealed class InstallationReplacementSpecs
     }
 
     [Fact]
+    public void A_file_the_attempt_cannot_move_does_not_keep_the_previous_version_out()
+    {
+        // An update that stopped part-way: some entries were already moved aside when a file a process still
+        // holds stopped the move. Emptying the directory before putting the previous version back failed on
+        // that same file, and left the installation with no aiko.exe in it at all.
+        using var fixture = new ReplacementFixture();
+        fixture.Install("aiko.exe", "zz-held.txt");
+        using var held = new FileStream(
+            Path.Combine(fixture.InstallDirectory, "zz-held.txt"),
+            FileMode.Open,
+            FileAccess.ReadWrite,
+            FileShare.None);
+
+        Assert.ThrowsAny<Exception>(() => fixture.Replacement.Apply(
+            fixture.Stage("aiko.exe", "new-only.txt"),
+            fixture.InstallDirectory,
+            updatePath: false));
+
+        // aiko.exe was already beside the installation; it comes back instead of staying there.
+        var installed = fixture.InstalledNames();
+        Assert.Contains("aiko.exe", installed);
+        Assert.Contains("zz-held.txt", installed);
+        Assert.DoesNotContain("new-only.txt", installed);
+    }
+
+    [Fact]
     public void An_interrupted_replacement_is_repaired_by_the_next_run()
     {
         using var fixture = new ReplacementFixture();
