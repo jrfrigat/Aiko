@@ -26,13 +26,15 @@ public interface IDaemonLifecycle
     /// Stops the daemon and waits until it has really stopped.
     /// </summary>
     /// <remarks>
-    /// A no-op when nothing is answering. Waiting matters: the endpoint that accepts the request answers
-    /// while the host is still winding down, and replacing the files of a process that has not exited yet is
-    /// how a half-replaced installation happens.
+    /// Waiting matters: the endpoint that accepts the request answers while the host is still winding down,
+    /// and the process keeps its files open until it exits - replacing them before that is how a
+    /// half-replaced installation happens. A run that finds no daemon has nothing to wait for.
     /// </remarks>
+    /// <param name="installDirectory">Directory whose daemon this is: the wait is for its process, not for
+    /// whichever process happens to answer a port.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <exception cref="InstallationRefusedException">The daemon answers but cannot be stopped.</exception>
-    ValueTask StopAsync(CancellationToken cancellationToken);
+    ValueTask StopAsync(string installDirectory, CancellationToken cancellationToken);
 
     /// <summary>
     /// Starts the daemon of the given installation and waits until it answers.

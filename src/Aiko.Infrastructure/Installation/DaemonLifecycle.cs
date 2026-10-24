@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Headers;
@@ -17,13 +18,19 @@ namespace Aiko.Infrastructure.Installation;
 /// it is doing instead of being killed mid-run. Two things follow from that and are handled here - the
 /// endpoint answers while the host is still winding down, so the port is polled until it really stops, and a
 /// daemon that keeps answering after accepting the stop is a refusal, because the files cannot be replaced
-/// under it.
+/// under it. The process is waited for as well: the host stops listening before it has finished closing what
+/// it was serving, and its files stay in use until it has exited.
 /// <para>
 /// Nothing here writes the settings: the port is read and left alone, which is the promise that an update
 /// does not move a running installation's port.
 /// </para>
 /// </remarks>
-public sealed class DaemonLifecycle(AikoDataPaths paths) : IDaemonLifecycle
+/// <param name="paths">The daemon's data directory: where its saved port and access token live.</param>
+/// <param name="stopTimeout">
+/// How long the process gets to exit after accepting the stop. A parameter because a spec cannot spend the
+/// real minute proving a refusal.
+/// </param>
+public sealed class DaemonLifecycle(AikoDataPaths paths, TimeSpan? stopTimeout = null) : IDaemonLifecycle
 {
     private const string HealthPath = "/health";
     private const string ShutdownPath = "/api/v1/system/shutdown";
@@ -34,6 +41,16 @@ public sealed class DaemonLifecycle(AikoDataPaths paths) : IDaemonLifecycle
     /// <summary>How long a start waits for the daemon to answer before it is reported as not up.</summary>
     private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(30);
 
+    /// <summary>
+    /// How long the process itself gets to exit once it has accepted the stop. The host closes the
+    /// connections it was serving before it exits, which is bounded by its own shutdown timeout of 30
+    /// seconds, so a minute is the polite version of "gone".
+    /// </summary>
+    private readonly TimeSpan exitTimeout = stopTimeout ?? TimeSpan.FromSeconds(60);
+
+    /// <summary>How often the process table is asked whether the daemon is gone.</summary>
+    private static readonly TimeSpan ExitPoll = TimeSpan.FromMilliseconds(250);
+
     /// <inheritdoc />
     public async ValueTask<bool> IsRunningAsync(CancellationToken cancellationToken)
     {
@@ -42,61 +59,128 @@ public sealed class DaemonLifecycle(AikoDataPaths paths) : IDaemonLifecycle
     }
 
     /// <inheritdoc />
-    public async ValueTask StopAsync(CancellationToken cancellationToken)
+    public async ValueTask StopAsync(string installDirectory, CancellationToken cancellationToken)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(installDirectory);
+
         var port = await SavedPortAsync(cancellationToken);
-        if (port is null || !await IsHealthyAsync(port.Value, cancellationToken))
+        if (port is not null && await IsHealthyAsync(port.Value, cancellationToken))
         {
-            return;
-        }
+            using var http = CreateClient(port.Value);
+            http.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", await AccessTokenAsync(cancellationToken));
 
-        using var http = CreateClient(port.Value);
-        http.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", await AccessTokenAsync(cancellationToken));
-
-        try
-        {
-            using var response = await http.PostAsync(ShutdownPath, content: null, cancellationToken);
-            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            try
             {
-                throw new InstallationRefusedException(
-                    $"The daemon on port {port} refused the access token, so it cannot be stopped before its " +
-                    "files are replaced. If it was started with AIKO_TOKEN, run this with the same value set.");
+                using var response = await http.PostAsync(ShutdownPath, content: null, cancellationToken);
+                if (response.StatusCode == HttpStatusCode.Unauthorized)
+                {
+                    throw new InstallationRefusedException(
+                        $"The daemon on port {port} refused the access token, so it cannot be stopped before its " +
+                        "files are replaced. If it was started with AIKO_TOKEN, run this with the same value set.");
+                }
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new InstallationRefusedException(
+                        $"The daemon on port {port} answered {(int)response.StatusCode} to the shutdown request, " +
+                        "so nothing was replaced.");
+                }
             }
-
-            if (!response.IsSuccessStatusCode)
+            catch (HttpRequestException)
+            {
+                // It went away between the health check and the request: that is stopped, which is all the
+                // endpoint side of this method promises.
+            }
+            catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
                 throw new InstallationRefusedException(
-                    $"The daemon on port {port} answered {(int)response.StatusCode} to the shutdown request, " +
+                    $"The daemon on port {port} did not answer within {RequestTimeout.TotalSeconds:0} seconds, " +
                     "so nothing was replaced.");
             }
-        }
-        catch (HttpRequestException)
-        {
-            // It went away between the health check and the request: that is stopped, which is all this
-            // method promises.
-            return;
-        }
-        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            throw new InstallationRefusedException(
-                $"The daemon on port {port} did not answer within {RequestTimeout.TotalSeconds:0} seconds, " +
-                "so nothing was replaced.");
-        }
 
-        for (var attempt = 0; attempt < 20; attempt++)
-        {
-            await Task.Delay(250, cancellationToken);
-            if (!await IsHealthyAsync(port.Value, cancellationToken))
+            var answered = true;
+            for (var attempt = 0; attempt < 20 && answered; attempt++)
             {
-                return;
+                await Task.Delay(250, cancellationToken);
+                answered = await IsHealthyAsync(port.Value, cancellationToken);
+            }
+
+            if (answered)
+            {
+                throw new InstallationRefusedException(
+                    $"The daemon on port {port} accepted the stop but is still answering, so it may be " +
+                    "finishing a run. Nothing was replaced; stop it with `aiko serve stop` and run this again.");
             }
         }
 
-        throw new InstallationRefusedException(
-            $"The daemon on port {port} accepted the stop but is still answering, so it may be finishing a " +
-            "run. Nothing was replaced; stop it with `aiko serve stop` and run this again.");
+        // The endpoint and the process are two different states: the host stops listening while it is still
+        // closing the connections it was serving, and its files stay in use until it has exited. An update
+        // that trusted only the endpoint moved the binaries under a live process and had to be rolled back.
+        await WaitForExitAsync(installDirectory, cancellationToken);
     }
+
+    /// <summary>
+    /// Waits until no daemon process runs out of the installation, and refuses when one does not leave.
+    /// </summary>
+    /// <remarks>
+    /// A refusal here happens before anything is moved: the installation is still whole, and running the
+    /// command again after the daemon has gone is the whole recovery.
+    /// </remarks>
+    private async ValueTask WaitForExitAsync(string installDirectory, CancellationToken cancellationToken)
+    {
+        var deadline = DateTime.UtcNow + exitTimeout;
+        while (DaemonIsRunning(installDirectory))
+        {
+            if (DateTime.UtcNow >= deadline)
+            {
+                throw new InstallationRefusedException(
+                    $"The daemon accepted the stop but is still running after {exitTimeout.TotalSeconds:0} " +
+                    "seconds, so its files are still in use. Nothing was replaced; run `aiko serve stop` and " +
+                    "try again.");
+            }
+
+            await Task.Delay(ExitPoll, cancellationToken);
+        }
+    }
+
+    /// <summary>
+    /// Whether a daemon process from this installation is still alive.
+    /// </summary>
+    /// <remarks>
+    /// By the daemon's own name and the directory its binary lives in: the agents' proxies run from the
+    /// installation too and are not the daemon, and another installation's daemon is not this one.
+    /// </remarks>
+    private static bool DaemonIsRunning(string installDirectory)
+    {
+        var serverDirectory = Path.Combine(Path.GetFullPath(installDirectory), ReleaseLayout.ServerDirectoryName);
+        var prefix = Path.TrimEndingDirectorySeparator(serverDirectory) + Path.DirectorySeparatorChar;
+
+        foreach (var process in Process.GetProcessesByName(
+            Path.GetFileNameWithoutExtension(ReleaseLayout.ServerFileName)))
+        {
+            using (process)
+            {
+                try
+                {
+                    if (process.MainModule?.FileName is { } image &&
+                        Path.GetFullPath(image).StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+                catch (Exception exception) when (
+                    exception is Win32Exception or InvalidOperationException or NotSupportedException)
+                {
+                    // A process that has exited between the listing and the question, or one the system will
+                    // not let this run question, is not evidence of a daemon holding this installation.
+                }
+            }
+        }
+
+        return false;
+    }
+
     /// <inheritdoc />
     public async ValueTask<bool> StartAsync(string installDirectory, CancellationToken cancellationToken)
     {

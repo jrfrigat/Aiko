@@ -212,7 +212,7 @@ public sealed class InstallationEngine(
             try
             {
                 progress?.Phase("daemon", "Stopping the running daemon before replacing the files...");
-                await daemon.StopAsync(cancellationToken);
+                await daemon.StopAsync(installDirectory, cancellationToken);
                 steps.Add(new InstallationStep(
                     "daemon",
                     true,

@@ -52,6 +52,10 @@ The run stops the daemon before it touches the binaries - replacing files under 
 thing it will not do - and starts it again afterwards if it had been running. Updating with the daemon up is
 therefore normal, and `aiko serve stop` beforehand is not needed.
 
+Accepting the stop is not the same as having exited: the host stops answering while it closes the
+connections it was serving, and its files stay in use until the process is gone. The run waits for the
+process itself, so a daemon with agents connected can make the replacement take half a minute longer.
+
 One other process can hold a file in the installation: an agent's `aiko-stdio` proxy, which an agent starts
 out of that directory and which the engine knows nothing about.
 

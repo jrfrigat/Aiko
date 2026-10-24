@@ -329,7 +329,7 @@ public sealed class InstallationEngineSpecs
         public ValueTask<bool> IsRunningAsync(CancellationToken cancellationToken) =>
             ValueTask.FromResult(Running);
 
-        public ValueTask StopAsync(CancellationToken cancellationToken)
+        public ValueTask StopAsync(string installDirectory, CancellationToken cancellationToken)
         {
             Calls.Add("stop");
             if (StopRefusal is not null)
