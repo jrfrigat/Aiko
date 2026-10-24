@@ -49,8 +49,16 @@ public sealed class InstallScriptSpecs
         Assert.Contains("--sha256", script, StringComparison.Ordinal);
         Assert.Contains(".staging-", script, StringComparison.Ordinal);
         Assert.DoesNotContain("Move-Item -Destination $previous", script, StringComparison.Ordinal);
-        Assert.DoesNotContain(".previous-", script, StringComparison.Ordinal);
         Assert.DoesNotContain("the previous installation was put back", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_script_lets_an_interrupted_update_be_repaired()
+    {
+        // An update that died between the renames leaves no aiko.exe in the directory and the version it
+        // replaced in "<dir>.previous-*". That is the engine's to repair, not someone else's directory: the
+        // script refused it, and the person was left with neither a command nor a way to install one.
+        Assert.Contains(".previous-*", Script(), StringComparison.Ordinal);
     }
 
     [Theory]

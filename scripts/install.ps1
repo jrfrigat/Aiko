@@ -131,13 +131,23 @@ catch {
     Write-Verbose "Could not select TLS 1.2 explicitly; using the platform default. $($_.Exception.Message)"
 }
 
-# The directory is the installer's to replace only when it is empty or already holds an installation. Anything
-# else - -InstallDir pointed at a folder of other tools, or at the data directory - holds someone else's files,
-# and replacing its contents would delete them. Checked before the download, while refusing costs nothing.
+# The directory is the installer's to replace only when it is empty, already holds an installation, or is one
+# an update stopped half-way through: no aiko.exe, and the version it replaced left in "<dir>.previous-*" for
+# the release's own `install --from` to put back. Anything else - -InstallDir pointed at a folder of other
+# tools, or at the data directory - holds someone else's files, and replacing its contents would delete them.
+# Checked before the download, while refusing costs nothing.
 function Assert-InstallDirIsAiko([string] $dir) {
     if (-not (Test-Path $dir)) { return }
     if (@(Get-ChildItem -Path $dir -Force).Count -eq 0) { return }
     if ((Test-Path (Join-Path $dir "$command.exe")) -or (Test-Path (Join-Path $dir 'install.json'))) { return }
+
+    # What an interrupted update leaves: the engine moved the command aside, then could not finish. The engine
+    # repairs this before it replaces anything, so the installer must let it through rather than call the
+    # directory foreign and leave the person with no way back in.
+    $full = [IO.Path]::GetFullPath($dir)
+    $previous = Join-Path (Split-Path -Parent $full) "$(Split-Path -Leaf $full).previous-*"
+    if (Test-Path $previous) { return }
+
     throw "$dir is not empty and holds no Aiko installation, so installing there would delete what it holds. " +
         'Choose an empty directory or one Aiko was installed into.'
 }
