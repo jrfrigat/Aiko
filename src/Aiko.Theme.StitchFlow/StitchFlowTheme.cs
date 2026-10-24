@@ -81,6 +81,9 @@ public static class StitchFlowTheme
             // Core said `monospace` outright for every mono run until Flare 0.38 made the face a theme's
             // (migration to 0.38, §1). State it, or the cockpit's identifiers fall back to the browser's.
             MonoFont = MonoFontStack,
+            // Emphasis such as the active nav label (Flare 0.46). Inter is loaded up to 700, and every
+            // title role already sits at 600, so bold has to be the next step to read as emphasis.
+            WeightBold = "700",
             DisplayLarge = Type(UiFont, "600", "2rem", "2.5rem", "-0.025em"),
             DisplayMedium = Type(UiFont, "600", "1.75rem", "2.25rem", "-0.02em"),
             DisplaySmall = Type(UiFont, "600", "1.5rem", "2rem", "-0.02em"),
