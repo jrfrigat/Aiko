@@ -1,7 +1,7 @@
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Runtime.InteropServices;
 using Aiko.Application.Installation;
 using Aiko.Infrastructure.Settings;
 using Aiko.Infrastructure.Storage;
@@ -190,25 +190,61 @@ public sealed class DaemonLifecycle(AikoDataPaths paths, TimeSpan? stopTimeout =
         {
             using (process)
             {
-                try
+                // A process that has exited between the listing and the question, or one that belongs to
+                // another user of the machine, has no path to give and is not evidence of a daemon holding
+                // this installation: another user's process cannot hold files in this user's profile.
+                if (ImagePathOf(process.Id) is { } image &&
+                    Path.GetFullPath(image).StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                 {
-                    if (process.MainModule?.FileName is { } image &&
-                        Path.GetFullPath(image).StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-                    {
-                        return true;
-                    }
-                }
-                catch (Exception exception) when (
-                    exception is Win32Exception or InvalidOperationException or NotSupportedException)
-                {
-                    // A process that has exited between the listing and the question, or one the system will
-                    // not let this run question, is not evidence of a daemon holding this installation.
+                    return true;
                 }
             }
         }
 
         return false;
     }
+
+    /// <summary>
+    /// The full path of the file a process was started from, or null when it cannot be read.
+    /// </summary>
+    /// <remarks>
+    /// Not <see cref="Process.MainModule"/>: that reads the process's memory, which an elevated process refuses
+    /// to an ordinary one, so a daemon started from an administrator terminal looked like nobody's and the
+    /// update moved its files from under it. The limited query right asked for here is granted across the
+    /// elevation boundary for the same user.
+    /// </remarks>
+    internal static string? ImagePathOf(int processId)
+    {
+        var handle = OpenProcess(ProcessQueryLimitedInformation, inheritHandle: false, processId);
+        if (handle == IntPtr.Zero)
+        {
+            return null;
+        }
+
+        try
+        {
+            var buffer = new char[32_768];
+            var length = buffer.Length;
+            return QueryFullProcessImageName(handle, 0, buffer, ref length) ? new string(buffer, 0, length) : null;
+        }
+        finally
+        {
+            CloseHandle(handle);
+        }
+    }
+
+    private const int ProcessQueryLimitedInformation = 0x1000;
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern IntPtr OpenProcess(int desiredAccess, bool inheritHandle, int processId);
+
+    [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode, EntryPoint = "QueryFullProcessImageNameW")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool QueryFullProcessImageName(IntPtr process, int flags, [Out] char[] path, ref int size);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool CloseHandle(IntPtr handle);
 
     /// <inheritdoc />
     public async ValueTask<bool> StartAsync(string installDirectory, CancellationToken cancellationToken)

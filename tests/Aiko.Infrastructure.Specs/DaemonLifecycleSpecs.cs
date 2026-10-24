@@ -58,6 +58,25 @@ public sealed class DaemonLifecycleSpecs
         await lifecycle.StopAsync(fixture.InstallDirectory, CancellationToken.None);
     }
 
+    [Fact]
+    public void The_image_path_of_a_process_is_read_without_reading_its_memory()
+    {
+        // The same query that answers for an elevated daemon: the path of this very process, which
+        // MainModule used to read from memory - and an elevated process refuses that to an ordinary one.
+        Assert.Equal(
+            Path.GetFullPath(Environment.ProcessPath!),
+            Path.GetFullPath(DaemonLifecycle.ImagePathOf(Environment.ProcessId)!),
+            StringComparer.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void A_process_that_cannot_be_opened_has_no_image_path()
+    {
+        // The idle process is never opened by anyone: the stand-in for one that has exited or belongs to
+        // another user, which the wait must pass over rather than throw on.
+        Assert.Null(DaemonLifecycle.ImagePathOf(0));
+    }
+
     /// <summary>A data directory and an installation whose daemon directory holds a real process.</summary>
     private sealed class DaemonFixture : IDisposable
     {
