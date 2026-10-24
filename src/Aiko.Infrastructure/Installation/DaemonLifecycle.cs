@@ -48,6 +48,12 @@ public sealed class DaemonLifecycle(AikoDataPaths paths, TimeSpan? stopTimeout =
     /// </summary>
     private readonly TimeSpan exitTimeout = stopTimeout ?? TimeSpan.FromSeconds(60);
 
+    /// <summary>
+    /// How long a daemon that was never asked to stop gets to leave: one already winding down after
+    /// <c>aiko serve stop</c> has stopped listening and needs only to finish exiting.
+    /// </summary>
+    private static readonly TimeSpan UnaskedGrace = TimeSpan.FromSeconds(5);
+
     /// <summary>How often the process table is asked whether the daemon is gone.</summary>
     private static readonly TimeSpan ExitPoll = TimeSpan.FromMilliseconds(250);
 
@@ -64,6 +70,7 @@ public sealed class DaemonLifecycle(AikoDataPaths paths, TimeSpan? stopTimeout =
         ArgumentException.ThrowIfNullOrWhiteSpace(installDirectory);
 
         var port = await SavedPortAsync(cancellationToken);
+        var stopAccepted = false;
         if (port is not null && await IsHealthyAsync(port.Value, cancellationToken))
         {
             using var http = CreateClient(port.Value);
@@ -99,6 +106,9 @@ public sealed class DaemonLifecycle(AikoDataPaths paths, TimeSpan? stopTimeout =
                     "so nothing was replaced.");
             }
 
+            // Accepted, or gone between the health check and the request: either way it was answering a
+            // moment ago and is on its way out, so it gets the whole wait below.
+            stopAccepted = true;
             var answered = true;
             for (var attempt = 0; attempt < 20 && answered; attempt++)
             {
@@ -117,7 +127,7 @@ public sealed class DaemonLifecycle(AikoDataPaths paths, TimeSpan? stopTimeout =
         // The endpoint and the process are two different states: the host stops listening while it is still
         // closing the connections it was serving, and its files stay in use until it has exited. An update
         // that trusted only the endpoint moved the binaries under a live process and had to be rolled back.
-        await WaitForExitAsync(installDirectory, cancellationToken);
+        await WaitForExitAsync(installDirectory, stopAccepted, port, cancellationToken);
     }
 
     /// <summary>
@@ -126,18 +136,37 @@ public sealed class DaemonLifecycle(AikoDataPaths paths, TimeSpan? stopTimeout =
     /// <remarks>
     /// A refusal here happens before anything is moved: the installation is still whole, and running the
     /// command again after the daemon has gone is the whole recovery.
+    /// <para>
+    /// A daemon that was never asked to stop - no saved port, or a port it does not answer on - gets only a
+    /// short grace: long enough for one that is already winding down after <c>aiko serve stop</c> to leave,
+    /// and no longer, because nothing this run does will make any other one exit. Its refusal says so rather
+    /// than claiming a stop it never sent, and does not point at <c>aiko serve stop</c>, which would knock on
+    /// the same silent port.
+    /// </para>
     /// </remarks>
-    private async ValueTask WaitForExitAsync(string installDirectory, CancellationToken cancellationToken)
+    private async ValueTask WaitForExitAsync(
+        string installDirectory,
+        bool stopAccepted,
+        int? port,
+        CancellationToken cancellationToken)
     {
-        var deadline = DateTime.UtcNow + exitTimeout;
+        var wait = stopAccepted || exitTimeout < UnaskedGrace ? exitTimeout : UnaskedGrace;
+        var deadline = DateTime.UtcNow + wait;
         while (DaemonIsRunning(installDirectory))
         {
             if (DateTime.UtcNow >= deadline)
             {
-                throw new InstallationRefusedException(
-                    $"The daemon accepted the stop but is still running after {exitTimeout.TotalSeconds:0} " +
-                    "seconds, so its files are still in use. Nothing was replaced; run `aiko serve stop` and " +
-                    "try again.");
+                throw new InstallationRefusedException(stopAccepted
+                    ? $"The daemon accepted the stop but is still running after {wait.TotalSeconds:0} " +
+                      "seconds, so its files are still in use. Nothing was replaced; run `aiko serve stop` and " +
+                      "try again."
+                    : "A daemon from this installation is running but " +
+                      (port is null
+                          ? "this data directory has no saved port for it"
+                          : $"it does not answer on port {port}") +
+                      ", so it could not be asked to stop and its files are still in use. Nothing was replaced; " +
+                      $"end the {ReleaseLayout.ServerFileName} process running from " +
+                      $"{Path.Combine(installDirectory, ReleaseLayout.ServerDirectoryName)} and try again.");
             }
 
             await Task.Delay(ExitPoll, cancellationToken);

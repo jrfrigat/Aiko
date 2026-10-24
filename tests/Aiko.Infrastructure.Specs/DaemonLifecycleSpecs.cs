@@ -24,7 +24,27 @@ public sealed class DaemonLifecycleSpecs
         var refused = await Assert.ThrowsAsync<InstallationRefusedException>(
             () => lifecycle.StopAsync(fixture.InstallDirectory, CancellationToken.None).AsTask());
 
-        Assert.Contains("still running", refused.Message, StringComparison.Ordinal);
+        // No port was saved, so no stop was sent: the refusal must not claim one, nor send the person to
+        // `aiko serve stop`, which knocks on the same missing port.
+        Assert.Contains("could not be asked to stop", refused.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("accepted the stop", refused.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("aiko serve stop", refused.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_daemon_that_was_never_asked_to_stop_is_not_waited_on_for_the_whole_stop_timeout()
+    {
+        using var fixture = new DaemonFixture();
+        fixture.StartDaemonProcess();
+        // The minute a stopped daemon gets. One that was never asked to stop gets a short grace instead,
+        // because nothing this run does will make it leave.
+        var lifecycle = new DaemonLifecycle(fixture.Paths, TimeSpan.FromSeconds(60));
+        var clock = Stopwatch.StartNew();
+
+        await Assert.ThrowsAsync<InstallationRefusedException>(
+            () => lifecycle.StopAsync(fixture.InstallDirectory, CancellationToken.None).AsTask());
+
+        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(20), $"Waited {clock.Elapsed}.");
     }
 
     [Fact]

@@ -56,6 +56,12 @@ Accepting the stop is not the same as having exited: the host stops answering wh
 connections it was serving, and its files stay in use until the process is gone. The run waits for the
 process itself, so a daemon with agents connected can make the replacement take half a minute longer.
 
+If the message says `A daemon from this installation is running but ... could not be asked to stop`, an
+`Aiko.Server` process runs out of the installation's `server` folder, but not on the port saved in this data
+directory - it was started with another data directory or port, or it hangs. The run cannot ask it to stop,
+and `aiko serve stop` cannot either, so it waits only a few seconds. End that process (Task Manager, or
+`Get-Process Aiko.Server | Stop-Process` after checking its path) and run the update again.
+
 One other process can hold a file in the installation: an agent's `aiko-stdio` proxy, which an agent starts
 out of that directory and which the engine knows nothing about.
 
