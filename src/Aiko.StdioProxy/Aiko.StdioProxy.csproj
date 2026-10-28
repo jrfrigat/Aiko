@@ -6,7 +6,7 @@
     <InvariantGlobalization>false</InvariantGlobalization>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="ModelContextProtocol" Version="2.2.0" />
+    <PackageReference Include="ModelContextProtocol" Version="2.3.0" />
     <!-- The proxy is a client of the daemon, so it reads the installation's access token the way the CLI does
          rather than keeping a second copy of the rule (TASK-161). The CLI links the same assembly and is
          published the same way, so the AOT story is not new here. -->
