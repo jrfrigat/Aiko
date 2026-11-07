@@ -34,7 +34,7 @@
         @* The card types of the project as tabs, with the "+" at the end for a new one: a type is a whole
            pipeline, so switching between them is switching what this panel edits rather than picking a field
            value from a list. *@
-        <FlareTabs ActiveIndex="@ActiveTypeIndex" ActiveIndexChanged="OnTypeTabChanged">
+        <FlareTabs Variant="TabsVariant.Outlined" ActiveIndex="@ActiveTypeIndex" ActiveIndexChanged="OnTypeTabChanged">
             <ChildContent>
                 @foreach (var type in Workflows)
                 {

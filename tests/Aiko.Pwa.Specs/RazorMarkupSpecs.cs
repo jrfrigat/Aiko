@@ -105,7 +105,7 @@ public sealed class RazorMarkupSpecs
         // One bar of three text tabs, each labelled from the resources: the card's prose had grown into three
         // long editors stacked on top of each other, and a tab nobody can reach is a field that does not exist.
         Assert.Contains(
-            "<FlareTabs ActiveIndex=\"_textTab\" ActiveIndexChanged=\"OnTextTabChanged\">",
+            "<FlareTabs Variant=\"TabsVariant.Outlined\" ActiveIndex=\"_textTab\" ActiveIndexChanged=\"OnTextTabChanged\">",
             text,
             StringComparison.Ordinal);
         Assert.Contains("<FlareTab Label=\"@Loc.Get(\"Request\")\">", text, StringComparison.Ordinal);

@@ -92,7 +92,7 @@
                    the work stands, and the scope the card declares. The editors write into the page's fields, so
                    switching tabs never loses what was typed, and the save row below belongs to the card rather
                    than to one tab. *@
-                <FlareTabs ActiveIndex="_textTab" ActiveIndexChanged="OnTextTabChanged">
+                <FlareTabs Variant="TabsVariant.Outlined" ActiveIndex="_textTab" ActiveIndexChanged="OnTextTabChanged">
                     <FlareTab Label="@Loc.Get("Requirements")">
                         <ChildContent>
                             <FlareStack Gap="FlareSpacing.XSmall">
@@ -151,7 +151,7 @@
                 what it declared it would touch, what it actually touched, and the deviation - the files
                 it changed without declaring them. The last one is what a reader checks a card by, and it
                 is the same list the footer's DoD line counts. *@
-                <FlareTabs ActiveIndex="_scopeTab" ActiveIndexChanged="OnScopeTabChanged">
+                <FlareTabs Variant="TabsVariant.Outlined" ActiveIndex="_scopeTab" ActiveIndexChanged="OnScopeTabChanged">
                     <FlareTab Label="@Loc.Get("FilesDeclared")">
                         <ChildContent>
                             <FileGroup Title="@Loc.Get("FilesDeclared")" Files="Card.DeclaredScopeFiles" />
@@ -237,7 +237,7 @@
            bar instead of stacking four panels, and a card is read one question at a time. The tabs are not
            lazy: a document half-written in the artifacts tab has to survive a look at the run history. *@
         <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
-            <FlareTabs ActiveIndex="_activeTab" ActiveIndexChanged="OnActiveTabChanged">
+            <FlareTabs Variant="TabsVariant.Outlined" ActiveIndex="_activeTab" ActiveIndexChanged="OnActiveTabChanged">
                 <FlareTab Label="@Loc.Get("CompletedOutcomes")">
                     <LeadingIcon><FlareIconView Value="@MaterialDesign3Icons.Regular.CheckCircle" /></LeadingIcon>
                     <ChildContent>
