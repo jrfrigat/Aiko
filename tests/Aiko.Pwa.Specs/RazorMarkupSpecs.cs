@@ -600,8 +600,12 @@ public sealed class RazorMarkupSpecs
 
         // One control with one value out of three. FlareColorModeToggle is a boolean and cannot express
         // "auto", and an "auto" option beside it would be a second control on the same axis - the two
-        // could then contradict each other, and the person would not know what they had changed.
-        Assert.Contains("FlareToggleGroup TValue=\"ThemeMode\"", page, StringComparison.Ordinal);
+        // could then contradict each other, and the person would not know what they had changed. The
+        // value type is nullable because Flare's single-select group refuses a type that cannot say
+        // "nothing is selected"; Mandatory only stops the user from clearing a real choice (TASK-383).
+        Assert.Contains("FlareToggleGroup TValue=\"ThemeMode?\"", page, StringComparison.Ordinal);
+        Assert.Contains("Value=\"@((ThemeMode?)ThemeService.Mode)\"", page, StringComparison.Ordinal);
+        Assert.Contains("SetModeAsync(ThemeMode? mode)", page, StringComparison.Ordinal);
         Assert.Contains("Mandatory=\"true\"", page, StringComparison.Ordinal);
         Assert.DoesNotContain("<FlareColorModeToggle", page, StringComparison.Ordinal);
 

@@ -51,8 +51,8 @@
                 <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
                     @Loc.Get("AppearanceMode")
                 </FlareText>
-                <FlareToggleGroup TValue="ThemeMode"
-                                  Value="@ThemeService.Mode"
+                <FlareToggleGroup TValue="ThemeMode?"
+                                  Value="@((ThemeMode?)ThemeService.Mode)"
                                   ValueChanged="SetModeAsync"
                                   Mandatory="true">
                     <FlareToggleButton Value="@ThemeMode.Auto">@Loc.Get("AppearanceModeAuto")</FlareToggleButton>
@@ -133,7 +133,14 @@
     /// Switches the mode. The provider is what remembers it: it writes the whole theme selection on
     /// every change, so writing the mode to storage here too would be a second place writing one key.
     /// </summary>
-    private Task SetModeAsync(ThemeMode mode) => ThemeService.SetModeAsync(mode);
+    /// <remarks>
+    /// The group's value type is nullable because a single-select group has to be able to say "nothing
+    /// is selected" - Flare refuses a non-nullable value type at render time. Mandatory keeps the user
+    /// from clearing the choice, so a null callback only guards the contract rather than describing a
+    /// state the screen can reach.
+    /// </remarks>
+    private Task SetModeAsync(ThemeMode? mode) =>
+        mode is null ? Task.CompletedTask : ThemeService.SetModeAsync(mode.Value);
 
     /// <summary>The palettes the theme offers, by id - the value a pick is made of.</summary>
     private IReadOnlyList<string> PaletteIds =>
