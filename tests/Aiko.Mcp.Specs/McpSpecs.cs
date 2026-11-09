@@ -1618,38 +1618,22 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         Assert.Contains("backlog", refusal, StringComparison.Ordinal);
         Assert.Contains("offer", refusal, StringComparison.Ordinal);
 
-        // The blocker finishes its own pipeline - one step out of the backlog, run and completed - and the same
-        // start goes through: a finished blocker holds nothing back. Reaching the last stage is not enough on its
-        // own: finished is the one rule the queue and the archive read, the last stage with its run completed.
+        // The blocker reaches the final stage of its own pipeline. Its closing run stays open on purpose: the
+        // gate reads the pipeline position, not the run record, so a card in done no longer holds anything back
+        // (TASK-377). The relation itself remains as history; nothing has to be unlinked.
         var closing = await StartStageAsync(client, blockerId, "done", "claude-code");
         Assert.False(closing.IsError == true, FirstText(closing));
-        using var closingJson = JsonDocument.Parse(FirstText(closing) ?? "{}");
-        var closingId = closingJson.RootElement.GetProperty("id").GetString();
-        var estimated = await client.CallToolAsync(
-            "aiko_estimate_card",
-            new Dictionary<string, object?>
-            {
-                ["cardId"] = blockerId,
-                ["expectedRevision"] = await RevisionAsync(client, blockerId),
-                ["criterionValues"] = new[] { "complete=10" }
-            },
-            cancellationToken: CancellationToken.None);
-        Assert.NotEqual(true, estimated.IsError);
-        var closed = await client.CallToolAsync(
-            "aiko_complete_stage",
-            new Dictionary<string, object?>
-            {
-                ["executionId"] = closingId,
-                ["actualChangedFiles"] = Array.Empty<string>(),
-                ["artifacts"] = Array.Empty<string>()
-            },
-            cancellationToken: CancellationToken.None);
-        Assert.NotEqual(true, closed.IsError);
 
-        // ... and the same start is no longer refused by the block: the gate reads the rule, and the domain
-        // spec covers the rule itself. Whether the start goes through can still depend on runs the shared
-        // project has open - the default run limit is one, and other specs may leave an execution running - so
-        // what is asserted here is that the refusal is no longer about a blocker.
+        var unblocked = await client.CallToolAsync(
+            "aiko_get_card",
+            new Dictionary<string, object?> { ["cardId"] = blockedId },
+            cancellationToken: CancellationToken.None);
+        using var unblockedJson = JsonDocument.Parse(FirstText(unblocked) ?? "{}");
+        Assert.Empty(unblockedJson.RootElement.GetProperty("blockedBy").EnumerateArray());
+
+        // ... and the same start is no longer refused by the block: the domain spec covers the rule itself.
+        // Whether the start goes through can still depend on runs the project has open - the blocker's closing
+        // run is one - so what is asserted here is that the refusal is no longer about a blocker.
         var started = await StartStageAsync(client, blockedId, "analysis", "claude-code");
         Assert.DoesNotContain(blockerId, FirstText(started) ?? string.Empty, StringComparison.Ordinal);
     }

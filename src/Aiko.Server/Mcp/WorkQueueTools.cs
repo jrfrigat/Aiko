@@ -121,11 +121,7 @@ internal sealed class WorkQueueTools(
                     card.Reference,
                     boardRelations,
                     boardCards,
-                    definition.Workflows,
-                    blocker => runsByCard.TryGetValue(blocker.Reference.CardId, out var blockerRuns)
-                        ? blockerRuns.FirstOrDefault(run =>
-                            StringComparer.Ordinal.Equals(run.StageId, blocker.StageId))?.StateValue
-                        : null),
+                    definition.Workflows),
                 currentRun?.State ?? "Pending",
                 finished,
                 scopeConflicts,

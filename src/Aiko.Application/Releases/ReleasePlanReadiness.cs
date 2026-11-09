@@ -161,11 +161,7 @@ public sealed class ReleasePlanReadinessProjector(
                     card.Reference,
                     projectRelations,
                     projectCards,
-                    definition.Workflows,
-                    candidate => runsByCard.TryGetValue(candidate.Reference.CardId, out var blockerRuns)
-                        ? blockerRuns.FirstOrDefault(run =>
-                            StringComparer.Ordinal.Equals(run.StageId, candidate.StageId))?.StateValue
-                        : null);
+                    definition.Workflows);
                 entries.Add(blockers.Count > 0
                     ? new ReleasePlanCardReadiness(
                         card.Reference.CardId,

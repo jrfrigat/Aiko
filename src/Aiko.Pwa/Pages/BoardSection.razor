@@ -491,7 +491,7 @@
     /// The cards that hold this one back, read with the start gate's own rule so the board and an agent agree.
     /// </summary>
     private IReadOnlyList<CardBlocker> Blockers(Card card) =>
-        BoardRelations.BlockedBy(card, Board.Relations, Board.Cards, Board.Workflows, Board.StageRuns ?? []);
+        BoardRelations.BlockedBy(card, Board.Relations, Board.Cards, Board.Workflows);
 
     /// <summary>
     /// The card this one belongs to, or null when it belongs to nobody - or when the snapshot does not carry

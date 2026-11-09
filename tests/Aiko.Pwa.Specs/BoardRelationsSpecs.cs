@@ -29,11 +29,11 @@ public sealed class BoardRelationsSpecs
         var blocked = CardAt("TASK-2", "backlog");
         var relations = new[] { Edge(blocker, blocked, RelationTypes.Blocks) };
 
-        var found = Assert.Single(BoardRelations.BlockedBy(blocked, relations, [blocker, blocked], [Pipeline], []));
+        var found = Assert.Single(BoardRelations.BlockedBy(blocked, relations, [blocker, blocked], [Pipeline]));
         Assert.Equal("TASK-1", found.CardId);
 
         // The source of the edge is not held back by its own block.
-        Assert.Empty(BoardRelations.BlockedBy(blocker, relations, [blocker, blocked], [Pipeline], []));
+        Assert.Empty(BoardRelations.BlockedBy(blocker, relations, [blocker, blocked], [Pipeline]));
     }
 
     [Fact]
@@ -46,9 +46,8 @@ public sealed class BoardRelationsSpecs
             two,
             [Edge(one, two, RelationTypes.RelatesTo), Edge(one, two, RelationTypes.Implements)],
             [one, two],
-            [Pipeline],
-            []));
-        Assert.Empty(BoardRelations.BlockedBy(two, [], [one, two], [Pipeline], []));
+            [Pipeline]));
+        Assert.Empty(BoardRelations.BlockedBy(two, [], [one, two], [Pipeline]));
     }
 
     [Fact]
@@ -58,11 +57,9 @@ public sealed class BoardRelationsSpecs
         var blocked = CardAt("TASK-2", "backlog");
         var relations = new[] { Edge(blocker, blocked, RelationTypes.Blocks) };
 
-        // In its last stage but with the closing run still open: still a blocker, as the start gate says.
-        Assert.Single(BoardRelations.BlockedBy(
-            blocked, relations, [blocker, blocked], [Pipeline], [new StageRunSummary("TASK-1", "done", "Running")]));
-        Assert.Empty(BoardRelations.BlockedBy(
-            blocked, relations, [blocker, blocked], [Pipeline], [new StageRunSummary("TASK-1", "done", "Completed")]));
+        // The board reads the same pipeline position as the start gate: a blocker in its last stage no longer
+        // shows, whatever its closing run says (TASK-377).
+        Assert.Empty(BoardRelations.BlockedBy(blocked, relations, [blocker, blocked], [Pipeline]));
     }
 
     [Fact]

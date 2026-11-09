@@ -1,5 +1,4 @@
 using Aiko.Domain.Cards;
-using Aiko.Domain.Execution;
 
 namespace Aiko.Domain.Workflow;
 
@@ -20,10 +19,11 @@ public readonly record struct CardBlocker(string CardId, string Title, string St
 /// enforced rather than merely recorded: the rule is about the pipeline, so it lives here, and whether a caller
 /// applies it stays that caller's decision.
 ///
-/// A blocker counts as finished by the one rule every screen asks, <see cref="CardCompletion.IsFinished"/>, and
-/// the last stage is read from the blocker's own workflow because pipelines differ per card type. An edge that
-/// points at a card the project does not have is not a blocker: the reindexer already reports that defect, and a
-/// gate waiting for a card nobody can finish would stop the work for good.
+/// A blocker that sits in the last stage of its own workflow has finished, whatever the latest run there says:
+/// the stage is the pipeline's own end, and a card moved into it has arrived. Waiting for a closing run that
+/// was never recorded is how a card in done kept holding the work behind it (TASK-377). An edge that points at
+/// a card the project does not have - including one put away in the archive - is not a blocker: the reindexer
+/// already reports that defect, and a gate waiting for a card nobody can finish would stop the work for good.
 /// </remarks>
 public static class CardBlocking
 {
@@ -34,20 +34,15 @@ public static class CardBlocking
     /// <param name="relations">All relations of the project, from which the incoming <c>blocks</c> edges come.</param>
     /// <param name="cards">All cards of the project, so a blocker can be named.</param>
     /// <param name="workflows">All workflows of the project, so the end of a pipeline can be read.</param>
-    /// <param name="latestRunState">
-    /// The state of the latest run of the stage a card sits in, or null when nothing is known about it.
-    /// </param>
     public static IReadOnlyList<CardBlocker> Unfinished(
         CardReference card,
         IReadOnlyList<CardRelation> relations,
         IReadOnlyList<Card> cards,
-        IReadOnlyList<WorkflowDefinition> workflows,
-        Func<Card, StageExecutionState?> latestRunState)
+        IReadOnlyList<WorkflowDefinition> workflows)
     {
         ArgumentNullException.ThrowIfNull(relations);
         ArgumentNullException.ThrowIfNull(cards);
         ArgumentNullException.ThrowIfNull(workflows);
-        ArgumentNullException.ThrowIfNull(latestRunState);
 
         var blockers = new List<CardBlocker>();
         foreach (var relation in relations)
@@ -76,10 +71,13 @@ public static class CardBlocking
 
             var stage = workflow.Stages.FirstOrDefault(candidate =>
                 StringComparer.Ordinal.Equals(candidate.Id, blocker.StageId));
-            if (stage is null || CardCompletion.IsFinished(workflow, stage.Id, latestRunState(blocker)))
+            if (stage is null || WorkflowDefinition.IsLastStage(workflow, stage))
             {
-                // The blocker finished its pipeline, or sits in a stage this workflow does not have - and in the
-                // second case guessing where the card is would be worse than not blocking.
+                // The blocker reached the end of its own pipeline, or sits in a stage this workflow does not
+                // have - and in the second case guessing where the card is would be worse than not blocking.
+                // The end is the pipeline position, not the run record: a card moved into done has arrived even
+                // when its closing run was never completed, and waiting for that run would hold the work behind
+                // it for good (TASK-377).
                 continue;
             }
 

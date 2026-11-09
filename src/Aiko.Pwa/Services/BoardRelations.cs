@@ -19,22 +19,17 @@ public static class BoardRelations
     /// <param name="relations">The snapshot's relations.</param>
     /// <param name="cards">The cards the snapshot carries, so a blocker can be named.</param>
     /// <param name="workflows">The project's workflows, so the end of a blocker's pipeline can be read.</param>
-    /// <param name="runs">The latest run of each card's stages.</param>
     public static IReadOnlyList<CardBlocker> BlockedBy(
         Card card,
         IReadOnlyList<CardRelation> relations,
         IReadOnlyList<Card> cards,
-        IReadOnlyList<WorkflowDefinition> workflows,
-        IReadOnlyList<StageRunSummary> runs)
+        IReadOnlyList<WorkflowDefinition> workflows)
     {
         ArgumentNullException.ThrowIfNull(card);
         return CardBlocking.Unfinished(
             card.Reference,
             relations,
             cards,
-            workflows,
-            blocker => runs.FirstOrDefault(run =>
-                StringComparer.Ordinal.Equals(run.CardId, blocker.Reference.CardId) &&
-                StringComparer.Ordinal.Equals(run.StageId, blocker.StageId))?.StateValue);
+            workflows);
     }
 }
