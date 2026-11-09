@@ -65,7 +65,7 @@ public sealed class ErrorTextSpecs(AikoServerFixture fixture) : IClassFixture<Ai
             Endpoint = fixture.McpEndpoint,
             TransportMode = HttpTransportMode.StreamableHttp
         });
-        await using var client = await McpClient.CreateAsync(transport, cancellationToken: CancellationToken.None);
+        await using var client = await McpTestClient.CreateAsync(transport, cancellationToken: CancellationToken.None);
 
         // A move of a card that does not exist: the store refuses it and the store's words are the answer an
         // agent acts on, so the rule above must not swallow them into the generic text.

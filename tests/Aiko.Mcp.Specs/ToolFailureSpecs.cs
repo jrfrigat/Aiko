@@ -162,7 +162,7 @@ public sealed class ToolFailureSpecs
                     $"http://127.0.0.1:{_port.ToString(CultureInfo.InvariantCulture)}/mcp/projects/{_handle}"),
                 TransportMode = HttpTransportMode.StreamableHttp
             });
-            return await McpClient.CreateAsync(transport, cancellationToken: CancellationToken.None);
+            return await McpTestClient.CreateAsync(transport, cancellationToken: CancellationToken.None);
         }
 
         /// <summary>A card with one artifact saved, and its identifier.</summary>

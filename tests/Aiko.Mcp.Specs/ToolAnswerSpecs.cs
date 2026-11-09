@@ -366,7 +366,7 @@ public class ToolAnswerSpecs(AikoServerFixture fixture) : IClassFixture<AikoServ
         response.EnsureSuccessStatusCode();
         var projectId = (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString()!;
 
-        return await McpClient.CreateAsync(
+        return await McpTestClient.CreateAsync(
             new HttpClientTransport(new HttpClientTransportOptions
             {
                 Endpoint = new Uri($"{fixture.BaseUrl}mcp/projects/{projectId}"),

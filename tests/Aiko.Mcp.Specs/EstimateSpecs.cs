@@ -144,7 +144,7 @@ public class EstimateSpecs(AikoServerFixture fixture) : IClassFixture<AikoServer
         var initialized = await response.Content.ReadFromJsonAsync<JsonElement>();
         var projectId = initialized.GetProperty("id").GetString()!;
 
-        return await McpClient.CreateAsync(
+        return await McpTestClient.CreateAsync(
             new HttpClientTransport(new HttpClientTransportOptions
             {
                 Endpoint = new Uri($"{fixture.BaseUrl}mcp/projects/{projectId}"),

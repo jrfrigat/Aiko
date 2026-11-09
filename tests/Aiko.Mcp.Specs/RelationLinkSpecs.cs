@@ -137,7 +137,7 @@ public class RelationLinkSpecs(AikoServerFixture fixture) : IClassFixture<AikoSe
         response.EnsureSuccessStatusCode();
         var projectId = (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString()!;
 
-        var client = await McpClient.CreateAsync(
+        var client = await McpTestClient.CreateAsync(
             new HttpClientTransport(new HttpClientTransportOptions
             {
                 Endpoint = new Uri($"{fixture.BaseUrl}mcp/projects/{projectId}"),

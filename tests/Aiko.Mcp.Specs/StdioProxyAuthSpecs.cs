@@ -79,7 +79,7 @@ public sealed class StdioProxyAuthSpecs
                 EnvironmentVariables = environment
             });
 
-            await using var client = await McpClient.CreateAsync(
+            await using var client = await McpTestClient.CreateAsync(
                 transport,
                 cancellationToken: CancellationToken.None);
             var tools = await client.ListToolsAsync(cancellationToken: CancellationToken.None);

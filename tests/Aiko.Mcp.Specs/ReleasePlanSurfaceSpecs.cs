@@ -27,7 +27,7 @@ public class ReleasePlanSurfaceSpecs(AikoServerFixture fixture) : IClassFixture<
             TransportMode = HttpTransportMode.StreamableHttp
         });
 
-        return await McpClient.CreateAsync(transport, cancellationToken: CancellationToken.None);
+        return await McpTestClient.CreateAsync(transport, cancellationToken: CancellationToken.None);
     }
 
     private static string? FirstText(CallToolResult result) =>

@@ -24,7 +24,7 @@ public class IdempotencySpecs(AikoServerFixture fixture) : IClassFixture<AikoSer
             TransportMode = HttpTransportMode.StreamableHttp
         });
 
-        return await McpClient.CreateAsync(transport, cancellationToken: CancellationToken.None);
+        return await McpTestClient.CreateAsync(transport, cancellationToken: CancellationToken.None);
     }
 
     private static string? FirstText(CallToolResult result) =>

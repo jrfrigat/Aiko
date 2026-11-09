@@ -17,7 +17,7 @@ public class PriorityGuardSpecs(AikoServerFixture fixture) : IClassFixture<AikoS
     [Fact]
     public async Task A_negative_priority_is_refused_and_the_board_still_answers()
     {
-        await using var client = await McpClient.CreateAsync(
+        await using var client = await McpTestClient.CreateAsync(
             new HttpClientTransport(new HttpClientTransportOptions
             {
                 Endpoint = fixture.McpEndpoint,

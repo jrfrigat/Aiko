@@ -127,7 +127,7 @@ public class UserDecisionSpecs(AikoServerFixture fixture) : IClassFixture<AikoSe
         using var written = await http.PutAsync($"api/v1/projects/{projectId}/settings", settings);
         written.EnsureSuccessStatusCode();
 
-        var client = await McpClient.CreateAsync(
+        var client = await McpTestClient.CreateAsync(
             new HttpClientTransport(new HttpClientTransportOptions
             {
                 Endpoint = new Uri($"{fixture.BaseUrl}mcp/projects/{projectId}"),

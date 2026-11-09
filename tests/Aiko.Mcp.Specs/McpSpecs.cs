@@ -78,7 +78,7 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
             TransportMode = HttpTransportMode.StreamableHttp
         });
 
-        return await McpClient.CreateAsync(transport, cancellationToken: CancellationToken.None);
+        return await McpTestClient.CreateAsync(transport, cancellationToken: CancellationToken.None);
     }
 
     private static string? FirstText(CallToolResult result) =>
@@ -790,7 +790,7 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
             TransportMode = HttpTransportMode.StreamableHttp
         });
 
-        return await McpClient.CreateAsync(transport, cancellationToken: CancellationToken.None);
+        return await McpTestClient.CreateAsync(transport, cancellationToken: CancellationToken.None);
     }
 
     /// <summary>
@@ -1319,7 +1319,7 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
             Arguments = [proxyAssembly, "--url", fixture.McpEndpoint.ToString()],
             ShutdownTimeout = TimeSpan.FromSeconds(5)
         });
-        await using var stdioClient = await McpClient.CreateAsync(
+        await using var stdioClient = await McpTestClient.CreateAsync(
             stdioTransport,
             cancellationToken: CancellationToken.None);
         var stdioTools = await stdioClient.ListToolsAsync(cancellationToken: CancellationToken.None);
@@ -1556,7 +1556,7 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
             });
         Assert.Equal(HttpStatusCode.Created, created.StatusCode);
 
-        await using var client = await McpClient.CreateAsync(
+        await using var client = await McpTestClient.CreateAsync(
             new HttpClientTransport(new HttpClientTransportOptions
             {
                 Endpoint = new Uri($"{fixture.BaseUrl}mcp/projects/{projectId}"),
@@ -1911,7 +1911,7 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
             Endpoint = new Uri($"{fixture.BaseUrl}mcp"),
             TransportMode = HttpTransportMode.StreamableHttp
         });
-        await using var client = await McpClient.CreateAsync(transport, cancellationToken: CancellationToken.None);
+        await using var client = await McpTestClient.CreateAsync(transport, cancellationToken: CancellationToken.None);
 
         var doctor = await client.CallToolAsync("aiko_doctor", cancellationToken: CancellationToken.None);
         Assert.NotEqual(true, doctor.IsError);
@@ -1943,7 +1943,7 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
             Endpoint = new Uri($"{fixture.BaseUrl}mcp"),
             TransportMode = HttpTransportMode.StreamableHttp
         });
-        await using var client = await McpClient.CreateAsync(transport, cancellationToken: CancellationToken.None);
+        await using var client = await McpTestClient.CreateAsync(transport, cancellationToken: CancellationToken.None);
 
         // The origin is a project the daemon knows: its policy is what allows the hand-over, so the source must
         // be registered before it can grant anything.
@@ -1980,7 +1980,7 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
             Endpoint = new Uri($"{fixture.BaseUrl}mcp"),
             TransportMode = HttpTransportMode.StreamableHttp
         });
-        await using var client = await McpClient.CreateAsync(transport, cancellationToken: CancellationToken.None);
+        await using var client = await McpTestClient.CreateAsync(transport, cancellationToken: CancellationToken.None);
 
         var (sourceId, sourceRoot) = await InitProjectAsync(client, "Cross source");
 
@@ -2293,7 +2293,7 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
             Endpoint = new Uri($"{fixture.BaseUrl}mcp"),
             TransportMode = HttpTransportMode.StreamableHttp
         });
-        await using var client = await McpClient.CreateAsync(transport, cancellationToken: CancellationToken.None);
+        await using var client = await McpTestClient.CreateAsync(transport, cancellationToken: CancellationToken.None);
 
         var newRoot = Path.Combine(Path.GetTempPath(), "Aiko.Mcp.Specs", "DaemonInit", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(newRoot);
@@ -2727,7 +2727,7 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
             Endpoint = new Uri($"{fixture.BaseUrl}mcp/projects/{handle}"),
             TransportMode = HttpTransportMode.StreamableHttp
         });
-        await using var client = await McpClient.CreateAsync(
+        await using var client = await McpTestClient.CreateAsync(
             transport, cancellationToken: CancellationToken.None);
 
         var cardId = $"TASK-HANDLE-{Guid.NewGuid():N}";

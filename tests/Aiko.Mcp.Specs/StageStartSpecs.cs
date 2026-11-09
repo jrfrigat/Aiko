@@ -175,7 +175,7 @@ public class StageStartSpecs(AikoServerFixture fixture) : IClassFixture<AikoServ
         var initialized = await response.Content.ReadFromJsonAsync<JsonElement>();
         var projectId = initialized.GetProperty("id").GetString()!;
 
-        var client = await McpClient.CreateAsync(
+        var client = await McpTestClient.CreateAsync(
             new HttpClientTransport(new HttpClientTransportOptions
             {
                 Endpoint = new Uri($"{fixture.BaseUrl}mcp/projects/{projectId}"),
