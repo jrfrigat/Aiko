@@ -235,6 +235,96 @@ public sealed class FileReleasePlanStore(
         }
     }
 
+    /// <inheritdoc />
+    public async ValueTask<ReleasePlanDeletion> DeleteAsync(
+        string projectId,
+        string version,
+        string? carryIntoVersion,
+        CancellationToken cancellationToken)
+    {
+        var project = await FindProjectAsync(projectId, cancellationToken);
+
+        using (await locks.LockAsync(project.Id, cancellationToken))
+        {
+            var document = await ReadDocumentAsync(project.RootPath, cancellationToken);
+            var history = await releases.ReadAsync(projectId, cancellationToken);
+            // Reconcile first: a version recorded without its plan ever being closed is released all the
+            // same, and its plan is history rather than a draft somebody may throw away.
+            var plans = ReleasePlans.Reconcile(document, history);
+            var existing = plans.Find(version)
+                ?? throw new KeyNotFoundException(
+                    $"No release plan for '{version}' exists in this project, so there is nothing to delete.");
+            if (existing.IsReleased)
+            {
+                throw new ArgumentException(
+                    $"release plan '{existing.Version}' is closed: the version was recorded at " +
+                    $"{existing.ReleasedAt:u}. The plan of a released version is history and cannot be deleted.");
+            }
+
+            var now = DateTimeOffset.UtcNow;
+            ReleasePlan? target = null;
+            string? carriedInto = null;
+            if (existing.Cards.Count > 0 &&
+                !string.IsNullOrWhiteSpace(carryIntoVersion) &&
+                !ReleasePlan.Same(carryIntoVersion, existing.Version))
+            {
+                ReleaseRecords.Validate(carryIntoVersion, existing.SchemeId);
+                target = plans.Find(carryIntoVersion!);
+                if (target is null && ReleasePlans.RefusePlanning(carryIntoVersion!, history) is { } shipped)
+                {
+                    throw new ArgumentException(shipped, nameof(carryIntoVersion));
+                }
+
+                target ??= new ReleasePlan(
+                    carryIntoVersion!.Trim(), existing.SchemeId, [], false, now, null, null);
+                if (target.IsReleased)
+                {
+                    throw new ArgumentException(
+                        $"release plan '{target.Version}' is already closed, so work cannot be carried into it.",
+                        nameof(carryIntoVersion));
+                }
+
+                target = target with
+                {
+                    Cards =
+                    [
+                        .. target.Cards,
+                        .. NewEntriesFor(
+                            [.. existing.Cards.Select(entry => entry.CardId)],
+                            target,
+                            existing.Version,
+                            now)
+                    ]
+                };
+                carriedInto = target.Version;
+            }
+
+            var resolvedTarget = target;
+            var remaining = document.Plans
+                .Where(candidate => !ReleasePlan.Same(candidate.Version, existing.Version))
+                .Select(candidate => resolvedTarget is not null &&
+                                     ReleasePlan.Same(candidate.Version, resolvedTarget.Version)
+                    ? resolvedTarget
+                    : candidate)
+                .ToList();
+            if (resolvedTarget is not null &&
+                !document.Plans.Any(candidate => ReleasePlan.Same(candidate.Version, resolvedTarget.Version)))
+            {
+                // A plan the caller named and nobody had yet is the most recently created one, which is where
+                // the document holds it.
+                remaining.Insert(0, resolvedTarget);
+            }
+
+            var changed = document with { Plans = remaining };
+            await WriteDocumentAsync(project.RootPath, changed, cancellationToken);
+            await PublishAsync(project.Id, changed, cancellationToken);
+            return new ReleasePlanDeletion(
+                existing.Version,
+                carriedInto,
+                [.. existing.Cards.Select(entry => entry.CardId)]);
+        }
+    }
+
     /// <summary>
     /// Where the work that outlived a version goes.
     /// </summary>

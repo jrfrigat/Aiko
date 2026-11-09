@@ -2440,7 +2440,7 @@
     <value>Release plan</value>
   </data>
   <data name="ReleasePlanHint" xml:space="preserve">
-    <value>What each version still ahead is waiting for. The plan is moved by an agent's tools; this screen reads it.</value>
+    <value>What each version still ahead is waiting for. An agent's tools move the plan; this screen reads it and can remove a version that will not be released.</value>
   </data>
   <data name="ReleasePlanEmpty" xml:space="preserve">
     <value>No version is planned. An agent plans one with the release-plan tools, and the cards made while it is being worked on flow into it.</value>
@@ -2474,6 +2474,30 @@
   </data>
   <data name="ReleasePlanBlockedBy" xml:space="preserve">
     <value>held by {0}</value>
+  </data>
+  <data name="ReleasePlanDelete" xml:space="preserve">
+    <value>Delete plan</value>
+  </data>
+  <data name="ReleasePlanDeleteTitle" xml:space="preserve">
+    <value>Delete this release plan?</value>
+  </data>
+  <data name="ReleasePlanDeleteWarning" xml:space="preserve">
+    <value>The plan for {0} will be removed. Its cards are kept; they are not deleted.</value>
+  </data>
+  <data name="ReleasePlanDeleteCarry" xml:space="preserve">
+    <value>Carry the cards into</value>
+  </data>
+  <data name="ReleasePlanDeleteCarryNone" xml:space="preserve">
+    <value>Leave them out of every plan</value>
+  </data>
+  <data name="ReleasePlanDeleteCarryHint" xml:space="preserve">
+    <value>The cards stay in the project; only their place in a plan changes.</value>
+  </data>
+  <data name="ReleasePlanDeleteConfirm" xml:space="preserve">
+    <value>Delete plan</value>
+  </data>
+  <data name="ReleasePlanDeleted" xml:space="preserve">
+    <value>Release plan {0} was deleted.</value>
   </data>
   <data name="ReleaseKindPreliminary" xml:space="preserve">
     <value>preliminary</value>

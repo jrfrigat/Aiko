@@ -1,3 +1,6 @@
+using System.Diagnostics;
+using System.Globalization;
+using System.Net;
 using System.Text.Json;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
@@ -181,6 +184,152 @@ public class ReleasePlanSurfaceSpecs(AikoServerFixture fixture) : IClassFixture<
         // repeating the call that was refused.
         Assert.True(refused.IsError);
         Assert.Contains("git tag", FirstText(refused) ?? string.Empty, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task An_unshipped_plan_is_deleted_and_its_cards_carry_to_the_named_version()
+    {
+        await using var client = await ConnectAsync();
+        var cardId = await CreateCardAsync(client, "A plan that will not ship");
+        var removed = UniqueVersion("8");
+        var next = UniqueVersion("9");
+
+        await UpdateAsync(client, removed, addCards: [cardId], isCurrent: true);
+        await UpdateAsync(client, next, addCards: []);
+
+        var deletion = await client.CallToolAsync(
+            "aiko_delete_release_plan",
+            new Dictionary<string, object?>
+            {
+                ["version"] = removed,
+                ["carryIntoVersion"] = next
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.NotEqual(true, deletion.IsError);
+        var answer = JsonDocument.Parse(FirstText(deletion)!).RootElement;
+        Assert.Equal(removed, answer.GetProperty("version").GetString());
+        Assert.Equal(next, answer.GetProperty("carriedIntoVersion").GetString());
+
+        var report = await ReadAsync(client);
+        Assert.DoesNotContain(
+            report.GetProperty("plans").EnumerateArray(),
+            entry => entry.GetProperty("plan").GetProperty("version").GetString() == removed);
+        var carried = ReportOf(report, next)
+            .GetProperty("plan").GetProperty("cards")
+            .EnumerateArray()
+            .First(card => card.GetProperty("cardId").GetString() == cardId);
+        Assert.Equal(removed, carried.GetProperty("carriedFromVersion").GetString());
+    }
+
+    [Fact]
+    public async Task A_recorded_versions_plan_refuses_deletion()
+    {
+        await using var client = await ConnectAsync();
+        var cardId = await CreateCardAsync(client, "A plan that already shipped");
+        var version = UniqueVersion("10");
+
+        await UpdateAsync(client, version, addCards: [cardId], isCurrent: true);
+        var recorded = await client.CallToolAsync(
+            "aiko_record_release",
+            new Dictionary<string, object?>
+            {
+                ["version"] = version,
+                ["schemeId"] = "git-release",
+                ["cards"] = new[] { cardId }
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.NotEqual(true, recorded.IsError);
+
+        var refused = await client.CallToolAsync(
+            "aiko_delete_release_plan",
+            new Dictionary<string, object?> { ["version"] = version },
+            cancellationToken: CancellationToken.None);
+
+        // A recorded version's plan is the answer to what it was waiting for; it is history, not a draft.
+        Assert.True(refused.IsError);
+        Assert.Contains("history", FirstText(refused) ?? string.Empty, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_deletion_route_removes_an_unshipped_plan_and_refuses_a_recorded_one()
+    {
+        await using var client = await ConnectAsync();
+        var version = UniqueVersion("11");
+        await UpdateAsync(client, version, addCards: [await CreateCardAsync(client, "Deleted over HTTP")]);
+
+        using var http = new HttpClient { BaseAddress = fixture.BaseUrl };
+        using (var deleted = await http.DeleteAsync(
+                   $"api/v1/projects/{fixture.ProjectId}/release-plan/{version}"))
+        {
+            Assert.True(deleted.IsSuccessStatusCode);
+        }
+
+        var report = await ReadAsync(client);
+        Assert.DoesNotContain(
+            report.GetProperty("plans").EnumerateArray(),
+            entry => entry.GetProperty("plan").GetProperty("version").GetString() == version);
+
+        // The route calls the same store, so a recorded version's plan refuses there exactly as it does
+        // through the tool; the daemon's error mapping turns that refusal into a 400 with the reason.
+        var recorded = UniqueVersion("12");
+        await UpdateAsync(
+            client,
+            recorded,
+            addCards: [await CreateCardAsync(client, "Recorded over HTTP")]);
+        var recordedAnswer = await client.CallToolAsync(
+            "aiko_record_release",
+            new Dictionary<string, object?>
+            {
+                ["version"] = recorded,
+                ["schemeId"] = "git-release",
+                ["cards"] = Array.Empty<string>()
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.NotEqual(true, recordedAnswer.IsError);
+
+        using var refused = await http.DeleteAsync(
+            $"api/v1/projects/{fixture.ProjectId}/release-plan/{recorded}");
+        Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
+    }
+
+    [Fact]
+    public async Task The_cli_deletes_an_unshipped_plan_through_the_daemon()
+    {
+        await using var client = await ConnectAsync();
+        var version = UniqueVersion("13");
+        await UpdateAsync(client, version, addCards: [await CreateCardAsync(client, "Deleted by the CLI")]);
+
+        var startInfo = new ProcessStartInfo("dotnet")
+        {
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false
+        };
+        startInfo.ArgumentList.Add(AikoServerFixture.FindRepositoryBinary("Aiko.Cli", "aiko.dll"));
+        foreach (var argument in new[]
+                 {
+                     "release-plan", "delete",
+                     "--project", fixture.ProjectId,
+                     "--version", version,
+                     "--port", fixture.BaseUrl.Port.ToString(CultureInfo.InvariantCulture)
+                 })
+        {
+            startInfo.ArgumentList.Add(argument);
+        }
+
+        // The fixture's daemon is insecure, so the token is not checked; the CLI still needs one to build its
+        // client, and an installed machine would have it in the data directory.
+        startInfo.Environment["AIKO_TOKEN"] = "cli-deletion-spec-token-that-is-long-enough";
+        using var process = Process.Start(startInfo)!;
+        var output = await process.StandardOutput.ReadToEndAsync();
+        var error = await process.StandardError.ReadToEndAsync();
+        await process.WaitForExitAsync();
+        Assert.True(process.ExitCode == 0, $"The CLI failed: {error}{output}");
+
+        var report = await ReadAsync(client);
+        Assert.DoesNotContain(
+            report.GetProperty("plans").EnumerateArray(),
+            entry => entry.GetProperty("plan").GetProperty("version").GetString() == version);
     }
 
     [Fact]

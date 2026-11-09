@@ -1,4 +1,5 @@
 @page "/p/{Handle}/release"
+@using System.Text.Json
 @using Aiko.Application.Contracts
 @using Aiko.Application.Releases
 @using Aiko.Domain.Execution
@@ -45,9 +46,9 @@
         <span class="aiko-tag">@Loc.Format("ReleaseCommandWaiting", waiting.Id)</span>
     }
 
-    @* The plan: what each version still ahead is waiting for, and whether it can go. The screen only reads it -
-       the plan is moved by the agent's tools - so a version whose work is all closed is a statement here and
-       not a button: releasing is the person's tag and the agent's record, both of which live below. *@
+    @* The plan: what each version still ahead is waiting for, and whether it can go. The screen reads it and
+       removes a plan whose version will not be released; what a version waits for is still moved by the agent's
+       tools, and releasing stays the person's tag and the agent's record below. *@
     <FlarePaper Elevation="0" Padding="FlareSpacing.Large" Square="true" Class="aiko-panel">
         <FlareStack Gap="FlareSpacing.Medium">
             <FlareStack Row="true" Align="FlareAlignItems.Center" Gap="FlareSpacing.Small">
@@ -97,6 +98,13 @@
                                 <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
                                     @Loc.Format("ReleasePlanCounts", plan.Finished, plan.InWork, plan.Blocked, plan.Missing)
                                 </FlareText>
+                                @if (plan.ReleasedAt is null)
+                                {
+                                    <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm"
+                                                 OnClick="() => AskDelete(plan.Version)">
+                                        <ChildContent>@Loc.Get("ReleasePlanDelete")</ChildContent>
+                                    </FlareButton>
+                                }
                             </FlareStack>
 
                             @* Readiness is the daemon's answer, said in words rather than left to be inferred from
@@ -248,6 +256,39 @@
             </FlareButton>
         </ActionsContent>
     </FlareDialog>
+
+    @* A plan that will not be released is removed after a question that names the version: the cards stay
+       cards, and the only choice is whether they move to another unshipped plan or leave every plan. The safe
+       answer comes first. *@
+    <FlareDialog Visible="@(_deleteVersion is not null)"
+                 VisibleChanged="OnDeleteDialogVisibleChanged"
+                 Title="@Loc.Get("ReleasePlanDeleteTitle")">
+        <ChildContent>
+            <FlareStack Gap="FlareSpacing.Small">
+                <FlareAlert Severity="AlertSeverity.Warning" Variant="AlertVariant.Outlined">
+                    @Loc.Format("ReleasePlanDeleteWarning", _deleteVersion ?? string.Empty)
+                </FlareAlert>
+                @if (CarryChoices.Count > 0)
+                {
+                    <AikoSelectField Label="@Loc.Get("ReleasePlanDeleteCarry")"
+                                     Value="@_deleteCarryInto"
+                                     ValueChanged="value => _deleteCarryInto = value"
+                                     Items="@CarryChoices"
+                                     NullOption="@Loc.Get("ReleasePlanDeleteCarryNone")"
+                                     Hint="@Loc.Get("ReleasePlanDeleteCarryHint")" />
+                }
+            </FlareStack>
+        </ChildContent>
+        <ActionsContent>
+            <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm" OnClick="CancelDelete">
+                <ChildContent>@Loc.Get("Cancel")</ChildContent>
+            </FlareButton>
+            <FlareButton Variant="ButtonVariant.Filled" Size="ButtonSize.Sm"
+                         Disabled="@_deleting" Loading="@_deleting" OnClick="ConfirmDeleteAsync">
+                <ChildContent>@Loc.Get("ReleasePlanDeleteConfirm")</ChildContent>
+            </FlareButton>
+        </ActionsContent>
+    </FlareDialog>
 </FlareStack>
 
 @code {
@@ -260,6 +301,15 @@
     /// tools, and a screen that wrote it would need its own rules beside theirs.
     /// </summary>
     private IReadOnlyList<ReleasePlanView> _plans = [];
+
+    /// <summary>
+    /// The other unshipped plans a deleted plan's cards may move into. A released version is not a place for
+    /// them: its plan is history, and the same rule the daemon applies is stated here as the list of choices.
+    /// </summary>
+    private IReadOnlyList<string> CarryChoices =>
+        [.. PlannedVersions
+            .Where(plan => !string.Equals(plan.Version, _deleteVersion, StringComparison.Ordinal))
+            .Select(plan => plan.Version)];
 
     /// <summary>
     /// The plans still ahead: a version that has been recorded is a fact - its plan is closed on the daemon's
@@ -275,6 +325,11 @@
     private string? _message;
     private bool _hasError;
     private bool _placing;
+    /// <summary>The version whose plan is being asked about, or null when nothing is being deleted.</summary>
+    private string? _deleteVersion;
+    /// <summary>The unshipped plan that takes the deleted plan's cards, or null to let them leave.</summary>
+    private string? _deleteCarryInto;
+    private bool _deleting;
 
     /// <summary>
     /// The project this screen's plan and history were read for. A key rather than a flag, because a switch
@@ -419,6 +474,93 @@
         finally
         {
             _placing = false;
+        }
+    }
+
+    /// <summary>Asks before a plan leaves the list: the version's name is in the question.</summary>
+    private void AskDelete(string version)
+    {
+        _deleteVersion = version;
+        _deleteCarryInto = null;
+    }
+
+    /// <summary>Closes the question, which is what keeping the plan is: nothing is sent.</summary>
+    private void CancelDelete() => _deleteVersion = null;
+
+    private void OnDeleteDialogVisibleChanged(bool visible)
+    {
+        if (!visible)
+        {
+            CancelDelete();
+        }
+    }
+
+    /// <summary>
+    /// Removes the plan and reloads the panel. The cards are not deleted by this call: the daemon's store
+    /// decides whether they move to the chosen plan or simply leave, and the answer carries what it did.
+    /// </summary>
+    private async Task ConfirmDeleteAsync()
+    {
+        if (_deleteVersion is not { Length: > 0 } version || _deleting)
+        {
+            return;
+        }
+
+        _deleting = true;
+        _message = null;
+        _hasError = false;
+        try
+        {
+            var path = $"api/v1/projects/{Uri.EscapeDataString(Handle)}/release-plan/" +
+                       Uri.EscapeDataString(version);
+            if (_deleteCarryInto is { Length: > 0 } carryInto)
+            {
+                path += $"?carryIntoVersion={Uri.EscapeDataString(carryInto)}";
+            }
+
+            using var response = await Http.DeleteAsync(path);
+            if (!response.IsSuccessStatusCode)
+            {
+                _hasError = true;
+                _message = await ReadErrorAsync(response);
+                return;
+            }
+
+            _deleteVersion = null;
+            await ReloadAsync();
+            _message = Loc.Format("ReleasePlanDeleted", version);
+        }
+        catch (Exception exception)
+        {
+            _hasError = true;
+            _message = Loc.Format("ReleaseLoadFailed", FailureText.Describe(exception));
+        }
+        finally
+        {
+            _deleting = false;
+        }
+    }
+
+    /// <summary>The daemon's own words when it refuses the deletion, rather than a status code alone.</summary>
+    private static async Task<string> ReadErrorAsync(HttpResponseMessage response)
+    {
+        var text = await response.Content.ReadAsStringAsync();
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return $"HTTP {(int)response.StatusCode}";
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(text);
+            return document.RootElement.TryGetProperty("message", out var message) &&
+                   message.GetString() is { Length: > 0 } reason
+                ? reason
+                : text;
+        }
+        catch (JsonException)
+        {
+            return text;
         }
     }
 

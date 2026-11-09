@@ -9,7 +9,7 @@ namespace Aiko.Server.Mcp;
 
 /// <summary>
 /// MCP tools for the release plans: reading them with their readiness, changing the composition of a version,
-/// and closing the plan of a version that has been released.
+/// closing the plan of a version that has been released, and removing the plan of one that will not be.
 /// </summary>
 /// <remarks>
 /// Writing lives here and nowhere else, exactly as it does for the release history: a plan is moved by the
@@ -68,6 +68,28 @@ internal sealed class ReleasePlanTools(
             new ReleasePlanUpdate(version, schemeId, addCards, removeCards, isCurrent, notes),
             cancellationToken);
         return JsonSerializer.Serialize(plan, ServerJsonContext.Default.ReleasePlan);
+    }
+
+    [McpServerTool(Name = "aiko_delete_release_plan", Title = "Delete an Aiko release plan")]
+    [Description(
+        "Removes the plan of a version that will not be released. Its cards are not deleted: name a version "
+        + "in carryIntoVersion to move them into that plan, or leave it out and they simply leave the plan. "
+        + "The plan of a version that was already recorded is history and refuses the deletion.")]
+    public async Task<string> DeleteReleasePlanAsync(
+        [Description("Version whose plan is being removed, for example v0.2.0.")]
+        string version,
+        [Description(
+            "Version that takes the plan's cards, or null to let them leave the plan. A version that is not "
+            + "planned yet is planned by this call.")]
+        string? carryIntoVersion = null,
+        CancellationToken cancellationToken = default)
+    {
+        var deletion = await plans.DeleteAsync(
+            GetProjectId(),
+            version,
+            carryIntoVersion,
+            cancellationToken);
+        return JsonSerializer.Serialize(deletion, ServerJsonContext.Default.ReleasePlanDeletion);
     }
 
     [McpServerTool(Name = "aiko_close_release_plan", Title = "Close an Aiko release plan")]

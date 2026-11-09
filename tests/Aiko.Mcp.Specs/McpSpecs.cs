@@ -67,6 +67,7 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
         "aiko_record_release",
         "aiko_list_release_plans",
         "aiko_update_release_plan",
+        "aiko_delete_release_plan",
         "aiko_close_release_plan"
     ];
 

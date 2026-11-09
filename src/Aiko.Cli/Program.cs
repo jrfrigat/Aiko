@@ -43,6 +43,7 @@ var exitCode = command switch
     "model" => await ModelAsync(args),
     "verify" => await VerifyAsync(args),
     "commands" => await CommandsAsync(args),
+    "release-plan" => await ReleasePlanAsync(args),
     "uninstall" => await UninstallAsync(args),
     "autostart" => Autostart(args),
     "settings" => await SettingsAsync(args),
@@ -149,6 +150,10 @@ static int Help()
           commands [--project <id>] [--card <id>] [--state <s>]
                                                         Show the commands a screen placed for an agent;
                                                         --state is open (default), all, or one state
+          release-plan delete --project <id> --version <v> [--carry-into <v>] [--port <p>]
+                                                        Remove a version's plan when it will not be
+                                                        released. Its cards are kept; --carry-into moves
+                                                        them into another plan instead of leaving them out
 
         Git policies: local-only, track-project-knowledge, custom. Without --git-policy, init takes
         the template's (the built-in template's is local-only).
@@ -1263,6 +1268,42 @@ static async Task<int> SettingsAsync(string[] args)
     return document is null
         ? 2
         : await SendAsync(http, HttpMethod.Put, settingsPath, document);
+}
+
+// `aiko release-plan delete` - remove a plan for a version that will not be released. The plan file belongs to
+// the daemon, so the command goes through its route instead of writing beside a running daemon; the store
+// refuses a released version and decides where the plan's cards go.
+static async Task<int> ReleasePlanAsync(string[] args)
+{
+    var action = args.Length > 1 ? args[1].ToLowerInvariant() : "delete";
+    if (action is not "delete")
+    {
+        Console.Error.WriteLine($"Unknown argument for `aiko release-plan`: {action}. Use delete.");
+        return 2;
+    }
+
+    var projectId = ReadOption(args, "--project");
+    var version = ReadOption(args, "--version");
+    if (string.IsNullOrWhiteSpace(projectId) || string.IsNullOrWhiteSpace(version))
+    {
+        Console.Error.WriteLine("Pass the project and the version: --project <id> --version <v>.");
+        return 2;
+    }
+
+    using var http = await CreateDaemonClientAsync(ReadOption(args, "--port"));
+    if (http is null)
+    {
+        return 1;
+    }
+
+    var path = $"api/v1/projects/{Uri.EscapeDataString(projectId)}/release-plan/" +
+               Uri.EscapeDataString(version);
+    if (ReadOption(args, "--carry-into") is { Length: > 0 } carryInto)
+    {
+        path += $"?carryIntoVersion={Uri.EscapeDataString(carryInto)}";
+    }
+
+    return await SendAsync(http, HttpMethod.Delete, path, body: null);
 }
 
 // `aiko workflow get|set` - the project's pipelines. Reading takes the project's own file, because it changes

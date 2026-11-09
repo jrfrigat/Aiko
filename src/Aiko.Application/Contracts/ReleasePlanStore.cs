@@ -65,4 +65,26 @@ public interface IReleasePlanStore
         IReadOnlyList<string> cardsToCarry,
         string? carryIntoVersion,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Removes the plan of a version that will not be released.
+    /// </summary>
+    /// <remarks>
+    /// A released version keeps its plan: it is the answer to what that version was waiting for. An unshipped
+    /// plan is not history yet, so it may be removed when the person decides the version will not happen. Its
+    /// cards are cards, not plan entries: they are never deleted. When the caller names a version they move
+    /// there and say which plan they came from; otherwise they simply leave the plan.
+    /// </remarks>
+    /// <param name="projectId">Project to write to.</param>
+    /// <param name="version">Version whose plan is being removed.</param>
+    /// <param name="carryIntoVersion">Version that takes the plan's cards, or null to let them leave.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>What was removed and where its cards went.</returns>
+    /// <exception cref="KeyNotFoundException">No plan exists for the version.</exception>
+    /// <exception cref="ArgumentException">The version was recorded, or the carry target is not usable.</exception>
+    ValueTask<ReleasePlanDeletion> DeleteAsync(
+        string projectId,
+        string version,
+        string? carryIntoVersion,
+        CancellationToken cancellationToken);
 }

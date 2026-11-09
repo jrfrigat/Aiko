@@ -155,6 +155,22 @@ public sealed record ReleasePlanUpdate(
     string? Notes = null);
 
 /// <summary>
+/// What removing a plan took away, and where the cards it was waiting for went.
+/// </summary>
+/// <remarks>
+/// The cards are named rather than counted because the caller may have to say what happens to them: a plan
+/// is removed, a card is not. <see cref="CarriedIntoVersion"/> is the plan the caller named for them, or
+/// null when they left the plan and stayed only cards.
+/// </remarks>
+/// <param name="Version">The plan that was removed.</param>
+/// <param name="CarriedIntoVersion">The plan that took its cards, or null when they left the plan.</param>
+/// <param name="Cards">The cards the removed plan was waiting for.</param>
+public sealed record ReleasePlanDeletion(
+    string Version,
+    string? CarriedIntoVersion,
+    IReadOnlyList<string> Cards);
+
+/// <summary>
 /// The rules a release plan obeys: what it has to carry, and when it may not be changed at all.
 /// </summary>
 /// <remarks>

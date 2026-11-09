@@ -205,6 +205,101 @@ public sealed class ReleasePlanStoreSpecs
         });
     }
 
+    [Fact]
+    public async Task An_unshipped_plan_is_deleted_and_its_cards_stay_cards()
+    {
+        await InfrastructureSpecs.WithInitializedProjectAsync(async context =>
+        {
+            var store = Store(context);
+            await store.UpdateAsync(
+                context.Project.Id,
+                new ReleasePlanUpdate("v0.2.0", ReleaseSchemes.GitReleaseId, ["TASK-1", "TASK-2"], IsCurrent: true),
+                CancellationToken.None);
+
+            var deletion = await store.DeleteAsync(
+                context.Project.Id,
+                "v0.2.0",
+                carryIntoVersion: null,
+                CancellationToken.None);
+
+            Assert.Equal("v0.2.0", deletion.Version);
+            Assert.Null(deletion.CarriedIntoVersion);
+            Assert.Equal(new[] { "TASK-1", "TASK-2" }, deletion.Cards.ToArray());
+
+            var document = await store.ReadAsync(context.Project.Id, CancellationToken.None);
+            Assert.DoesNotContain(document.Plans, plan => plan.Version == "v0.2.0");
+            // Removing the current plan leaves no plan for new cards to join; that is a state to read, not an
+            // error, and the document itself is where it is read from.
+            Assert.Null(document.Current);
+            Assert.DoesNotContain(
+                "v0.2.0",
+                await File.ReadAllTextAsync(Path.Combine(context.StitchRoot, "release-plan.json")),
+                StringComparison.Ordinal);
+        });
+    }
+
+    [Fact]
+    public async Task Deleting_a_plan_carries_its_cards_where_the_caller_says()
+    {
+        await InfrastructureSpecs.WithInitializedProjectAsync(async context =>
+        {
+            var store = Store(context);
+            await store.UpdateAsync(
+                context.Project.Id,
+                new ReleasePlanUpdate("v0.2.0", ReleaseSchemes.GitReleaseId, ["TASK-1", "TASK-2"], IsCurrent: true),
+                CancellationToken.None);
+            await store.UpdateAsync(
+                context.Project.Id,
+                new ReleasePlanUpdate("v0.3.0", ReleaseSchemes.GitReleaseId, ["TASK-3"]),
+                CancellationToken.None);
+
+            var deletion = await store.DeleteAsync(
+                context.Project.Id,
+                "v0.2.0",
+                carryIntoVersion: "v0.3.0",
+                CancellationToken.None);
+
+            Assert.Equal("v0.3.0", deletion.CarriedIntoVersion);
+            var document = await store.ReadAsync(context.Project.Id, CancellationToken.None);
+            Assert.DoesNotContain(document.Plans, plan => plan.Version == "v0.2.0");
+            var target = document.Find("v0.3.0")!;
+            Assert.Equal(
+                new[] { "TASK-3", "TASK-1", "TASK-2" },
+                target.Cards.Select(entry => entry.CardId).ToArray());
+            // A carried card says which plan it came from, so a carry-over does not look like a fresh plan.
+            var carried = Assert.Single(target.Cards, entry => entry.CardId == "TASK-1");
+            Assert.Equal("v0.2.0", carried.CarriedFromVersion);
+        });
+    }
+
+    [Fact]
+    public async Task A_released_versions_plan_refuses_deletion()
+    {
+        await InfrastructureSpecs.WithInitializedProjectAsync(async context =>
+        {
+            var store = Store(context);
+            await store.UpdateAsync(
+                context.Project.Id,
+                new ReleasePlanUpdate("v0.2.0", ReleaseSchemes.GitReleaseId, ["TASK-1"]),
+                CancellationToken.None);
+            await ReleaseStore(context).RecordAsync(
+                context.Project.Id,
+                new RecordReleaseRequest("v0.2.0", ReleaseSchemes.GitReleaseId, ["TASK-1"]),
+                CancellationToken.None);
+
+            // The plan of a recorded version is the answer to what that version was waiting for; it is
+            // history, and history is not deleted from this side.
+            var refused = await Assert.ThrowsAsync<ArgumentException>(() =>
+                store.DeleteAsync(
+                    context.Project.Id,
+                    "v0.2.0",
+                    carryIntoVersion: null,
+                    CancellationToken.None).AsTask());
+            Assert.Contains("history", refused.Message, StringComparison.Ordinal);
+            Assert.NotNull((await store.ReadAsync(context.Project.Id, CancellationToken.None)).Find("v0.2.0"));
+        });
+    }
+
     /// <summary>
     /// A version that was recorded makes its plan a fact: reading it does not depend on somebody remembering
     /// to close the plan, and the reading leaves the person's document exactly as they wrote it.

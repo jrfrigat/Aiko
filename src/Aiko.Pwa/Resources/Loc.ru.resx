@@ -2440,7 +2440,7 @@
     <value>План релиза</value>
   </data>
   <data name="ReleasePlanHint" xml:space="preserve">
-    <value>Чего ждёт каждая версия впереди. План двигают инструменты агента; этот экран его показывает.</value>
+    <value>Чего ждёт каждая версия впереди. План двигают инструменты агента; этот экран показывает его и может удалить версию, которая не будет выпущена.</value>
   </data>
   <data name="ReleasePlanEmpty" xml:space="preserve">
     <value>Ни одна версия не запланирована. Агент планирует её инструментами плана, и карточки, созданные во время работы над ней, попадают в неё.</value>
@@ -2474,6 +2474,30 @@
   </data>
   <data name="ReleasePlanBlockedBy" xml:space="preserve">
     <value>держит {0}</value>
+  </data>
+  <data name="ReleasePlanDelete" xml:space="preserve">
+    <value>Удалить план</value>
+  </data>
+  <data name="ReleasePlanDeleteTitle" xml:space="preserve">
+    <value>Удалить план релиза?</value>
+  </data>
+  <data name="ReleasePlanDeleteWarning" xml:space="preserve">
+    <value>План версии {0} будет удалён. Его карточки остаются в проекте и не удаляются.</value>
+  </data>
+  <data name="ReleasePlanDeleteCarry" xml:space="preserve">
+    <value>Перенести карточки в</value>
+  </data>
+  <data name="ReleasePlanDeleteCarryNone" xml:space="preserve">
+    <value>Оставить их вне планов</value>
+  </data>
+  <data name="ReleasePlanDeleteCarryHint" xml:space="preserve">
+    <value>Карточки остаются в проекте; меняется только их место в плане.</value>
+  </data>
+  <data name="ReleasePlanDeleteConfirm" xml:space="preserve">
+    <value>Удалить план</value>
+  </data>
+  <data name="ReleasePlanDeleted" xml:space="preserve">
+    <value>План релиза {0} удалён.</value>
   </data>
   <data name="ReleaseKindPreliminary" xml:space="preserve">
     <value>предварительный</value>

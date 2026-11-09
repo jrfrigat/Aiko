@@ -54,6 +54,7 @@ namespace Aiko.Server.Contracts;
 // The release plan and what an agent reads back from it: the plan itself, the readiness of each of its
 // cards, and the document report that carries both.
 [JsonSerializable(typeof(ReleasePlan))]
+[JsonSerializable(typeof(ReleasePlanDeletion))]
 [JsonSerializable(typeof(ReleasePlanCardState))]
 [JsonSerializable(typeof(ReleasePlanCardReadiness))]
 [JsonSerializable(typeof(IReadOnlyList<ReleasePlanCardReadiness>))]

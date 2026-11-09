@@ -3,8 +3,8 @@ using Xunit;
 namespace Aiko.Pwa.Specs;
 
 /// <summary>
-/// Guards the release plan on the release screen: what the page reads, what it draws, and that reading is all
-/// it does.
+/// Guards the release plan on the release screen: what the page reads, what it draws, and the one change it
+/// makes - removing a plan whose version will not be released.
 /// </summary>
 /// <remarks>
 /// The page is read as text, the way the specs beside this one read it: the parts worth pinning are the
@@ -64,6 +64,32 @@ public sealed class ReleasePlanScreenSpecs
 
         Assert.Contains("card.BlockedBy.Count > 0", page, StringComparison.Ordinal);
         Assert.Contains("Loc.Format(\"ReleasePlanBlockedBy\"", page, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_release_screen_can_remove_a_plan_that_will_not_be_released()
+    {
+        var page = Read("src", "Aiko.Pwa", "Pages", "ReleasePage.razor");
+
+        // A recorded version's plan is history; only a version still ahead gets the action.
+        Assert.Contains("if (plan.ReleasedAt is null)", page, StringComparison.Ordinal);
+        Assert.Contains("Loc.Get(\"ReleasePlanDelete\")", page, StringComparison.Ordinal);
+        Assert.Contains("release-plan/", page, StringComparison.Ordinal);
+        Assert.Contains("Http.DeleteAsync(path)", page, StringComparison.Ordinal);
+        // The caller may name where the cards go, and the address carries that choice.
+        Assert.Contains("carryIntoVersion=", page, StringComparison.Ordinal);
+
+        foreach (var key in new[]
+                 {
+                     "ReleasePlanDeleteTitle",
+                     "ReleasePlanDeleteWarning",
+                     "ReleasePlanDeleteCarry",
+                     "ReleasePlanDeleteConfirm",
+                     "ReleasePlanDeleted"
+                 })
+        {
+            Assert.Contains($"\"{key}\"", page, StringComparison.Ordinal);
+        }
     }
 
     [Fact]
