@@ -8,6 +8,7 @@
 | :-- | :-- |
 | [Installation](en/installation.md) | Install, run, configure, update and uninstall Aiko |
 | [Getting Started](en/getting-started.md) | First project in a few minutes |
+| [Screenshots](en/screenshots.md) | Dashboard, board, project overview, card page and project settings |
 | [User Guide](en/user-guide.md) | Board, cards, workflows, git, discussion, analytics, executions, memory |
 | [Agent Integration](en/agent-integration.md) | MCP endpoints, tools, skills, installer output |
 | [Troubleshooting](en/troubleshooting.md) | Common problems and fixes |
@@ -22,6 +23,7 @@
 | :-- | :-- |
 | [Установка](ru/installation.md) | Установка, запуск, настройка, обновление и удаление |
 | [Быстрый старт](ru/getting-started.md) | Первый проект за несколько минут |
+| [Скриншоты](ru/screenshots.md) | Дашборд, доска, обзор проекта, страница карточки и настройки проекта |
 | [Руководство пользователя](ru/user-guide.md) | Доска, карточки, workflow, git, обсуждение, аналитика, executions, память |
 | [Интеграция агентов](ru/agent-integration.md) | MCP-эндпоинты, инструменты, скиллы, вывод установщика |
 | [Решение проблем](ru/troubleshooting.md) | Типовые проблемы и решения |

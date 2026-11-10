@@ -24,89 +24,6 @@ rate limit) hands off to another agent without losing history.
 
 ---
 
-## Screenshots
-
-Captured from the Aiko project: dashboard and board at commit `20d2e19`; project overview, card and
-project settings at `51e8340`. These development builds use the English interface and light
-**Studio Modern** palette. Project paths are anonymized; card titles retain their original language.
-Click an image to open it at full size.
-
-**Dashboard** — projects, current work and activity across the workspace.
-
-<table><tr><td><a href="assets/screens/dashboard.png"><img src="assets/screens/dashboard.png" alt="Aiko dashboard with project metrics, activity calendar and registered projects" width="1200" /></a></td></tr></table>
-
-**Kanban board** — the Aiko task pipeline, active runs and cards across stages.
-
-<table><tr><td><a href="assets/screens/board.png"><img src="assets/screens/board.png" alt="Aiko Kanban board filtered to tasks, with active runs and workflow columns" width="1200" /></a></td></tr></table>
-
-**Project overview** — activity, pipeline velocity, card distribution and cumulative flow.
-
-<table><tr><td><a href="assets/screens/project.png"><img src="assets/screens/project.png" alt="Aiko project overview with activity, weekly velocity, card distribution and cumulative flow charts" width="1200" /></a></td></tr></table>
-
-**Card page** — requirements, declared scope, execution status and scoring for a real Aiko task.
-
-<table><tr><td><a href="assets/screens/card.png"><img src="assets/screens/card.png" alt="Aiko task card with requirements, scope files, stage status, agent commands and scoring" width="1200" /></a></td></tr></table>
-
-**Project settings** — workspace policies, priority formula and scoring criteria.
-
-<table><tr><td><a href="assets/screens/project-settings.png"><img src="assets/screens/project-settings.png" alt="Aiko project settings with workspace, scope, commit and push policies, priority weights and scoring criteria" width="1200" /></a></td></tr></table>
-
----
-
-## Features
-
-- **Local daemon, one per user** - a single ASP.NET Core process serves every registered project:
-  REST API, project-scoped MCP over Streamable HTTP, health endpoints and the PWA
-- **Kanban PWA** on Blazor WebAssembly ([Flare.Blazor](https://github.com/jrfrigat/Flare)) with a board
-  that draws every card type as its own section and filters by type in place, a backlog screen, the card
-  editor, artifacts
-  and executions; the interface language follows the browser, English and Russian ship, and any other
-  language falls back to English
-- **Card types you define yourself** - a card type *is* a workflow: add a `Bug` with its own
-  description, icon and colour right in the workflow editor, and it appears in the pickers, as a board
-  section and in the backlog; every status column carries its own icon and colour too. The `backlog`
-  column is standard and cannot be removed, and a dedicated **Backlog** screen gathers every card that
-  has not been taken into work yet
-- **A default template that is already worked out** - a new project starts from epic, story and task pipelines in
-  which every status carries an icon, a colour and an instruction saying what the agent does there, the
-  card types come with their descriptions, and cards are scored by three criteria - `app-point`,
-  `user-point` and `complete` - whose readiness score the agent re-calculates after every change
-- **Cards as folders** - every card is a directory with a `card.json` (optimistic revisions)
-  and Markdown artifacts; the whole `.aiko` tree is readable, diffable and Git-friendly
-- **Readable project addresses** - a project gets a short id derived from its folder name (Cyrillic is
-  transliterated), editable while it is created and used in every URL (`/p/aiko/board`); the generated
-  GUID stays as the immutable key inside card files and agent endpoints, so cross-project links never break
-- **Typed card graph** - `implements`, `parent-child`, `blocks` (cycle-checked) and symmetric
-  `relates-to` relations; blocks drive scheduling
-- **Effective priorities** - each card has its own score; task priorities blend in the maximum
-  parent value with configurable weights (versioned formula)
-- **Execution loop** - `StageExecution` owns the workspace; `AgentAttempt` records each agent's
-  run, so handoff, resume, pause and rate-limit states never lose history
-- **Durable memory** - decisions, conventions and lessons live in `.aiko/memory` as Markdown and
-  are searchable through an SQLite FTS5 index
-- **Unified agent installer** - discovers Claude Code, Codex, Cursor, ZCode, Cline and OpenCode installations and
-  applies idempotent, user-config-preserving project configuration (MCP entries, managed blocks,
-  owned skills/commands) with per-adapter plans and surgical uninstall
-- **`.aiko` is the source of truth** - cards, workflows, artifacts and memory live in `.aiko` files;
-  the global SQLite database holds the project registry, the run history, the event journal and the search
-  indexes. `reindex` rebuilds the indexes from `.aiko`, but the run history and the journal exist only in the
-  database, so keep it
-- **Security by default** - loopback bind only, `Host`/`Origin` validation against DNS rebinding
-  and any origin but the daemon's own page, bearer-only MCP, no framing, no wildcard CORS
-- **Git, read through your own client** - the branch, the changes, the log and the diff of a card's files,
-  read by running the `git` executable; a machine without it says "Git client unavailable" instead of
-  failing. Aiko only reads the repository - the one file it edits is `.gitignore`, when a project is
-  registered under the local-only git policy - and never commits: commits are the agent's, under the
-  project's commit policy
-- **Workflow sets you can author** - the pipelines and defaults a project starts from, plus what an agent
-  must do right after creating it (the structure the project should have, for instance): captured from a
-  project, exported and imported between machines, and applied to an existing project by an explicit action
-- **Screens that answer questions** - a project page (cards per stage, weekly velocity, triage
-  distribution, re-index), a card page (scope, acceptance criteria, live diff, discussion, runs) and a
-  daemon page (uptime, runs and crashes, memory, agent bridges)
-
----
-
 ## Install
 
 Windows 10/11, x64. The release is self-contained, so neither the .NET SDK nor the .NET runtime is
@@ -165,6 +82,70 @@ dotnet test Aiko.slnx
 integration (MCP tools plus the REST API, its status codes and the loopback/Host/Origin guard) and the
 client JSON contract. The integration suite boots its own daemon on a random port with an isolated
 database - no manual orchestration needed.
+
+---
+
+## Features
+
+- **Local daemon, one per user** - a single ASP.NET Core process serves every registered project:
+  REST API, project-scoped MCP over Streamable HTTP, health endpoints and the PWA
+- **Kanban PWA** on Blazor WebAssembly ([Flare.Blazor](https://github.com/jrfrigat/Flare)) with a board
+  that draws every card type as its own section and filters by type in place, a backlog screen, the card
+  editor, artifacts
+  and executions; the interface language follows the browser, English and Russian ship, and any other
+  language falls back to English
+- **Card types you define yourself** - a card type *is* a workflow: add a `Bug` with its own
+  description, icon and colour right in the workflow editor, and it appears in the pickers, as a board
+  section and in the backlog; every status column carries its own icon and colour too. The `backlog`
+  column is standard and cannot be removed, and a dedicated **Backlog** screen gathers every card that
+  has not been taken into work yet
+- **A default template that is already worked out** - a new project starts from epic, story and task pipelines in
+  which every status carries an icon, a colour and an instruction saying what the agent does there, the
+  card types come with their descriptions, and cards are scored by three criteria - `app-point`,
+  `user-point` and `complete` - whose readiness score the agent re-calculates after every change
+- **Cards as folders** - every card is a directory with a `card.json` (optimistic revisions)
+  and Markdown artifacts; the whole `.aiko` tree is readable, diffable and Git-friendly
+- **Readable project addresses** - a project gets a short id derived from its folder name (Cyrillic is
+  transliterated), editable while it is created and used in every URL (`/p/aiko/board`); the generated
+  GUID stays as the immutable key inside card files and agent endpoints, so cross-project links never break
+- **Typed card graph** - `implements`, `parent-child`, `blocks` (cycle-checked) and symmetric
+  `relates-to` relations; blocks drive scheduling
+- **Effective priorities** - each card has its own score; task priorities blend in the maximum
+  parent value with configurable weights (versioned formula)
+- **Execution loop** - `StageExecution` owns the workspace; `AgentAttempt` records each agent's
+  run, so handoff, resume, pause and rate-limit states never lose history
+- **Durable memory** - decisions, conventions and lessons live in `.aiko/memory` as Markdown and
+  are searchable through an SQLite FTS5 index
+- **Unified agent installer** - discovers Claude Code, Codex, Cursor, ZCode, Cline and OpenCode installations and
+  applies idempotent, user-config-preserving project configuration (MCP entries, managed blocks,
+  owned skills/commands) with per-adapter plans and surgical uninstall
+- **`.aiko` is the source of truth** - cards, workflows, artifacts and memory live in `.aiko` files;
+  the global SQLite database holds the project registry, the run history, the event journal and the search
+  indexes. `reindex` rebuilds the indexes from `.aiko`, but the run history and the journal exist only in the
+  database, so keep it
+- **Security by default** - loopback bind only, `Host`/`Origin` validation against DNS rebinding
+  and any origin but the daemon's own page, bearer-only MCP, no framing, no wildcard CORS
+- **Git, read through your own client** - the branch, the changes, the log and the diff of a card's files,
+  read by running the `git` executable; a machine without it says "Git client unavailable" instead of
+  failing. Aiko only reads the repository - the one file it edits is `.gitignore`, when a project is
+  registered under the local-only git policy - and never commits: commits are the agent's, under the
+  project's commit policy
+- **Workflow sets you can author** - the pipelines and defaults a project starts from, plus what an agent
+  must do right after creating it (the structure the project should have, for instance): captured from a
+  project, exported and imported between machines, and applied to an existing project by an explicit action
+- **Screens that answer questions** - a project page (cards per stage, weekly velocity, triage
+  distribution, re-index), a card page (scope, acceptance criteria, live diff, discussion, runs) and a
+  daemon page (uptime, runs and crashes, memory, agent bridges)
+
+---
+
+## Screenshots
+
+**Dashboard** — projects, current work and activity across the workspace.
+
+<table><tr><td><a href="assets/screens/dashboard.png"><img src="assets/screens/dashboard.png" alt="Aiko dashboard with project metrics, activity calendar and registered projects" width="1200" /></a></td></tr></table>
+
+[See all screenshots](docs/en/screenshots.md) — the board, project overview, card page and project settings.
 
 ---
 
@@ -302,6 +283,7 @@ what the UI cannot do yet.
 
 - [Installation](docs/en/installation.md) - install, run, configure, update and uninstall
 - [Getting Started](docs/en/getting-started.md) - first project in a few minutes
+- [Screenshots](docs/en/screenshots.md) - dashboard, board, project overview, card page and project settings
 - [User Guide](docs/en/user-guide.md) - board, cards, workflows, git, discussion, analytics, executions, memory
 - [Agent Integration](docs/en/agent-integration.md) - MCP endpoints, tools, skills, installer output
 - [Troubleshooting](docs/en/troubleshooting.md) - common problems and fixes
