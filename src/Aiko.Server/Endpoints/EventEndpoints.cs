@@ -1,8 +1,5 @@
-using System.Text;
-using System.Text.Json;
 using Aiko.Application.Contracts;
 using Aiko.Infrastructure.Events;
-using Aiko.Server.Contracts;
 
 namespace Aiko.Server.Endpoints;
 
@@ -47,6 +44,7 @@ internal static class EventEndpoints
                 var cancellationToken = context.RequestAborted;
 
                 using var subscription = broadcaster.Subscribe(projectId);
+                using var frames = new EventStreamWriter();
                 try
                 {
                     await response.Body.FlushAsync(cancellationToken);
@@ -60,6 +58,7 @@ internal static class EventEndpoints
                     {
                         lastDeliveredId = await ReplayAsync(
                             response.Body,
+                            frames,
                             store,
                             projectId,
                             lastEventId,
@@ -68,7 +67,7 @@ internal static class EventEndpoints
 
                     await foreach (var item in ReadLiveAsync(subscription, lastDeliveredId, cancellationToken))
                     {
-                        await WriteEventAsync(response.Body, item, cancellationToken);
+                        await frames.WriteAsync(response.Body, item, cancellationToken);
                     }
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -103,6 +102,7 @@ internal static class EventEndpoints
 
     private static async Task<long> ReplayAsync(
         Stream body,
+        EventStreamWriter frames,
         IAikoEventStore store,
         string projectId,
         long afterId,
@@ -117,7 +117,7 @@ internal static class EventEndpoints
                 cancellationToken);
             foreach (var item in page)
             {
-                await WriteEventAsync(body, item, cancellationToken);
+                await frames.WriteAsync(body, item, cancellationToken);
                 afterId = item.Id;
             }
 
@@ -145,16 +145,5 @@ internal static class EventEndpoints
                 }
             }
         }
-    }
-
-    private static async Task WriteEventAsync(
-        Stream body,
-        AikoEvent item,
-        CancellationToken cancellationToken)
-    {
-        var payload = JsonSerializer.Serialize(item, ServerJsonContext.Default.AikoEvent);
-        var frame = $"id: {item.Id}\ndata: {payload}\n\n";
-        await body.WriteAsync(Encoding.UTF8.GetBytes(frame), cancellationToken);
-        await body.FlushAsync(cancellationToken);
     }
 }

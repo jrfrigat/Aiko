@@ -38,13 +38,16 @@ public sealed class SqliteAikoEventStore(AikoDatabase database, IProjectCatalog 
         command.Parameters.AddWithValue("$afterId", afterId);
         command.Parameters.AddWithValue("$limit", limit);
 
-        var events = new List<AikoEvent>();
+        // A page is bounded by the caller; the cap keeps a pathological limit from reserving a huge list
+        // while still covering the daemon's own batches (replay reads 200, REST at most 500).
+        var events = new List<AikoEvent>(Math.Min(limit, 512));
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
         {
+            // The project id is the one just resolved, so the column is not read again for every row.
             events.Add(new AikoEvent(
                 reader.GetInt64(0),
-                reader.GetString(1),
+                project.Id,
                 reader.GetString(2),
                 DateTimeOffset.Parse(reader.GetString(4), CultureInfo.InvariantCulture),
                 reader.GetString(3)));
