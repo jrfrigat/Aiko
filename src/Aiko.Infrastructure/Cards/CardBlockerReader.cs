@@ -27,10 +27,19 @@ public sealed class CardBlockerReader(
         var reference = new CardReference(project.Id, card.CardId);
 
         var projectRelations = await relations.ListAsync(reference.ProjectId, cancellationToken);
-        var incoming = projectRelations.Any(relation =>
-            StringComparer.Ordinal.Equals(relation.Type, RelationTypes.Blocks) &&
-            StringComparer.Ordinal.Equals(relation.Target.ProjectId, reference.ProjectId) &&
-            StringComparer.Ordinal.Equals(relation.Target.CardId, reference.CardId));
+        var incoming = false;
+        for (var index = 0; index < projectRelations.Count; index++)
+        {
+            var relation = projectRelations[index];
+            if (StringComparer.Ordinal.Equals(relation.Type, RelationTypes.Blocks) &&
+                StringComparer.Ordinal.Equals(relation.Target.ProjectId, reference.ProjectId) &&
+                StringComparer.Ordinal.Equals(relation.Target.CardId, reference.CardId))
+            {
+                incoming = true;
+                break;
+            }
+        }
+
         if (!incoming)
         {
             // The common case by far: no edge points at this card, so its cards and workflows are not read at

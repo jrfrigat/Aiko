@@ -112,7 +112,7 @@ public sealed record PrioritySettings(
     public static PrioritySettings Standard { get; } = new(PriorityWeights.Default, StandardCriteria, DefaultGrid);
 
     /// <summary>The configured size grid, or an empty one when these settings predate sizes.</summary>
-    public IReadOnlyList<SizeDefinition> Grid => Sizes ?? [];
+    public IReadOnlyList<SizeDefinition> Grid => Sizes ?? Array.Empty<SizeDefinition>();
 
     /// <summary>
     /// Refuses criteria no card could be scored against: a negative weight, a range that is empty or upside
@@ -155,8 +155,24 @@ public sealed record PrioritySettings(
     /// neutral rather than penalized.
     /// </summary>
     /// <param name="sizeId">The card's size step, or null.</param>
-    public decimal SizeFactor(string? sizeId) =>
-        string.IsNullOrWhiteSpace(sizeId)
-            ? 1m
-            : Grid.FirstOrDefault(size => StringComparer.Ordinal.Equals(size.Id, sizeId))?.Coefficient ?? 1m;
+    public decimal SizeFactor(string? sizeId)
+    {
+        if (string.IsNullOrWhiteSpace(sizeId))
+        {
+            return 1m;
+        }
+
+        // The board asks this for every card; an indexed loop keeps the lookup off LINQ's enumerator.
+        var grid = Grid;
+        for (var index = 0; index < grid.Count; index++)
+        {
+            var size = grid[index];
+            if (StringComparer.Ordinal.Equals(size.Id, sizeId))
+            {
+                return size.Coefficient;
+            }
+        }
+
+        return 1m;
+    }
 }

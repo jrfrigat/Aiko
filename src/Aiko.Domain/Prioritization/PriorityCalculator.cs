@@ -70,15 +70,92 @@ public static class PriorityCalculator
 
         // Clamped rather than refused, for the same reason as the own score: these come from files.
         ownPriority = Math.Max(ownPriority, 0m);
-        var parentValues = parentPriorities.Select(value => Math.Max(value, 0m)).ToArray();
 
-        if (parentValues.Length == 0)
+        // One pass, no intermediate array: the board computes this for every card, and the values only
+        // need a count and the largest one.
+        var parentCount = 0;
+        var maximumParent = 0m;
+        foreach (var value in parentPriorities)
+        {
+            Accumulate(value, ref parentCount, ref maximumParent);
+        }
+
+        return Compose(ownPriority, parentCount, maximumParent, weights);
+    }
+
+    /// <summary>
+    /// Computes a task priority from parents the caller already holds in a list, so the board does not box an
+    /// enumerator for every card.
+    /// </summary>
+    /// <param name="ownPriority">The card's own score.</param>
+    /// <param name="parentPriorities">The effective priorities of its parents.</param>
+    /// <param name="weights">The blending weights, or the default when absent.</param>
+    public static PrioritySnapshot CalculateTask(
+        decimal ownPriority,
+        IReadOnlyList<decimal> parentPriorities,
+        PriorityWeights? weights = null)
+    {
+        ArgumentNullException.ThrowIfNull(parentPriorities);
+
+        ownPriority = Math.Max(ownPriority, 0m);
+
+        var maximumParent = 0m;
+        for (var index = 0; index < parentPriorities.Count; index++)
+        {
+            var clamped = Math.Max(parentPriorities[index], 0m);
+            if (index == 0 || clamped > maximumParent)
+            {
+                maximumParent = clamped;
+            }
+        }
+
+        return Compose(ownPriority, parentPriorities.Count, maximumParent, weights);
+    }
+
+    /// <summary>
+    /// Computes a task priority from the largest parent priority the caller already selected.
+    /// </summary>
+    /// <remarks>
+    /// The board projects every card in one pass and only needs the largest parent value, so it does not
+    /// build a list per card. A value read from a file is clamped rather than refused.
+    /// </remarks>
+    /// <param name="ownPriority">The card's own score.</param>
+    /// <param name="maximumParentPriority">The largest effective priority of its parents, or null when it has none.</param>
+    /// <param name="weights">The blending weights, or the default when absent.</param>
+    public static PrioritySnapshot CalculateTaskFromMaximum(
+        decimal ownPriority,
+        decimal? maximumParentPriority,
+        PriorityWeights? weights = null)
+    {
+        ownPriority = Math.Max(ownPriority, 0m);
+        return maximumParentPriority is { } maximum
+            ? Compose(ownPriority, 1, Math.Max(maximum, 0m), weights)
+            : Compose(ownPriority, 0, 0m, weights);
+    }
+
+    private static void Accumulate(decimal value, ref int count, ref decimal maximum)
+    {
+        var clamped = Math.Max(value, 0m);
+        if (count == 0 || clamped > maximum)
+        {
+            maximum = clamped;
+        }
+
+        count++;
+    }
+
+    private static PrioritySnapshot Compose(
+        decimal ownPriority,
+        int parentCount,
+        decimal maximumParent,
+        PriorityWeights? weights)
+    {
+        if (parentCount == 0)
         {
             return new(ownPriority, null, ownPriority, CurrentFormulaVersion);
         }
 
         var effectiveWeights = weights ?? PriorityWeights.Default;
-        var maximumParent = parentValues.Max();
         var effective =
             ((effectiveWeights.TaskWeight * ownPriority) +
              (effectiveWeights.ParentWeight * maximumParent)) /

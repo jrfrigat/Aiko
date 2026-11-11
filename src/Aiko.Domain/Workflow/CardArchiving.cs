@@ -105,7 +105,35 @@ public static class CardArchiving
     public static IReadOnlyList<Card> OnBoard(IReadOnlyList<Card> cards)
     {
         ArgumentNullException.ThrowIfNull(cards);
-        return [.. cards.Where(card => !card.IsArchived)];
+
+        // The common case: nothing is archived, so the board is the stored list itself. Callers only read
+        // it, and a copy nobody modified was the largest allocation of an ordinary board load.
+        var hasArchived = false;
+        for (var index = 0; index < cards.Count; index++)
+        {
+            if (cards[index].IsArchived)
+            {
+                hasArchived = true;
+                break;
+            }
+        }
+
+        if (!hasArchived)
+        {
+            return cards;
+        }
+
+        var board = new List<Card>(cards.Count);
+        for (var index = 0; index < cards.Count; index++)
+        {
+            var card = cards[index];
+            if (!card.IsArchived)
+            {
+                board.Add(card);
+            }
+        }
+
+        return board;
     }
 
     /// <summary>The state of a run for a message, or <c>not started</c> when there is no run at all.</summary>

@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Aiko.Domain.Cards;
 using Aiko.Domain.Prioritization;
 using Aiko.Domain.Workflow;
@@ -29,25 +30,60 @@ public static class CardPriorityProjector
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(workflows);
 
-        var blendingWorkflows = workflows
-            .Where(workflow => workflow.BlendsWithParent)
-            .Select(workflow => workflow.Id)
-            .ToHashSet(StringComparer.Ordinal);
-        var cardsById = cards.ToDictionary(card => card.Reference.CardId, StringComparer.Ordinal);
-        var parentIdsByCard = relations
-            .Where(relation => StringComparer.Ordinal.Equals(relation.Type, RelationTypes.ParentChild))
-            .GroupBy(relation => relation.Target.CardId, StringComparer.Ordinal)
-            .ToDictionary(
-                group => group.Key,
-                group => group.Select(relation => relation.Source.CardId).ToArray(),
-                StringComparer.Ordinal);
+        // The board is rebuilt on every screen load, so the lookups are sized once and filled without the
+        // intermediate LINQ collections a Where/GroupBy chain leaves behind.
+        var blendingWorkflows = new HashSet<string>(workflows.Count, StringComparer.Ordinal);
+        for (var index = 0; index < workflows.Count; index++)
+        {
+            var workflow = workflows[index];
+            if (workflow.BlendsWithParent)
+            {
+                blendingWorkflows.Add(workflow.Id);
+            }
+        }
 
-        var snapshots = new Dictionary<string, PrioritySnapshot>(StringComparer.Ordinal);
-        var computing = new HashSet<string>(StringComparer.Ordinal);
+        var cardsById = new Dictionary<string, Card>(cards.Count, StringComparer.Ordinal);
+        for (var index = 0; index < cards.Count; index++)
+        {
+            var card = cards[index];
+            // Add, not the indexer: two cards under one id are a broken board, and the previous dictionary
+            // said so instead of quietly keeping the last one.
+            cardsById.Add(card.Reference.CardId, card);
+        }
 
-        return cards
-            .Select(card => new CardPriority(card.Reference.CardId, Compute(card)))
-            .ToArray();
+        var parentIdsByCard = new Dictionary<string, List<string>>(
+            Math.Min(relations.Count, cards.Count),
+            StringComparer.Ordinal);
+        for (var index = 0; index < relations.Count; index++)
+        {
+            var relation = relations[index];
+            if (!StringComparer.Ordinal.Equals(relation.Type, RelationTypes.ParentChild))
+            {
+                continue;
+            }
+
+            ref var parentIds = ref CollectionsMarshal.GetValueRefOrAddDefault(
+                parentIdsByCard,
+                relation.Target.CardId,
+                out var exists);
+            if (!exists)
+            {
+                parentIds = new List<string>(1);
+            }
+
+            parentIds!.Add(relation.Source.CardId);
+        }
+
+        var snapshots = new Dictionary<string, PrioritySnapshot>(cards.Count, StringComparer.Ordinal);
+        var computing = new HashSet<string>(cards.Count, StringComparer.Ordinal);
+        var priorities = new CardPriority[cards.Count];
+        for (var index = 0; index < cards.Count; index++)
+        {
+            var card = cards[index];
+            priorities[index] = new CardPriority(card.Reference.CardId, Compute(card));
+        }
+
+        return priorities;
 
         PrioritySnapshot Compute(Card card)
         {
@@ -87,19 +123,26 @@ public static class CardPriorityProjector
                 return cyclic;
             }
 
-            var parentPriorities = new List<decimal>();
+            decimal? maximumParent = null;
             if (parentIdsByCard.TryGetValue(card.Reference.CardId, out var parentIds))
             {
-                foreach (var parentId in parentIds)
+                for (var index = 0; index < parentIds.Count; index++)
                 {
-                    if (cardsById.TryGetValue(parentId, out var parentCard))
+                    if (cardsById.TryGetValue(parentIds[index], out var parentCard))
                     {
-                        parentPriorities.Add(Compute(parentCard).EffectivePriority);
+                        var parentPriority = Compute(parentCard).EffectivePriority;
+                        if (maximumParent is null || parentPriority > maximumParent)
+                        {
+                            maximumParent = parentPriority;
+                        }
                     }
                 }
             }
 
-            var snapshot = PriorityCalculator.CalculateTask(ownScore, parentPriorities, settings.Weights);
+            var snapshot = PriorityCalculator.CalculateTaskFromMaximum(
+                ownScore,
+                maximumParent,
+                settings.Weights);
             snapshots[card.Reference.CardId] = snapshot;
             computing.Remove(card.Reference.CardId);
             return snapshot;

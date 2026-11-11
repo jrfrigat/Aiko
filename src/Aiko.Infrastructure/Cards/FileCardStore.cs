@@ -49,13 +49,14 @@ public sealed class FileCardStore(
             """;
         command.Parameters.AddWithValue("$projectId", project.Id);
 
-        var cards = new List<Card>();
+        var cards = new List<Card>(64);
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
         {
-            var card = JsonSerializer.Deserialize(
-                reader.GetString(0),
-                ProjectJsonContext.Default.Card);
+            // The document is UTF-8 text already; reading it as a stream lets the serializer parse the
+            // column in place instead of materializing a string copy of every card on the board.
+            using var document = reader.GetStream(0);
+            var card = JsonSerializer.Deserialize(document, ProjectJsonContext.Default.Card);
             if (card is not null)
             {
                 cards.Add(card);
