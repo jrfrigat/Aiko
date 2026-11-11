@@ -4,7 +4,7 @@
 
 <p align="center">🌐 <b>English</b> - <a href="README.ru.md">Русский</a></p>
 
-[![.NET](https://img.shields.io/badge/.NET-10-512BD4)](https://dotnet.microsoft.com/)
+[![.NET](https://img.shields.io/badge/.NET-11-512BD4)](https://dotnet.microsoft.com/)
 [![Release](https://img.shields.io/github/v/release/jrfrigat/Aiko?sort=semver)](https://github.com/jrfrigat/Aiko/releases/latest)
 [![CI](https://github.com/jrfrigat/Aiko/actions/workflows/ci.yml/badge.svg)](https://github.com/jrfrigat/Aiko/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/jrfrigat/Aiko/actions/workflows/codeql.yml/badge.svg)](https://github.com/jrfrigat/Aiko/actions/workflows/codeql.yml)
