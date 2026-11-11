@@ -113,6 +113,7 @@ jobs:
             'publish/stage/aiko-stdio.exe',
             'publish/stage/server/Aiko.Server.exe',
             'publish/stage/server/wwwroot/index.html',
+            'publish/stage/server/wwwroot/_framework/blazor.webassembly.js',
             'publish/stage/templates/default/template.json'
           )
           foreach ($path in $required) {
@@ -157,6 +158,7 @@ jobs:
             'aiko-stdio.exe',
             'server/Aiko.Server.exe',
             'server/wwwroot/index.html',
+            'server/wwwroot/_framework/blazor.webassembly.js',
             'templates/default/template.json'
           )
           # Entries at the root of the archive, not under a directory: Compress-Archive packs the contents

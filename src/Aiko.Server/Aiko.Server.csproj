@@ -9,6 +9,9 @@
     <ProjectReference Include="../Aiko.Infrastructure/Aiko.Infrastructure.csproj" />
     <ProjectReference Include="../Aiko.Pwa/Aiko.Pwa.csproj" ReferenceOutputAssembly="false" />
     <PackageReference Include="ModelContextProtocol.AspNetCore" Version="2.4.0" />
+    <StaticWebAssetGroup Include="BlazorWebAssembly"
+                         Value="enabled"
+                         SourceId="Microsoft.AspNetCore.Components.WebAssembly" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="11.0.0" />
     <!-- Hosted WASM does not propagate transitive Razor-class-library assets into the host's
          endpoint manifest. Keep only their build/static assets here; executable references live
