@@ -50,7 +50,7 @@ public sealed class ToolFailureSpecs
 
         // And the reason is not lost: the daemon's own account of the run names the file it could not read,
         // which is exactly what the answer above was stripped of.
-        var recorded = daemon.Output;
+        var recorded = await daemon.WaitForOutputAsync(artifact, TimeSpan.FromSeconds(10));
         Assert.True(
             recorded.Contains(artifact, StringComparison.OrdinalIgnoreCase),
             $"The daemon should have recorded the reason the tool call failed, with the file it could not read."
@@ -125,6 +125,28 @@ public sealed class ToolFailureSpecs
                     return _console.ToString();
                 }
             }
+        }
+
+        /// <summary>
+        /// Waits until the daemon's account names the expected text, or the timeout passes. The MCP layer
+        /// writes the reason to its log after the answer has already left, so reading once is a race: the
+        /// tool call returning is not the moment the line is there.
+        /// </summary>
+        public async Task<string> WaitForOutputAsync(string expected, TimeSpan timeout)
+        {
+            var deadline = DateTime.UtcNow + timeout;
+            while (DateTime.UtcNow < deadline)
+            {
+                var output = Output;
+                if (output.Contains(expected, StringComparison.OrdinalIgnoreCase))
+                {
+                    return output;
+                }
+
+                await Task.Delay(TimeSpan.FromMilliseconds(50));
+            }
+
+            return Output;
         }
 
         public static async Task<ToolFailureDaemon> StartAsync()

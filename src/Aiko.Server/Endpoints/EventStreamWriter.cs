@@ -27,7 +27,7 @@ internal sealed class EventStreamWriter : IDisposable
     public EventStreamWriter() => _json = new Utf8JsonWriter(_buffer);
 
     /// <summary>Writes one event as an SSE frame and flushes it to the stream.</summary>
-    public async ValueTask WriteAsync(Stream body, AikoEvent item, CancellationToken cancellationToken)
+    public ValueTask WriteAsync(Stream body, AikoEvent item, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(body);
         ArgumentNullException.ThrowIfNull(item);
@@ -47,7 +47,33 @@ internal sealed class EventStreamWriter : IDisposable
         _json.Flush();
         _buffer.Write("\n\n"u8);
 
-        await body.WriteAsync(_buffer.WrittenMemory, cancellationToken).ConfigureAwait(false);
+        // The common case is a response stream that takes the bytes and the flush at once. Answering it
+        // with a completed ValueTask keeps a debug build from allocating an async state machine for a
+        // frame that never actually waited - the fast path stays at zero bytes in every configuration.
+        var write = body.WriteAsync(_buffer.WrittenMemory, cancellationToken);
+        if (write.IsCompletedSuccessfully)
+        {
+            var flush = body.FlushAsync(cancellationToken);
+            if (flush.IsCompletedSuccessfully)
+            {
+                return default;
+            }
+
+            return AwaitFlushAsync(flush);
+        }
+
+        return AwaitWriteAndFlushAsync(body, write, cancellationToken);
+    }
+
+    private static async ValueTask AwaitFlushAsync(Task flush) =>
+        await flush.ConfigureAwait(false);
+
+    private static async ValueTask AwaitWriteAndFlushAsync(
+        Stream body,
+        ValueTask write,
+        CancellationToken cancellationToken)
+    {
+        await write.ConfigureAwait(false);
         await body.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
