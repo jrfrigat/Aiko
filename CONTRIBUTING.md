@@ -6,7 +6,7 @@ request.
 ## Prerequisites
 
 - Windows 10/11 x64 (the shipped product targets Windows).
-- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0). `global.json` pins the `10.0.4xx`
+- [.NET 11 SDK](https://dotnet.microsoft.com/download/dotnet/11.0). `global.json` pins the `11.0.1xx`
   feature band, and the solution is a `.slnx` file, so an older SDK will not build it.
 
 ## Build, run, test

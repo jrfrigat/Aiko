@@ -54,8 +54,37 @@ public sealed class ProjectEventClient(IJSRuntime js) : IAsyncDisposable
         await CloseAsync();
         _reference ??= DotNetObjectReference.Create(this);
         var url = $"{baseUrl.TrimEnd('/')}/api/v1/projects/{Uri.EscapeDataString(projectId)}/events";
-        _source = await js.InvokeAsync<IJSObjectReference>("aikoEvents.connect", url, _reference);
-        _subscribedProjectId = projectId;
+        try
+        {
+            _source = await js.InvokeAsync<IJSObjectReference>("aikoEvents.connect", url, _reference);
+            _subscribedProjectId = projectId;
+        }
+        catch (JSDisconnectedException exception)
+        {
+            await ReportConnectFailureAsync(exception.Message);
+        }
+        catch (JSException exception)
+        {
+            await ReportConnectFailureAsync(exception.Message);
+        }
+        catch (InvalidOperationException exception)
+        {
+            await ReportConnectFailureAsync(exception.Message);
+        }
+    }
+
+    /// <summary>
+    /// Reports a connection that could not even be attempted through the channel the browser uses for a
+    /// failed one, so the shell names the reason instead of the page failing.
+    /// </summary>
+    private async Task ReportConnectFailureAsync(string reason)
+    {
+        IsConnected = false;
+        LastError = reason;
+        if (ConnectionChanged is { } handler)
+        {
+            await handler(false, reason);
+        }
     }
 
     /// <summary>

@@ -185,8 +185,9 @@ public sealed class ServeTimeoutSpecs
         /// <summary>The CLI built in the same configuration as this spec assembly.</summary>
         private static string CliOutputDirectory()
         {
+            var targetFramework = Path.GetFileName(Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory));
             var directory = Path.Combine(
-                CliInitSpecs.FindRepositoryRoot(), "src", "Aiko.Cli", "bin", Configuration, "net10.0");
+                CliInitSpecs.FindRepositoryRoot(), "src", "Aiko.Cli", "bin", Configuration, targetFramework);
             return File.Exists(Path.Combine(directory, "aiko.dll"))
                 ? directory
                 : throw new FileNotFoundException("Build Aiko.Cli first.", directory);

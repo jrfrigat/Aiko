@@ -367,7 +367,22 @@
     {
         if (firstRender)
         {
-            await Js.InvokeVoidAsync("aikoDragHandle.enable");
+            try
+            {
+                await Js.InvokeVoidAsync("aikoDragHandle.enable");
+            }
+            catch (JSDisconnectedException)
+            {
+                // The circuit is already gone; there is no page left to arm the handle on.
+            }
+            catch (JSException)
+            {
+                // The handle script is not there: cards stay clickable, only the drag gesture is lost.
+            }
+            catch (InvalidOperationException)
+            {
+                // Still prerendering: the gesture is armed when the interactive page renders.
+            }
         }
     }
 

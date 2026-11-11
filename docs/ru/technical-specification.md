@@ -109,7 +109,7 @@ workflow, память и стабильный MCP-контракт.
 
 ### 6.4 Server
 
-Один ASP.NET Core .NET 10 процесс:
+Один ASP.NET Core .NET 11 процесс:
 
 - REST API `/api/v1`;
 - SSE событий `/api/v1/events`;

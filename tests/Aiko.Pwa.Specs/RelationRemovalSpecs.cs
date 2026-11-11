@@ -19,7 +19,9 @@ public sealed class RelationRemovalSpecs
         unlink = unlink[..unlink.IndexOf("\n    }", StringComparison.Ordinal)];
 
         Assert.Contains("OnClick=\"@(() => UnlinkAsync(link))\"", inspector, StringComparison.Ordinal);
-        Assert.Contains("\"confirm\"", unlink, StringComparison.Ordinal);
+        // The question is asked through the shared prompt guard, which answers "no" when the browser
+        // cannot show it (TASK-386).
+        Assert.Contains("BrowserPrompt.ConfirmAsync(Js,", unlink, StringComparison.Ordinal);
         Assert.Contains("Http.DeleteAsync(", unlink, StringComparison.Ordinal);
         Assert.Contains("/relations/", unlink, StringComparison.Ordinal);
         Assert.Contains("State.LoadBoardAsync()", unlink, StringComparison.Ordinal);

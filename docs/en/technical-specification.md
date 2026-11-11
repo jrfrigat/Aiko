@@ -111,7 +111,7 @@ Implements:
 
 ### 6.4 Server
 
-A single ASP.NET Core .NET 10 process:
+A single ASP.NET Core .NET 11 process:
 
 - REST API `/api/v1`;
 - event SSE `/api/v1/events`;

@@ -84,12 +84,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      # global.json pins the 10.0.4xx feature band, so the SDK must come from setup-dotnet rather
+      # global.json pins the 11.0.1xx feature band, so the SDK must come from setup-dotnet rather
       # than from whatever the image happens to ship.
-      - name: Setup .NET 10
+      - name: Setup .NET 11
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: 10.0.x
+          dotnet-version: 11.0.x
 
       - name: Restore
         run: dotnet restore Aiko.slnx

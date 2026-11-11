@@ -14,7 +14,7 @@ of reference, kept for reference.)
 * Frontend: a Progressive Web Application (PWA) on Blazor WebAssembly, built on top of your own
   Flare.Blazor library (FlareKanban components and built-in drag-and-drop).
 * Hosting: GitHub Pages (a fully static web server, execution isolated inside the browser). [1]
-* Backend: a cross-platform console service on .NET 10.0 (C#) with Native AOT support for an
+* Backend: a cross-platform console service on .NET 11.0 (C#) with Native AOT support for an
   instant "cold" start (up to 50 ms) and minimal memory footprint (15-30 MB). It acts as a hybrid
   coordinator:
 * Role 1 (MCP server): a stdio bridge for local execution of Claude Code commands and the Claude

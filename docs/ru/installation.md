@@ -9,9 +9,9 @@ Aiko - локальный оркестратор ИИ-разработки: од
 
 - Windows 10/11 x64 (релиз - самодостаточная сборка win-x64).
 - Для установки релиза больше ничего не нужно: ни .NET SDK, ни .NET runtime.
-- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) - только если вы собираете и
+- [.NET 11 SDK](https://dotnet.microsoft.com/download/dotnet/11.0) - только если вы собираете и
   запускаете из исходников. Сборка из исходников публикуется framework-dependent, поэтому на этапе
-  запуска нужен .NET 10 runtime.
+  запуска нужен .NET 11 runtime.
 
 ## Установка
 
@@ -115,7 +115,7 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
 Скрипт публикует текущее рабочее дерево framework-dependent (`aiko` CLI, демон, stdio-прокси) в тот
-же каталог `%LOCALAPPDATA%\Aiko\bin`; на этапе запуска потребуется .NET 10 runtime.
+же каталог `%LOCALAPPDATA%\Aiko\bin`; на этапе запуска потребуется .NET 11 runtime.
 
 Установите глобальные скиллы агентов (опционально, но рекомендуется - чтобы `/aiko-init`
 работал везде):
@@ -334,7 +334,7 @@ powershell -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.c
    ```
 
    Он публикует рабочую копию framework-dependent в `%LOCALAPPDATA%\Aiko\bin`, поэтому ему нужен
-   .NET 10 SDK. Опубликованный им демон лежит в корне `bin`, и дальше `aiko` запускает именно его;
+   .NET 11 SDK. Опубликованный им демон лежит в корне `bin`, и дальше `aiko` запускает именно его;
    релизный демон, оставшийся в `bin\server`, больше не используется, а повторный запуск релизного
    установщика возвращает установку на релизную сборку.
 3. Запустите демон снова (`aiko serve -d` или `aiko ui`) и один раз перезагрузите доску.

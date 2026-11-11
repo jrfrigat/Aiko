@@ -221,10 +221,13 @@ public sealed class AikoServerFixture : IAsyncLifetime
     public static string FindRepositoryBinary(string projectName, string fileName)
     {
         var binRoot = Path.Combine(FindRepositoryRoot(), "src", projectName, "bin", BuildConfiguration);
+        // The framework folder is the one this assembly was built into, so a target-framework change
+        // does not leave the fixture looking in the previous one.
+        var targetFramework = Path.GetFileName(Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory));
         string[] candidates =
         [
-            Path.Combine(binRoot, "net10.0", fileName),
-            Path.Combine(binRoot, "net10.0", "win-x64", fileName)
+            Path.Combine(binRoot, targetFramework, fileName),
+            Path.Combine(binRoot, targetFramework, "win-x64", fileName)
         ];
 
         return candidates.FirstOrDefault(File.Exists)

@@ -114,7 +114,7 @@ public sealed class ShellRecoverySpecs
         private static SystemInfo Identity() => new(
             "Aiko",
             "0.0.0",
-            "net10.0",
+            "net11.0",
             Environment.ProcessId,
             "http://localhost:5180/",
             DateTimeOffset.UnixEpoch,

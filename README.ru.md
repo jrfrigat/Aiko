@@ -152,7 +152,7 @@ dotnet test Aiko.slnx
 
 ## Запуск из исходников
 
-Требуется [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).
+Требуется [.NET 11 SDK](https://dotnet.microsoft.com/download/dotnet/11.0).
 
 ```sh
 git clone https://github.com/jrfrigat/Aiko

@@ -1412,7 +1412,7 @@
     /// </summary>
     private async Task UnlinkAsync(CardRelation relation)
     {
-        if (_unlinking || !await Js.InvokeAsync<bool>("confirm", Loc.Format("UnlinkConfirm", OtherCardId(relation))))
+        if (_unlinking || !await BrowserPrompt.ConfirmAsync(Js, Loc.Format("UnlinkConfirm", OtherCardId(relation))))
         {
             return;
         }
@@ -2139,7 +2139,7 @@
     /// <summary>Asks before a click inside the app leaves a card with unsaved edits behind.</summary>
     private async Task ConfirmLeaveAsync(LocationChangingContext context)
     {
-        if (IsDirty && !await Js.InvokeAsync<bool>("confirm", Loc.Get("LeaveWithUnsavedEdits")))
+        if (IsDirty && !await BrowserPrompt.ConfirmAsync(Js, Loc.Get("LeaveWithUnsavedEdits")))
         {
             context.PreventNavigation();
         }

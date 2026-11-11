@@ -168,7 +168,7 @@
 
     private async Task ConfirmLeaveAsync(LocationChangingContext context)
     {
-        if (HasUnsavedEdits && !await Js.InvokeAsync<bool>("confirm", Loc.Get("LeaveWithUnsavedEdits")))
+        if (HasUnsavedEdits && !await BrowserPrompt.ConfirmAsync(Js, Loc.Get("LeaveWithUnsavedEdits")))
         {
             context.PreventNavigation();
         }
@@ -298,7 +298,7 @@
             return;
         }
 
-        if (IsDirty && !await Js.InvokeAsync<bool>("confirm", Loc.Get("DiscardDocumentEdits")))
+        if (IsDirty && !await BrowserPrompt.ConfirmAsync(Js, Loc.Get("DiscardDocumentEdits")))
         {
             return;
         }

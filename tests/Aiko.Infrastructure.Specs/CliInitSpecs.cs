@@ -141,9 +141,12 @@ public sealed class CliInitSpecs
     /// <summary>The CLI built in the same configuration as this spec assembly.</summary>
     private static string FindCli()
     {
-        var configuration = new DirectoryInfo(Path.GetDirectoryName(typeof(CliInitSpecs).Assembly.Location)!)
-            .Parent!.Name;
-        var cli = Path.Combine(FindRepositoryRoot(), "src", "Aiko.Cli", "bin", configuration, "net10.0", "aiko.dll");
+        var output = new DirectoryInfo(Path.GetDirectoryName(typeof(CliInitSpecs).Assembly.Location)!);
+        var configuration = output.Parent!.Name;
+        // The framework folder is the one this assembly was built into, so a target-framework change
+        // does not leave the spec looking in the previous one.
+        var cli = Path.Combine(
+            FindRepositoryRoot(), "src", "Aiko.Cli", "bin", configuration, output.Name, "aiko.dll");
         return File.Exists(cli) ? cli : throw new FileNotFoundException("Build Aiko.Cli first.", cli);
     }
 

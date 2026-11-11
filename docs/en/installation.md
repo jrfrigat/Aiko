@@ -9,8 +9,8 @@ This guide covers installing and running Aiko on Windows.
 
 - Windows 10/11 x64 (the release ships a self-contained win-x64 build).
 - Nothing else for a release install - no .NET SDK and no .NET runtime.
-- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) only when you build and run from
-  source. A source checkout publishes framework-dependent, so it needs the .NET 10 runtime at run
+- [.NET 11 SDK](https://dotnet.microsoft.com/download/dotnet/11.0) only when you build and run from
+  source. A source checkout publishes framework-dependent, so it needs the .NET 11 runtime at run
   time.
 
 ## Install
@@ -116,7 +116,7 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
 This publishes the working tree framework-dependent (`aiko` CLI, daemon, stdio proxy) into the same
-`%LOCALAPPDATA%\Aiko\bin` directory, and the .NET 10 runtime is required at run time.
+`%LOCALAPPDATA%\Aiko\bin` directory, and the .NET 11 runtime is required at run time.
 
 Install the global agent skills (optional but recommended) so `/aiko-init` works everywhere:
 
@@ -333,7 +333,7 @@ reaches that folder by itself. To move an installation to a newer build:
    ```
 
    It publishes the working copy framework-dependent into `%LOCALAPPDATA%\Aiko\bin`, so it needs the
-   .NET 10 SDK. The daemon it publishes sits in the root of `bin` and is the one `aiko` starts from then on;
+   .NET 11 SDK. The daemon it publishes sits in the root of `bin` and is the one `aiko` starts from then on;
    a released daemon left in `bin\server` is no longer used, and running the release installer again
    returns the installation to the released build.
 3. Start the daemon again (`aiko serve -d` or `aiko ui`) and reload the board once.

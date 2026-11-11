@@ -604,7 +604,7 @@
     /// </remarks>
     private async Task ConfirmNavigationAsync(LocationChangingContext context)
     {
-        if (IsDirty && !await Js.InvokeAsync<bool>("confirm", Loc.Get("LeaveWithUnsavedEdits")))
+        if (IsDirty && !await BrowserPrompt.ConfirmAsync(Js, Loc.Get("LeaveWithUnsavedEdits")))
         {
             context.PreventNavigation();
         }

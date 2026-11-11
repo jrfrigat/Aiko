@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="../Aiko.Application/Aiko.Application.csproj" />
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.14" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="11.0.0" />
     <!-- The project's first native dependency, and it is deliberate: an embedding model is an ONNX graph, so
          semantic search cannot be built without a runtime for one. It is brought in only here - the module
          stays off by default and nothing else links against it. -->
