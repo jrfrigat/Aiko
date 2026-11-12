@@ -146,6 +146,9 @@ builder.Services.AddSingleton<IAgentSessionCounter, ZeroAgentSessionCounter>();
 builder.Services.AddSingleton<IAgentRegistry, AgentRegistry>();
 builder.Services.AddSingleton<IAgentDeliveryStore, FileAgentDeliveryStore>();
 builder.Services.AddSingleton<IAgentDispatchQueue, AgentDispatchQueue>();
+builder.Services.AddSingleton<IAcpClientFactory, CapastrumAcpClientFactory>();
+builder.Services.AddSingleton<IAgentTransport, CapastrumAcpAgentTransport>();
+builder.Services.AddSingleton<IAgentMcpEndpoint, DaemonAgentMcpEndpoint>();
 builder.Services.AddSingleton<AgentDispatchService>();
 builder.Services.AddHostedService<AgentDispatchHostedService>();
 builder.Services
