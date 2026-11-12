@@ -4,8 +4,8 @@ using Aiko.Domain.Execution;
 namespace Aiko.Infrastructure.Agents;
 
 /// <summary>
-/// Merges the adapter default, the user layer and the project layer into the configuration an agent runs
-/// with, and refuses documents that name a transport or a capability the adapter does not have.
+/// Merges the adapter default, the user layer and the project layer of one agent instance, and refuses
+/// documents that name a transport or a capability the adapter does not have.
 /// </summary>
 public sealed class AgentConfigService(
     IEnumerable<IAgentAdapter> adapters,
@@ -26,6 +26,8 @@ public sealed class AgentConfigService(
 
     private static readonly string[] SourceKeys =
     [
+        "adapterId",
+        "displayName",
         "enabled",
         "transport",
         "fallback",
@@ -49,15 +51,30 @@ public sealed class AgentConfigService(
     /// <inheritdoc />
     public async ValueTask<EffectiveAgentConfig> GetEffectiveAsync(
         string? projectId,
-        string adapterId,
+        string instanceId,
         CancellationToken cancellationToken)
     {
-        var adapter = GetAdapter(adapterId);
-        var user = await store.ReadUserAsync(adapter.Id, cancellationToken);
+        ArgumentException.ThrowIfNullOrWhiteSpace(instanceId);
+        var id = instanceId.Trim();
+        var user = await store.ReadUserAsync(id, cancellationToken);
         var project = string.IsNullOrWhiteSpace(projectId)
             ? null
-            : await store.ReadProjectAsync(projectId, adapter.Id, cancellationToken);
-        var effective = Merge(adapter, user, project);
+            : await store.ReadProjectAsync(projectId, id, cancellationToken);
+        var adapterId = user?.AdapterId ?? project?.AdapterId;
+        if (string.IsNullOrWhiteSpace(adapterId))
+        {
+            if (!adaptersById.ContainsKey(id))
+            {
+                throw new ArgumentException(
+                    $"Unknown agent '{id}': it has no configuration and no adapter carries that id.",
+                    nameof(instanceId));
+            }
+
+            adapterId = id;
+        }
+
+        var adapter = GetAdapter(adapterId);
+        var effective = Merge(adapter, id, user, project);
         Validate(effective);
         return effective;
     }
@@ -67,26 +84,54 @@ public sealed class AgentConfigService(
         string? projectId,
         CancellationToken cancellationToken)
     {
-        var results = new List<EffectiveAgentConfig>();
-        foreach (var adapter in adaptersById.Values.OrderBy(
-                     item => item.Id,
-                     StringComparer.OrdinalIgnoreCase))
+        var ids = new HashSet<string>(adaptersById.Keys, StringComparer.OrdinalIgnoreCase);
+        foreach (var id in await store.ListUserAsync(cancellationToken))
         {
-            results.Add(await GetEffectiveAsync(projectId, adapter.Id, cancellationToken));
+            ids.Add(id);
         }
 
-        return results;
+        if (!string.IsNullOrWhiteSpace(projectId))
+        {
+            foreach (var id in await store.ListProjectAsync(projectId, cancellationToken))
+            {
+                ids.Add(id);
+            }
+        }
+
+        var results = new List<EffectiveAgentConfig>();
+        foreach (var id in ids)
+        {
+            try
+            {
+                results.Add(await GetEffectiveAsync(projectId, id, cancellationToken));
+            }
+            catch (Exception exception) when (
+                exception is ArgumentException or InvalidOperationException)
+            {
+                // A document that names an unknown adapter or an invalid transport is left out of the
+                // list; the file stays where the person can fix or remove it.
+            }
+        }
+
+        return [.. results
+            .OrderBy(item => item.AdapterId ?? item.Id, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(item => item.Id, StringComparer.OrdinalIgnoreCase)];
     }
 
     /// <inheritdoc />
     public async ValueTask SaveUserAsync(AgentConfig config, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(config);
-        var adapter = GetAdapter(config.Id);
-        ValidateLayer(adapter, config);
-        Validate(Merge(adapter, config, null));
+        var adapter = ValidateLayer(config);
+        var instanceId = config.Id!.Trim();
+        Validate(Merge(adapter, instanceId, config, null));
         await store.SaveUserAsync(
-            config with { SchemaVersion = AgentConfig.CurrentSchemaVersion },
+            config with
+            {
+                SchemaVersion = AgentConfig.CurrentSchemaVersion,
+                Id = instanceId,
+                AdapterId = Trim(config.AdapterId)
+            },
             cancellationToken);
     }
 
@@ -97,13 +142,18 @@ public sealed class AgentConfigService(
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(config);
-        var adapter = GetAdapter(config.Id);
-        ValidateLayer(adapter, config);
-        var user = await store.ReadUserAsync(adapter.Id, cancellationToken);
-        Validate(Merge(adapter, user, config));
+        var adapter = ValidateLayer(config);
+        var instanceId = config.Id!.Trim();
+        var user = await store.ReadUserAsync(instanceId, cancellationToken);
+        Validate(Merge(adapter, instanceId, user, config));
         await store.SaveProjectAsync(
             projectId,
-            config with { SchemaVersion = AgentConfig.CurrentSchemaVersion },
+            config with
+            {
+                SchemaVersion = AgentConfig.CurrentSchemaVersion,
+                Id = instanceId,
+                AdapterId = Trim(config.AdapterId)
+            },
             cancellationToken);
     }
 
@@ -145,14 +195,14 @@ public sealed class AgentConfigService(
                 $"Agent '{config.Id}' needs at least one session slot.");
         }
 
-        ValidateValues(config.Id, "aikoAccess", capabilities.AikoAccess, AikoAccessValues, allowAny: false);
-        ValidateValues(config.Id, "actions", capabilities.Actions, ActionValues, allowAny: true);
+        ValidateValues(config.Id, "aikoAccess", capabilities.AikoAccess, AikoAccessValues, false);
+        ValidateValues(config.Id, "actions", capabilities.Actions, ActionValues, true);
         ValidateValues(
             config.Id,
             "permissionModes",
             capabilities.PermissionModes,
             PermissionModeValues,
-            allowAny: true);
+            true);
 
         if (capabilities.Stages is null || capabilities.Stages.Count == 0)
         {
@@ -165,54 +215,24 @@ public sealed class AgentConfigService(
             throw new InvalidOperationException(
                 $"Agent '{config.Id}' states no card types; use '*' for every type.");
         }
-    }
 
-    private static void ValidateValues(
-        string adapterId,
-        string name,
-        IReadOnlyList<string>? values,
-        IReadOnlySet<string> known,
-        bool allowAny)
-    {
-        if (values is null)
-        {
-            return;
-        }
-
-        if (values.Count == 0)
-        {
-            throw new InvalidOperationException(
-                $"Agent '{adapterId}' states an empty '{name}' list.");
-        }
-
-        foreach (var value in values)
-        {
-            if (string.IsNullOrWhiteSpace(value))
-            {
-                throw new InvalidOperationException(
-                    $"Agent '{adapterId}' states an empty value in '{name}'.");
-            }
-
-            if (allowAny && value == "*")
-            {
-                continue;
-            }
-
-            if (!known.Contains(value))
-            {
-                throw new InvalidOperationException(
-                    $"Agent '{adapterId}' states unknown {name} value '{value}'.");
-            }
-        }
+        ValidateEnvironment(config.Id, config.Acp?.Environment);
+        ValidateEnvironment(config.Id, config.Sdk?.Environment);
     }
 
     private static EffectiveAgentConfig Merge(
         IAgentAdapter adapter,
+        string instanceId,
         AgentConfig? user,
         AgentConfig? project)
     {
         var effective = adapter.DefaultConfig;
         var sources = new Dictionary<string, AgentConfigSource>(StringComparer.Ordinal);
+        var displayName = StringComparer.OrdinalIgnoreCase.Equals(instanceId, adapter.Id)
+            ? adapter.DisplayName
+            : instanceId;
+        sources["adapterId"] = AgentConfigSource.Default;
+        sources["displayName"] = AgentConfigSource.Default;
         Apply(user, AgentConfigSource.User);
         Apply(project, AgentConfigSource.Project);
 
@@ -223,7 +243,7 @@ public sealed class AgentConfigService(
 
         var supported = SupportedTransports(adapter);
         return new EffectiveAgentConfig(
-            adapter.Id,
+            instanceId,
             effective.Enabled ?? true,
             effective.Transport ?? AgentTransport.Command,
             effective.Fallback ?? AgentTransport.Command,
@@ -233,7 +253,9 @@ public sealed class AgentConfigService(
             effective.Sdk,
             effective.CommandClaim ?? true,
             supported,
-            sources);
+            sources,
+            AdapterId: adapter.Id,
+            DisplayName: displayName);
 
         void Apply(AgentConfig? layer, AgentConfigSource source)
         {
@@ -243,10 +265,29 @@ public sealed class AgentConfigService(
             }
 
             if (layer.Id is { Length: > 0 } id &&
-                !StringComparer.OrdinalIgnoreCase.Equals(id.Trim(), adapter.Id))
+                !StringComparer.OrdinalIgnoreCase.Equals(id.Trim(), instanceId))
             {
                 throw new InvalidOperationException(
-                    $"An agent configuration for '{adapter.Id}' cannot carry id '{id}'.");
+                    $"An agent configuration for '{instanceId}' cannot carry id '{id}'.");
+            }
+
+            if (layer.AdapterId is { Length: > 0 } adapterId &&
+                !StringComparer.OrdinalIgnoreCase.Equals(adapterId.Trim(), adapter.Id))
+            {
+                throw new InvalidOperationException(
+                    $"Agent '{instanceId}' cannot belong to adapter '{adapterId}': " +
+                    $"its configuration resolves to '{adapter.Id}'.");
+            }
+
+            if (layer.AdapterId is { Length: > 0 })
+            {
+                sources["adapterId"] = source;
+            }
+
+            if (layer.DisplayName is { Length: > 0 } name)
+            {
+                displayName = name.Trim();
+                sources["displayName"] = source;
             }
 
             if (layer.Enabled is { } enabled)
@@ -286,13 +327,13 @@ public sealed class AgentConfigService(
 
             if (layer.Acp is { } acp)
             {
-                effective = effective with { Acp = acp };
+                effective = effective with { Acp = MergeAcp(effective.Acp, acp) };
                 sources["acp"] = source;
             }
 
             if (layer.Sdk is { } sdk)
             {
-                effective = effective with { Sdk = sdk };
+                effective = effective with { Sdk = MergeSdk(effective.Sdk, sdk) };
                 sources["sdk"] = source;
             }
 
@@ -347,6 +388,49 @@ public sealed class AgentConfigService(
         }
     }
 
+    private static AgentAcpConfig MergeAcp(AgentAcpConfig? current, AgentAcpConfig layer) => new(
+        Executable: layer.Executable ?? current?.Executable,
+        Args: layer.Args ?? current?.Args,
+        Protocol: layer.Protocol,
+        StartTimeoutSeconds: layer.StartTimeoutSeconds,
+        TurnTimeoutMinutes: layer.TurnTimeoutMinutes,
+        Environment: MergeEnvironment(current?.Environment, layer.Environment));
+
+    private static AgentSdkConfig MergeSdk(AgentSdkConfig? current, AgentSdkConfig layer) => new(
+        Adapter: layer.Adapter ?? current?.Adapter,
+        Environment: MergeEnvironment(current?.Environment, layer.Environment));
+
+    private static IReadOnlyDictionary<string, string>? MergeEnvironment(
+        IReadOnlyDictionary<string, string>? current,
+        IReadOnlyDictionary<string, string>? layer)
+    {
+        if (layer is null)
+        {
+            return current;
+        }
+
+        var merged = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (current is not null)
+        {
+            foreach (var pair in current)
+            {
+                merged[pair.Key] = pair.Value;
+            }
+        }
+
+        foreach (var pair in layer)
+        {
+            if (StringComparer.Ordinal.Equals(pair.Value, AgentConfig.SecretSentinel))
+            {
+                continue;
+            }
+
+            merged[pair.Key] = pair.Value;
+        }
+
+        return merged;
+    }
+
     private static AgentCapabilityProfile MergeCapabilities(
         AgentCapabilityProfile current,
         AgentCapabilityProfile layer) => new(
@@ -375,8 +459,97 @@ public sealed class AgentConfigService(
         return transports;
     }
 
-    private void ValidateLayer(IAgentAdapter adapter, AgentConfig config)
+    private static void ValidateEnvironment(
+        string instanceId,
+        IReadOnlyDictionary<string, string>? environment)
     {
+        if (environment is null)
+        {
+            return;
+        }
+
+        foreach (var pair in environment)
+        {
+            if (string.IsNullOrWhiteSpace(pair.Key) ||
+                pair.Key.Contains('=', StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"Agent '{instanceId}' states an invalid environment variable name '{pair.Key}'.");
+            }
+
+            if (pair.Key.StartsWith("AIKO_", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    $"Agent '{instanceId}' cannot set Aiko's own environment variable '{pair.Key}'.");
+            }
+        }
+    }
+
+    private static void ValidateValues(
+        string instanceId,
+        string name,
+        IReadOnlyList<string>? values,
+        IReadOnlySet<string> known,
+        bool allowAny)
+    {
+        if (values is null)
+        {
+            return;
+        }
+
+        if (values.Count == 0)
+        {
+            throw new InvalidOperationException(
+                $"Agent '{instanceId}' states an empty '{name}' list.");
+        }
+
+        foreach (var value in values)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                throw new InvalidOperationException(
+                    $"Agent '{instanceId}' states an empty value in '{name}'.");
+            }
+
+            if (allowAny && value == "*")
+            {
+                continue;
+            }
+
+            if (!known.Contains(value))
+            {
+                throw new InvalidOperationException(
+                    $"Agent '{instanceId}' states unknown {name} value '{value}'.");
+            }
+        }
+    }
+
+    private IAgentAdapter ValidateLayer(AgentConfig config)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(config.Id);
+        var instanceId = config.Id.Trim();
+        var adapterId = config.AdapterId?.Trim();
+        if (string.IsNullOrWhiteSpace(adapterId))
+        {
+            if (!adaptersById.ContainsKey(instanceId))
+            {
+                throw new ArgumentException(
+                    $"Agent '{instanceId}' must name an AdapterId: '{instanceId}' is not an adapter.",
+                    nameof(config));
+            }
+
+            adapterId = instanceId;
+        }
+
+        var adapter = GetAdapter(adapterId);
+        if (adaptersById.ContainsKey(instanceId) &&
+            !StringComparer.OrdinalIgnoreCase.Equals(instanceId, adapter.Id))
+        {
+            throw new ArgumentException(
+                $"Instance '{instanceId}' carries an adapter id and cannot belong to '{adapter.Id}'.",
+                nameof(config));
+        }
+
         if (config.Transport is { } transport &&
             !SupportedTransports(adapter).Contains(transport))
         {
@@ -421,15 +594,22 @@ public sealed class AgentConfigService(
                 throw new InvalidOperationException(
                     $"Agent '{adapter.Id}' states a non-positive ACP timeout.");
             }
+
+            ValidateEnvironment(instanceId, acp.Environment);
         }
 
-        if (config.Sdk is { } sdk &&
-            sdk.Adapter is not null &&
-            string.IsNullOrWhiteSpace(sdk.Adapter))
+        if (config.Sdk is { } sdk)
         {
-            throw new InvalidOperationException(
-                $"Agent '{adapter.Id}' states an empty SDK adapter.");
+            if (sdk.Adapter is not null && string.IsNullOrWhiteSpace(sdk.Adapter))
+            {
+                throw new InvalidOperationException(
+                    $"Agent '{adapter.Id}' states an empty SDK adapter.");
+            }
+
+            ValidateEnvironment(instanceId, sdk.Environment);
         }
+
+        return adapter;
     }
 
     private IAgentAdapter GetAdapter(string? adapterId)
@@ -442,4 +622,7 @@ public sealed class AgentConfigService(
                 $"Unknown agent adapter '{trimmed}'. Known: {string.Join(", ", adaptersById.Keys)}.",
                 nameof(adapterId));
     }
+
+    private static string? Trim(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

@@ -22,6 +22,8 @@ public class AgentConfigSpecs
             Assert.Equal("npx", config.Acp!.Executable);
             Assert.Contains("@zed-industries/claude-code-acp", config.Acp.Args!);
             Assert.Contains("mcp", config.Capabilities.AikoAccess!);
+            Assert.Equal("claude-code", config.AdapterId);
+            Assert.Equal("Claude Code", config.DisplayName);
             Assert.Equal(AgentConfigSource.Default, config.Sources["transport"]);
             Assert.True(config.CanDispatchDirectly);
         });
@@ -92,7 +94,7 @@ public class AgentConfigSpecs
                     new AgentConfig(
                         Id: "claude-code",
                         Transport: AgentTransport.Acp,
-                        Acp: new AgentAcpConfig(Executable: null)),
+                        Acp: new AgentAcpConfig(Executable: string.Empty)),
                     CancellationToken.None));
 
             Assert.Contains("executable", refused.Message, StringComparison.OrdinalIgnoreCase);
@@ -169,6 +171,124 @@ public class AgentConfigSpecs
         {
             await Assert.ThrowsAsync<ArgumentException>(async () =>
                 await service.GetEffectiveAsync(null, "not-an-agent", CancellationToken.None));
+        });
+    }
+
+    [Fact]
+    public async Task An_instance_uses_its_adapter_defaults_and_environment()
+    {
+        await WithStoreAsync(async (service, _, _) =>
+        {
+            await service.SaveUserAsync(
+                new AgentConfig(
+                    Id: "claude-code-deepseek",
+                    AdapterId: "claude-code",
+                    DisplayName: "Claude Code (DeepSeek)",
+                    Transport: AgentTransport.Acp,
+                    Acp: new AgentAcpConfig(
+                        Executable: "npx",
+                        Args: ["-y", "@zed-industries/claude-code-acp"],
+                        Environment: new Dictionary<string, string>
+                        {
+                            ["ANTHROPIC_BASE_URL"] = "https://deepseek",
+                            ["ANTHROPIC_MODEL"] = "deepseek-chat"
+                        })),
+                CancellationToken.None);
+
+            var config = await service.GetEffectiveAsync(
+                null,
+                "claude-code-deepseek",
+                CancellationToken.None);
+
+            Assert.Equal("claude-code", config.AdapterId);
+            Assert.Equal("Claude Code (DeepSeek)", config.DisplayName);
+            Assert.Equal(AgentTransport.Acp, config.Transport);
+            Assert.Equal("npx", config.Acp!.Executable);
+            Assert.Equal(
+                "https://deepseek",
+                config.Acp.Environment!["ANTHROPIC_BASE_URL"]);
+            Assert.Contains("mcp", config.Capabilities.AikoAccess!);
+        });
+    }
+
+    [Fact]
+    public async Task Environment_values_are_merged_by_key_and_the_sentinel_inherits()
+    {
+        await WithStoreAsync(async (service, _, project) =>
+        {
+            await service.SaveUserAsync(
+                new AgentConfig(
+                    Id: "claude-code-deepseek",
+                    AdapterId: "claude-code",
+                    Acp: new AgentAcpConfig(
+                        Executable: "npx",
+                        Environment: new Dictionary<string, string>
+                        {
+                            ["A"] = "1",
+                            ["B"] = "2"
+                        })),
+                CancellationToken.None);
+            await service.SaveProjectAsync(
+                project.Id,
+                new AgentConfig(
+                    Id: "claude-code-deepseek",
+                    AdapterId: "claude-code",
+                    Acp: new AgentAcpConfig(
+                        Executable: "npx",
+                        Environment: new Dictionary<string, string>
+                        {
+                            ["A"] = AgentConfig.SecretSentinel,
+                            ["B"] = "3",
+                            ["C"] = "4"
+                        })),
+                CancellationToken.None);
+
+            var config = await service.GetEffectiveAsync(
+                project.Id,
+                "claude-code-deepseek",
+                CancellationToken.None);
+
+            Assert.Equal("1", config.Acp!.Environment!["A"]);
+            Assert.Equal("3", config.Acp.Environment!["B"]);
+            Assert.Equal("4", config.Acp.Environment!["C"]);
+        });
+    }
+
+    [Fact]
+    public async Task An_instance_without_an_adapter_is_refused()
+    {
+        await WithStoreAsync(async (service, _, _) =>
+        {
+            var refused = await Assert.ThrowsAsync<ArgumentException>(async () =>
+                await service.SaveUserAsync(
+                    new AgentConfig(Id: "my-agent"),
+                    CancellationToken.None));
+
+            Assert.Contains("AdapterId", refused.Message, StringComparison.Ordinal);
+        });
+    }
+
+    [Fact]
+    public async Task ListEffective_includes_the_default_and_extra_instances()
+    {
+        await WithStoreAsync(async (service, _, _) =>
+        {
+            await service.SaveUserAsync(
+                new AgentConfig(
+                    Id: "claude-code-deepseek",
+                    AdapterId: "claude-code"),
+                CancellationToken.None);
+
+            var configs = await service.ListEffectiveAsync(null, CancellationToken.None);
+
+            Assert.Contains(
+                configs,
+                config => config.Id == "claude-code" &&
+                    config.AdapterId == "claude-code");
+            Assert.Contains(
+                configs,
+                config => config.Id == "claude-code-deepseek" &&
+                    config.AdapterId == "claude-code");
         });
     }
 

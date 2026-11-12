@@ -3,13 +3,13 @@ namespace Aiko.Application.Agents;
 /// <summary>Resolves, validates and saves agent configurations.</summary>
 public interface IAgentConfigService
 {
-    /// <summary>Merges the adapter default, the user layer and the project layer.</summary>
+    /// <summary>Merges the adapter default, the user layer and the project layer of one instance.</summary>
     ValueTask<EffectiveAgentConfig> GetEffectiveAsync(
         string? projectId,
-        string adapterId,
+        string instanceId,
         CancellationToken cancellationToken);
 
-    /// <summary>Resolves every adapter the daemon knows.</summary>
+    /// <summary>Resolves every adapter's default instance and every stored instance.</summary>
     ValueTask<IReadOnlyList<EffectiveAgentConfig>> ListEffectiveAsync(
         string? projectId,
         CancellationToken cancellationToken);

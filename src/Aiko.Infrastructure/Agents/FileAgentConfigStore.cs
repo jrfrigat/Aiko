@@ -21,22 +21,22 @@ public sealed class FileAgentConfigStore(
 
     /// <inheritdoc />
     public ValueTask<AgentConfig?> ReadUserAsync(
-        string adapterId,
+        string instanceId,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return ReadAsync(Path.Combine(userDirectory, $"{ValidateId(adapterId)}.json"), cancellationToken);
+        return ReadAsync(Path.Combine(userDirectory, $"{ValidateId(instanceId)}.json"), cancellationToken);
     }
 
     /// <inheritdoc />
     public async ValueTask<AgentConfig?> ReadProjectAsync(
         string projectId,
-        string adapterId,
+        string instanceId,
         CancellationToken cancellationToken)
     {
         var directory = await ProjectDirectoryAsync(projectId, cancellationToken);
         return await ReadAsync(
-            Path.Combine(directory, $"{ValidateId(adapterId)}.json"),
+            Path.Combine(directory, $"{ValidateId(instanceId)}.json"),
             cancellationToken);
     }
 
@@ -153,17 +153,17 @@ public sealed class FileAgentConfigStore(
                 .ToArray()
             : [];
 
-    private static string ValidateId(string? adapterId)
+    private static string ValidateId(string? instanceId)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(adapterId);
-        var trimmed = adapterId.Trim();
+        ArgumentException.ThrowIfNullOrWhiteSpace(instanceId);
+        var trimmed = instanceId.Trim();
         if (trimmed.Length > 64 ||
             !trimmed.All(character =>
                 char.IsAsciiLetterOrDigit(character) || character is '-' or '_'))
         {
             throw new ArgumentException(
-                $"'{adapterId}' is not a usable agent id: letters, digits, '-' and '_' only.",
-                nameof(adapterId));
+                $"'{instanceId}' is not a usable agent id: letters, digits, '-' and '_' only.",
+                nameof(instanceId));
         }
 
         return trimmed;
