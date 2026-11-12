@@ -18,6 +18,31 @@ public sealed class AgentDispatchService(
 {
     private readonly IReadOnlyList<IAgentTransport> transports = transports.ToArray();
 
+    /// <summary>Marks every delivery left open by a previous daemon run as lost.</summary>
+    public async Task RecoverAsync(CancellationToken cancellationToken)
+    {
+        var registered = await projects.ListAsync(cancellationToken);
+        foreach (var project in registered)
+        {
+            var open = await deliveries.ListAsync(
+                project.Id,
+                includeClosed: false,
+                cancellationToken);
+            foreach (var delivery in open.Where(item => item.IsOpen))
+            {
+                await deliveries.UpdateAsync(
+                    project.Id,
+                    delivery with
+                    {
+                        State = AgentDeliveryState.Lost,
+                        FailureReason = "Aiko restarted; the session cannot be resumed.",
+                        FinishedAtUtc = DateTimeOffset.UtcNow
+                    },
+                    cancellationToken);
+            }
+        }
+    }
+
     /// <summary>Runs one sweep. Exposed so a spec can drive it without the hosted loop.</summary>
     public async Task ProcessAsync(CancellationToken cancellationToken)
     {
@@ -42,6 +67,7 @@ public sealed class AgentDispatchService(
     {
         try
         {
+            await RecoverAsync(stoppingToken);
             await ProcessAsync(stoppingToken);
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)

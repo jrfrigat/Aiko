@@ -99,6 +99,41 @@ public class AgentDispatchSpecs
         Assert.Equal("alpha", deliveries.Entries[0].AgentAdapterId);
     }
 
+    [Fact]
+    public async Task Recovery_marks_open_deliveries_lost_and_leaves_the_command_taken()
+    {
+        var command = QueuedCommand(requestedAgent: "alpha") with
+        {
+            State = CardCommandState.Taken,
+            ClaimedAtUtc = DateTimeOffset.UtcNow
+        };
+        var commands = new FakeCommandStore(command);
+        var deliveries = new FakeDeliveryStore();
+        deliveries.Entries.Add(new AgentDelivery(
+            "DLV-0",
+            "CMD-1",
+            "alpha",
+            AgentTransport.Acp,
+            AgentDeliveryState.Running,
+            "session-1",
+            null,
+            null,
+            DateTimeOffset.UtcNow,
+            DateTimeOffset.UtcNow,
+            null));
+        var service = Create(
+            commands,
+            deliveries,
+            DirectRoute(),
+            new FakeTransport(new AgentTransportResult(true)));
+
+        await service.RecoverAsync(CancellationToken.None);
+
+        Assert.Equal(AgentDeliveryState.Lost, deliveries.Entries[0].State);
+        Assert.NotNull(deliveries.Entries[0].FinishedAtUtc);
+        Assert.Equal(CardCommandState.Taken, commands.Command.State);
+    }
+
     private static CardCommand QueuedCommand(string? requestedAgent = null) => new(
         "CMD-1",
         "TASK-1",
