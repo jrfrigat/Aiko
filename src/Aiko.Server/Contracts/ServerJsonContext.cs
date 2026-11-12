@@ -177,6 +177,10 @@ namespace Aiko.Server.Contracts;
 [JsonSerializable(typeof(AgentSdkConfig))]
 [JsonSerializable(typeof(AgentTransport))]
 [JsonSerializable(typeof(AgentConfigSource))]
+[JsonSerializable(typeof(AgentCommandRequest))]
+[JsonSerializable(typeof(AgentRoute))]
+[JsonSerializable(typeof(AgentCandidateRefusal))]
+[JsonSerializable(typeof(IReadOnlyList<AgentCandidateRefusal>))]
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     UseStringEnumConverter = true)]

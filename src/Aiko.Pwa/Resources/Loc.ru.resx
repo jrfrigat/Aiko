@@ -2283,6 +2283,15 @@
   <data name="CommandStartHint" xml:space="preserve">
     <value>Агент начнёт этап «{0}» этой карточки.</value>
   </data>
+  <data name="CommandRouteDirect" xml:space="preserve">
+    <value>Уйдёт напрямую: {0} через {1}.</value>
+  </data>
+  <data name="CommandRouteQueue" xml:space="preserve">
+    <value>Останется в очереди: {0}</value>
+  </data>
+  <data name="CommandNoRouteReason" xml:space="preserve">
+    <value>нет подходящего агента</value>
+  </data>
   <data name="CommandRunHint" xml:space="preserve">
     <value>Агент будет действовать с прогоном {0}.</value>
   </data>

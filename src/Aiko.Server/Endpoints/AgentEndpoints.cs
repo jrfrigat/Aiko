@@ -191,6 +191,23 @@ internal static class AgentEndpoints
                         adapterId,
                         cancellationToken));
             });
+        app.MapPost(
+            "/api/v1/projects/{projectId}/agent-route",
+            async Task<IResult> (
+                string projectId,
+                AgentCommandRequest request,
+                IProjectCatalog catalog,
+                IAgentRegistry registry,
+                CancellationToken cancellationToken) =>
+            {
+                if (await catalog.FindAsync(projectId, cancellationToken) is not { } project)
+                {
+                    return TypedResults.NotFound();
+                }
+
+                return TypedResults.Ok(
+                    await registry.ResolveAsync(project.Id, request, cancellationToken));
+            });
     }
 
     /// <summary>

@@ -862,7 +862,7 @@
                     {
                         <AikoSelectField Label="@Loc.Get("CommandAction")"
                                          Value="@_commandAction"
-                                         ValueChanged="value => _commandAction = value ?? CommandStartValue">
+                                         ValueChanged="OnCommandActionChanged">
                             <option value="@CommandStartValue">@Loc.Get("CommandStart")</option>
                             <option value="@CommandPauseValue">@Loc.Get("CommandPause")</option>
                             <option value="@CommandResumeValue">@Loc.Get("CommandResume")</option>
@@ -870,7 +870,7 @@
                         </AikoSelectField>
                         <AikoSelectField Label="@Loc.Get("EstimateAgent")"
                                          Value="@_commandAgent"
-                                         ValueChanged="value => _commandAgent = value">
+                                         ValueChanged="OnCommandAgentChanged">
                             @foreach (var agent in Agents)
                             {
                                 var option = agent;
@@ -896,6 +896,12 @@
                         <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
                             @CommandTargetHint
                         </FlareText>
+                        @if (_routeHint is { Length: > 0 } routeHint)
+                        {
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.Tertiary">
+                                @routeHint
+                            </FlareText>
+                        }
                     }
                     @if (_commandMessage is { Length: > 0 } commandMessage)
                     {
@@ -1346,6 +1352,7 @@
     private bool _sendingEstimate;
     private string? _commandAction = CommandStartValue;
     private string? _commandAgent;
+    private string _routeHint = string.Empty;
     private string? _commandText;
     private string? _commandMessage;
     private bool _commandError;
@@ -2295,6 +2302,52 @@
     /// <summary>Whether the selected action carries something the person has to write.</summary>
     private bool CommandNeedsText =>
         _commandAction is CommandPauseValue or CommandAnswerValue;
+
+    private async Task OnCommandActionChanged(string? value)
+    {
+        _commandAction = value ?? CommandStartValue;
+        await RefreshRouteAsync();
+    }
+
+    private async Task OnCommandAgentChanged(string? value)
+    {
+        _commandAgent = value;
+        await RefreshRouteAsync();
+    }
+
+    private async Task RefreshRouteAsync()
+    {
+        if (State.Board is not { } board || string.IsNullOrWhiteSpace(_commandAgent))
+        {
+            _routeHint = string.Empty;
+            return;
+        }
+
+        var action = _commandAction switch
+        {
+            CommandPauseValue => CardCommandAction.Pause,
+            CommandResumeValue => CardCommandAction.Resume,
+            CommandAnswerValue => CardCommandAction.Answer,
+            _ => CardCommandAction.Start
+        };
+        var request = new AgentCommandRequest(
+            action,
+            CardId: Card.Reference.CardId,
+            StageId: action == CardCommandAction.Start ? Card.StageId : null,
+            RequestedAgentAdapterId: _commandAgent);
+        var route = await State.ResolveAgentRouteAsync(board.Project.Id, request);
+        _routeHint = route switch
+        {
+            null => string.Empty,
+            { IsDirect: true } => Loc.Format(
+                "CommandRouteDirect",
+                route.Agent?.Id ?? _commandAgent,
+                route.Transport.ToString()),
+            _ => Loc.Format(
+                "CommandRouteQueue",
+                route.Reason ?? Loc.Get("CommandNoRouteReason"))
+        };
+    }
 
     /// <summary>What the text field of the selected action is for.</summary>
     private string CommandTextHint => _commandAction is CommandPauseValue

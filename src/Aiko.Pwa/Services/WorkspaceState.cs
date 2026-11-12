@@ -487,6 +487,29 @@ internal sealed class WorkspaceState : IAsyncDisposable
     }
 
     /// <summary>
+    /// Asks the daemon where a command would go, so the card can say it before the command is placed.
+    /// </summary>
+    public async Task<AgentRoute?> ResolveAgentRouteAsync(
+        string projectId,
+        AgentCommandRequest request)
+    {
+        try
+        {
+            using var response = await _http.PostAsJsonAsync(
+                $"api/v1/projects/{Uri.EscapeDataString(projectId)}/agent-route",
+                request,
+                PwaJson.Options);
+            return response.IsSuccessStatusCode
+                ? await response.Content.ReadFromJsonAsync<AgentRoute>(PwaJson.Options)
+                : null;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Re-reads the open project's whole command queue. A failure leaves it empty instead of stopping the
     /// screen: the queue is one panel of a page, and an unreadable one must not take the board with it.
     /// </summary>

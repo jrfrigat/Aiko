@@ -2283,6 +2283,15 @@
   <data name="CommandStartHint" xml:space="preserve">
     <value>An agent will start stage '{0}' of this card.</value>
   </data>
+  <data name="CommandRouteDirect" xml:space="preserve">
+    <value>Will go directly to {0} via {1}.</value>
+  </data>
+  <data name="CommandRouteQueue" xml:space="preserve">
+    <value>Stays queued: {0}</value>
+  </data>
+  <data name="CommandNoRouteReason" xml:space="preserve">
+    <value>no capable agent</value>
+  </data>
   <data name="CommandRunHint" xml:space="preserve">
     <value>An agent will act on run {0}.</value>
   </data>
