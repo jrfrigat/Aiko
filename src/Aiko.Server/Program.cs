@@ -148,6 +148,7 @@ builder.Services.AddSingleton<IAgentDeliveryStore, FileAgentDeliveryStore>();
 builder.Services.AddSingleton<IAgentDispatchQueue, AgentDispatchQueue>();
 builder.Services.AddSingleton<IAcpClientFactory, CapastrumAcpClientFactory>();
 builder.Services.AddSingleton<IAgentTransport, CapastrumAcpAgentTransport>();
+builder.Services.AddSingleton<IAgentTransport, SdkAgentTransport>();
 builder.Services.AddSingleton<IAgentMcpEndpoint, DaemonAgentMcpEndpoint>();
 builder.Services.AddSingleton(_ => new ScopedAccessTokenStore());
 builder.Services.AddSingleton<AgentDispatchService>();
