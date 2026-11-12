@@ -1017,6 +1017,36 @@
   <data name="SaveAgent" xml:space="preserve">
     <value>Save agent</value>
   </data>
+  <data name="AgentDisplayName" xml:space="preserve">
+    <value>Display name</value>
+  </data>
+  <data name="AgentEnvironment" xml:space="preserve">
+    <value>Environment variables</value>
+  </data>
+  <data name="AgentEnvironmentKey" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="AgentEnvironmentValue" xml:space="preserve">
+    <value>Value</value>
+  </data>
+  <data name="AgentEnvironmentAdd" xml:space="preserve">
+    <value>Add variable</value>
+  </data>
+  <data name="AgentEnvironmentHint" xml:space="preserve">
+    <value>Stored values are shown masked. Leave *** to keep the saved value.</value>
+  </data>
+  <data name="AgentInstanceAdd" xml:space="preserve">
+    <value>Add instance</value>
+  </data>
+  <data name="AgentInstanceAdapter" xml:space="preserve">
+    <value>Adapter</value>
+  </data>
+  <data name="AgentInstanceId" xml:space="preserve">
+    <value>Instance name</value>
+  </data>
+  <data name="AgentInstanceNameRequired" xml:space="preserve">
+    <value>An instance needs a name.</value>
+  </data>
   <data name="AgentPartiallyConnected" xml:space="preserve">
     <value>partly connected ({0}/{1})</value>
   </data>

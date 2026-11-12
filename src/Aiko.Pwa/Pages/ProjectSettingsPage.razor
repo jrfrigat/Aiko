@@ -56,30 +56,57 @@ else
                         @foreach (var agentConfig in State.AgentConfigs)
                         {
                             var item = agentConfig;
+                            var editor = Editor(item);
                             <FlareStack Gap="FlareSpacing.XSmall">
                                 <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small">
-                                    <FlareText Element="span" Typo="TypographyScale.LabelSmall">@item.Id</FlareText>
+                                    <FlareText Element="span" Typo="TypographyScale.LabelSmall">@InstanceTitle(item, editor)</FlareText>
                                     <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
-                                        @(Loc.Get("AgentConfigSource") + ": " +
-                                          (item.Sources.TryGetValue("transport", out var source)
-                                              ? source.ToString()
-                                              : "default"))
+                                        @(item.AdapterId ?? item.Id) · @CapabilitySource(item)
                                     </FlareText>
                                 </FlareStack>
+                                <AikoField Label="@Loc.Get("AgentDisplayName")"
+                                           Value="@editor.DisplayName"
+                                           ValueChanged="value => editor.DisplayName = value ?? string.Empty" />
                                 <AikoSelectField Label="@Loc.Get("AgentTransport")"
-                                                 Value="@SelectedTransport(item)"
-                                                 ValueChanged="value => SelectTransport(item, value)">
+                                                 Value="@editor.Transport.ToString()"
+                                                 ValueChanged="value => SelectTransport(editor, value)">
                                     @foreach (var transport in item.SupportedTransports)
                                     {
                                         <option value="@transport.ToString()">@transport.ToString()</option>
                                     }
                                 </AikoSelectField>
-                                @if (SelectedTransport(item) == AgentTransport.Acp.ToString())
+                                @if (editor.Transport == AgentTransport.Acp)
                                 {
                                     <AikoField Label="@Loc.Get("AgentAcpExecutable")"
-                                               Value="@AcpExecutable(item)"
-                                               ValueChanged="value => SetAcpExecutable(item, value)" />
+                                               Value="@editor.Executable"
+                                               ValueChanged="value => editor.Executable = value ?? string.Empty" />
                                 }
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
+                                    @Loc.Get("AgentEnvironment")
+                                </FlareText>
+                                @foreach (var variable in editor.Environment.Entries)
+                                {
+                                    var entry = variable;
+                                    <FlareStack Row="true" Align="FlareAlignItems.End" Gap="FlareSpacing.XSmall">
+                                        <AikoField Label="@Loc.Get("AgentEnvironmentKey")"
+                                                   Value="@entry.Key"
+                                                   ValueChanged="value => entry.Key = value ?? string.Empty" />
+                                        <AikoField Label="@Loc.Get("AgentEnvironmentValue")"
+                                                   Value="@entry.Value"
+                                                   ValueChanged="value => entry.Value = value ?? string.Empty" />
+                                        <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm"
+                                                     OnClick="() => RemoveVariable(editor, entry)">
+                                            @Loc.Get("Remove")
+                                        </FlareButton>
+                                    </FlareStack>
+                                }
+                                <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm"
+                                             OnClick="() => AddVariable(editor)">
+                                    @Loc.Get("AgentEnvironmentAdd")
+                                </FlareButton>
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                    @Loc.Get("AgentEnvironmentHint")
+                                </FlareText>
                                 <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
                                     @Capabilities(item)
                                 </FlareText>
@@ -88,6 +115,35 @@ else
                                 </FlareButton>
                             </FlareStack>
                         }
+                        @* One adapter can run as several configured instances - the same executable with another
+                           endpoint, model or token. A new one starts from the default instance's transport and
+                           launcher; its environment is filled here, because the API never sends secrets back. *@
+                        <FlareStack Gap="FlareSpacing.XSmall">
+                            <FlareText Element="span" Typo="TypographyScale.LabelSmall" Class="aiko-eyebrow">
+                                @Loc.Get("AgentInstanceAdd")
+                            </FlareText>
+                            <AikoSelectField Label="@Loc.Get("AgentInstanceAdapter")"
+                                             Value="@newInstanceAdapter"
+                                             ValueChanged="value => newInstanceAdapter = value">
+                                @foreach (var adapter in State.Agents)
+                                {
+                                    var option = adapter;
+                                    <option value="@option.Id">@option.DisplayName</option>
+                                }
+                            </AikoSelectField>
+                            <AikoField Label="@Loc.Get("AgentInstanceId")"
+                                       Value="@newInstanceId"
+                                       ValueChanged="value => newInstanceId = value" />
+                            <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm" OnClick="AddInstanceAsync">
+                                @Loc.Get("AgentInstanceAdd")
+                            </FlareButton>
+                            @if (instanceMessage is { Length: > 0 } message)
+                            {
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.Error">
+                                    @message
+                                </FlareText>
+                            }
+                        </FlareStack>
                     </FlareStack>
                 </FlarePaper>
                 @* The linked-projects registry has a screen of its own, reached from the rail: one place to
@@ -140,11 +196,22 @@ else
 }
 
 @code {
-    private readonly Dictionary<string, AgentTransport> transports =
-        new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, string> acpExecutables =
+    private readonly Dictionary<string, InstanceEditor> instanceEditors =
         new(StringComparer.OrdinalIgnoreCase);
     private string? loadedProjectId;
+    private string? newInstanceAdapter;
+    private string? newInstanceId;
+    private string? instanceMessage;
+
+    /// <summary>What one instance's form holds while it is being edited.</summary>
+    private sealed class InstanceEditor
+    {
+        public string AdapterId { get; init; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
+        public AgentTransport Transport { get; set; }
+        public string Executable { get; set; } = string.Empty;
+        public AgentEnvironmentEditor Environment { get; init; } = new();
+    }
 
     protected override void OnInitialized() => State.Changed += OnStateChanged;
 
@@ -172,25 +239,43 @@ else
     private static string ReleaseHref(string projectHandle) =>
         ProjectRoutes.Release(projectHandle);
 
-    private string SelectedTransport(EffectiveAgentConfig config) =>
-        (transports.TryGetValue(config.Id, out var value) ? value : config.Transport)
-        .ToString();
+    private InstanceEditor Editor(EffectiveAgentConfig config)
+    {
+        if (instanceEditors.TryGetValue(config.Id, out var existing))
+        {
+            return existing;
+        }
 
-    private void SelectTransport(EffectiveAgentConfig config, string? value)
+        var editor = new InstanceEditor
+        {
+            AdapterId = config.AdapterId ?? config.Id,
+            DisplayName = config.DisplayName ?? config.Id,
+            Transport = config.Transport,
+            Executable = config.Acp?.Executable ?? string.Empty,
+            Environment = AgentEnvironmentEditor.Load(config.Acp?.Environment)
+        };
+        instanceEditors[config.Id] = editor;
+        return editor;
+    }
+
+    private static string InstanceTitle(EffectiveAgentConfig config, InstanceEditor editor) =>
+        string.IsNullOrWhiteSpace(editor.DisplayName) ? config.Id : editor.DisplayName;
+
+    private static string CapabilitySource(EffectiveAgentConfig config) =>
+        config.Sources.TryGetValue("transport", out var source) ? source.ToString() : "default";
+
+    private static void SelectTransport(InstanceEditor editor, string? value)
     {
         if (Enum.TryParse<AgentTransport>(value, out var transport))
         {
-            transports[config.Id] = transport;
+            editor.Transport = transport;
         }
     }
 
-    private string AcpExecutable(EffectiveAgentConfig config) =>
-        acpExecutables.TryGetValue(config.Id, out var value)
-            ? value
-            : config.Acp?.Executable ?? string.Empty;
+    private static void AddVariable(InstanceEditor editor) => editor.Environment.Add();
 
-    private void SetAcpExecutable(EffectiveAgentConfig config, string? value) =>
-        acpExecutables[config.Id] = value ?? string.Empty;
+    private static void RemoveVariable(InstanceEditor editor, AgentEnvironmentEntry entry) =>
+        editor.Environment.Remove(entry);
 
     private string Capabilities(EffectiveAgentConfig config) =>
         $"{Loc.Get("AgentAikoAccess")}: {string.Join(", ", config.Capabilities.AikoAccess ?? [])}; " +
@@ -201,20 +286,76 @@ else
 
     private async Task SaveAgentAsync(EffectiveAgentConfig config)
     {
+        if (State.Board is not { } board ||
+            !instanceEditors.TryGetValue(config.Id, out var editor))
+        {
+            return;
+        }
+
+        var acp = editor.Transport == AgentTransport.Acp
+            ? new AgentAcpConfig(
+                Executable: string.IsNullOrWhiteSpace(editor.Executable)
+                    ? null
+                    : editor.Executable.Trim(),
+                Args: config.Acp?.Args,
+                Environment: editor.Environment.ToEnvironment())
+            : null;
+        await State.SaveAgentConfigAsync(
+            board.Project.Id,
+            new AgentConfig(
+                Id: config.Id,
+                AdapterId: editor.AdapterId,
+                DisplayName: string.IsNullOrWhiteSpace(editor.DisplayName)
+                    ? null
+                    : editor.DisplayName.Trim(),
+                Transport: editor.Transport,
+                Acp: acp));
+    }
+
+    /// <summary>
+    /// Creates one more instance of an adapter from its default instance's transport and launcher. The
+    /// environment is not copied: the API sends it masked, and the real values belong to the default
+    /// instance alone.
+    /// </summary>
+    private async Task AddInstanceAsync()
+    {
         if (State.Board is not { } board)
         {
             return;
         }
 
-        var transport = transports.TryGetValue(config.Id, out var selected)
-            ? selected
-            : config.Transport;
-        var acp = transport == AgentTransport.Acp
-            ? new AgentAcpConfig(Executable: AcpExecutable(config))
-            : null;
-        await State.SaveAgentConfigAsync(
+        instanceMessage = null;
+        var id = newInstanceId?.Trim();
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            instanceMessage = Loc.Get("AgentInstanceNameRequired");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(newInstanceAdapter))
+        {
+            return;
+        }
+
+        var adapterId = newInstanceAdapter;
+        var defaultInstance = State.AgentConfigs.FirstOrDefault(config =>
+            StringComparer.Ordinal.Equals(config.Id, adapterId));
+        var saved = await State.SaveAgentConfigAsync(
             board.Project.Id,
-            new AgentConfig(Id: config.Id, Transport: transport, Acp: acp));
+            new AgentConfig(
+                Id: id,
+                AdapterId: adapterId,
+                Transport: defaultInstance?.Transport,
+                Acp: defaultInstance?.Acp is { } acp
+                    ? new AgentAcpConfig(Executable: acp.Executable, Args: acp.Args)
+                    : null));
+        if (!saved)
+        {
+            return;
+        }
+
+        newInstanceId = null;
+        await State.LoadAgentConfigsAsync(board.Project.Id);
     }
 
     /// <summary>
@@ -374,12 +515,11 @@ else
             !StringComparer.Ordinal.Equals(loadedProjectId, board.Project.Id))
         {
             loadedProjectId = board.Project.Id;
+            instanceEditors.Clear();
+            newInstanceAdapter = State.Agents.FirstOrDefault()?.Id;
+            newInstanceId = null;
+            instanceMessage = null;
             await State.LoadAgentConfigsAsync(board.Project.Id);
-            foreach (var config in State.AgentConfigs)
-            {
-                transports.TryAdd(config.Id, config.Transport);
-                acpExecutables.TryAdd(config.Id, config.Acp?.Executable ?? string.Empty);
-            }
         }
     }
 }

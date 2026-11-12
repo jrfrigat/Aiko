@@ -1017,6 +1017,36 @@
   <data name="SaveAgent" xml:space="preserve">
     <value>Сохранить агента</value>
   </data>
+  <data name="AgentDisplayName" xml:space="preserve">
+    <value>Отображаемое имя</value>
+  </data>
+  <data name="AgentEnvironment" xml:space="preserve">
+    <value>Переменные среды</value>
+  </data>
+  <data name="AgentEnvironmentKey" xml:space="preserve">
+    <value>Имя</value>
+  </data>
+  <data name="AgentEnvironmentValue" xml:space="preserve">
+    <value>Значение</value>
+  </data>
+  <data name="AgentEnvironmentAdd" xml:space="preserve">
+    <value>Добавить переменную</value>
+  </data>
+  <data name="AgentEnvironmentHint" xml:space="preserve">
+    <value>Сохранённые значения показаны замаскированными. Оставьте ***, чтобы сохранить текущее значение.</value>
+  </data>
+  <data name="AgentInstanceAdd" xml:space="preserve">
+    <value>Добавить экземпляр</value>
+  </data>
+  <data name="AgentInstanceAdapter" xml:space="preserve">
+    <value>Адаптер</value>
+  </data>
+  <data name="AgentInstanceId" xml:space="preserve">
+    <value>Имя экземпляра</value>
+  </data>
+  <data name="AgentInstanceNameRequired" xml:space="preserve">
+    <value>Экземпляру нужно имя.</value>
+  </data>
   <data name="AgentPartiallyConnected" xml:space="preserve">
     <value>подключён частично ({0}/{1})</value>
   </data>

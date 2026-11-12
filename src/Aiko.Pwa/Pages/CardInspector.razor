@@ -852,7 +852,7 @@
                     <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
                         @Loc.Get("CommandsHint")
                     </FlareText>
-                    @if (Agents.Count == 0)
+                    @if (AgentChoices.Count == 0)
                     {
                         <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
                             @Loc.Get("NoAgentsDiscovered")
@@ -871,10 +871,10 @@
                         <AikoSelectField Label="@Loc.Get("EstimateAgent")"
                                          Value="@_commandAgent"
                                          ValueChanged="OnCommandAgentChanged">
-                            @foreach (var agent in Agents)
+                            @foreach (var agent in AgentChoices)
                             {
                                 var option = agent;
-                                <option value="@option.Id">@option.DisplayName</option>
+                                <option value="@option.Id">@option.Name</option>
                             }
                         </AikoSelectField>
                         @if (CommandNeedsText)
@@ -1352,6 +1352,7 @@
     private bool _sendingEstimate;
     private string? _commandAction = CommandStartValue;
     private string? _commandAgent;
+    private string? _loadedAgentConfigsProjectId;
     private string _routeHint = string.Empty;
     private string? _commandText;
     private string? _commandMessage;
@@ -1455,6 +1456,19 @@
     /// <summary>The agent adapters the daemon found, for the estimate picker.</summary>
     private IReadOnlyList<AgentAdapterOption> Agents => State.Agents;
 
+    /// <summary>
+    /// What the command picker offers: the project's configured instances by their display names, or the
+    /// discovered adapters when no configuration came back. A value is an instance id, which the daemon
+    /// resolves to its adapter.
+    /// </summary>
+    private IReadOnlyList<AgentChoice> AgentChoices => State.AgentConfigs.Count > 0
+        ? [.. State.AgentConfigs.Select(config => new AgentChoice(
+            config.Id,
+            config.DisplayName ?? config.Id))]
+        : [.. State.Agents.Select(adapter => new AgentChoice(adapter.Id, adapter.DisplayName))];
+
+    private sealed record AgentChoice(string Id, string Name);
+
     /// <summary>The command that runs this card's estimate in the chosen agent's terminal.</summary>
     private string EstimateCommand => $"/aiko-estimate {Card.Reference.CardId}";
 
@@ -1517,14 +1531,22 @@
             if (LatestExecution is { Attempts.Count: > 0 } run)
             {
                 return run.Attempts
-                    .Select(attempt => AgentName(attempt.AgentAdapterId))
+                    .Select(attempt => InstanceName(
+                        attempt.AgentInstanceId ?? attempt.AgentAdapterId))
                     .Distinct(StringComparer.Ordinal)
                     .ToArray();
             }
 
-            return Stage?.DefaultAgentAdapterId is { Length: > 0 } adapterId ? [AgentName(adapterId)] : [];
+            return Stage?.DefaultAgentAdapterId is { Length: > 0 } adapterId
+                ? [InstanceName(adapterId)]
+                : [];
         }
     }
+
+    /// <summary>An agent id as the cockpit names it: the instance's display name, then the adapter's.</summary>
+    private string InstanceName(string agentId) => State.AgentConfigs
+        .FirstOrDefault(config => StringComparer.Ordinal.Equals(config.Id, agentId))
+        ?.DisplayName ?? AgentName(agentId);
 
     /// <summary>An adapter id as the cockpit names it, falling back to the id the daemon reported.</summary>
     private string AgentName(string adapterId) => State.Agents
@@ -2004,9 +2026,16 @@
             }
         }
 
+        if (State.Board is { } board &&
+            !StringComparer.Ordinal.Equals(_loadedAgentConfigsProjectId, board.Project.Id))
+        {
+            _loadedAgentConfigsProjectId = board.Project.Id;
+            await State.LoadAgentConfigsAsync(board.Project.Id);
+        }
+
         _estimateAgent ??= Agents.FirstOrDefault()?.Id;
         _stageAgent ??= Agents.FirstOrDefault()?.Id;
-        _commandAgent ??= Agents.FirstOrDefault()?.Id;
+        _commandAgent ??= AgentChoices.FirstOrDefault()?.Id;
 
         if (cardChanged || _lastRefreshTick != ExecutionRefreshTick)
         {
@@ -2334,14 +2363,14 @@
             action,
             CardId: Card.Reference.CardId,
             StageId: action == CardCommandAction.Start ? Card.StageId : null,
-            RequestedAgentAdapterId: _commandAgent);
+            RequestedAgentId: _commandAgent);
         var route = await State.ResolveAgentRouteAsync(board.Project.Id, request);
         _routeHint = route switch
         {
             null => string.Empty,
             { IsDirect: true } => Loc.Format(
                 "CommandRouteDirect",
-                route.Agent?.Id ?? _commandAgent,
+                route.Agent?.DisplayName ?? route.Agent?.Id ?? _commandAgent,
                 route.Transport.ToString()),
             _ => Loc.Format(
                 "CommandRouteQueue",
