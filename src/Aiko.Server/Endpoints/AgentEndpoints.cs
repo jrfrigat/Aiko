@@ -135,20 +135,24 @@ internal static class AgentEndpoints
         app.MapGet(
             "/api/v1/agent-configs",
             async (IAgentConfigService configs, CancellationToken cancellationToken) =>
-                TypedResults.Ok(await configs.ListEffectiveAsync(null, cancellationToken)));
+                TypedResults.Ok(AgentSecretMasking.Mask(
+                    await configs.ListEffectiveAsync(null, cancellationToken))));
         app.MapPut(
-            "/api/v1/agent-configs/{adapterId}",
+            "/api/v1/agent-configs/{instanceId}",
             async (
-                string adapterId,
+                string instanceId,
                 AgentConfig config,
+                IAgentConfigStore store,
                 IAgentConfigService configs,
                 CancellationToken cancellationToken) =>
             {
                 await configs.SaveUserAsync(
-                    config with { Id = adapterId },
+                    AgentSecretMasking.KeepStoredValues(
+                        await store.ReadUserAsync(instanceId, cancellationToken),
+                        config with { Id = instanceId }),
                     cancellationToken);
-                return TypedResults.Ok(
-                    await configs.GetEffectiveAsync(null, adapterId, cancellationToken));
+                return TypedResults.Ok(AgentSecretMasking.Mask(
+                    await configs.GetEffectiveAsync(null, instanceId, cancellationToken)));
             });
         app.MapGet(
             "/api/v1/projects/{projectId}/agent-configs",
@@ -163,16 +167,17 @@ internal static class AgentEndpoints
                     return TypedResults.NotFound();
                 }
 
-                return TypedResults.Ok(
-                    await configs.ListEffectiveAsync(project.Id, cancellationToken));
+                return TypedResults.Ok(AgentSecretMasking.Mask(
+                    await configs.ListEffectiveAsync(project.Id, cancellationToken)));
             });
         app.MapPut(
-            "/api/v1/projects/{projectId}/agent-configs/{adapterId}",
+            "/api/v1/projects/{projectId}/agent-configs/{instanceId}",
             async Task<IResult> (
                 string projectId,
-                string adapterId,
+                string instanceId,
                 AgentConfig config,
                 IProjectCatalog catalog,
+                IAgentConfigStore store,
                 IAgentConfigService configs,
                 CancellationToken cancellationToken) =>
             {
@@ -183,13 +188,15 @@ internal static class AgentEndpoints
 
                 await configs.SaveProjectAsync(
                     project.Id,
-                    config with { Id = adapterId },
+                    AgentSecretMasking.KeepStoredValues(
+                        await store.ReadProjectAsync(project.Id, instanceId, cancellationToken),
+                        config with { Id = instanceId }),
                     cancellationToken);
-                return TypedResults.Ok(
+                return TypedResults.Ok(AgentSecretMasking.Mask(
                     await configs.GetEffectiveAsync(
                         project.Id,
-                        adapterId,
-                        cancellationToken));
+                        instanceId,
+                        cancellationToken)));
             });
         app.MapPost(
             "/api/v1/projects/{projectId}/agent-route",

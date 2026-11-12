@@ -255,6 +255,74 @@ public class AgentConfigSpecs
     }
 
     [Fact]
+    public void Masking_hides_every_environment_value()
+    {
+        var config = new EffectiveAgentConfig(
+            "claude-code-deepseek",
+            true,
+            AgentTransport.Acp,
+            AgentTransport.Command,
+            0,
+            AgentCapabilityProfile.Default,
+            new AgentAcpConfig(
+                Executable: "npx",
+                Environment: new Dictionary<string, string> { ["ANTHROPIC_AUTH_TOKEN"] = "secret" }),
+            new AgentSdkConfig(
+                "sdk",
+                new Dictionary<string, string> { ["SDK_KEY"] = "value" }),
+            true,
+            [AgentTransport.Command, AgentTransport.Acp],
+            new Dictionary<string, AgentConfigSource>());
+
+        var masked = AgentSecretMasking.Mask(config);
+
+        Assert.Equal(AgentConfig.SecretSentinel, masked.Acp!.Environment!["ANTHROPIC_AUTH_TOKEN"]);
+        Assert.Equal(AgentConfig.SecretSentinel, masked.Sdk!.Environment!["SDK_KEY"]);
+        Assert.Equal("secret", config.Acp!.Environment!["ANTHROPIC_AUTH_TOKEN"]);
+    }
+
+    [Fact]
+    public async Task A_sentinel_keeps_the_stored_environment_value()
+    {
+        await WithStoreAsync(async (service, store, _) =>
+        {
+            await service.SaveUserAsync(
+                new AgentConfig(
+                    Id: "claude-code-deepseek",
+                    AdapterId: "claude-code",
+                    Acp: new AgentAcpConfig(
+                        Executable: "npx",
+                        Environment: new Dictionary<string, string>
+                        {
+                            ["ANTHROPIC_AUTH_TOKEN"] = "secret",
+                            ["ANTHROPIC_MODEL"] = "old"
+                        })),
+                CancellationToken.None);
+            var stored = await store.ReadUserAsync("claude-code-deepseek", CancellationToken.None);
+            var incoming = new AgentConfig(
+                Id: "claude-code-deepseek",
+                AdapterId: "claude-code",
+                Acp: new AgentAcpConfig(
+                    Executable: "npx",
+                    Environment: new Dictionary<string, string>
+                    {
+                        ["ANTHROPIC_AUTH_TOKEN"] = AgentConfig.SecretSentinel,
+                        ["ANTHROPIC_MODEL"] = "new",
+                        ["NEW_TOKEN"] = AgentConfig.SecretSentinel
+                    }));
+
+            await service.SaveUserAsync(
+                AgentSecretMasking.KeepStoredValues(stored, incoming),
+                CancellationToken.None);
+
+            var saved = await store.ReadUserAsync("claude-code-deepseek", CancellationToken.None);
+            Assert.Equal("secret", saved!.Acp!.Environment!["ANTHROPIC_AUTH_TOKEN"]);
+            Assert.Equal("new", saved.Acp.Environment!["ANTHROPIC_MODEL"]);
+            Assert.DoesNotContain("NEW_TOKEN", saved.Acp.Environment!.Keys);
+        });
+    }
+
+    [Fact]
     public async Task An_instance_without_an_adapter_is_refused()
     {
         await WithStoreAsync(async (service, _, _) =>
