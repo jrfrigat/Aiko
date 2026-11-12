@@ -20,6 +20,7 @@ using Aiko.Infrastructure.Releases;
 using Aiko.Infrastructure.Relations;
 using Aiko.Infrastructure.Settings;
 using Aiko.Infrastructure.Storage;
+using Aiko.Server;
 using Aiko.Server.Contracts;
 using Aiko.Server.Diagnostics;
 using Aiko.Server.Endpoints;
@@ -143,6 +144,10 @@ builder.Services.AddSingleton<IAgentConfigService, AgentConfigService>();
 builder.Services.AddSingleton<IAgentTransportHealth, ExecutableAgentTransportHealth>();
 builder.Services.AddSingleton<IAgentSessionCounter, ZeroAgentSessionCounter>();
 builder.Services.AddSingleton<IAgentRegistry, AgentRegistry>();
+builder.Services.AddSingleton<IAgentDeliveryStore, FileAgentDeliveryStore>();
+builder.Services.AddSingleton<IAgentDispatchQueue, AgentDispatchQueue>();
+builder.Services.AddSingleton<AgentDispatchService>();
+builder.Services.AddHostedService<AgentDispatchHostedService>();
 builder.Services
     .AddMcpServer()
     .WithHttpTransport(options => options.Stateless = true)

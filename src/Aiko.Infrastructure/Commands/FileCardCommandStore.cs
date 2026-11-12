@@ -161,6 +161,68 @@ public sealed class FileCardCommandStore(
     }
 
     /// <inheritdoc />
+    public async ValueTask<CardCommand> ClaimForDeliveryAsync(
+        string projectId,
+        string commandId,
+        string agentAdapterId,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(commandId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(agentAdapterId);
+        var project = await FindProjectAsync(projectId, cancellationToken);
+        var agent = agentAdapterId.Trim();
+
+        return await TransitionAsync(
+            project,
+            commandId,
+            command =>
+            {
+                if (CardCommands.RefuseClaim(command, agent) is { } refusal)
+                {
+                    throw new InvalidOperationException(refusal);
+                }
+
+                return command with
+                {
+                    State = CardCommandState.Taken,
+                    ClaimedAtUtc = DateTimeOffset.UtcNow
+                };
+            },
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<CardCommand> ReleaseAsync(
+        string projectId,
+        string commandId,
+        string? reason,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(commandId);
+        var project = await FindProjectAsync(projectId, cancellationToken);
+        var reported = Trim(reason);
+
+        return await TransitionAsync(
+            project,
+            commandId,
+            command =>
+            {
+                if (CardCommands.RefuseRelease(command) is { } refusal)
+                {
+                    throw new InvalidOperationException(refusal);
+                }
+
+                return command with
+                {
+                    State = CardCommandState.Queued,
+                    ClaimedAtUtc = null,
+                    Message = reported
+                };
+            },
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
     public async ValueTask<CardCommand> FinishAsync(
         string projectId,
         string commandId,

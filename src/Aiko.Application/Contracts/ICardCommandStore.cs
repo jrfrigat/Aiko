@@ -85,6 +85,34 @@ public interface ICardCommandStore
         CancellationToken cancellationToken);
 
     /// <summary>
+    /// Takes a queued command for a direct delivery. Unlike <see cref="ClaimAsync"/>, it leaves
+    /// <see cref="CardCommand.AgentAdapterId"/> as the person set it, so a failed delivery can return the
+    /// command to every agent that could take it.
+    /// </summary>
+    /// <param name="projectId">Project holding the command.</param>
+    /// <param name="commandId">Command to take.</param>
+    /// <param name="agentAdapterId">Agent the delivery was routed to.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    ValueTask<CardCommand> ClaimForDeliveryAsync(
+        string projectId,
+        string commandId,
+        string agentAdapterId,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Returns a taken command to the queue when a delivery could not start.
+    /// </summary>
+    /// <param name="projectId">Project holding the command.</param>
+    /// <param name="commandId">Command to return.</param>
+    /// <param name="reason">Why the delivery did not start, or null.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    ValueTask<CardCommand> ReleaseAsync(
+        string projectId,
+        string commandId,
+        string? reason,
+        CancellationToken cancellationToken);
+
+    /// <summary>
     /// Closes a taken command as completed or failed, with what the agent reported.
     /// </summary>
     /// <param name="projectId">Project holding the command.</param>

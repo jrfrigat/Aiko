@@ -28,5 +28,6 @@ namespace Aiko.Infrastructure.Projects;
 [JsonSerializable(typeof(IntegrityEntry))]
 [JsonSerializable(typeof(DiscussionDocument))]
 [JsonSerializable(typeof(CommandDocument))]
+[JsonSerializable(typeof(AgentDeliveryDocument))]
 [JsonSerializable(typeof(StageExecution))]
 internal sealed partial class ProjectJsonContext : JsonSerializerContext;

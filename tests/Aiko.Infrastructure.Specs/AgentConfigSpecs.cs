@@ -1,5 +1,6 @@
 using Aiko.Application.Agents;
 using Aiko.Application.Contracts;
+using Aiko.Domain.Execution;
 using Aiko.Infrastructure.Agents;
 using Aiko.Infrastructure.Storage;
 using Xunit;

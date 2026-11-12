@@ -186,6 +186,18 @@ public static class CardCommands
     }
 
     /// <summary>
+    /// Why the command may not be returned to the queue, or null when it may be.
+    /// </summary>
+    /// <param name="command">Command a failed delivery wants to release.</param>
+    public static string? RefuseRelease(CardCommand command)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        return command.State is CardCommandState.Taken
+            ? null
+            : $"command '{command.Id}' is {command.State}: only a taken command can be returned to the queue.";
+    }
+
+    /// <summary>
     /// Why the command may not be withdrawn, or null when it may be.
     /// </summary>
     /// <param name="command">Command a person wants to withdraw.</param>

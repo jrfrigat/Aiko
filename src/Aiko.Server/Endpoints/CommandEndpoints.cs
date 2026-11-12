@@ -1,3 +1,4 @@
+using Aiko.Application.Agents;
 using Aiko.Application.Contracts;
 using Aiko.Domain.Execution;
 using Aiko.Server.Contracts;
@@ -43,12 +44,21 @@ internal static class CommandEndpoints
                 string projectId,
                 PlaceCommandRequest request,
                 ICardCommandStore commands,
+                IAgentDispatchQueue dispatch,
                 CancellationToken cancellationToken) =>
                 // Placing goes through the same ladder as the transitions: a refusal here - the board is
                 // already being worked - is a conflict, and only this route knows which route that answer
                 // describes, so it cannot be left to the global mapper (which would call it a 500).
                 await RunAsync(
-                    async () => await commands.PlaceAsync(projectId, request, cancellationToken),
+                    async () =>
+                    {
+                        var command = await commands.PlaceAsync(
+                            projectId,
+                            request,
+                            cancellationToken);
+                        dispatch.Signal();
+                        return command;
+                    },
                     command => Results.Created(
                         $"/api/v1/projects/{projectId}/commands/{command.Id}",
                         command)));

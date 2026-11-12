@@ -1,4 +1,4 @@
-namespace Aiko.Application.Agents;
+namespace Aiko.Domain.Execution;
 
 /// <summary>How a command reaches an agent.</summary>
 public enum AgentTransport
