@@ -23,7 +23,9 @@ rate limit) hands off to another agent without losing history.
 Commands can also reach an agent directly. Each agent's configuration names a transport - `command`,
 `acp` or `sdk` - and what the agent can do; *Place command* hands the request to a capable agent over
 ACP (Claude Code uses `npx -y @zed-industries/claude-code-acp`), otherwise it stays in the project queue
-exactly as before. The queue remains the source of truth. See
+exactly as before. The queue remains the source of truth. One adapter can run as several named instances -
+the same Claude Code against another endpoint, model or token, each with its own transport, environment and
+history - and the settings screen edits them. See
 [agent integration](docs/en/agent-integration.md) for the configuration and the limits.
 
 **File-first storage - one typed card graph - effective priorities - agent handoffs with full attempt history - durable project memory - loopback-only by design**

@@ -306,7 +306,7 @@ over is therefore the same address the UI links to itself, not a second form of 
 | Work every unfinished card of the board | `/aiko-run-all` | `aiko_list_board`, then the run tools per card | Board - *Work the board*: places the request and shows what became of it |
 | Conduct a release of a version | `/aiko-release [scheme-id]` - the procedure names no order of its own: it reads the scheme that id names out of the project context and works its steps, and naming none is a question rather than a default | `aiko_list_releases`, `aiko_record_release` | Release screen - *Release*: the history, and a button that opens a dialog naming the policy and the agent before it places the command; a page per release lists the tasks that went into it; project settings - *Release schemes*: the orders this project holds |
 | Show the access token | `/aiko-token` | `aiko_token` | — (`aiko token show`) |
-| Manage agent integrations | `/aiko-agents` | — (`aiko agent list` / `install` / `uninstall`) | Dashboard - the *Agents* card: detection and Connect / Disconnect |
+| Manage agent integrations | `/aiko-agents` | — (`aiko agent list` / `install` / `uninstall`) | Dashboard - the *Agents* card: detection and Connect / Disconnect; project settings - configured instances, transport and environment |
 
 An agent is detected by every signal it leaves behind, not only by an executable: a CLI is found on `PATH`,
 while a desktop app or an IDE extension - which has nothing on `PATH` at all - is found by its own data
@@ -400,31 +400,81 @@ content (MCP entries, managed blocks, and files carrying the Aiko ownership mark
 A command placed on a card is written to `.aiko/commands.json` first; direct delivery is a transport over that
 record, not a second source of truth.
 
-Each agent has a configuration with two layers: `%LOCALAPPDATA%\Aiko\agents\<id>.json` for the machine and
-`.aiko/agents/<id>.json` for the project. The effective document names the transport (`command`, `acp` or
-`sdk`) and what the agent can do: how it reaches Aiko (`mcp`, `rest`, `cli`), which actions and stages it
-accepts, which card types, its permission modes and how many sessions it may run. The agent settings screen
-shows the effective values and their source and lets you change the transport and the ACP executable.
+### Adapter and instance
+
+An **adapter** is a program Aiko knows how to connect to (Claude Code, Codex, Cursor, ZCode, Cline, OpenCode):
+its installation, its MCP entry, its skills and commands, and its default configuration. An **agent instance**
+is a named configuration that runs one adapter - `claude-code`, and any number of additional ones such as
+`claude-code-deepseek` or `claude-code-work`. The instance carries the transport, the environment, the
+capabilities, the priority and the session limit; the installation stays shared with its adapter. A command, a
+delivery record and a stage attempt all name the instance, so two configurations of one adapter keep their own
+history.
+
+Each instance has two layers: `%LOCALAPPDATA%\Aiko\agents\<instanceId>.json` for the machine and
+`.aiko/agents/<instanceId>.json` for the project. The effective document names the transport (`command`, `acp`
+or `sdk`) and what the agent can do: how it reaches Aiko (`mcp`, `rest`, `cli`), which actions and stages it
+accepts, which card types, its permission modes and how many sessions it may run. The default instance of an
+adapter has the adapter's own id (`claude-code`), so a configuration file written before instances existed -
+`<adapterId>.json` without an `adapterId` - is read as that default instance; nothing has to be migrated.
+
+```json
+{
+  "schemaVersion": 1,
+  "id": "claude-code-deepseek",
+  "adapterId": "claude-code",
+  "displayName": "Claude Code (DeepSeek)",
+  "transport": "acp",
+  "acp": {
+    "executable": "npx",
+    "args": ["-y", "@zed-industries/claude-code-acp"],
+    "environment": {
+      "ANTHROPIC_BASE_URL": "https://api.deepseek.com/anthropic",
+      "ANTHROPIC_AUTH_TOKEN": "...",
+      "ANTHROPIC_MODEL": "deepseek-chat"
+    }
+  }
+}
+```
+
+`environment` of `acp` (and of `sdk`) is added to the agent process on top of its own environment. Values are
+merged by key across the layers - adapter default, user, project - and the sentinel `***` in a higher layer
+means "inherit the lower one".
+
+### Secrets
+
+Environment values are secrets. The API and the settings screen always answer with them masked as `***`; the
+config file is the only place the real value lives, and a `PUT` that sends `***` back keeps the stored value,
+while a key left out is removed. Aiko does not write environment values into logs, delivery records or error
+text.
+
+### Transports
 
 - `command` - the agent takes the command from the queue, exactly as before. This is always available and is
   the fallback.
 - `acp` - Aiko starts the agent over the Agent Client Protocol. It opens a session, passes Aiko's MCP endpoint
   and a short-lived scoped token, sends the stage instruction, streams the agent's updates and cancels the
   session if the command is withdrawn. Claude Code uses `npx -y @zed-industries/claude-code-acp`; DeepSeek
-  Harness exposes an ACP profile. ACP permission requests are decided by Aiko: work inside the project root is
-  allowed, a path that leaves it is denied.
+  Harness exposes an ACP profile. The instance's environment reaches the launched process, which is how the
+  same Claude Code runs against a different endpoint or model. ACP permission requests are decided by Aiko:
+  work inside the project root is allowed, a path that leaves it is denied.
 - `sdk` - the same delivery through a registered SDK adapter. No adapter ships yet: Claude Agent SDK and dsh
   SDK are not .NET packages, so ACP is the supported path for both. The contract is ready for the first
   adapter.
 
+The card's command picker offers the project's configured instances by their display names, and the route
+preview asks the daemon about that instance before the command is placed. `aiko_start_stage` accepts an optional
+`agentInstanceId` beside the adapter id, and the attempt it records carries both; a record written before
+instances existed reads as its adapter id, which is the default instance.
+
 If the agent does not support the transport, cannot reach Aiko, is busy, or the session fails, the command
-stays in the queue. A command that named an agent is never silently given to another one. On restart, open
+stays in the queue. A command that named an instance is never silently given to another one. On restart, open
 sessions are marked lost and the command stays taken; Aiko does not retry automatically, so the same stage is
 not worked twice.
 
 Current limits: permission decisions confine work to the project root - the card's declared scope is not
-parsed exactly; the agent settings screen edits the transport and the ACP executable but shows the other
-capabilities read-only; the card's command list shows the queue state, not the live delivery record.
+parsed exactly; the agent settings screen edits the display name, the transport, the ACP executable and the
+environment, while ACP arguments, timeouts and SDK settings stay read-only; the card's command list shows the
+queue state, not the live delivery record.
 
 ## Rate limits and handoffs
 
