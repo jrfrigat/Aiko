@@ -24,6 +24,11 @@ public interface IAgentAdapter
     AgentCapabilities Capabilities { get; }
 
     /// <summary>
+    /// Defaults this adapter contributes to the agent's configuration before any stored layer is applied.
+    /// </summary>
+    AgentConfig DefaultConfig { get; }
+
+    /// <summary>
     /// Finds all agent installations by scanning PATH for the executables.
     /// </summary>
     ValueTask<IReadOnlyList<AgentInstallation>> DetectInstallationsAsync(CancellationToken cancellationToken);

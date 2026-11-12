@@ -138,6 +138,8 @@ foreach (var adapter in AgentAdapters.CreateBuiltIn())
 }
 
 builder.Services.AddSingleton<IUnifiedAgentInstaller, UnifiedAgentInstaller>();
+builder.Services.AddSingleton<IAgentConfigStore, FileAgentConfigStore>();
+builder.Services.AddSingleton<IAgentConfigService, AgentConfigService>();
 builder.Services
     .AddMcpServer()
     .WithHttpTransport(options => options.Stateless = true)

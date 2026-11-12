@@ -94,6 +94,8 @@ public sealed class AgentSelectionSpecs
 
         public AgentCapabilities Capabilities => AgentCapabilities.McpStdio;
 
+        public AgentConfig DefaultConfig => AgentConfig.Default(id);
+
         public ValueTask<IReadOnlyList<AgentInstallation>> DetectInstallationsAsync(
             CancellationToken cancellationToken) => ValueTask.FromResult(installations);
 

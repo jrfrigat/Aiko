@@ -38,5 +38,23 @@ public enum AgentCapabilities
     RateLimitDetection = 1 << 9,
 
     /// <summary>Remote workspace (no local checkout required).</summary>
-    RemoteWorkspace = 1 << 10
+    RemoteWorkspace = 1 << 10,
+
+    /// <summary>The agent can take commands from the project queue.</summary>
+    CommandQueue = 1 << 11,
+
+    /// <summary>The agent can be started or reached over the Agent Client Protocol.</summary>
+    AcpTransport = 1 << 12,
+
+    /// <summary>The agent can be started through an SDK adapter.</summary>
+    SdkTransport = 1 << 13,
+
+    /// <summary>The agent reaches Aiko over MCP.</summary>
+    AikoMcp = 1 << 14,
+
+    /// <summary>The agent reaches Aiko over REST.</summary>
+    AikoRest = 1 << 15,
+
+    /// <summary>The agent reaches Aiko through the CLI.</summary>
+    AikoCli = 1 << 16
 }

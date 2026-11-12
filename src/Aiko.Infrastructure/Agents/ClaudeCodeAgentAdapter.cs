@@ -29,7 +29,19 @@ public sealed class ClaudeCodeAgentAdapter : BuiltInAgentAdapter
         AgentCapabilities.HeadlessLaunch |
         AgentCapabilities.Resume |
         AgentCapabilities.StructuredOutput |
-        AgentCapabilities.RateLimitDetection;
+        AgentCapabilities.RateLimitDetection |
+        AgentCapabilities.CommandQueue |
+        AgentCapabilities.AcpTransport |
+        AgentCapabilities.AikoMcp;
+
+    /// <inheritdoc />
+    public override AgentConfig DefaultConfig => AgentConfig.Default(Id) with
+    {
+        Transport = AgentTransport.Acp,
+        Acp = new AgentAcpConfig(
+            Executable: "npx",
+            Args: ["-y", "@zed-industries/claude-code-acp"])
+    };
 
     /// <inheritdoc />
     protected override string[] ExecutableNames => ["claude"];

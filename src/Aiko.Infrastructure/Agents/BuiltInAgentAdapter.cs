@@ -20,6 +20,9 @@ public abstract class BuiltInAgentAdapter : IAgentAdapter
     /// <inheritdoc />
     public abstract AgentCapabilities Capabilities { get; }
 
+    /// <inheritdoc />
+    public virtual AgentConfig DefaultConfig => AgentConfig.Default(Id);
+
     /// <summary>
     /// Executable names of the agent searched for in PATH.
     /// </summary>

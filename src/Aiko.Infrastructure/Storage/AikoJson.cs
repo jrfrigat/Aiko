@@ -1,5 +1,6 @@
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using Aiko.Infrastructure.Agents;
 using Aiko.Infrastructure.Projects;
 using Aiko.Infrastructure.Settings;
 
@@ -22,6 +23,10 @@ internal static class AikoJson
 
     /// <summary>Options for a settings document, at either level.</summary>
     internal static JsonSerializerOptions Settings { get; } = WithReadableText(SettingsJsonContext.Default.Options);
+
+    /// <summary>Options for an agent configuration document.</summary>
+    internal static JsonSerializerOptions AgentConfig { get; } =
+        WithReadableText(AgentConfigJsonContext.Default.Options);
 
     private static JsonSerializerOptions WithReadableText(JsonSerializerOptions source) =>
         new(source) { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
