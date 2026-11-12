@@ -16,6 +16,7 @@ public interface IAcpClientFactory
 /// <param name="Executable">Agent executable.</param>
 /// <param name="Arguments">Executable arguments.</param>
 /// <param name="WorkspaceRoot">Project root the agent works in.</param>
+/// <param name="Environment">Additional environment variables of the agent instance.</param>
 /// <param name="OnText">Called for every text update the agent streams.</param>
 /// <param name="ReadTextFile">Reads a file the agent asked for; returns null when it does not exist.</param>
 /// <param name="WriteTextFile">Writes a file the agent asked for.</param>
@@ -24,6 +25,7 @@ public sealed record AcpLaunchOptions(
     string Executable,
     IReadOnlyList<string> Arguments,
     string WorkspaceRoot,
+    IReadOnlyDictionary<string, string>? Environment,
     Action<string> OnText,
     Func<string, CancellationToken, ValueTask<string?>> ReadTextFile,
     Func<string, string, CancellationToken, ValueTask> WriteTextFile,

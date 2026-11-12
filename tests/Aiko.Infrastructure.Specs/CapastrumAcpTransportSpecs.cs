@@ -41,6 +41,59 @@ public class CapastrumAcpTransportSpecs
     }
 
     [Fact]
+    public async Task The_instance_environment_reaches_the_launch_without_reaching_the_prompt()
+    {
+        var environment = new Dictionary<string, string>
+        {
+            ["ANTHROPIC_BASE_URL"] = "https://deepseek.example",
+            ["ANTHROPIC_AUTH_TOKEN"] = "secret-value"
+        };
+
+        await WithContextAsync(async (context, factory, deliveryStore, root) =>
+        {
+            var transport = Create(context, factory, deliveryStore, root);
+
+            var result = await transport.DeliverAsync(context, CancellationToken.None);
+
+            Assert.True(result.Succeeded);
+            Assert.Equal("https://deepseek.example", factory.Options!.Environment!["ANTHROPIC_BASE_URL"]);
+            Assert.Equal("secret-value", factory.Options.Environment!["ANTHROPIC_AUTH_TOKEN"]);
+
+            var server = Assert.Single(factory.Session.Servers!);
+            Assert.DoesNotContain("secret-value", factory.Session.Prompt!, StringComparison.Ordinal);
+            Assert.DoesNotContain("secret-value", result.Message ?? string.Empty, StringComparison.Ordinal);
+            Assert.DoesNotContain("secret-value", server.Url!, StringComparison.Ordinal);
+            Assert.DoesNotContain(
+                "secret-value",
+                Assert.Single(server.Headers!).Value!,
+                StringComparison.Ordinal);
+        }, environment);
+    }
+
+    [Fact]
+    public async Task Two_instances_of_one_adapter_launch_with_their_own_environment()
+    {
+        await WithRootAsync(async root =>
+        {
+            var factory = new FakeFactory();
+            var deliveries = new FakeDeliveryStore();
+            var first = CreateContext(
+                root,
+                new Dictionary<string, string> { ["ANTHROPIC_MODEL"] = "deepseek-chat" });
+            var second = CreateContext(
+                root,
+                new Dictionary<string, string> { ["ANTHROPIC_MODEL"] = "deepseek-reasoner" });
+            var transport = Create(first, factory, deliveries, root);
+
+            await transport.DeliverAsync(first, CancellationToken.None);
+            Assert.Equal("deepseek-chat", factory.Options!.Environment!["ANTHROPIC_MODEL"]);
+
+            await transport.DeliverAsync(second, CancellationToken.None);
+            Assert.Equal("deepseek-reasoner", factory.Options!.Environment!["ANTHROPIC_MODEL"]);
+        });
+    }
+
+    [Fact]
     public async Task A_cancelled_turn_is_a_failure()
     {
         await WithContextAsync(async (context, factory, deliveryStore, _) =>
@@ -102,8 +155,13 @@ public class CapastrumAcpTransportSpecs
         deliveries,
         factory);
 
-    private static async Task WithContextAsync(
-        Func<AgentDeliveryContext, FakeFactory, FakeDeliveryStore, string, Task> action)
+    private static Task WithContextAsync(
+        Func<AgentDeliveryContext, FakeFactory, FakeDeliveryStore, string, Task> action,
+        IReadOnlyDictionary<string, string>? environment = null) =>
+        WithRootAsync(async root =>
+            await action(CreateContext(root, environment), new FakeFactory(), new FakeDeliveryStore(), root));
+
+    private static async Task WithRootAsync(Func<string, Task> action)
     {
         var root = Path.Combine(
             Path.GetTempPath(),
@@ -112,55 +170,59 @@ public class CapastrumAcpTransportSpecs
         Directory.CreateDirectory(root);
         try
         {
-            var context = new AgentDeliveryContext(
-                "project-1",
-                new CardCommand(
-                    "CMD-1",
-                    "TASK-1",
-                    CardCommandAction.Start,
-                    "implementation",
-                    null,
-                    "claude-code",
-                    null,
-                    CardCommandState.Queued,
-                    "you",
-                    DateTimeOffset.UtcNow,
-                    null,
-                    null,
-                    null),
-                new AgentDelivery(
-                    "DLV-1",
-                    "CMD-1",
-                    "claude-code",
-                    AgentTransport.Acp,
-                    AgentDeliveryState.Starting,
-                    null,
-                    null,
-                    null,
-                    DateTimeOffset.UtcNow,
-                    null,
-                    null),
-                new EffectiveAgentConfig(
-                    "claude-code",
-                    true,
-                    AgentTransport.Acp,
-                    AgentTransport.Command,
-                    0,
-                    AgentCapabilityProfile.Default,
-                    new AgentAcpConfig(
-                        "npx",
-                        ["-y", "@zed-industries/claude-code-acp"]),
-                    null,
-                    true,
-                    [AgentTransport.Command, AgentTransport.Acp],
-                    new Dictionary<string, AgentConfigSource>()));
-            await action(context, new FakeFactory(), new FakeDeliveryStore(), root);
+            await action(root);
         }
         finally
         {
             TempRoot.Delete(root);
         }
     }
+
+    private static AgentDeliveryContext CreateContext(
+        string root,
+        IReadOnlyDictionary<string, string>? environment = null) => new(
+        "project-1",
+        new CardCommand(
+            "CMD-1",
+            "TASK-1",
+            CardCommandAction.Start,
+            "implementation",
+            null,
+            "claude-code",
+            null,
+            CardCommandState.Queued,
+            "you",
+            DateTimeOffset.UtcNow,
+            null,
+            null,
+            null),
+        new AgentDelivery(
+            "DLV-1",
+            "CMD-1",
+            "claude-code",
+            AgentTransport.Acp,
+            AgentDeliveryState.Starting,
+            null,
+            null,
+            null,
+            DateTimeOffset.UtcNow,
+            null,
+            null),
+        new EffectiveAgentConfig(
+            "claude-code",
+            true,
+            AgentTransport.Acp,
+            AgentTransport.Command,
+            0,
+            AgentCapabilityProfile.Default,
+            new AgentAcpConfig(
+                "npx",
+                ["-y", "@zed-industries/claude-code-acp"],
+                Environment: environment),
+            null,
+            true,
+            [AgentTransport.Command, AgentTransport.Acp],
+            new Dictionary<string, AgentConfigSource>()));
 
     private sealed class FakeFactory : IAcpClientFactory
     {

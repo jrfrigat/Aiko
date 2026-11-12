@@ -51,6 +51,7 @@ public sealed class CapastrumAcpAgentTransport(
                     executable,
                     acp.Args ?? [],
                     root,
+                    acp.Environment,
                     text =>
                     {
                         lock (updates)

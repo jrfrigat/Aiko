@@ -18,6 +18,7 @@ public sealed class CapastrumAcpClientFactory : IAcpClientFactory
                 Executable = options.Executable,
                 Arguments = options.Arguments,
                 WorkspaceRoot = options.WorkspaceRoot,
+                Environment = options.Environment,
                 ClientInfo = new AcpImplementation { Name = "Aiko", Version = "1.0.0" },
                 OnActionConfirm = options.OnActionConfirm,
                 OnSessionUpdate = notification =>

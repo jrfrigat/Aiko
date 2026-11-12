@@ -20,6 +20,21 @@ public class SdkAgentTransportSpecs
     }
 
     [Fact]
+    public async Task The_adapter_sees_the_instance_environment()
+    {
+        var adapter = new FakeAdapter("fake", new AgentTransportResult(true));
+        var transport = new SdkAgentTransport([adapter]);
+
+        await transport.DeliverAsync(
+            Context(
+                "fake",
+                new Dictionary<string, string> { ["ANTHROPIC_MODEL"] = "deepseek" }),
+            CancellationToken.None);
+
+        Assert.Equal("deepseek", adapter.Environment!["ANTHROPIC_MODEL"]);
+    }
+
+    [Fact]
     public async Task A_failing_adapter_is_reported()
     {
         var transport = new SdkAgentTransport(
@@ -65,7 +80,9 @@ public class SdkAgentTransportSpecs
         Assert.Contains("not registered", result.Message, StringComparison.OrdinalIgnoreCase);
     }
 
-    private static AgentDeliveryContext Context(string? adapterId) => new(
+    private static AgentDeliveryContext Context(
+        string? adapterId,
+        IReadOnlyDictionary<string, string>? environment = null) => new(
         "project-1",
         new CardCommand(
             "CMD-1",
@@ -101,7 +118,7 @@ public class SdkAgentTransportSpecs
             0,
             AgentCapabilityProfile.Default,
             null,
-            adapterId is null ? null : new AgentSdkConfig(adapterId),
+            adapterId is null ? null : new AgentSdkConfig(adapterId, environment),
             true,
             [AgentTransport.Command, AgentTransport.Sdk],
             new Dictionary<string, AgentConfigSource>()));
@@ -113,11 +130,16 @@ public class SdkAgentTransportSpecs
     {
         public string Id => id;
 
+        public IReadOnlyDictionary<string, string>? Environment { get; private set; }
+
         public ValueTask<AgentTransportResult> DeliverAsync(
             AgentDeliveryContext context,
-            CancellationToken cancellationToken) =>
-            exception is not null
+            CancellationToken cancellationToken)
+        {
+            Environment = context.Agent.Sdk?.Environment;
+            return exception is not null
                 ? ValueTask.FromException<AgentTransportResult>(exception)
                 : ValueTask.FromResult(result!);
+        }
     }
 }
