@@ -19,6 +19,7 @@ public sealed class CapastrumAcpClientFactory : IAcpClientFactory
                 Arguments = options.Arguments,
                 WorkspaceRoot = options.WorkspaceRoot,
                 ClientInfo = new AcpImplementation { Name = "Aiko", Version = "1.0.0" },
+                OnActionConfirm = options.OnActionConfirm,
                 OnSessionUpdate = notification =>
                 {
                     if (notification.Text is { Length: > 0 } text)

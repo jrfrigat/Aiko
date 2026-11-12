@@ -149,6 +149,7 @@ builder.Services.AddSingleton<IAgentDispatchQueue, AgentDispatchQueue>();
 builder.Services.AddSingleton<IAcpClientFactory, CapastrumAcpClientFactory>();
 builder.Services.AddSingleton<IAgentTransport, CapastrumAcpAgentTransport>();
 builder.Services.AddSingleton<IAgentMcpEndpoint, DaemonAgentMcpEndpoint>();
+builder.Services.AddSingleton(_ => new ScopedAccessTokenStore());
 builder.Services.AddSingleton<AgentDispatchService>();
 builder.Services.AddHostedService<AgentDispatchHostedService>();
 builder.Services
@@ -388,7 +389,8 @@ app.Use(async (context, next) =>
     await next(context);
 });
 
-app.UseAikoAuthentication(accessToken, enabled: !insecure);
+var scopedTokens = app.Services.GetRequiredService<ScopedAccessTokenStore>();
+app.UseAikoAuthentication(accessToken, enabled: !insecure, scopedTokens);
 
 app.MapStaticAssets();
 

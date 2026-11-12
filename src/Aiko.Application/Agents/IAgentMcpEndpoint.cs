@@ -8,6 +8,11 @@ public interface IAgentMcpEndpoint
         string projectId,
         string deliveryId,
         CancellationToken cancellationToken);
+
+    /// <summary>Revokes the token an endpoint was issued with.</summary>
+    ValueTask RevokeAsync(
+        AgentMcpEndpoint endpoint,
+        CancellationToken cancellationToken);
 }
 
 /// <summary>One MCP endpoint handed to an agent session.</summary>

@@ -1,6 +1,7 @@
 using Aiko.Application.Agents;
 using Aiko.Application.Contracts;
 using Aiko.Domain.Execution;
+using Capastrum.Acp;
 using Capastrum.Acp.Protocol;
 
 namespace Aiko.Infrastructure.Agents;
@@ -40,6 +41,7 @@ public sealed class CapastrumAcpAgentTransport(
             cancellationToken);
         var root = Path.GetFullPath(project.RootPath);
         var updates = new List<string>();
+        var permissions = new List<string>();
         string? sessionId = null;
 
         try
@@ -64,7 +66,22 @@ public sealed class CapastrumAcpAgentTransport(
                         }
                     },
                     (path, token) => ReadAsync(root, path, token),
-                    (path, content, token) => WriteAsync(root, path, content, token)),
+                    (path, content, token) => WriteAsync(root, path, content, token),
+                    (request, _) =>
+                    {
+                        var decision = AgentPermissionPolicy.Decide(root, request.Command);
+                        lock (permissions)
+                        {
+                            if (permissions.Count < 50)
+                            {
+                                permissions.Add(
+                                    $"{(ReferenceEquals(decision, ConfirmationResult.Denied) ? "denied" : "allowed")}: " +
+                                    $"{request.Title ?? request.ToolName ?? "tool"}");
+                            }
+                        }
+
+                        return ValueTask.FromResult(decision);
+                    }),
                 cancellationToken);
 
             sessionId = await client.NewSessionAsync(
@@ -88,6 +105,13 @@ public sealed class CapastrumAcpAgentTransport(
             var message = succeeded
                 ? LastText(updates)
                 : $"ACP stopped with {response.StopReason}.";
+            var permissionText = LastText(permissions);
+            if (permissionText is { Length: > 0 })
+            {
+                message = string.IsNullOrEmpty(message)
+                    ? permissionText
+                    : $"{message} ({permissionText})";
+            }
 
             try
             {
@@ -98,15 +122,32 @@ public sealed class CapastrumAcpAgentTransport(
                 // The session is already gone; the delivery result is what matters.
             }
 
+            await RevokeAsync(mcpEndpoints, endpoint);
             return new AgentTransportResult(succeeded, sessionId, message);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+            await RevokeAsync(mcpEndpoints, endpoint);
             throw;
         }
         catch (Exception exception)
         {
+            await RevokeAsync(mcpEndpoints, endpoint);
             return new AgentTransportResult(false, sessionId, exception.Message);
+        }
+    }
+
+    private static async ValueTask RevokeAsync(
+        IAgentMcpEndpoint mcpEndpoints,
+        AgentMcpEndpoint endpoint)
+    {
+        try
+        {
+            await mcpEndpoints.RevokeAsync(endpoint, CancellationToken.None);
+        }
+        catch
+        {
+            // A token that outlives the attempt is expired by its own lifetime; the result is what matters.
         }
     }
 

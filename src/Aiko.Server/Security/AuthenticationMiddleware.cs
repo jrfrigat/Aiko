@@ -21,7 +21,8 @@ internal static class AuthenticationMiddleware
     public static IApplicationBuilder UseAikoAuthentication(
         this IApplicationBuilder app,
         string accessToken,
-        bool enabled)
+        bool enabled,
+        ScopedAccessTokenStore? scopedTokens = null)
     {
         if (!enabled)
         {
@@ -30,7 +31,9 @@ internal static class AuthenticationMiddleware
 
         return app.Use(async (context, next) =>
         {
-            if (IsPublic(context.Request.Path) || HasBearer(context, accessToken))
+            if (IsPublic(context.Request.Path) ||
+                HasBearer(context, accessToken) ||
+                HasScopedBearer(context, scopedTokens))
             {
                 await next(context);
                 return;
@@ -67,6 +70,42 @@ internal static class AuthenticationMiddleware
         var header = context.Request.Headers.Authorization.ToString();
         return header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) &&
                TokenEquals(header["Bearer ".Length..].Trim(), accessToken);
+    }
+
+    private static bool HasScopedBearer(
+        HttpContext context,
+        ScopedAccessTokenStore? scopedTokens)
+    {
+        if (scopedTokens is null)
+        {
+            return false;
+        }
+
+        var header = context.Request.Headers.Authorization.ToString();
+        if (!header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return scopedTokens.IsValid(
+            header["Bearer ".Length..].Trim(),
+            ProjectHandleFromPath(context.Request.Path));
+    }
+
+    private static string? ProjectHandleFromPath(PathString path)
+    {
+        const string prefix = "/mcp/projects/";
+        var value = path.Value;
+        if (value is null ||
+            !value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var handle = value[prefix.Length..].Trim('/');
+        return handle.Length > 0 && !handle.Contains('/')
+            ? Uri.UnescapeDataString(handle)
+            : null;
     }
 
     private static bool HasSessionCookie(HttpContext context, string accessToken) =>

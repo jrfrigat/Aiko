@@ -222,6 +222,11 @@ public class CapastrumAcpTransportSpecs
             ValueTask.FromResult(new AgentMcpEndpoint(
                 "http://127.0.0.1:24598/mcp/projects/project",
                 "token"));
+
+        public ValueTask RevokeAsync(
+            AgentMcpEndpoint endpoint,
+            CancellationToken cancellationToken) =>
+            ValueTask.CompletedTask;
     }
 
     private sealed class FakeProjects(RegisteredProject project) : IProjectCatalog

@@ -8,8 +8,8 @@ namespace Aiko.Server;
 /// <summary>The daemon's own project MCP endpoint, handed to an ACP session.</summary>
 internal sealed class DaemonAgentMcpEndpoint(
     IProjectCatalog projects,
-    DaemonAccessToken token,
-    DaemonEndpointConfiguration endpoint) : IAgentMcpEndpoint
+    DaemonEndpointConfiguration endpoint,
+    ScopedAccessTokenStore scopedTokens) : IAgentMcpEndpoint
 {
     /// <inheritdoc />
     public async ValueTask<AgentMcpEndpoint> GetAsync(
@@ -23,6 +23,15 @@ internal sealed class DaemonAgentMcpEndpoint(
             ?? await endpoint.LoadOrCreateAsync(null, cancellationToken);
         return new AgentMcpEndpoint(
             ProjectMcpEndpoint.For(settings.BaseUri.ToString(), project),
-            token.Value);
+            scopedTokens.Issue(project.Handle, deliveryId, TimeSpan.FromHours(2)));
+    }
+
+    /// <inheritdoc />
+    public ValueTask RevokeAsync(
+        AgentMcpEndpoint endpoint,
+        CancellationToken cancellationToken)
+    {
+        scopedTokens.Revoke(endpoint.AccessToken);
+        return ValueTask.CompletedTask;
     }
 }

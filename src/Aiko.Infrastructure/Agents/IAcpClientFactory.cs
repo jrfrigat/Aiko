@@ -1,3 +1,4 @@
+using Capastrum.Acp;
 using Capastrum.Acp.Protocol;
 
 namespace Aiko.Infrastructure.Agents;
@@ -18,13 +19,15 @@ public interface IAcpClientFactory
 /// <param name="OnText">Called for every text update the agent streams.</param>
 /// <param name="ReadTextFile">Reads a file the agent asked for; returns null when it does not exist.</param>
 /// <param name="WriteTextFile">Writes a file the agent asked for.</param>
+/// <param name="OnActionConfirm">Decides every permission request the agent makes.</param>
 public sealed record AcpLaunchOptions(
     string Executable,
     IReadOnlyList<string> Arguments,
     string WorkspaceRoot,
     Action<string> OnText,
     Func<string, CancellationToken, ValueTask<string?>> ReadTextFile,
-    Func<string, string, CancellationToken, ValueTask> WriteTextFile);
+    Func<string, string, CancellationToken, ValueTask> WriteTextFile,
+    Func<AcpPermissionRequest, CancellationToken, ValueTask<ConfirmationResult>>? OnActionConfirm = null);
 
 /// <summary>One initialized ACP connection.</summary>
 public interface IAcpClientSession : IAsyncDisposable
