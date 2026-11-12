@@ -6,6 +6,6 @@ namespace Aiko.Infrastructure.Agents;
 public sealed class ZeroAgentSessionCounter : IAgentSessionCounter
 {
     /// <inheritdoc />
-    public ValueTask<int> CountAsync(string adapterId, CancellationToken cancellationToken) =>
+    public ValueTask<int> CountAsync(string instanceId, CancellationToken cancellationToken) =>
         ValueTask.FromResult(0);
 }

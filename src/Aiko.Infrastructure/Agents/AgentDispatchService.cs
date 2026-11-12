@@ -113,7 +113,7 @@ public sealed class AgentDispatchService(
                     command.Action,
                     CardId: command.CardId,
                     StageId: command.StageId,
-                    RequestedAgentAdapterId: command.AgentAdapterId),
+                    RequestedAgentId: command.AgentAdapterId),
                 cancellationToken);
             if (!route.IsDirect || route.Agent is null)
             {

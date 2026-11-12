@@ -22,19 +22,18 @@ public sealed class AgentRegistry(
         CancellationToken cancellationToken)
     {
         var results = new List<RegisteredAgent>();
-        foreach (var adapter in adaptersById.Values.OrderBy(
-                     item => item.Id,
-                     StringComparer.OrdinalIgnoreCase))
+        foreach (var config in await configs.ListEffectiveAsync(projectId, cancellationToken))
         {
-            var config = await configs.GetEffectiveAsync(
-                projectId,
-                adapter.Id,
-                cancellationToken);
+            if (!adaptersById.TryGetValue(config.AdapterId ?? config.Id, out var adapter))
+            {
+                continue;
+            }
+
             var installations = await adapter.DetectInstallationsAsync(cancellationToken);
             var available = config.Enabled &&
                 installations.Count > 0 &&
                 await health.IsAvailableAsync(config, cancellationToken);
-            var active = await sessions.CountAsync(adapter.Id, cancellationToken);
+            var active = await sessions.CountAsync(config.Id, cancellationToken);
             results.Add(new RegisteredAgent(config, installations, available, active));
         }
 
@@ -50,15 +49,16 @@ public sealed class AgentRegistry(
         ArgumentNullException.ThrowIfNull(request);
         var agents = await ListAsync(projectId, cancellationToken);
         var refusals = new List<AgentCandidateRefusal>();
+        var requestedId = request.RequestedAgentId ?? request.RequestedAgentAdapterId;
 
-        if (!string.IsNullOrWhiteSpace(request.RequestedAgentAdapterId))
+        if (!string.IsNullOrWhiteSpace(requestedId))
         {
-            var requested = Find(agents, request.RequestedAgentAdapterId);
+            var requested = Find(agents, requestedId);
             if (requested is null)
             {
-                var unknown = $"Unknown agent '{request.RequestedAgentAdapterId.Trim()}'.";
+                var unknown = $"Unknown agent '{requestedId.Trim()}'.";
                 refusals.Add(new AgentCandidateRefusal(
-                    request.RequestedAgentAdapterId.Trim(),
+                    requestedId.Trim(),
                     unknown));
                 return AgentRoute.Queue(unknown, refusals);
             }
@@ -78,9 +78,10 @@ public sealed class AgentRegistry(
             return AgentRoute.Queue(refusal, refusals, requested.Config);
         }
 
-        if (!string.IsNullOrWhiteSpace(request.DefaultAgentAdapterId))
+        var preferredId = request.DefaultAgentId ?? request.DefaultAgentAdapterId;
+        if (!string.IsNullOrWhiteSpace(preferredId))
         {
-            var preferred = Find(agents, request.DefaultAgentAdapterId);
+            var preferred = Find(agents, preferredId);
             if (preferred is not null)
             {
                 var refusal = Refusal(preferred, request);

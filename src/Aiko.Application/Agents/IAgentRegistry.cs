@@ -3,7 +3,7 @@ namespace Aiko.Application.Agents;
 /// <summary>Reads the agents the daemon knows and decides where a command goes.</summary>
 public interface IAgentRegistry
 {
-    /// <summary>Lists every adapter with its effective configuration and current state.</summary>
+    /// <summary>Lists every agent instance with its effective configuration and current state.</summary>
     ValueTask<IReadOnlyList<RegisteredAgent>> ListAsync(
         string? projectId,
         CancellationToken cancellationToken);

@@ -133,6 +133,126 @@ public class AgentRegistrySpecs
         Assert.Contains(route.Refusals, refusal => refusal.AgentAdapterId == "beta");
     }
 
+    [Fact]
+    public async Task An_adapter_id_resolves_to_its_default_instance()
+    {
+        var registry = CreateWith([AcpAgent("alpha")], [Instance("alpha-deepseek", "alpha")]);
+
+        var route = await registry.ResolveAsync(
+            null,
+            Start(requested: "alpha"),
+            CancellationToken.None);
+
+        Assert.True(route.IsDirect);
+        Assert.Equal("alpha", route.Agent!.Id);
+        Assert.Equal("alpha", route.Agent.AdapterId);
+    }
+
+    [Fact]
+    public async Task Two_instances_of_one_adapter_are_listed_and_route_by_instance_id()
+    {
+        var registry = CreateWith(
+            [AcpAgent("alpha")],
+            [Instance("alpha-deepseek", "alpha", priority: 10)]);
+
+        var agents = await registry.ListAsync(null, CancellationToken.None);
+
+        Assert.Contains(
+            agents,
+            agent => agent.Config.Id == "alpha" && agent.Config.AdapterId == "alpha");
+        Assert.Contains(
+            agents,
+            agent => agent.Config.Id == "alpha-deepseek" && agent.Config.AdapterId == "alpha");
+
+        var route = await registry.ResolveAsync(
+            null,
+            Start(requested: "alpha-deepseek"),
+            CancellationToken.None);
+
+        Assert.True(route.IsDirect);
+        Assert.Equal("alpha-deepseek", route.Agent!.Id);
+        Assert.Equal("alpha", route.Agent.AdapterId);
+    }
+
+    [Fact]
+    public async Task An_unknown_instance_is_refused()
+    {
+        var registry = Create(AcpAgent("alpha"));
+
+        var route = await registry.ResolveAsync(
+            null,
+            Start(requested: "alpha-missing"),
+            CancellationToken.None);
+
+        Assert.False(route.IsDirect);
+        Assert.Contains("Unknown agent", route.Reason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task An_explicitly_named_instance_is_not_replaced()
+    {
+        var registry = CreateWith(
+            [AcpAgent("alpha"), CommandAgent("beta")],
+            [Instance("beta-slow", "beta")]);
+
+        var route = await registry.ResolveAsync(
+            null,
+            Start(requested: "beta-slow"),
+            CancellationToken.None);
+
+        Assert.False(route.IsDirect);
+        Assert.Equal("beta-slow", route.Agent!.Id);
+        Assert.Contains(route.Refusals, refusal => refusal.AgentAdapterId == "beta-slow");
+    }
+
+    [Fact]
+    public async Task A_preferred_instance_is_chosen_when_it_can_go_direct()
+    {
+        var registry = CreateWith(
+            [AcpAgent("alpha"), AcpAgent("gamma")],
+            [Instance("gamma-fast", "gamma", priority: 20)]);
+
+        var route = await registry.ResolveAsync(
+            null,
+            Start(defaultAgent: "gamma-fast"),
+            CancellationToken.None);
+
+        Assert.True(route.IsDirect);
+        Assert.Equal("gamma-fast", route.Agent!.Id);
+    }
+
+    [Fact]
+    public async Task The_old_adapter_id_fields_still_route()
+    {
+        var registry = Create(AcpAgent("alpha"));
+
+        var route = await registry.ResolveAsync(
+            null,
+            new AgentCommandRequest(
+                CardCommandAction.Start,
+                CardId: "TASK-1",
+                StageId: "implementation",
+                CardTypeId: "task",
+                RequestedAgentAdapterId: "alpha"),
+            CancellationToken.None);
+
+        Assert.True(route.IsDirect);
+        Assert.Equal("alpha", route.Agent!.Id);
+    }
+
+    [Fact]
+    public async Task An_invalid_stored_document_does_not_break_the_list()
+    {
+        var registry = CreateWith(
+            [AcpAgent("alpha")],
+            [new AgentConfig(Id: "broken", AdapterId: "missing-adapter")]);
+
+        var agents = await registry.ListAsync(null, CancellationToken.None);
+
+        Assert.Contains(agents, agent => agent.Config.Id == "alpha");
+        Assert.DoesNotContain(agents, agent => agent.Config.Id == "broken");
+    }
+
     private static AgentCommandRequest Start(
         string? requested = null,
         string? defaultAgent = null) => new(
@@ -140,8 +260,16 @@ public class AgentRegistrySpecs
         CardId: "TASK-1",
         StageId: "implementation",
         CardTypeId: "task",
-        RequestedAgentAdapterId: requested,
-        DefaultAgentAdapterId: defaultAgent);
+        RequestedAgentId: requested,
+        DefaultAgentId: defaultAgent);
+
+    private static AgentConfig Instance(
+        string id,
+        string adapterId,
+        int priority = 0) => new(
+        Id: id,
+        AdapterId: adapterId,
+        Priority: priority);
 
     private static StubAdapter AcpAgent(
         string id,
@@ -164,16 +292,22 @@ public class AgentRegistrySpecs
             AgentCapabilities.CommandQueue | AgentCapabilities.AikoMcp,
             AgentConfig.Default(id));
 
+    private static AgentRegistry CreateWith(
+        IAgentAdapter[] adapters,
+        IReadOnlyList<AgentConfig> stored) =>
+        Create(adapters, _ => true, _ => 0, stored);
+
     private static AgentRegistry Create(params IAgentAdapter[] adapters) =>
         Create(adapters, _ => true, _ => 0);
 
     private static AgentRegistry Create(
         IAgentAdapter[] adapters,
         Func<EffectiveAgentConfig, bool> health,
-        Func<string, int> sessions) =>
+        Func<string, int> sessions,
+        IReadOnlyList<AgentConfig>? stored = null) =>
         new(
             adapters,
-            new AgentConfigService(adapters, new EmptyStore()),
+            new AgentConfigService(adapters, new StubStore(stored ?? [])),
             new StubHealth(health),
             new StubSessions(sessions));
 
@@ -193,16 +327,17 @@ public class AgentRegistrySpecs
             ValueTask.FromResult(count(adapterId));
     }
 
-    private sealed class EmptyStore : IAgentConfigStore
+    private sealed class StubStore(IReadOnlyList<AgentConfig> documents) : IAgentConfigStore
     {
         public ValueTask<AgentConfig?> ReadUserAsync(
-            string adapterId,
+            string instanceId,
             CancellationToken cancellationToken) =>
-            ValueTask.FromResult<AgentConfig?>(null);
+            ValueTask.FromResult(documents.FirstOrDefault(document =>
+                StringComparer.OrdinalIgnoreCase.Equals(document.Id, instanceId)));
 
         public ValueTask<AgentConfig?> ReadProjectAsync(
             string projectId,
-            string adapterId,
+            string instanceId,
             CancellationToken cancellationToken) =>
             ValueTask.FromResult<AgentConfig?>(null);
 
@@ -216,7 +351,8 @@ public class AgentRegistrySpecs
             ValueTask.CompletedTask;
 
         public ValueTask<IReadOnlyList<string>> ListUserAsync(CancellationToken cancellationToken) =>
-            ValueTask.FromResult<IReadOnlyList<string>>([]);
+            ValueTask.FromResult<IReadOnlyList<string>>(
+                [.. documents.Select(document => document.Id!)]);
 
         public ValueTask<IReadOnlyList<string>> ListProjectAsync(
             string projectId,
