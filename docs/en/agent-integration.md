@@ -395,6 +395,37 @@ writer, and a second Aiko entry in the same JSON would fight the MCP one.
 Installation is idempotent and preserves your own settings; uninstall removes only Aiko-managed
 content (MCP entries, managed blocks, and files carrying the Aiko ownership marker).
 
+## Direct command delivery
+
+A command placed on a card is written to `.aiko/commands.json` first; direct delivery is a transport over that
+record, not a second source of truth.
+
+Each agent has a configuration with two layers: `%LOCALAPPDATA%\Aiko\agents\<id>.json` for the machine and
+`.aiko/agents/<id>.json` for the project. The effective document names the transport (`command`, `acp` or
+`sdk`) and what the agent can do: how it reaches Aiko (`mcp`, `rest`, `cli`), which actions and stages it
+accepts, which card types, its permission modes and how many sessions it may run. The agent settings screen
+shows the effective values and their source and lets you change the transport and the ACP executable.
+
+- `command` - the agent takes the command from the queue, exactly as before. This is always available and is
+  the fallback.
+- `acp` - Aiko starts the agent over the Agent Client Protocol. It opens a session, passes Aiko's MCP endpoint
+  and a short-lived scoped token, sends the stage instruction, streams the agent's updates and cancels the
+  session if the command is withdrawn. Claude Code uses `npx -y @zed-industries/claude-code-acp`; DeepSeek
+  Harness exposes an ACP profile. ACP permission requests are decided by Aiko: work inside the project root is
+  allowed, a path that leaves it is denied.
+- `sdk` - the same delivery through a registered SDK adapter. No adapter ships yet: Claude Agent SDK and dsh
+  SDK are not .NET packages, so ACP is the supported path for both. The contract is ready for the first
+  adapter.
+
+If the agent does not support the transport, cannot reach Aiko, is busy, or the session fails, the command
+stays in the queue. A command that named an agent is never silently given to another one. On restart, open
+sessions are marked lost and the command stays taken; Aiko does not retry automatically, so the same stage is
+not worked twice.
+
+Current limits: permission decisions confine work to the project root - the card's declared scope is not
+parsed exactly; the agent settings screen edits the transport and the ACP executable but shows the other
+capabilities read-only; the card's command list shows the queue state, not the live delivery record.
+
 ## Rate limits and handoffs
 
 When an agent reports `rate-limited`, hand the execution to another agent with
