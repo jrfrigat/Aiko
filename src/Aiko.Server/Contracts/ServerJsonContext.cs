@@ -169,6 +169,14 @@ namespace Aiko.Server.Contracts;
 [JsonSerializable(typeof(CardBlocker))]
 [JsonSerializable(typeof(IReadOnlyList<CardBlocker>))]
 [JsonSerializable(typeof(string[]))]
+[JsonSerializable(typeof(AgentConfig))]
+[JsonSerializable(typeof(EffectiveAgentConfig))]
+[JsonSerializable(typeof(IReadOnlyList<EffectiveAgentConfig>))]
+[JsonSerializable(typeof(AgentCapabilityProfile))]
+[JsonSerializable(typeof(AgentAcpConfig))]
+[JsonSerializable(typeof(AgentSdkConfig))]
+[JsonSerializable(typeof(AgentTransport))]
+[JsonSerializable(typeof(AgentConfigSource))]
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     UseStringEnumConverter = true)]

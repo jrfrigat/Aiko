@@ -990,6 +990,33 @@
   <data name="AgentConnected" xml:space="preserve">
     <value>подключён</value>
   </data>
+  <data name="AgentTransport" xml:space="preserve">
+    <value>Транспорт</value>
+  </data>
+  <data name="AgentAcpExecutable" xml:space="preserve">
+    <value>Исполняемый файл ACP</value>
+  </data>
+  <data name="AgentConfigSource" xml:space="preserve">
+    <value>Источник</value>
+  </data>
+  <data name="AgentAikoAccess" xml:space="preserve">
+    <value>Доступ к Aiko</value>
+  </data>
+  <data name="AgentActions" xml:space="preserve">
+    <value>Действия</value>
+  </data>
+  <data name="AgentStages" xml:space="preserve">
+    <value>Этапы</value>
+  </data>
+  <data name="AgentCardTypes" xml:space="preserve">
+    <value>Типы карточек</value>
+  </data>
+  <data name="AgentSessions" xml:space="preserve">
+    <value>Сессии</value>
+  </data>
+  <data name="SaveAgent" xml:space="preserve">
+    <value>Сохранить агента</value>
+  </data>
   <data name="AgentPartiallyConnected" xml:space="preserve">
     <value>подключён частично ({0}/{1})</value>
   </data>

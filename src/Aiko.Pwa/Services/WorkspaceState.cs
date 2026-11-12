@@ -65,6 +65,9 @@ internal sealed class WorkspaceState : IAsyncDisposable
     /// </remarks>
     public IReadOnlyList<AgentProjectConnection> ProjectConnections { get; private set; } = [];
 
+    /// <summary>Effective agent configurations of the open project.</summary>
+    public IReadOnlyList<EffectiveAgentConfig> AgentConfigs { get; private set; } = [];
+
     /// <summary>
     /// The project templates a new project can be created from. Read once with the rest of the shell data;
     /// the only one that exists today is the built-in default.
@@ -411,6 +414,75 @@ internal sealed class WorkspaceState : IAsyncDisposable
             Error = FailureText.Describe(exception);
             await NotifyAsync();
             return null;
+        }
+    }
+
+    /// <summary>
+    /// Reads the effective agent configurations of a project, so the settings screen can offer a transport.
+    /// </summary>
+    public async Task LoadAgentConfigsAsync(string projectId)
+    {
+        try
+        {
+            AgentConfigs = await _http.GetFromJsonAsync<IReadOnlyList<EffectiveAgentConfig>>(
+                $"api/v1/projects/{Uri.EscapeDataString(projectId)}/agent-configs",
+                PwaJson.Options) ?? [];
+        }
+        catch (Exception exception)
+        {
+            Error = FailureText.Describe(exception);
+            AgentConfigs = [];
+        }
+
+        await NotifyAsync();
+    }
+
+    /// <summary>
+    /// Saves the project layer of one agent configuration and keeps the effective answer it returns.
+    /// </summary>
+    public async Task<bool> SaveAgentConfigAsync(string projectId, AgentConfig config)
+    {
+        if (string.IsNullOrWhiteSpace(config.Id))
+        {
+            return false;
+        }
+
+        Error = null;
+        try
+        {
+            using var response = await _http.PutAsJsonAsync(
+                $"api/v1/projects/{Uri.EscapeDataString(projectId)}/agent-configs/{Uri.EscapeDataString(config.Id)}",
+                config,
+                PwaJson.Options);
+            if (!response.IsSuccessStatusCode)
+            {
+                var refusal = await response.Content.ReadFromJsonAsync<ErrorResponse>(
+                    PwaJson.Options);
+                Error = refusal?.Message ?? FailureText.Describe(
+                    new HttpRequestException(response.ReasonPhrase));
+                await NotifyAsync();
+                return false;
+            }
+
+            var effective = await response.Content.ReadFromJsonAsync<EffectiveAgentConfig>(
+                PwaJson.Options);
+            if (effective is not null)
+            {
+                AgentConfigs = AgentConfigs
+                    .Select(item => StringComparer.Ordinal.Equals(item.Id, effective.Id)
+                        ? effective
+                        : item)
+                    .ToArray();
+            }
+
+            await NotifyAsync();
+            return true;
+        }
+        catch (Exception exception)
+        {
+            Error = FailureText.Describe(exception);
+            await NotifyAsync();
+            return false;
         }
     }
 

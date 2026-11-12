@@ -990,6 +990,33 @@
   <data name="AgentConnected" xml:space="preserve">
     <value>connected</value>
   </data>
+  <data name="AgentTransport" xml:space="preserve">
+    <value>Transport</value>
+  </data>
+  <data name="AgentAcpExecutable" xml:space="preserve">
+    <value>ACP executable</value>
+  </data>
+  <data name="AgentConfigSource" xml:space="preserve">
+    <value>Source</value>
+  </data>
+  <data name="AgentAikoAccess" xml:space="preserve">
+    <value>Aiko access</value>
+  </data>
+  <data name="AgentActions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="AgentStages" xml:space="preserve">
+    <value>Stages</value>
+  </data>
+  <data name="AgentCardTypes" xml:space="preserve">
+    <value>Card types</value>
+  </data>
+  <data name="AgentSessions" xml:space="preserve">
+    <value>Sessions</value>
+  </data>
+  <data name="SaveAgent" xml:space="preserve">
+    <value>Save agent</value>
+  </data>
   <data name="AgentPartiallyConnected" xml:space="preserve">
     <value>partly connected ({0}/{1})</value>
   </data>

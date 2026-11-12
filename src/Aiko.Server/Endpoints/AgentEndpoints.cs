@@ -132,6 +132,65 @@ internal static class AgentEndpoints
                     projectId,
                     request.SelectedAdapterIds,
                     cancellationToken)));
+        app.MapGet(
+            "/api/v1/agent-configs",
+            async (IAgentConfigService configs, CancellationToken cancellationToken) =>
+                TypedResults.Ok(await configs.ListEffectiveAsync(null, cancellationToken)));
+        app.MapPut(
+            "/api/v1/agent-configs/{adapterId}",
+            async (
+                string adapterId,
+                AgentConfig config,
+                IAgentConfigService configs,
+                CancellationToken cancellationToken) =>
+            {
+                await configs.SaveUserAsync(
+                    config with { Id = adapterId },
+                    cancellationToken);
+                return TypedResults.Ok(
+                    await configs.GetEffectiveAsync(null, adapterId, cancellationToken));
+            });
+        app.MapGet(
+            "/api/v1/projects/{projectId}/agent-configs",
+            async Task<IResult> (
+                string projectId,
+                IProjectCatalog catalog,
+                IAgentConfigService configs,
+                CancellationToken cancellationToken) =>
+            {
+                if (await catalog.FindAsync(projectId, cancellationToken) is not { } project)
+                {
+                    return TypedResults.NotFound();
+                }
+
+                return TypedResults.Ok(
+                    await configs.ListEffectiveAsync(project.Id, cancellationToken));
+            });
+        app.MapPut(
+            "/api/v1/projects/{projectId}/agent-configs/{adapterId}",
+            async Task<IResult> (
+                string projectId,
+                string adapterId,
+                AgentConfig config,
+                IProjectCatalog catalog,
+                IAgentConfigService configs,
+                CancellationToken cancellationToken) =>
+            {
+                if (await catalog.FindAsync(projectId, cancellationToken) is not { } project)
+                {
+                    return TypedResults.NotFound();
+                }
+
+                await configs.SaveProjectAsync(
+                    project.Id,
+                    config with { Id = adapterId },
+                    cancellationToken);
+                return TypedResults.Ok(
+                    await configs.GetEffectiveAsync(
+                        project.Id,
+                        adapterId,
+                        cancellationToken));
+            });
     }
 
     /// <summary>

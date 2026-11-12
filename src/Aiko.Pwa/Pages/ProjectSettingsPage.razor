@@ -53,6 +53,41 @@ else
                                 </FlareText>
                             </FlareStack>
                         }
+                        @foreach (var agentConfig in State.AgentConfigs)
+                        {
+                            var item = agentConfig;
+                            <FlareStack Gap="FlareSpacing.XSmall">
+                                <FlareStack Row="true" Align="FlareAlignItems.Center" Justify="FlareJustifyContent.SpaceBetween" Gap="FlareSpacing.Small">
+                                    <FlareText Element="span" Typo="TypographyScale.LabelSmall">@item.Id</FlareText>
+                                    <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                        @(Loc.Get("AgentConfigSource") + ": " +
+                                          (item.Sources.TryGetValue("transport", out var source)
+                                              ? source.ToString()
+                                              : "default"))
+                                    </FlareText>
+                                </FlareStack>
+                                <AikoSelectField Label="@Loc.Get("AgentTransport")"
+                                                 Value="@SelectedTransport(item)"
+                                                 ValueChanged="value => SelectTransport(item, value)">
+                                    @foreach (var transport in item.SupportedTransports)
+                                    {
+                                        <option value="@transport.ToString()">@transport.ToString()</option>
+                                    }
+                                </AikoSelectField>
+                                @if (SelectedTransport(item) == AgentTransport.Acp.ToString())
+                                {
+                                    <AikoField Label="@Loc.Get("AgentAcpExecutable")"
+                                               Value="@AcpExecutable(item)"
+                                               ValueChanged="value => SetAcpExecutable(item, value)" />
+                                }
+                                <FlareText Element="span" Typo="TypographyScale.LabelSmall" Color="FlareColor.OnSurfaceVariant2">
+                                    @Capabilities(item)
+                                </FlareText>
+                                <FlareButton Variant="ButtonVariant.Text" Size="ButtonSize.Sm" OnClick="() => SaveAgentAsync(item)">
+                                    @Loc.Get("SaveAgent")
+                                </FlareButton>
+                            </FlareStack>
+                        }
                     </FlareStack>
                 </FlarePaper>
                 @* The linked-projects registry has a screen of its own, reached from the rail: one place to
@@ -105,6 +140,12 @@ else
 }
 
 @code {
+    private readonly Dictionary<string, AgentTransport> transports =
+        new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, string> acpExecutables =
+        new(StringComparer.OrdinalIgnoreCase);
+    private string? loadedProjectId;
+
     protected override void OnInitialized() => State.Changed += OnStateChanged;
 
     private Task OnStateChanged() => InvokeAsync(StateHasChanged);
@@ -130,6 +171,51 @@ else
     /// </summary>
     private static string ReleaseHref(string projectHandle) =>
         ProjectRoutes.Release(projectHandle);
+
+    private string SelectedTransport(EffectiveAgentConfig config) =>
+        (transports.TryGetValue(config.Id, out var value) ? value : config.Transport)
+        .ToString();
+
+    private void SelectTransport(EffectiveAgentConfig config, string? value)
+    {
+        if (Enum.TryParse<AgentTransport>(value, out var transport))
+        {
+            transports[config.Id] = transport;
+        }
+    }
+
+    private string AcpExecutable(EffectiveAgentConfig config) =>
+        acpExecutables.TryGetValue(config.Id, out var value)
+            ? value
+            : config.Acp?.Executable ?? string.Empty;
+
+    private void SetAcpExecutable(EffectiveAgentConfig config, string? value) =>
+        acpExecutables[config.Id] = value ?? string.Empty;
+
+    private string Capabilities(EffectiveAgentConfig config) =>
+        $"{Loc.Get("AgentAikoAccess")}: {string.Join(", ", config.Capabilities.AikoAccess ?? [])}; " +
+        $"{Loc.Get("AgentActions")}: {string.Join(", ", config.Capabilities.Actions ?? [])}; " +
+        $"{Loc.Get("AgentStages")}: {string.Join(", ", config.Capabilities.Stages ?? [])}; " +
+        $"{Loc.Get("AgentCardTypes")}: {string.Join(", ", config.Capabilities.CardTypes ?? [])}; " +
+        $"{Loc.Get("AgentSessions")}: {config.Capabilities.MaxConcurrentSessions}";
+
+    private async Task SaveAgentAsync(EffectiveAgentConfig config)
+    {
+        if (State.Board is not { } board)
+        {
+            return;
+        }
+
+        var transport = transports.TryGetValue(config.Id, out var selected)
+            ? selected
+            : config.Transport;
+        var acp = transport == AgentTransport.Acp
+            ? new AgentAcpConfig(Executable: AcpExecutable(config))
+            : null;
+        await State.SaveAgentConfigAsync(
+            board.Project.Id,
+            new AgentConfig(Id: config.Id, Transport: transport, Acp: acp));
+    }
 
     /// <summary>
     /// Writes one pipeline of this project and reloads the board, so the editor's revision follows. Returns
@@ -284,5 +370,16 @@ else
     protected override async Task OnParametersSetAsync()
     {
         await State.EnsureProjectAsync(ProjectId);
+        if (State.Board is { } board &&
+            !StringComparer.Ordinal.Equals(loadedProjectId, board.Project.Id))
+        {
+            loadedProjectId = board.Project.Id;
+            await State.LoadAgentConfigsAsync(board.Project.Id);
+            foreach (var config in State.AgentConfigs)
+            {
+                transports.TryAdd(config.Id, config.Transport);
+                acpExecutables.TryAdd(config.Id, config.Acp?.Executable ?? string.Empty);
+            }
+        }
     }
 }
