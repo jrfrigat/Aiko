@@ -57,6 +57,21 @@ public interface IExecutionCoordinator
         CancellationToken cancellationToken);
 
     /// <summary>
+    /// Starts a new stage execution and records the configured agent instance it runs as.
+    /// </summary>
+    /// <param name="card">Card being worked.</param>
+    /// <param name="stageId">Stage to run.</param>
+    /// <param name="agentAdapterId">Agent adapter that takes the stage.</param>
+    /// <param name="agentInstanceId">Configured agent instance, when the caller knows it.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    ValueTask<StageExecution> StartAsync(
+        CardReference card,
+        string stageId,
+        string agentAdapterId,
+        string? agentInstanceId,
+        CancellationToken cancellationToken);
+
+    /// <summary>
     /// Hands the execution to another agent: writes a handoff document,
     /// closes the current attempt and opens a new one.
     /// </summary>

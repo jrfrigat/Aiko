@@ -25,6 +25,8 @@ public class AgentDispatchSpecs
         Assert.Single(deliveries.Entries);
         Assert.Equal(AgentDeliveryState.Completed, deliveries.Entries[0].State);
         Assert.Equal("session-1", deliveries.Entries[0].SessionId);
+        Assert.Equal("alpha-deepseek", deliveries.Entries[0].AgentInstanceId);
+        Assert.Equal("alpha", deliveries.Entries[0].AdapterId);
         Assert.Equal(1, transport.Calls);
     }
 
@@ -86,7 +88,7 @@ public class AgentDispatchSpecs
     [Fact]
     public async Task The_agent_the_person_named_is_not_rewritten()
     {
-        var command = QueuedCommand(requestedAgent: "alpha");
+        var command = QueuedCommand(requestedAgent: "alpha-deepseek");
         var commands = new FakeCommandStore(command);
         var deliveries = new FakeDeliveryStore();
         var transport = new FakeTransport(new AgentTransportResult(true, SessionId: "s"));
@@ -95,8 +97,9 @@ public class AgentDispatchSpecs
         await service.ProcessAsync(CancellationToken.None);
 
         Assert.Equal(CardCommandState.Taken, commands.Command.State);
-        Assert.Equal("alpha", commands.Command.AgentAdapterId);
-        Assert.Equal("alpha", deliveries.Entries[0].AgentAdapterId);
+        Assert.Equal("alpha-deepseek", commands.Command.AgentAdapterId);
+        Assert.Equal("alpha-deepseek", deliveries.Entries[0].ResolvedInstanceId);
+        Assert.Equal("alpha", deliveries.Entries[0].ResolvedAdapterId);
     }
 
     [Fact]
@@ -157,7 +160,7 @@ public class AgentDispatchSpecs
         []);
 
     private static EffectiveAgentConfig Agent() => new(
-        "alpha",
+        "alpha-deepseek",
         true,
         AgentTransport.Acp,
         AgentTransport.Command,
@@ -167,7 +170,8 @@ public class AgentDispatchSpecs
         null,
         true,
         [AgentTransport.Command, AgentTransport.Acp],
-        new Dictionary<string, AgentConfigSource>());
+        new Dictionary<string, AgentConfigSource>(),
+        AdapterId: "alpha");
 
     private static AgentDispatchService Create(
         ICardCommandStore commands,
@@ -361,14 +365,15 @@ public class AgentDispatchSpecs
         public ValueTask<AgentDelivery> CreateAsync(
             string projectId,
             string commandId,
-            string agentAdapterId,
+            string agentInstanceId,
+            string? adapterId,
             AgentTransport transport,
             CancellationToken cancellationToken)
         {
             var delivery = new AgentDelivery(
                 $"DLV-{++sequence}",
                 commandId,
-                agentAdapterId,
+                agentInstanceId,
                 transport,
                 AgentDeliveryState.Starting,
                 null,
@@ -376,7 +381,9 @@ public class AgentDispatchSpecs
                 null,
                 DateTimeOffset.UtcNow,
                 null,
-                null);
+                null,
+                AgentInstanceId: agentInstanceId,
+                AdapterId: adapterId);
             Entries.Add(delivery);
             return ValueTask.FromResult(delivery);
         }

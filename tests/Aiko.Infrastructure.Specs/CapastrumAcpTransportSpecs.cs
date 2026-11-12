@@ -341,7 +341,8 @@ public class CapastrumAcpTransportSpecs
         public ValueTask<AgentDelivery> CreateAsync(
             string projectId,
             string commandId,
-            string agentAdapterId,
+            string agentInstanceId,
+            string? adapterId,
             AgentTransport transport,
             CancellationToken cancellationToken) =>
             throw new NotSupportedException();

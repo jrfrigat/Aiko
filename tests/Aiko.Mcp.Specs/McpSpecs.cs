@@ -1454,6 +1454,63 @@ public class McpSpecs(AikoServerFixture fixture) : IClassFixture<AikoServerFixtu
     }
 
     [Fact]
+    public async Task An_agent_instance_is_recorded_on_the_started_run()
+    {
+        await using var client = await ConnectAsync();
+        var cardId = $"TASK-INSTANCE-{Guid.NewGuid():N}";
+        await client.CallToolAsync(
+            "aiko_create_card",
+            new Dictionary<string, object?>
+            {
+                ["cardId"] = cardId,
+                ["kind"] = "task",
+                ["title"] = "Run as an instance",
+                ["ownPriority"] = 1,
+                ["declaredScopeFiles"] = new[] { "src/**" }
+            },
+            cancellationToken: CancellationToken.None);
+
+        var started = await client.CallToolAsync(
+            "aiko_start_stage",
+            new Dictionary<string, object?>
+            {
+                ["cardId"] = cardId,
+                ["stageId"] = "analysis",
+                ["agentAdapterId"] = "claude-code",
+                ["agentInstanceId"] = "claude-code-deepseek"
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.NotEqual(true, started.IsError);
+        using var startedJson = JsonDocument.Parse(FirstText(started) ?? "{}");
+        var executionId = startedJson.RootElement.GetProperty("id").GetString();
+        var attempt = startedJson.RootElement.GetProperty("attempts")[0];
+        Assert.Equal("claude-code", attempt.GetProperty("agentAdapterId").GetString());
+        Assert.Equal("claude-code-deepseek", attempt.GetProperty("agentInstanceId").GetString());
+
+        // Release the project's run slot for the rest of the class, as the start above took it.
+        var estimated = await client.CallToolAsync(
+            "aiko_estimate_card",
+            new Dictionary<string, object?>
+            {
+                ["cardId"] = cardId,
+                ["expectedRevision"] = 2,
+                ["criterionValues"] = new[] { "complete=8" }
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.NotEqual(true, estimated.IsError);
+        var complete = await client.CallToolAsync(
+            "aiko_complete_stage",
+            new Dictionary<string, object?>
+            {
+                ["executionId"] = executionId,
+                ["actualChangedFiles"] = new[] { "src/app.cs" },
+                ["artifacts"] = Array.Empty<string>()
+            },
+            cancellationToken: CancellationToken.None);
+        Assert.NotEqual(true, complete.IsError);
+    }
+
+    [Fact]
     public async Task Completing_a_stage_without_a_fresh_estimate_is_refused_through_mcp()
     {
         await using var client = await ConnectAsync();

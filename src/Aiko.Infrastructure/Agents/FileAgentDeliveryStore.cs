@@ -64,12 +64,13 @@ public sealed class FileAgentDeliveryStore(
     public async ValueTask<AgentDelivery> CreateAsync(
         string projectId,
         string commandId,
-        string agentAdapterId,
+        string agentInstanceId,
+        string? adapterId,
         AgentTransport transport,
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(commandId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(agentAdapterId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(agentInstanceId);
         var project = await FindProjectAsync(projectId, cancellationToken);
 
         using (await locks.LockAsync(project.Id, cancellationToken))
@@ -78,7 +79,7 @@ public sealed class FileAgentDeliveryStore(
             var delivery = new AgentDelivery(
                 $"{IdPrefix}{document.NextSequence}",
                 commandId.Trim(),
-                agentAdapterId.Trim(),
+                agentInstanceId.Trim(),
                 transport,
                 AgentDeliveryState.Starting,
                 null,
@@ -86,7 +87,9 @@ public sealed class FileAgentDeliveryStore(
                 null,
                 DateTimeOffset.UtcNow,
                 null,
-                null);
+                null,
+                AgentInstanceId: agentInstanceId.Trim(),
+                AdapterId: string.IsNullOrWhiteSpace(adapterId) ? null : adapterId.Trim());
             await WriteDocumentAsync(
                 project.RootPath,
                 document with

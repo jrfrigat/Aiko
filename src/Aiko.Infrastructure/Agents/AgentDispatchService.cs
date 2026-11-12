@@ -141,6 +141,7 @@ public sealed class AgentDispatchService(
             projectId,
             command.Id,
             agent.Id,
+            agent.AdapterId,
             transport.Transport,
             cancellationToken);
 

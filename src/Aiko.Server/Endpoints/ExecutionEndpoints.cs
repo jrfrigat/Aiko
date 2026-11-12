@@ -63,6 +63,7 @@ internal static class ExecutionEndpoints
                         card,
                         request.StageId,
                         request.AgentAdapterId,
+                        null,
                         cancellationToken);
                 });
             });

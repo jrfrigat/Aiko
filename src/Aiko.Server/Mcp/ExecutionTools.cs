@@ -35,6 +35,8 @@ internal sealed class ExecutionTools(
         string stageId,
         [Description("Agent adapter id.")]
         string agentAdapterId,
+        [Description("Configured agent instance id, when the agent runs as one.")]
+        [Optional] string? agentInstanceId,
         CancellationToken cancellationToken)
     {
         // The archive, the stage, the agent and the one-step rule are the coordinator's to judge, so the board's
@@ -55,6 +57,7 @@ internal sealed class ExecutionTools(
             card,
             stageId,
             agentAdapterId,
+            agentInstanceId,
             cancellationToken);
         return await AnswerAsync(execution, cancellationToken);
     }

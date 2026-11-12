@@ -14,6 +14,8 @@ namespace Aiko.Domain.Execution;
 /// <param name="CreatedAtUtc">When the attempt was created.</param>
 /// <param name="StartedAtUtc">When the transport started it, or null.</param>
 /// <param name="FinishedAtUtc">When it stopped being open, or null.</param>
+/// <param name="AgentInstanceId">Configured agent instance the attempt ran as, or null on an old record.</param>
+/// <param name="AdapterId">Adapter that ran the attempt, or null on an old record.</param>
 public sealed record AgentDelivery(
     string Id,
     string CommandId,
@@ -25,11 +27,21 @@ public sealed record AgentDelivery(
     string? FailureReason,
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset? StartedAtUtc,
-    DateTimeOffset? FinishedAtUtc)
+    DateTimeOffset? FinishedAtUtc,
+    string? AgentInstanceId = null,
+    string? AdapterId = null)
 {
     /// <summary>True while the attempt may still produce work.</summary>
     [JsonIgnore]
     public bool IsOpen => State is AgentDeliveryState.Starting or AgentDeliveryState.Running;
+
+    /// <summary>The instance the attempt ran as; an old record's agent id is its default instance.</summary>
+    [JsonIgnore]
+    public string ResolvedInstanceId => AgentInstanceId ?? AgentAdapterId;
+
+    /// <summary>The adapter that ran the attempt; an old record's agent id is the adapter id.</summary>
+    [JsonIgnore]
+    public string ResolvedAdapterId => AdapterId ?? AgentAdapterId;
 }
 
 /// <summary>The <c>deliveries.json</c> document: the direct-delivery history of one project.</summary>

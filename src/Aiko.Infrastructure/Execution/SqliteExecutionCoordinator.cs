@@ -138,10 +138,19 @@ public sealed class SqliteExecutionCoordinator(
     }
 
     /// <inheritdoc />
+    public ValueTask<StageExecution> StartAsync(
+        CardReference card,
+        string stageId,
+        string agentAdapterId,
+        CancellationToken cancellationToken) =>
+        StartAsync(card, stageId, agentAdapterId, null, cancellationToken);
+
+    /// <inheritdoc />
     public async ValueTask<StageExecution> StartAsync(
         CardReference card,
         string stageId,
         string agentAdapterId,
+        string? agentInstanceId,
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(stageId);
@@ -192,6 +201,7 @@ public sealed class SqliteExecutionCoordinator(
                     sourceCard,
                     stageId,
                     agentAdapterId,
+                    agentInstanceId,
                     cancellationToken);
             }
 
@@ -277,7 +287,8 @@ public sealed class SqliteExecutionCoordinator(
                         AgentAttemptState.Running,
                         now,
                         null,
-                        null)
+                        null,
+                        agentInstanceId)
                 ],
                 now,
                 StageExecutionState.Running,
@@ -370,6 +381,7 @@ public sealed class SqliteExecutionCoordinator(
         Card sourceCard,
         string stageId,
         string agentAdapterId,
+        string? agentInstanceId,
         CancellationToken cancellationToken)
     {
         var now = DateTimeOffset.UtcNow;
@@ -395,7 +407,8 @@ public sealed class SqliteExecutionCoordinator(
             AgentAttemptState.Running,
             now,
             null,
-            null));
+            null,
+            agentInstanceId));
 
         if (!StringComparer.Ordinal.Equals(sourceCard.StageId, stageId))
         {

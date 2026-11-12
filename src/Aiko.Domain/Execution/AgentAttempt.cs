@@ -10,4 +10,5 @@ public sealed record AgentAttempt(
     AgentAttemptState State,
     DateTimeOffset StartedAt,
     DateTimeOffset? FinishedAt,
-    string? ExitReason);
+    string? ExitReason,
+    string? AgentInstanceId = null);
